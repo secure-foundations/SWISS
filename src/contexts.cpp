@@ -165,7 +165,14 @@ InductionContext::InductionContext(
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
   ActionResult res = applyAction(this->e1, action, {});
   this->e2 = res.e;
+
+  // Add the relation between the two states
   ctx->solver.add(res.constraint);
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->e1->value2expr(axiom, {}));
+  }
 }
 
 ActionResult do_if_else(
@@ -272,8 +279,44 @@ ActionResult applyAction(
     }
     return ActionResult(es[0], z3::mk_or(parts));
   }
-  else if (ChoiceAction* action = dynamic_cast<ChoiceAction*>(a.get())) {
-    assert(false && "not implemented");
+  else if (Assign* action = dynamic_cast<Assign*>(a.get())) {
+    Apply* apply = dynamic_cast<Apply*>(action->left.get());
+    assert(apply != NULL);
+
+    Const* func_const = dynamic_cast<Const*>(apply->func.get());
+    assert(func_const != NULL);
+    func_decl orig_func = e->getFunc(func_const->name);
+
+    z3::sort_vector domain(ctx->ctx);
+    for (int i = 0; i < orig_func.arity(); i++) {
+      domain.push_back(orig_func.domain(i));
+    }
+    func_decl new_func = ctx->ctx.function(orig_func.name(), domain, orig_func.range());
+
+    z3::expr_vector qvars(ctx->ctx);
+    z3::expr_vector all_eq_parts(ctx->ctx);
+    std::unordered_map<std::string, z3::expr> vars;
+    for (shared_ptr<Value> arg : apply->args) {
+      if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
+        expr qvar = ctx->ctx.constant(arg_var->name.c_str(), ctx->getSort(arg_var->sort));
+        qvars.push_back(qvar);
+        vars.insert(make_pair(arg_var->name, qvar));
+      } else {
+        expr qvar = ctx->ctx.constant("arg", ctx->getSort(arg_var->sort));
+        qvars.push_back(qvar);
+        all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
+      }
+    }
+
+    std::unordered_map<std::string, z3::func_decl> new_mapping = e->mapping;
+    new_mapping.insert(make_pair(func_const->name, new_func));
+    ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
+
+    return ActionResult(shared_ptr<ModelEmbedding>(new_e),
+        z3::forall(qvars, new_func(qvars) == z3::ite(
+          z3::mk_and(all_eq_parts),
+          e->value2expr(action->right, consts, vars),
+          orig_func(qvars))));
   }
   else {
     assert(false && "applyAction does not implement this unknown case");

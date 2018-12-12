@@ -93,6 +93,8 @@ def action_to_obj(l):
 def logic_to_obj(l):
   if isinstance(l, logic.ForAll):
     return ["forall", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
+  if isinstance(l, logic.Exists):
+    return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
   elif isinstance(l, logic.Var):
     return ["var", l.name, sort_to_obj(l.sort)]
   elif isinstance(l, logic.Const):
