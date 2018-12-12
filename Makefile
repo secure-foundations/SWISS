@@ -10,7 +10,7 @@ CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror
 all: synthesis
 
 synthesis: $(OBJECTS)
-	clang++ -o synthesis -lz3 $(OBJECTS)
+	clang++ -g -o synthesis -lz3 $(OBJECTS)
 
 bin/%.o: src/%.cpp src/*.h
 	@mkdir -p $(basename $@)

@@ -42,9 +42,10 @@ public:
       std::shared_ptr<Module> module);
 
   z3::func_decl getFunc(std::string);
+
+  z3::expr value2expr(std::shared_ptr<Value>);
   z3::expr value2expr(std::shared_ptr<Value>,
       std::unordered_map<std::string, z3::expr> const& consts);
-
   z3::expr value2expr(std::shared_ptr<Value>,
       std::unordered_map<std::string, z3::expr> const& consts,
       std::unordered_map<std::string, z3::expr> const& vars);

@@ -67,9 +67,17 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
 
 z3::func_decl ModelEmbedding::getFunc(string name) {
   auto iter = mapping.find(name);
+  printf("name is %s\n", name.c_str());
   assert(iter != mapping.end());
   return iter->second;
 }
+
+z3::expr ModelEmbedding::value2expr(
+    shared_ptr<Value> value)
+{
+  return value2expr(value, {}, {});
+}
+
 
 z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value,
@@ -296,13 +304,14 @@ ActionResult applyAction(
     z3::expr_vector qvars(ctx->ctx);
     z3::expr_vector all_eq_parts(ctx->ctx);
     std::unordered_map<std::string, z3::expr> vars;
-    for (shared_ptr<Value> arg : apply->args) {
+    for (int i = 0; i < orig_func.arity(); i++) {
+      shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
         expr qvar = ctx->ctx.constant(arg_var->name.c_str(), ctx->getSort(arg_var->sort));
         qvars.push_back(qvar);
         vars.insert(make_pair(arg_var->name, qvar));
       } else {
-        expr qvar = ctx->ctx.constant("arg", ctx->getSort(arg_var->sort));
+        expr qvar = ctx->ctx.constant("arg", domain[i]);
         qvars.push_back(qvar);
         all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
       }
