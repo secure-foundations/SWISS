@@ -7,6 +7,10 @@ using z3::sort;
 using z3::func_decl;
 using z3::expr;
 
+/*
+ * BackgroundContext
+ */
+
 BackgroundContext::BackgroundContext(z3::context& ctx, std::shared_ptr<Module> module)
     : ctx(ctx),
       solver(ctx)
@@ -33,6 +37,10 @@ z3::sort BackgroundContext::getSort(std::shared_ptr<Sort> sort) {
   }
 }
 
+/*
+ * ModelEmbedding
+ */
+
 shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
     shared_ptr<BackgroundContext> ctx,
     shared_ptr<Module> module)
@@ -41,22 +49,96 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
   for (VarDecl decl : module->functions) {
     Sort* s = decl.sort.get();
     if (FunctionSort* fsort = dynamic_cast<FunctionSort*>(s)) {
-      vector<z3::sort> domain;
+      z3::sort_vector domain(ctx->ctx);
       for (std::shared_ptr<Sort> domain_sort : fsort->domain) {
         domain.push_back(ctx->getSort(domain_sort));
       }
       z3::sort range = ctx->getSort(fsort->range);
       mapping.insert(make_pair(decl.name, ctx->ctx.function(
-          decl.name.c_str(), domain.size(),
-          &domain[0], range)));
+          decl.name.c_str(), domain, range)));
     } else {
-      mapping.insert(make_pair(decl.name, ctx->ctx.function(decl.name.c_str(), 0, NULL,
+      mapping.insert(make_pair(decl.name, ctx->ctx.function(decl.name.c_str(), 0, 0,
           ctx->getSort(decl.sort))));
     }
   }
 
   return shared_ptr<ModelEmbedding>(new ModelEmbedding(ctx, mapping));
 }
+
+z3::func_decl ModelEmbedding::getFunc(string name) {
+  auto iter = mapping.find(name);
+  assert(iter != mapping.end());
+  return iter->second;
+}
+
+z3::expr ModelEmbedding::value2expr(
+    shared_ptr<Value> value,
+    std::unordered_map<std::string, z3::expr> const& consts)
+{
+  return value2expr(value, consts, {});
+}
+
+z3::expr ModelEmbedding::value2expr(
+    shared_ptr<Value> v,
+    std::unordered_map<std::string, z3::expr> const& consts,
+    std::unordered_map<std::string, z3::expr> const& vars)
+{
+  if (Forall* value = dynamic_cast<Forall*>(v.get())) {
+    z3::expr_vector vec_vars(ctx->ctx);
+    std::unordered_map<std::string, z3::expr> new_vars = vars;
+    for (VarDecl decl : value->decls) {
+      expr var = ctx->ctx.constant(decl.name.c_str(), ctx->getSort(decl.sort));
+      vec_vars.push_back(var);
+      new_vars.insert(make_pair(decl.name, var));
+    }
+    return z3::forall(vec_vars, value2expr(value->body, consts, new_vars));
+  }
+  else if (Var* value = dynamic_cast<Var*>(v.get())) {
+    return vars.find(value->name)->second;
+  }
+  else if (Const* value = dynamic_cast<Const*>(v.get())) {
+    return consts.find(value->name)->second;
+  }
+  else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
+    return value2expr(value->left, consts, vars) == value2expr(value->right, consts, vars);
+  }
+  else if (Not* value = dynamic_cast<Not*>(v.get())) {
+    return !value2expr(value->value, consts, vars);
+  }
+  else if (Implies* value = dynamic_cast<Implies*>(v.get())) {
+    return !value2expr(value->left, consts, vars) || value2expr(value->right, consts, vars);
+  }
+  else if (Apply* value = dynamic_cast<Apply*>(v.get())) {
+    z3::expr_vector args(ctx->ctx);
+    for (shared_ptr<Value> arg : value->args) {
+      args.push_back(value2expr(arg, consts, vars));
+    }
+    Const* func_value = dynamic_cast<Const*>(value->func.get());
+    assert(func_value != NULL);
+    return getFunc(func_value->name)(args);
+  }
+  else if (And* value = dynamic_cast<And*>(v.get())) {
+    z3::expr_vector args(ctx->ctx);
+    for (shared_ptr<Value> arg : value->args) {
+      args.push_back(value2expr(arg, consts, vars));
+    }
+    return mk_and(args);
+  }
+  else if (Or* value = dynamic_cast<Or*>(v.get())) {
+    z3::expr_vector args(ctx->ctx);
+    for (shared_ptr<Value> arg : value->args) {
+      args.push_back(value2expr(arg, consts, vars));
+    }
+    return mk_or(args);
+  }
+  else {
+    assert(false && "value2expr does not support this case");
+  }
+}
+
+/*
+ * InductionContext
+ */
 
 struct ActionResult {
   std::shared_ptr<ModelEmbedding> e;
@@ -111,6 +193,15 @@ ActionResult do_if_else(
   return applyAction(e, shared_ptr<Action>(new ChoiceAction(choices)), consts);
 }
 
+expr funcs_equal(z3::context& ctx, func_decl a, func_decl b) {
+  z3::expr_vector args(ctx);
+  for (int i = 0; i < a.arity(); i++) {
+    z3::sort arg_sort = a.domain(i);
+    args.push_back(ctx.constant("arg", arg_sort));
+  }
+  return z3::forall(args, a(args) == b(args));
+}
+
 ActionResult applyAction(
     shared_ptr<ModelEmbedding> e,
     shared_ptr<Action> a,
@@ -121,8 +212,9 @@ ActionResult applyAction(
   if (LocalAction* action = dynamic_cast<LocalAction*>(a.get())) {
     unordered_map<string, expr> new_consts(consts);
     for (VarDecl decl : action->args) {
-      new_consts.insert(make_pair(decl.name,
-          ctx->ctx.constant(decl.name.c_str(), ctx->getSort(decl.sort))));
+      func_decl d = ctx->ctx.function(decl.name.c_str(), 0, 0, ctx->getSort(decl.sort));
+      expr ex = d();
+      new_consts.insert(make_pair(decl.name, ex));
     }
     return applyAction(e, action->body, new_consts);
   }
@@ -169,9 +261,10 @@ ActionResult applyAction(
       if (!is_ident) {
         for (int i = 0; i < len; i++) {
           if (es[i]->getFunc(func_name).name() != e->getFunc(func_name).name()) {
-            parts[i] = and2(
-                funcs_equal(es[i]->getFunc(func_name), new_func_decl),
-                parts[i]);
+            // TODO we could replace the old func_decl with the new one instead
+            parts[i] = 
+                funcs_equal(ctx->ctx, es[i]->getFunc(func_name), new_func_decl) &&
+                parts[i];
             es[i]->getFunc(func_name) = new_func_decl;
           }
         }
