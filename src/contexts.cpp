@@ -287,7 +287,6 @@ ActionResult applyAction(
       }
       mapping.insert(make_pair(func_name, new_func_decl));
       if (!is_ident) {
-        printf("choice: %s\n", new_func_decl.name().str().c_str());
         for (int i = 0; i < len; i++) {
           if (es[i]->getFunc(func_name).name() != new_func_decl.name()) {
             constraints[i] =
@@ -344,8 +343,6 @@ ActionResult applyAction(
     new_mapping.erase(func_const->name);
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
-
-    printf("new after assg: %s\n", new_func.name().str().c_str());
 
     return ActionResult(shared_ptr<ModelEmbedding>(new_e),
         z3::forall(qvars, new_func(qvars) == z3::ite(
