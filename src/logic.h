@@ -50,6 +50,8 @@ public:
 class Value {
 public:
   virtual ~Value() {}
+
+  virtual std::string to_string() = 0;
 };
 
 class Forall : public Value {
@@ -61,6 +63,8 @@ public:
       std::vector<VarDecl> const& decls,
       std::shared_ptr<Value> body)
       : decls(decls), body(body) { }
+
+  std::string to_string() override;
 };
 
 class Var : public Value {
@@ -72,6 +76,8 @@ public:
       std::string const& name,
       std::shared_ptr<Sort> sort)
       : name(name), sort(sort) { }
+
+  std::string to_string() override;
 };
 
 class Const : public Value {
@@ -83,6 +89,8 @@ public:
       std::string const& name,
       std::shared_ptr<Sort> sort)
       : name(name), sort(sort) { }
+
+  std::string to_string() override;
 };
 
 class Eq : public Value {
@@ -94,6 +102,8 @@ public:
     std::shared_ptr<Value> left,
     std::shared_ptr<Value> right)
     : left(left), right(right) { }
+
+  std::string to_string() override;
 };
 
 class Not : public Value {
@@ -103,6 +113,8 @@ public:
   Not(
     std::shared_ptr<Value> value)
     : value(value) { }
+
+  std::string to_string() override;
 };
 
 class Implies : public Value {
@@ -114,6 +126,8 @@ public:
     std::shared_ptr<Value> left,
     std::shared_ptr<Value> right)
     : left(left), right(right) { }
+
+  std::string to_string() override;
 };
 
 class Apply : public Value {
@@ -125,6 +139,8 @@ public:
     std::shared_ptr<Value> func,
     std::vector<std::shared_ptr<Value>> const& args)
     : func(func), args(args) { }
+
+  std::string to_string() override;
 };
 
 class And : public Value {
@@ -134,6 +150,8 @@ public:
   And(
     std::vector<std::shared_ptr<Value>> const& args)
     : args(args) { }
+
+  std::string to_string() override;
 };
 
 class Or : public Value {
@@ -143,6 +161,8 @@ public:
   Or(
     std::vector<std::shared_ptr<Value>> const& args)
     : args(args) { }
+
+  std::string to_string() override;
 };
 
 /* Action */

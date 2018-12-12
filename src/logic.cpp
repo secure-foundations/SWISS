@@ -201,3 +201,68 @@ shared_ptr<Action> json2action(Json j) {
     assert(false && "unrecognized Action type");
   }
 }
+
+string Forall::to_string() {
+  string res = "forall ";
+  for (int i = 0; i < decls.size(); i++) {
+    if (i > 0) {
+      res += ", ";
+    }
+    res += decls[i].name;
+  }
+  res += " . (" + body->to_string() + ")";
+  return res;
+}
+
+string Var::to_string() {
+  return name;
+}
+
+string Const::to_string() {
+  return name;
+}
+
+string Eq::to_string() {
+  return "(" + left->to_string() + ") = (" + right->to_string() + ")";
+}
+
+string Not::to_string() {
+  return "~(" + value->to_string() + ")";
+}
+
+string Implies::to_string() {
+  return "(" + left->to_string() + ") -> (" + right->to_string() + ")";
+}
+
+string And::to_string() {
+  string res = "";
+  for (int i = 0; i < args.size(); i++) {
+    if (i > 0) {
+      res += " & ";
+    }
+    res += "(" + args[i]->to_string() + ")";
+  }
+  return res;
+}
+
+string Or::to_string() {
+  string res = "";
+  for (int i = 0; i < args.size(); i++) {
+    if (i > 0) {
+      res += " | ";
+    }
+    res += "(" + args[i]->to_string() + ")";
+  }
+  return res;
+}
+
+string Apply::to_string() {
+  string res = func->to_string() + "(";
+  for (int i = 0; i < args.size(); i++) {
+    if (i > 0) {
+      res += ", ";
+    }
+    res += args[i]->to_string();
+  }
+  return res;
+}

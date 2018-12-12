@@ -90,6 +90,7 @@ z3::expr ModelEmbedding::value2expr(
     std::unordered_map<std::string, z3::expr> const& consts,
     std::unordered_map<std::string, z3::expr> const& vars)
 {
+  assert(v.get() != NULL);
   if (Forall* value = dynamic_cast<Forall*>(v.get())) {
     z3::expr_vector vec_vars(ctx->ctx);
     std::unordered_map<std::string, z3::expr> new_vars = vars;
@@ -143,6 +144,7 @@ z3::expr ModelEmbedding::value2expr(
     return mk_or(args);
   }
   else {
+    //printf("value2expr got: %s\n", v->to_string().c_str());
     assert(false && "value2expr does not support this case");
   }
 }

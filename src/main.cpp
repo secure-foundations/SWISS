@@ -28,20 +28,25 @@ void add_invariant(
 }
 
 int main() {
-  std::istreambuf_iterator<char> begin(std::cin), end;
-  std::string json_src(begin, end);
+  try {
+    std::istreambuf_iterator<char> begin(std::cin), end;
+    std::string json_src(begin, end);
 
-  shared_ptr<Module> module = parse_module(json_src);
+    shared_ptr<Module> module = parse_module(json_src);
 
-  z3::context ctx;
+    z3::context ctx;
 
-  auto bgctx = shared_ptr<BackgroundContext>(new BackgroundContext(ctx, module));
-  auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module));
+    auto bgctx = shared_ptr<BackgroundContext>(new BackgroundContext(ctx, module));
+    auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module));
 
-  for (int i = module->conjectures.size(); i >= 0; i--) {
-    add_invariant(indctx, module->conjectures[i]);
+    for (int i = module->conjectures.size() - 1; i >= 0; i--) {
+      add_invariant(indctx, module->conjectures[i]);
+    }
+
+    printf("done\n");
+    printf("'%s'\n", bgctx->solver.to_smt2().c_str());
+  } catch (z3::exception exc) {
+    printf("got z3 exception: %s\n", exc.msg());
+    throw;
   }
-
-  printf("done\n");
-  printf("'%s'\n", bgctx->solver.to_smt2().c_str());
 }
