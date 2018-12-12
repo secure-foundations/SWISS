@@ -12,6 +12,7 @@ from ivy import ivy_module as im
 from ivy import ivy_module
 from ivy import logic
 from ivy import ivy_actions
+from ivy import ivy_logic_utils
 
 def get_json():
   with ivy_module.Module():
@@ -30,16 +31,16 @@ def get_json():
 
     axioms = []
     for axiom in im.module.get_axioms():
-      axioms.append(logic_to_obj(axiom))
+      axioms.append(logic_to_obj(ivy_logic_utils.close_epr(axiom)))
 
     conjectures = []
     for conj in im.module.conjs:
       for fmla in conj.fmlas:
-        conjectures.append(logic_to_obj(fmla))
+        conjectures.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
 
     inits = []
     for fmla in im.module.init_cond.fmlas:
-      inits.append(logic_to_obj(fmla))
+      inits.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
 
     actions = {}
     for name in im.module.actions:
@@ -70,7 +71,7 @@ def action_to_obj(l):
   elif isinstance(l, ivy_actions.AssumeAction):
     return [
       "assume",
-      logic_to_obj(l.args[0]),
+      logic_to_obj(ivy_logic_utils.close_epr(l.args[0])),
     ]
   elif isinstance(l, ivy_actions.AssignAction):
     return [
