@@ -7,6 +7,8 @@
 /* Sort */
 
 class Sort {
+public:
+  virtual ~Sort();
 };
 
 class BooleanSort : public Sort {
@@ -46,6 +48,8 @@ public:
 /* Value */
 
 class Value {
+public:
+  virtual ~Value();
 };
 
 class Forall : public Value {
@@ -144,6 +148,8 @@ public:
 /* Action */
 
 class Action {
+public:
+  virtual ~Action();
 };
 
 class LocalAction : public Action {
