@@ -40,6 +40,7 @@ int main() {
     auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module));
 
     for (int i = module->conjectures.size() - 1; i >= 0; i--) {
+      printf("trying inv %d\n", i);
       add_invariant(indctx, module->conjectures[i]);
     }
 

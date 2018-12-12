@@ -53,6 +53,7 @@ export receive
 
 # safety property
 conjecture ~(leader(N) & leader(M) & N ~= M)
+#conjecture ~(leader(N) & leader(M))
 
 # other invariants
 conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & nid(N) <= nid(M))
