@@ -13,7 +13,7 @@ from ivy import ivy_module
 from ivy import logic
 from ivy import ivy_actions
 
-def main():
+def get_json():
   with ivy_module.Module():
     with open(sys.argv[1]) as f:
       ivy_load_file(f)
@@ -40,7 +40,7 @@ def main():
       action = im.module.actions[name]
       actions[name] = action_to_obj(action)
 
-    print json.dumps({
+    return json.dumps({
       "sorts": im.module.sort_order,
       "functions": functions,
       "inits": inits,
@@ -130,6 +130,8 @@ def fmla_to_obj(fmla):
   assert isinstance(fmla, AST)
   return [type(fmla).__name__] + [fmla_to_obj(arg) for arg in fmla.args]
 
+def main():
+  print get_json()
+
 if __name__ == "__main__":
     main()
-

@@ -1,0 +1,135 @@
+#lang ivy1.3
+
+type node
+type quorum
+type round
+type value
+
+module total_order(r) = {
+    axiom r(X,X)                        # Reflexivity
+    axiom r(X, Y) & r(Y, Z) -> r(X, Z)  # Transitivity
+    axiom r(X, Y) & r(Y, X) -> X = Y    # Anti-symmetry
+    axiom r(X, Y) | r(Y, X)             # Totality
+}
+
+relation le(X: round, Y: round)
+instantiate total_order(le)
+individual bot : round
+
+relation member(X: node, Y: quorum)
+axiom exists N. member(N, Q) & member(N, R)
+
+relation start_round_msg(X: round)
+relation join_ack_msg(X: node, Y: round, Z: round, W: value)
+relation propose_msg(X: round, Y: value)
+relation vote_msg(X: node, Y: round, Z: value)
+relation decision(X: node, Y: round, Z: value)
+
+init ~(start_round_msg(R))
+init ~(join_ack_msg(N, R1, R2, V))
+init ~(propose_msg(R, V))
+init ~(vote_msg(N, R, V))
+init ~(decision(N, R, V))
+
+# ghost state
+
+relation left_round(X: node, Y: round)
+relation joined_round(X: node, Y: round)
+
+init ~(left_round(N, R))
+init ~(joined_round(N, R))
+
+action start_round = {
+  local r: round {
+    assume r ~= bot;
+    start_round_msg(r) := true;
+  }
+}
+
+action join_round = {
+  local n: node, r: round {
+    assume r ~= bot;
+    assume start_round_msg(r);
+    assume ~left_round(N,R);
+
+    local maxr: round, v: value {
+      assume (maxr=bot & (forall RP . forall VP . ~(
+        vote_msg(n, RP, VP) & le(RP, r) & RP ~= r
+      ))) | (maxr ~= bot & (
+        vote_msg(n, maxr, v) & le(maxr, r) & maxr ~= r
+      ) & (forall RP . forall VP . (
+        vote_msg(n, RP, VP) & le(RP, r) & RP ~= r
+      ) -> le(RP, maxr)));
+
+      join_ack_msg(n, r, maxr, v) := true;
+
+      left_round(n, R) := left_round(n, R) | (le(R,r) & R~=r);
+      joined_round(n, r) := true;
+    }
+  }
+}
+
+action propose = {
+  local r : round, q : quorum {
+    assume r ~= bot;
+    assume ~(propose_msg(r, V));
+    assume member(N,q) -> joined_round(N,r);
+
+    local maxr: round, v: value {
+      assume (maxr=bot & (forall RP . forall VP . ~(
+        exists N . member(N, q) & vote_msg(N, RP, VP) & le(RP,r) & RP~=r
+      ))) | (maxr ~= bot & (
+        exists N . member(N, q) & vote_msg(N, maxr, v) & le(maxr,r) & maxr~=r
+      ) & (forall RP . forall VP . (
+        exists N . member(N, q) & vote_msg(N, RP, VP) & le(RP,r) & RP~=r
+      ) -> le(RP, maxr)));
+
+      propose_msg(r, v) := true;
+    }
+  }
+}
+
+action vote = {
+  local n : node, r : round, v : value {
+    assume r ~= bot;
+    assume propose_msg(r, v);
+    assume ~left_round(n, r);
+    vote_msg(n, r, v) := true;
+  }
+}
+
+action learn = {
+  local n : node, r : round, v : value, q : quorum {
+    assume r ~= bot;
+    assume member(N, q) -> vote_msg(N, r, v);
+    decision(n, r, v) := true;
+  }
+}
+
+export start_round
+export join_round
+export propose
+export vote
+export learn
+
+conjecture (decision(N1, R1, V1) & decision(N2, R2, V2)) -> V1 = V2
+
+#conjecture propose_msg(R, V1) & propose_msg(R, V2) -> V1 = V2
+#conjecture vote_msg(N,R,V) -> propose_msg(R,V)
+conjecture (exists N . decision(N,R,V)) -> (exists Q . (forall N . member(N,Q) -> vote_msg(N,R,V)))
+
+#conjecture (join_ack_msg(N,R,bot,V) & le(RP,R) & RP ~= R) -> ~(vote_msg(N,RP,VP))
+#conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot) -> (le(RP,R) & RP ~= R & vote_msg(N,RP,V))
+#conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot & le(RP,RPP) & RP~=RPP & le(RPP,R) & RPP~=R) -> ~(vote_msg(N,RPP,VP))
+#conjecture ~(vote_msg(N,bot,V))
+
+# rewritten (12) -> (13)
+conjecture (propose_msg(R2, V2) & le(R1,R2) & R1~=R2 & V1~=V2) -> (exists N . member(N,Q) & (~(vote_msg(N,R1,V1))) & (left_round(N, R1)))
+
+# (14)
+
+#conjecture (le(R1,R2) & R1~=R2 & joined_round(N,R2)) -> left_round(N,R1)
+
+# (15)
+
+#conjecture join_ack_msg(N,R,RP,V) -> joined_round(N,R)
