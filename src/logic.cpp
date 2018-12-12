@@ -2,6 +2,7 @@
 #include "lib/json11/json11.hpp"
 
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 using namespace json11;
@@ -10,6 +11,7 @@ shared_ptr<Module> json2module(Json j);
 vector<string> json2string_array(Json j);
 vector<shared_ptr<Value>> json2value_array(Json j);
 vector<shared_ptr<Action>> json2action_array(Json j);
+vector<shared_ptr<Action>> json2action_array_from_map(Json j);
 vector<shared_ptr<Sort>> json2sort_array(Json j);
 vector<VarDecl> json2decl_array(Json j);
 shared_ptr<Value> json2value(Json j);
@@ -30,7 +32,7 @@ shared_ptr<Module> json2module(Json j) {
       json2value_array(j["axioms"]),
       json2value_array(j["inits"]),
       json2value_array(j["conjectures"]),
-      json2action_array(j["actions"])));
+      json2action_array_from_map(j["actions"])));
 }
 
 vector<string> json2string_array(Json j) {
@@ -57,6 +59,15 @@ vector<shared_ptr<Action>> json2action_array(Json j) {
   vector<shared_ptr<Action>> res;
   for (Json elem : j.array_items()) {
     res.push_back(json2action(elem));
+  }
+  return res;
+}
+
+vector<shared_ptr<Action>> json2action_array_from_map(Json j) {
+  assert(j.is_object());
+  vector<shared_ptr<Action>> res;
+  for (auto p : j.object_items()) {
+    res.push_back(json2action(p.second));
   }
   return res;
 }
@@ -182,7 +193,7 @@ shared_ptr<Action> json2action(Json j) {
     return shared_ptr<Action>(new If(json2value(j[1]), json2action(j[2])));
   }
   else if (type == "ifelse") {
-    assert(j.array_items().size() == 3);
+    assert(j.array_items().size() == 4);
     return shared_ptr<Action>(new IfElse(
         json2value(j[1]), json2action(j[2]), json2action(j[3])));
   }
