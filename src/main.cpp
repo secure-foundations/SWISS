@@ -42,5 +42,6 @@ int main() {
     add_invariant(indctx, module->conjectures[i]);
   }
 
+  printf("done\n");
   printf("'%s'\n", bgctx->solver.to_smt2().c_str());
 }

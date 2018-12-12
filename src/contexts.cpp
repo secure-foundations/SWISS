@@ -67,7 +67,6 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
 
 z3::func_decl ModelEmbedding::getFunc(string name) {
   auto iter = mapping.find(name);
-  printf("name is %s\n", name.c_str());
   assert(iter != mapping.end());
   return iter->second;
 }
@@ -102,10 +101,14 @@ z3::expr ModelEmbedding::value2expr(
     return z3::forall(vec_vars, value2expr(value->body, consts, new_vars));
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
-    return vars.find(value->name)->second;
+    auto iter = vars.find(value->name);
+    assert(iter != vars.end());
+    return iter->second;
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
-    return consts.find(value->name)->second;
+    auto iter = consts.find(value->name);
+    assert(iter != consts.end());
+    return iter->second;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
     return value2expr(value->left, consts, vars) == value2expr(value->right, consts, vars);

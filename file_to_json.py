@@ -22,6 +22,12 @@ def get_json():
     for func in im.module.functions:
       functions.append(logic_to_obj(func))  
 
+    # XXX hack
+    functions.append(["const", "<=", ["functionSort", [
+        ["uninterpretedSort", "id"],
+        ["uninterpretedSort", "id"]],
+        ["booleanSort"]]])
+
     axioms = []
     for axiom in im.module.get_axioms():
       axioms.append(logic_to_obj(axiom))

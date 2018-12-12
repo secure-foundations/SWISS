@@ -61,6 +61,8 @@ conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & nid(N
 conjecture ~(btw(N,M,O) & pnd(nid(M),N) & nid(M) <= nid(O))
 #conjecture ~(nid(Q) <= nid(P) & pnd(nid(Q),N) & btw(N,Q,P))
 
+conjecture forall N : node . forall M : node . N <= M
+
 #conjecture ~(~nid(P) <= nid(Q) & pnd(nid(Q),N) & ~pnd(nid(Q),P) & ~btw(N,P,Q))
 
 
