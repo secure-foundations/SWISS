@@ -21,6 +21,31 @@ void add_invariant(
   solver.add(indctx->e2->value2expr(not_conjecture));
 
   z3::check_result res = solver.check();
+
+  printf("'%s'\n", solver.to_smt2().c_str());
+
+  if (res == z3::sat) {
+    z3::model m = solver.get_model();
+    std::cout << m << "\n";
+
+    /*
+    for (int i = 0; i < m.num_funcs(); i++) {
+      z3::func_decl fd = m.get_func_decl(i);
+      if (m.has_interp(fd)) {
+        printf("func %s\n", fd.name().str().c_str());
+        z3::func_interp fi = m.get_func_interp(fd);
+        for (int j = 0; j < fi.num_entries(); j++) {
+          z3::func_entry en = fi.entry(j);
+          for (int k = 0; k < en.num_args(); k++) {
+            printf("%s ", en.arg(k).to_string().c_str());
+          }
+          printf("-> %s\n", en.value().to_string().c_str());
+        }
+      }
+    }
+    */
+  }
+
   assert(res == z3::unsat);
 
   solver.pop();

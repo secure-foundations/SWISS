@@ -265,12 +265,14 @@ ActionResult applyAction(
   else if (ChoiceAction* action = dynamic_cast<ChoiceAction*>(a.get())) {
     int len = action->actions.size();
     vector<shared_ptr<ModelEmbedding>> es;
-    z3::expr_vector parts(ctx->ctx);
+    vector<z3::expr> constraints;
     for (int i = 0; i < len; i++) {
       ActionResult res = applyAction(e, action->actions[i], consts);
       es.push_back(res.e);
-      parts.push_back(res.constraint);
+      constraints.push_back(res.constraint);
     }
+    std::unordered_map<std::string, z3::func_decl> mapping;
+
     for (auto p : e->mapping) {
       string func_name = p.first;
 
@@ -283,19 +285,28 @@ ActionResult applyAction(
           break;
         }
       }
+      mapping.insert(make_pair(func_name, new_func_decl));
       if (!is_ident) {
+        printf("choice: %s\n", new_func_decl.name().str().c_str());
         for (int i = 0; i < len; i++) {
-          if (es[i]->getFunc(func_name).name() != e->getFunc(func_name).name()) {
-            // TODO we could replace the old func_decl with the new one instead
-            parts[i] = 
+          if (es[i]->getFunc(func_name).name() != new_func_decl.name()) {
+            constraints[i] =
                 funcs_equal(ctx->ctx, es[i]->getFunc(func_name), new_func_decl) &&
-                parts[i];
-            es[i]->getFunc(func_name) = new_func_decl;
+                constraints[i];
           }
         }
       }
     }
-    return ActionResult(es[0], z3::mk_or(parts));
+
+    z3::expr_vector constraints_vec(ctx->ctx);
+    for (int i = 0; i < len; i++) {
+      constraints_vec.push_back(constraints[i]);
+    }
+
+    return ActionResult(
+        shared_ptr<ModelEmbedding>(new ModelEmbedding(e->ctx, mapping)),
+        z3::mk_or(constraints_vec)
+      );
   }
   else if (Assign* action = dynamic_cast<Assign*>(a.get())) {
     Apply* apply = dynamic_cast<Apply*>(action->left.get());
@@ -333,6 +344,8 @@ ActionResult applyAction(
     new_mapping.erase(func_const->name);
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
+
+    printf("new after assg: %s\n", new_func.name().str().c_str());
 
     return ActionResult(shared_ptr<ModelEmbedding>(new_e),
         z3::forall(qvars, new_func(qvars) == z3::ite(
