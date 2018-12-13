@@ -41,7 +41,7 @@ public:
       std::shared_ptr<BackgroundContext> ctx,
       std::shared_ptr<Module> module);
 
-  z3::func_decl getFunc(std::string);
+  z3::func_decl getFunc(std::string) const;
 
   z3::expr value2expr(std::shared_ptr<Value>);
   z3::expr value2expr(std::shared_ptr<Value>,

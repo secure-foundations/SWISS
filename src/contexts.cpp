@@ -70,7 +70,7 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
   return shared_ptr<ModelEmbedding>(new ModelEmbedding(ctx, mapping));
 }
 
-z3::func_decl ModelEmbedding::getFunc(string name) {
+z3::func_decl ModelEmbedding::getFunc(string name) const {
   auto iter = mapping.find(name);
   assert(iter != mapping.end());
   return iter->second;

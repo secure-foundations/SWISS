@@ -1,16 +1,17 @@
 #include "model.h"
 
 #include <cassert>
+#include <map>
 
 using namespace std;
 
-bool Model::eval_predicate(shared_ptr<Value> value) {
+bool Model::eval_predicate(shared_ptr<Value> value) const {
   return eval(value, {}) == 1;
 }
 
 object_value Model::eval(
     std::shared_ptr<Value> v,
-    std::unordered_map<std::string, object_value> const& vars)
+    std::unordered_map<std::string, object_value> const& vars) const
 {
   assert(v.get() != NULL);
 
@@ -29,8 +30,9 @@ object_value Model::eval(
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
     auto iter = function_info.find(value->name);
     assert(iter != function_info.end());
-    FunctionInfo* finfo = iter->second.get();
-    return finfo == NULL ? 0 : finfo.value;
+    FunctionInfo const& finfo = iter->second;
+    FunctionTable* ftable = finfo.table.get();
+    return ftable == NULL ? finfo.else_value : ftable->value;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
     return (object_value)(eval(value->left, vars), eval(value->right, vars));
@@ -45,15 +47,16 @@ object_value Model::eval(
     Const* func = dynamic_cast<Const*>(value->func.get());
     auto iter = function_info.find(func->name);
     assert (iter != function_info.end());
-    FunctionInfo* f = &iter->second;
+    FunctionInfo const& finfo = iter->second;
+    FunctionTable* ftable = finfo.table.get();
     for (auto arg : value->args) {
-      if (f == NULL) {
+      if (ftable == NULL) {
         break;
       }
       object_value arg_res = eval(arg, vars);
-      f = f->contents[arg_res].get();
+      ftable = ftable->children[arg_res].get();
     }
-    return f == NULL ? 0 : f->value;
+    return ftable == NULL ? finfo.else_value : ftable->value;
   }
   else if (And* value = dynamic_cast<And*>(v.get())) {
     for (auto arg : value->args) {
@@ -79,7 +82,7 @@ object_value Model::eval(
 object_value Model::do_forall(
     Forall* value,
     std::unordered_map<std::string, object_value>& vars,
-    int quantifier_index)
+    int quantifier_index) const
 {
   if (quantifier_index == value->decls.size()) {
     return eval(value->body, vars);    
@@ -89,7 +92,7 @@ object_value Model::do_forall(
   auto iter = vars.find(decl.name);
   assert(iter != vars.end());
 
-  int domain_size = sort_info[decl.name].domain_size;
+  size_t domain_size = get_domain_size(decl.sort.get());
 
   for (object_value i = 0; i < domain_size; i++) {
     iter->second = i;
@@ -111,7 +114,7 @@ Model Model::extract_model_from_z3(
 
   z3::model z3model = solver.get_model();
 
-  map<string, expr_vector> universes;
+  map<string, z3::expr_vector> universes;
 
   for (auto p : e.ctx->sorts) {
     string name = p.first;
@@ -119,7 +122,7 @@ Model Model::extract_model_from_z3(
 
     // The C++ api doesn't seem to have the functionality we need.
     // Go down to the C API.
-    Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx, model, s);
+    Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx, z3model, s);
     z3::expr_vector univ(ctx, c_univ);
 
     universes.insert(make_pair(name, univ));
@@ -131,36 +134,186 @@ Model Model::extract_model_from_z3(
     model.sort_info[name] = sinfo;
   }
 
-  for (auto p : e.ctx->functions) {
-    string name = p.first;  
-    z3::func_decl fdecl = p.second;
+  auto get_value = [&ctx, &universes](Sort* sort, z3::expr expression) -> object_value {
+    if (dynamic_cast<BooleanSort*>(sort)) {
+      if (z3::eq(expression, ctx.bool_val(true))) {
+        return 1;
+      } else if (z3::eq(expression, ctx.bool_val(false))) {
+        return 0;
+      } else {
+        assert(false);
+      }
+    } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(sort)) {
+      auto iter = universes.find(usort->name);
+      assert(iter != universes.end());
+      z3::expr_vector& vec = iter->second;
+      for (object_value i = 0; i < vec.size(); i++) {
+        if (z3::eq(expression, vec[i])) {
+          return i;
+        }
+      }
+      assert(false);
+    } else {
+      assert(false && "expected boolean sort or uninterpreted sort");
+    }
+  };
 
-    function_info.insert(make_pair(name, FunctionInfo()));
-    FunctionInfo& finfo = function_info[name];
+  for (VarDecl decl : module->functions) {
+    string name = decl.name;
+    z3::func_decl fdecl = e.getFunc(name);
+
+    int num_args;
+    Sort* range_sort;
+    vector<Sort*> domain_sorts;
+    vector<int> domain_sort_sizes;
+    if (FunctionSort* functionSort = dynamic_cast<FunctionSort*>(decl.sort.get())) {
+      num_args = functionSort->domain.size();
+      range_sort = functionSort->range.get();
+      for (auto ptr : functionSort->domain) {
+        Sort* argsort = ptr.get();
+        domain_sorts.push_back(argsort);
+        size_t sz;
+        if (dynamic_cast<BooleanSort*>(argsort)) {
+          sz = 2;
+        } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(argsort)) {
+          sz = model.sort_info[usort->name].domain_size;
+        } else {
+          assert(false && "expected boolean sort or uninterpreted sort");
+        }
+        domain_sort_sizes.push_back(sz);
+      }
+    } else {
+      num_args = 0;
+      range_sort = decl.sort.get();
+    }
+
+    model.function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& finfo = model.function_info[name];
 
     if (z3model.has_interp(fdecl)) {
-      finfo.else_value = get_value(range_sort_name, finfo.else_value());
-
       z3::func_interp finterp = z3model.get_func_interp(fdecl);
-      for (size_t i = 0; i < finterp.num_entries(); i++) {
-        func_entry fentry = finterp.entry(i);
-        
-        unique_ptr<FunctionTable>& table = finfo.table;
-        for (int argnum = 0; argnum < num_args; argnum++) {
-          object_value argvalue = get_value(domain_sort_names[argnum], fentry.arg(argnum));
 
-          if (!table.get()) {
-            table.reset(new FunctionTable());
-            table->children.resize(domain_sort_sizes[argnum]);
+      finfo.else_value = get_value(range_sort, finterp.else_value());
+
+      for (size_t i = 0; i < finterp.num_entries(); i++) {
+        z3::func_entry fentry = finterp.entry(i);
+        
+        unique_ptr<FunctionTable>* table = &finfo.table;
+        for (int argnum = 0; argnum < num_args; argnum++) {
+          object_value argvalue = get_value(domain_sorts[argnum], fentry.arg(argnum));
+
+          if (!table->get()) {
+            table->reset(new FunctionTable());
+            (*table)->children.resize(domain_sort_sizes[argnum]);
           }
           assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
-          table = table->children[argvalue];
+          table = &(*table)->children[argvalue];
 
-          table->value = get_value(fentry.value(), range_sort_name);
+          (*table)->value = get_value(range_sort, fentry.value());
         }
       }
     } else {
       finfo.else_value = 0;
     }
   }
+
+  return model;
+}
+
+void Model::dump() const {
+  printf("Model:\n\n");
+  for (string sort : module->sorts) {
+    int domain_size = (int) get_domain_size(sort);
+    printf("%s: %d\n", sort.c_str(), domain_size);
+  }
+  printf("\n");
+  for (VarDecl decl : module->functions) {
+    string name = decl.name;
+    FunctionInfo const& finfo = get_function_info(name);
+
+    size_t num_args;
+    Sort* range_sort;
+    vector<Sort*> domain_sorts;
+    if (FunctionSort* functionSort = dynamic_cast<FunctionSort*>(decl.sort.get())) {
+      num_args = functionSort->domain.size();
+      range_sort = functionSort->range.get();
+      for (auto ptr : functionSort->domain) {
+        Sort* argsort = ptr.get();
+        domain_sorts.push_back(argsort);
+      }
+    } else {
+      num_args = 0;
+      range_sort = decl.sort.get();
+    }
+
+    printf("%s(default) -> %s\n", name.c_str(),
+        obj_to_string(range_sort, finfo.else_value).c_str());
+    
+    vector<object_value> args;
+    for (int i = 0; i < num_args; i++) {
+      args.push_back(0);
+    }
+    while (true) {
+      FunctionTable* ftable = finfo.table.get();
+      for (int i = 0; i < num_args; i++) {
+        if (ftable == NULL) break;
+        ftable = ftable->children[args[i]].get();
+      }
+      if (ftable != NULL) {
+        object_value res = ftable->value;
+        printf("%s(", name.c_str());
+        for (int i = 0; i < num_args; i++) {
+          if (i > 0) {
+            printf(", ");
+          }
+          printf("%s", obj_to_string(domain_sorts[i], args[i]).c_str());
+        }
+        printf(") -> %s\n", obj_to_string(range_sort, res).c_str());
+      }
+    }
+    printf("\n");
+  }
+}
+
+string Model::obj_to_string(Sort* sort, object_value ov) const {
+  if (dynamic_cast<BooleanSort*>(sort)) {
+    if (ov == 0) {
+      return "false";
+    }
+    if (ov == 1) {
+      return "true";
+    }
+    assert(false);
+  } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(sort)) {
+    auto iter = sort_info.find(usort->name);
+    assert(iter != sort_info.end());
+    SortInfo sinfo = iter->second;
+    assert(0 <= ov && ov < sinfo.domain_size);
+
+    return usort->name + ":" + to_string(ov + 1);
+  } else {
+    assert(false && "expected boolean sort or uninterpreted sort");
+  } 
+}
+
+size_t Model::get_domain_size(Sort* s) const {
+  if (dynamic_cast<BooleanSort*>(s)) {
+    return 2;
+  } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(s)) {
+    return get_domain_size(usort->name);
+  } else {
+    assert(false && "expected boolean sort or uninterpreted sort");
+  }
+}
+
+size_t Model::get_domain_size(std::string name) const {
+  auto iter = sort_info.find(name);
+  assert(iter != sort_info.end());
+  return iter->second.domain_size;
+}
+
+FunctionInfo const& Model::get_function_info(std::string name) const {
+  auto iter = function_info.find(name);
+  assert(iter != function_info.end());
+  return iter->second;
 }

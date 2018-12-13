@@ -9,7 +9,7 @@
 
 class SortInfo {
 public:
-  int domain_size;
+  size_t domain_size;
 };
 
 typedef unsigned int object_value;
@@ -28,13 +28,19 @@ public:
 
 class Model {
 public:
-  bool eval_predicate(std::shared_ptr<Value> value);
+  bool eval_predicate(std::shared_ptr<Value> value) const;
 
   static Model extract_model_from_z3(
       z3::context ctx,
       z3::solver solver,
       std::shared_ptr<Module> module,
       ModelEmbedding const& e);
+
+  void dump() const;
+  std::string obj_to_string(Sort*, object_value) const;
+  size_t get_domain_size(Sort*) const;
+  size_t get_domain_size(std::string) const;
+  FunctionInfo const& get_function_info(std::string) const;
 
 private:
   std::shared_ptr<Module> module;
@@ -44,12 +50,12 @@ private:
 
   object_value eval(
     std::shared_ptr<Value> value,
-    std::unordered_map<std::string, object_value> const&);
+    std::unordered_map<std::string, object_value> const&) const;
 
   object_value do_forall(
     Forall* value,
     std::unordered_map<std::string, object_value>&,
-    int quantifier_index);
+    int quantifier_index) const;
 };
 
 #endif
