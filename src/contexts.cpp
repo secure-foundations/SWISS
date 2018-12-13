@@ -174,9 +174,9 @@ ActionResult applyAction(
     unordered_map<string, expr> const& consts);
 
 InductionContext::InductionContext(
-    std::shared_ptr<BackgroundContext> ctx,
+    z3::context& z3ctx,
     std::shared_ptr<Module> module)
-    : ctx(ctx)
+    : ctx(new BackgroundContext(z3ctx, module))
 {
   this->e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
@@ -358,5 +358,26 @@ ActionResult applyAction(
 void ModelEmbedding::dump() {
   for (auto p : mapping) {
     printf("%s -> %s\n", p.first.c_str(), p.second.name().str().c_str());
+  }
+}
+
+/*
+ * InitContext
+ */
+
+InitContext::InitContext(
+    z3::context& z3ctx,
+    std::shared_ptr<Module> module)
+    : ctx(new BackgroundContext(z3ctx, module))
+{
+  this->e = ModelEmbedding::makeEmbedding(ctx, module);
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->e->value2expr(axiom));
+  }
+  // Add the inits
+  for (shared_ptr<Value> init : module->inits) {
+    ctx->solver.add(this->e->value2expr(init));
   }
 }

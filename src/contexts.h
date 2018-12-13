@@ -59,7 +59,15 @@ public:
   std::shared_ptr<ModelEmbedding> e1;
   std::shared_ptr<ModelEmbedding> e2;
 
-  InductionContext(std::shared_ptr<BackgroundContext> ctx, std::shared_ptr<Module> module);
+  InductionContext(z3::context& ctx, std::shared_ptr<Module> module);
+};
+
+class InitContext {
+public:
+  std::shared_ptr<BackgroundContext> ctx;
+  std::shared_ptr<ModelEmbedding> e;
+
+  InitContext(z3::context& ctx, std::shared_ptr<Module> module);
 };
 
 #endif

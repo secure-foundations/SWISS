@@ -46,8 +46,8 @@ int main() {
 
     z3::context ctx;
 
-    auto bgctx = shared_ptr<BackgroundContext>(new BackgroundContext(ctx, module));
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module));
+    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
 
     for (int i = module->conjectures.size() - 1; i >= 0; i--) {
       printf("trying inv %d\n", i);
@@ -55,7 +55,6 @@ int main() {
     }
 
     printf("done\n");
-    //printf("'%s'\n", bgctx->solver.to_smt2().c_str());
   } catch (z3::exception exc) {
     printf("got z3 exception: %s\n", exc.msg());
     throw;
