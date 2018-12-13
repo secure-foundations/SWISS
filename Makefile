@@ -2,6 +2,7 @@ OBJECTS = $(addprefix bin/,\
 	contexts.o \
 	logic.o \
 	main.o \
+	model.o \
 	lib/json11/json11.o \
 )
 
