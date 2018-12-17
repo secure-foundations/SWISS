@@ -1,5 +1,6 @@
 #include "logic.h"
 #include "contexts.h"
+#include "model.h"
 
 #include <iostream>
 #include <iterator>
@@ -47,12 +48,21 @@ int main() {
     z3::context ctx;
 
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+    module->inits.clear();
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
 
     for (int i = module->conjectures.size() - 1; i >= 0; i--) {
       printf("trying inv %d\n", i);
       add_invariant(indctx, module->conjectures[i]);
     }
+
+    /*
+    initctx->ctx->solver.add(initctx->e->value2expr(shared_ptr<Value>(new Not(module->conjectures[0]))));
+    z3::check_result res = initctx->ctx->solver.check();
+    assert(res == z3::sat);
+    Model m = Model::extract_model_from_z3(ctx, initctx->ctx->solver, module, *initctx->e);
+    m.dump();
+    */
 
     printf("done\n");
   } catch (z3::exception exc) {

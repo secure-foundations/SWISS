@@ -31,8 +31,8 @@ public:
   bool eval_predicate(std::shared_ptr<Value> value) const;
 
   static Model extract_model_from_z3(
-      z3::context ctx,
-      z3::solver solver,
+      z3::context& ctx,
+      z3::solver& solver,
       std::shared_ptr<Module> module,
       ModelEmbedding const& e);
 

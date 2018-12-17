@@ -104,8 +104,8 @@ object_value Model::do_forall(
 }
 
 Model Model::extract_model_from_z3(
-    z3::context ctx,
-    z3::solver solver,
+    z3::context& ctx,
+    z3::solver& solver,
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
@@ -134,7 +134,9 @@ Model Model::extract_model_from_z3(
     model.sort_info[name] = sinfo;
   }
 
-  auto get_value = [&ctx, &universes](Sort* sort, z3::expr expression) -> object_value {
+  auto get_value = [&z3model, &ctx, &universes](
+        Sort* sort, z3::expr expression1) -> object_value {
+    z3::expr expression = z3model.eval(expression1, true);
     if (dynamic_cast<BooleanSort*>(sort)) {
       if (z3::eq(expression, ctx.bool_val(true))) {
         return 1;
@@ -147,7 +149,9 @@ Model Model::extract_model_from_z3(
       auto iter = universes.find(usort->name);
       assert(iter != universes.end());
       z3::expr_vector& vec = iter->second;
+      printf("got expr %s\n", expression.to_string().c_str());
       for (object_value i = 0; i < vec.size(); i++) {
+        printf("checking expr %s\n", vec[i].to_string().c_str());
         if (z3::eq(expression, vec[i])) {
           return i;
         }
@@ -269,6 +273,19 @@ void Model::dump() const {
           printf("%s", obj_to_string(domain_sorts[i], args[i]).c_str());
         }
         printf(") -> %s\n", obj_to_string(range_sort, res).c_str());
+      }
+
+      int i;
+      for (i = num_args - 1; i >= 0; i--) {
+        args[i]++;
+        if (args[i] == get_domain_size(domain_sorts[i])) {
+          args[i] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == -1) {
+        break;
       }
     }
     printf("\n");
