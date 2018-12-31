@@ -149,14 +149,33 @@ Model Model::extract_model_from_z3(
       auto iter = universes.find(usort->name);
       assert(iter != universes.end());
       z3::expr_vector& vec = iter->second;
-      printf("got expr %s\n", expression.to_string().c_str());
       for (object_value i = 0; i < vec.size(); i++) {
-        printf("checking expr %s\n", vec[i].to_string().c_str());
         if (z3::eq(expression, vec[i])) {
           return i;
         }
       }
       assert(false);
+    } else {
+      assert(false && "expected boolean sort or uninterpreted sort");
+    }
+  };
+
+  auto get_expr = [&z3model, &ctx, &universes](
+        Sort* sort, object_value v) -> z3::expr {
+    if (dynamic_cast<BooleanSort*>(sort)) {
+      if (v == 0) {
+        return ctx.bool_val(false);
+      } else if (v == 1) {
+        return ctx.bool_val(true);
+      } else {
+        assert(false);
+      }
+    } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(sort)) {
+      auto iter = universes.find(usort->name);
+      assert(iter != universes.end());
+      z3::expr_vector& vec = iter->second;
+      assert (0 <= v && v < vec.size());
+      return vec[v];
     } else {
       assert(false && "expected boolean sort or uninterpreted sort");
     }
@@ -197,7 +216,50 @@ Model Model::extract_model_from_z3(
     if (z3model.has_interp(fdecl)) {
       z3::func_interp finterp = z3model.get_func_interp(fdecl);
 
+      /*
+      printf("name = %s\n", fdecl.name().str().c_str());
+      printf("else value\n");
       finfo.else_value = get_value(range_sort, finterp.else_value());
+      */
+      vector<object_value> args;
+      for (int i = 0; i < num_args; i++) {
+        args.push_back(0);
+      }
+      while (true) {
+        z3::expr_vector args_exprs(ctx);
+        unique_ptr<FunctionTable>* table = &finfo.table;
+        for (int argnum = 0; argnum < num_args; argnum++) {
+          object_value argvalue = args[argnum];
+          args_exprs.push_back(get_expr(domain_sorts[argnum], argvalue));
+          if (!table->get()) {
+            table->reset(new FunctionTable());
+            (*table)->children.resize(domain_sort_sizes[argnum]);
+          }
+          assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
+          table = &(*table)->children[argvalue];
+        }
+        object_value result_value =
+            get_value(range_sort, finterp.else_value().substitute(args_exprs));
+
+        assert (table != NULL);
+        if (!table->get()) {
+          table->reset(new FunctionTable());
+        }
+        (*table)->value = result_value;
+
+        int i;
+        for (i = num_args - 1; i >= 0; i--) {
+          args[i]++;
+          if (args[i] == domain_sort_sizes[i]) {
+            args[i] = 0;
+          } else {
+            break;
+          }
+        }
+        if (i == -1) {
+          break;
+        }
+      }
 
       for (size_t i = 0; i < finterp.num_entries(); i++) {
         z3::func_entry fentry = finterp.entry(i);
@@ -212,9 +274,9 @@ Model Model::extract_model_from_z3(
           }
           assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
           table = &(*table)->children[argvalue];
-
-          (*table)->value = get_value(range_sort, fentry.value());
         }
+
+        (*table)->value = get_value(range_sort, fentry.value());
       }
     } else {
       finfo.else_value = 0;
