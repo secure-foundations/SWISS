@@ -22,6 +22,13 @@ object_value Model::eval(
     }
     return do_forall(value, vars_copy, 0);
   }
+  else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
+    std::unordered_map<std::string, object_value> vars_copy(vars);
+    for (VarDecl decl : value->decls) {
+      vars_copy[decl.name] = 0;
+    }
+    return do_exists(value, vars_copy, 0);
+  }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
     assert(iter != vars.end());
@@ -101,6 +108,30 @@ object_value Model::do_forall(
     }
   }
   return true;
+}
+
+object_value Model::do_exists(
+    Exists* value,
+    std::unordered_map<std::string, object_value>& vars,
+    int quantifier_index) const
+{
+  if (quantifier_index == value->decls.size()) {
+    return eval(value->body, vars);    
+  }
+
+  VarDecl const& decl = value->decls[quantifier_index];
+  auto iter = vars.find(decl.name);
+  assert(iter != vars.end());
+
+  size_t domain_size = get_domain_size(decl.sort.get());
+
+  for (object_value i = 0; i < domain_size; i++) {
+    iter->second = i;
+    if (do_exists(value, vars, quantifier_index + 1)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 Model Model::extract_model_from_z3(

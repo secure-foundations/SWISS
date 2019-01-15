@@ -106,6 +106,16 @@ z3::expr ModelEmbedding::value2expr(
     }
     return z3::forall(vec_vars, value2expr(value->body, consts, new_vars));
   }
+  else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
+    z3::expr_vector vec_vars(ctx->ctx);
+    std::unordered_map<std::string, z3::expr> new_vars = vars;
+    for (VarDecl decl : value->decls) {
+      expr var = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      vec_vars.push_back(var);
+      new_vars.insert(make_pair(decl.name, var));
+    }
+    return z3::exists(vec_vars, value2expr(value->body, consts, new_vars));
+  }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
     assert(iter != vars.end());

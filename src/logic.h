@@ -67,6 +67,19 @@ public:
   std::string to_string() override;
 };
 
+class Exists : public Value {
+public:
+  std::vector<VarDecl> const decls;
+  std::shared_ptr<Value> const body;
+
+  Exists(
+      std::vector<VarDecl> const& decls,
+      std::shared_ptr<Value> body)
+      : decls(decls), body(body) { }
+
+  std::string to_string() override;
+};
+
 class Var : public Value {
 public:
   std::string const name;

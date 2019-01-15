@@ -56,6 +56,10 @@ private:
     Forall* value,
     std::unordered_map<std::string, object_value>&,
     int quantifier_index) const;
+  object_value do_exists(
+    Exists* value,
+    std::unordered_map<std::string, object_value>&,
+    int quantifier_index) const;
 };
 
 #endif

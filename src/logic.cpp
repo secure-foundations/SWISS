@@ -103,6 +103,10 @@ shared_ptr<Value> json2value(Json j) {
     assert (j.array_items().size() == 3);
     return shared_ptr<Value>(new Forall(json2decl_array(j[1]), json2value(j[2])));
   }
+  else if (type == "exists") {
+    assert (j.array_items().size() == 3);
+    return shared_ptr<Value>(new Exists(json2decl_array(j[1]), json2value(j[2])));
+  }
   else if (type == "var") {
     assert (j.array_items().size() == 3);
     assert (j[1].is_string());
@@ -138,6 +142,7 @@ shared_ptr<Value> json2value(Json j) {
     return shared_ptr<Value>(new Or(json2value_array(j[1])));
   }
   else {
+    printf("value type: %s\n", type.c_str());
     assert(false && "unrecognized Value type");
   }
 }
@@ -204,6 +209,18 @@ shared_ptr<Action> json2action(Json j) {
 
 string Forall::to_string() {
   string res = "forall ";
+  for (int i = 0; i < decls.size(); i++) {
+    if (i > 0) {
+      res += ", ";
+    }
+    res += decls[i].name;
+  }
+  res += " . (" + body->to_string() + ")";
+  return res;
+}
+
+string Exists::to_string() {
+  string res = "exists ";
   for (int i = 0; i < decls.size(); i++) {
     if (i > 0) {
       res += ", ";
