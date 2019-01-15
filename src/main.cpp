@@ -13,7 +13,7 @@ bool try_to_add_invariant(
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
     shared_ptr<Value> conjecture
-    ) {
+) {
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
 
   // Check if INIT ==> INV
@@ -76,6 +76,24 @@ bool do_invariants_imply_conjecture(shared_ptr<ConjectureContext> conjctx) {
   return (res == z3::unsat);
 }
 
+bool try_to_add_invariants(
+    shared_ptr<InitContext> initctx,
+    shared_ptr<InductionContext> indctx,
+    shared_ptr<ConjectureContext> conjctx,
+    vector<shared_ptr<Value>> const& invariants
+) {
+  for (auto invariant : invariants) {
+    if (try_to_add_invariant(initctx, indctx, conjctx, invariant)) {
+      // We added an invariant!
+      // Now check if we're done.
+      if (do_invariants_imply_conjecture(conjctx)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 int main() {
   try {
