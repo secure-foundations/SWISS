@@ -8,11 +8,28 @@
 
 using namespace std;
 
-void add_invariant(
+bool try_to_add_invariant(
+    shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
+    shared_ptr<ConjectureContext> conjctx,
     shared_ptr<Value> conjecture
     ) {
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
+
+  // Check if INIT ==> INV
+  z3::solver& init_solver = initctx->ctx->solver;
+  init_solver.push();
+  init_solver.add(initctx->e->value2expr(not_conjecture));
+  z3::check_result init_res = init_solver.check();
+
+  assert (init_res == z3::sat || init_res == z3::unsat);
+
+  if (init_res == z3::sat) {
+    init_solver.pop();
+    return false;
+  } else {
+    init_solver.pop();
+  }
 
   z3::solver& solver = indctx->ctx->solver;
 
@@ -22,6 +39,7 @@ void add_invariant(
   solver.add(indctx->e2->value2expr(not_conjecture));
 
   z3::check_result res = solver.check();
+  assert (res == z3::sat || res == z3::unsat);
 
   /*
   printf("'%s'\n", solver.to_smt2().c_str());
@@ -32,11 +50,32 @@ void add_invariant(
   }
   */
 
-  assert(res == z3::unsat);
+  if (res == z3::unsat) {
+    solver.pop();
 
-  solver.pop();
-  solver.add(indctx->e2->value2expr(conjecture));
+    z3::solver& conj_solver = conjctx->ctx->solver;
+
+    solver.add(indctx->e2->value2expr(conjecture));
+    init_solver.add(initctx->e->value2expr(conjecture));
+    conj_solver.add(conjctx->e->value2expr(conjecture));
+
+    return true;
+  } else {
+    // NOT INVARIANT
+    // pop back to last good state
+    solver.pop();
+    solver.pop();
+    return false;
+  }
 }
+
+bool do_invariants_imply_conjecture(shared_ptr<ConjectureContext> conjctx) {
+  z3::solver& solver = conjctx->ctx->solver;
+  z3::check_result res = solver.check();
+  assert (res == z3::sat || res == z3::unsat);
+  return (res == z3::unsat);
+}
+
 
 int main() {
   try {
@@ -48,13 +87,12 @@ int main() {
     z3::context ctx;
 
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-    module->inits.clear();
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+    auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
 
-    for (int i = module->conjectures.size() - 1; i >= 0; i--) {
-      printf("trying inv %d\n", i);
-      add_invariant(indctx, module->conjectures[i]);
-    }
+    //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
+    //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);
+    //}
 
     /*
     initctx->ctx->solver.add(initctx->e->value2expr(shared_ptr<Value>(new Not(module->conjectures[0]))));
