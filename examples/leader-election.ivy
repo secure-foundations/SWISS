@@ -56,9 +56,9 @@ conjecture ~(leader(N) & leader(M) & N ~= M)
 #conjecture ~(leader(N) & leader(M))
 
 # other invariants
-conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & nid(N) <= nid(M))
-conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & nid(N) <= nid(M))
-conjecture ~(btw(N,M,O) & pnd(nid(M),N) & nid(M) <= nid(O))
+#conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & nid(N) <= nid(M))
+#conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & nid(N) <= nid(M))
+#conjecture ~(btw(N,M,O) & pnd(nid(M),N) & nid(M) <= nid(O))
 #conjecture ~(nid(Q) <= nid(P) & pnd(nid(Q),N) & btw(N,Q,P))
 
 

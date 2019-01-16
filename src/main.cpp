@@ -103,23 +103,35 @@ bool try_to_add_invariants(
     vector<shared_ptr<Value>> const& invariants
 ) {
   printf("going to try: %d\n", (int)invariants.size());
-  int i = 0;
   int count = 0;
-  for (auto invariant : invariants) {
-    i++;
-    printf("doing %d: %s\n", i, invariant->to_string().c_str());
-    if (!is_redundant(invctx, invariant) &&
-        try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
-      // We added an invariant!
-      // Now check if we're done.
-      count++;
-      if (do_invariants_imply_conjecture(conjctx)) {
-        return true;
+  int redundancy_count = 0;
+
+  bool solved = false;
+
+  int i;
+  for (i = 0; i < invariants.size()*2; i++) {
+    auto invariant = invariants[i % invariants.size()];
+    if (i%100 == 0) printf("doing %d\n", i);
+    if (is_redundant(invctx, invariant)) {
+      redundancy_count++;
+    } else {
+      if (try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
+        // We added an invariant!
+        // Now check if we're done.
+        printf("found invariant: %s\n", invariant->to_string().c_str());
+        count++;
+        if (do_invariants_imply_conjecture(conjctx)) {
+          solved = true;
+          break;
+        }
       }
     }
   }
 
+  printf("did %d invariants\n", i);
+  printf("solved: %s\n", solved ? "yes" : "no");
   printf("total num invariants: %d\n", count);
+  printf("total redundant invariants: %d\n", redundancy_count);
 
   return false;
 }
@@ -163,7 +175,7 @@ vector<shared_ptr<Value>> get_values_list() {
   shared_ptr<Sort> bool_sort = shared_ptr<Sort>(new BooleanSort());
 
   shared_ptr<Value> id_func = shared_ptr<Value>(new Const(
-      "id",
+      "nid",
       shared_ptr<Sort>(new FunctionSort({node_sort}, id_sort))));
   shared_ptr<Value> btw_func = shared_ptr<Value>(new Const(
       "btw",
@@ -259,9 +271,10 @@ vector<shared_ptr<Value>> get_values_list() {
   for (int i = 0; i < pieces.size(); i++) {
     for (int j = i+1; j < pieces.size(); j++) {
       for (int k = j+1; k < pieces.size(); k++) {
-        result.push_back(shared_ptr<Value>(new Forall(
-            decls,
-            shared_ptr<Value>(new And({ pieces[i], pieces[j], pieces[k] })))));
+        result.push_back(shared_ptr<Value>(new Forall(decls,
+            shared_ptr<Value>(new Not(
+              shared_ptr<Value>(new And(
+                { pieces[i], pieces[j], pieces[k] })))))));
       }
     }
   }
@@ -292,6 +305,7 @@ int main() {
     auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
     try_to_add_invariants(initctx, indctx, conjctx, invctx, candidates);
+    return 0;
 
     //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
     //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);

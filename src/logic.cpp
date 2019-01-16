@@ -207,7 +207,7 @@ shared_ptr<Action> json2action(Json j) {
   }
 }
 
-string Forall::to_string() {
+string Forall::to_string() const {
   string res = "forall ";
   for (int i = 0; i < decls.size(); i++) {
     if (i > 0) {
@@ -219,7 +219,7 @@ string Forall::to_string() {
   return res;
 }
 
-string Exists::to_string() {
+string Exists::to_string() const {
   string res = "exists ";
   for (int i = 0; i < decls.size(); i++) {
     if (i > 0) {
@@ -231,27 +231,27 @@ string Exists::to_string() {
   return res;
 }
 
-string Var::to_string() {
+string Var::to_string() const {
   return name;
 }
 
-string Const::to_string() {
+string Const::to_string() const {
   return name;
 }
 
-string Eq::to_string() {
+string Eq::to_string() const {
   return "(" + left->to_string() + ") = (" + right->to_string() + ")";
 }
 
-string Not::to_string() {
+string Not::to_string() const {
   return "~(" + value->to_string() + ")";
 }
 
-string Implies::to_string() {
+string Implies::to_string() const {
   return "(" + left->to_string() + ") -> (" + right->to_string() + ")";
 }
 
-string And::to_string() {
+string And::to_string() const {
   string res = "";
   for (int i = 0; i < args.size(); i++) {
     if (i > 0) {
@@ -262,7 +262,7 @@ string And::to_string() {
   return res;
 }
 
-string Or::to_string() {
+string Or::to_string() const {
   string res = "";
   for (int i = 0; i < args.size(); i++) {
     if (i > 0) {
@@ -273,7 +273,7 @@ string Or::to_string() {
   return res;
 }
 
-string Apply::to_string() {
+string Apply::to_string() const {
   string res = func->to_string() + "(";
   for (int i = 0; i < args.size(); i++) {
     if (i > 0) {

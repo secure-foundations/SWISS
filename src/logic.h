@@ -51,7 +51,7 @@ class Value {
 public:
   virtual ~Value() {}
 
-  virtual std::string to_string() = 0;
+  virtual std::string to_string() const = 0;
 };
 
 class Forall : public Value {
@@ -64,7 +64,7 @@ public:
       std::shared_ptr<Value> body)
       : decls(decls), body(body) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Exists : public Value {
@@ -77,7 +77,7 @@ public:
       std::shared_ptr<Value> body)
       : decls(decls), body(body) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Var : public Value {
@@ -90,7 +90,7 @@ public:
       std::shared_ptr<Sort> sort)
       : name(name), sort(sort) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Const : public Value {
@@ -103,7 +103,7 @@ public:
       std::shared_ptr<Sort> sort)
       : name(name), sort(sort) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Eq : public Value {
@@ -116,7 +116,7 @@ public:
     std::shared_ptr<Value> right)
     : left(left), right(right) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Not : public Value {
@@ -127,7 +127,7 @@ public:
     std::shared_ptr<Value> value)
     : value(value) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Implies : public Value {
@@ -140,7 +140,7 @@ public:
     std::shared_ptr<Value> right)
     : left(left), right(right) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Apply : public Value {
@@ -153,7 +153,7 @@ public:
     std::vector<std::shared_ptr<Value>> const& args)
     : func(func), args(args) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class And : public Value {
@@ -164,7 +164,7 @@ public:
     std::vector<std::shared_ptr<Value>> const& args)
     : args(args) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 class Or : public Value {
@@ -175,7 +175,7 @@ public:
     std::vector<std::shared_ptr<Value>> const& args)
     : args(args) { }
 
-  std::string to_string() override;
+  std::string to_string() const override;
 };
 
 /* Action */
