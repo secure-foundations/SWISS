@@ -155,6 +155,15 @@ int main() {
     Grammar grammar = createGrammar();
     context _z3_ctx;
     SMT solver = SMT(3, grammar, _z3_ctx);
+    int program = 0;
+    while (solver.solve()){
+      std::cout << "#program= " << program << std::endl;
+      program++;
+      // solver.getOutput() // returns a vector with tree representation of the program
+      for (int i = 0; i < 3; i++){
+        std::cout << solver.treeToString(i) << std::endl;
+      }
+    }
 
     printf("done\n");
   } catch (z3::exception exc) {
