@@ -78,4 +78,12 @@ public:
   ConjectureContext(z3::context& ctx, std::shared_ptr<Module> module);
 };
 
+class InvariantsContext {
+public:
+  std::shared_ptr<BackgroundContext> ctx;
+  std::shared_ptr<ModelEmbedding> e;
+
+  InvariantsContext(z3::context& ctx, std::shared_ptr<Module> module);
+};
+
 #endif

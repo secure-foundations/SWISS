@@ -281,5 +281,5 @@ string Apply::to_string() {
     }
     res += args[i]->to_string();
   }
-  return res;
+  return res + ")";
 }

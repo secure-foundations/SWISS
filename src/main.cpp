@@ -14,6 +14,7 @@ bool try_to_add_invariant(
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
+    shared_ptr<InvariantsContext> invctx,
     shared_ptr<Value> conjecture
 ) {
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
@@ -56,10 +57,12 @@ bool try_to_add_invariant(
     solver.pop();
 
     z3::solver& conj_solver = conjctx->ctx->solver;
+    z3::solver& inv_solver = invctx->ctx->solver;
 
     solver.add(indctx->e2->value2expr(conjecture));
     init_solver.add(initctx->e->value2expr(conjecture));
     conj_solver.add(conjctx->e->value2expr(conjecture));
+    inv_solver.add(invctx->e->value2expr(conjecture));
 
     return true;
   } else {
@@ -78,21 +81,45 @@ bool do_invariants_imply_conjecture(shared_ptr<ConjectureContext> conjctx) {
   return (res == z3::unsat);
 }
 
+bool is_redundant(
+    shared_ptr<InvariantsContext> invctx,
+    shared_ptr<Value> formula)
+{
+  z3::solver& solver = invctx->ctx->solver;
+  solver.push();
+  solver.add(invctx->e->value2expr(shared_ptr<Value>(new Not(formula))));
+
+  z3::check_result res = solver.check();
+  assert (res == z3::sat || res == z3::unsat);
+  solver.pop();
+  return (res == z3::unsat);
+}
+
 bool try_to_add_invariants(
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
+    shared_ptr<InvariantsContext> invctx,
     vector<shared_ptr<Value>> const& invariants
 ) {
+  printf("going to try: %d\n", (int)invariants.size());
+  int i = 0;
+  int count = 0;
   for (auto invariant : invariants) {
-    if (try_to_add_invariant(initctx, indctx, conjctx, invariant)) {
+    i++;
+    printf("doing %d: %s\n", i, invariant->to_string().c_str());
+    if (!is_redundant(invctx, invariant) &&
+        try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
       // We added an invariant!
       // Now check if we're done.
+      count++;
       if (do_invariants_imply_conjecture(conjctx)) {
         return true;
       }
     }
   }
+
+  printf("total num invariants: %d\n", count);
 
   return false;
 }
@@ -126,8 +153,132 @@ Grammar createGrammar() {
   return g;
 }
 
+vector<shared_ptr<Value>> get_values_list() {
+  vector<shared_ptr<Value>> result;
+
+  vector<shared_ptr<Value>> pieces;
+
+  shared_ptr<Sort> node_sort = shared_ptr<Sort>(new UninterpretedSort("node"));
+  shared_ptr<Sort> id_sort = shared_ptr<Sort>(new UninterpretedSort("id"));
+  shared_ptr<Sort> bool_sort = shared_ptr<Sort>(new BooleanSort());
+
+  shared_ptr<Value> id_func = shared_ptr<Value>(new Const(
+      "id",
+      shared_ptr<Sort>(new FunctionSort({node_sort}, id_sort))));
+  shared_ptr<Value> btw_func = shared_ptr<Value>(new Const(
+      "btw",
+      shared_ptr<Sort>(new FunctionSort({node_sort, node_sort, node_sort}, bool_sort))));
+  shared_ptr<Value> leader_func = shared_ptr<Value>(new Const(
+      "leader",
+      shared_ptr<Sort>(new FunctionSort({node_sort}, bool_sort))));
+  shared_ptr<Value> pnd_func = shared_ptr<Value>(new Const(
+      "pnd",
+      shared_ptr<Sort>(new FunctionSort({id_sort, node_sort}, bool_sort))));
+  shared_ptr<Value> le_func = shared_ptr<Value>(new Const(
+      "<=",
+      shared_ptr<Sort>(new FunctionSort({id_sort, id_sort}, bool_sort))));
+
+  vector<VarDecl> decls;
+  decls.push_back(VarDecl("A", node_sort));
+  decls.push_back(VarDecl("B", node_sort));
+  decls.push_back(VarDecl("C", node_sort));
+
+  vector<shared_ptr<Value>> node_atoms;
+  vector<shared_ptr<Value>> id_atoms;
+
+  node_atoms.push_back(shared_ptr<Value>(new Var("A", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var("B", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var("C", node_sort)));
+
+  for (auto node_atom : node_atoms) {
+    id_atoms.push_back(shared_ptr<Value>(new Apply(id_func, { node_atom })));
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    for (int j = i+1; j < node_atoms.size(); j++) {
+      for (int k = j+1; k < node_atoms.size(); k++) {
+        pieces.push_back(shared_ptr<Value>(
+          new Apply(btw_func, { node_atoms[i], node_atoms[j], node_atoms[k] })
+        ));
+        pieces.push_back(shared_ptr<Value>(
+          new Apply(btw_func, { node_atoms[i], node_atoms[k], node_atoms[j] })
+        ));
+      }
+    }
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    pieces.push_back(shared_ptr<Value>(
+      new Apply(leader_func, { node_atoms[i] })
+    ));
+    pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+      new Apply(leader_func, { node_atoms[i] })
+    ))));
+  }
+
+  for (int i = 0; i < id_atoms.size(); i++) {
+    for (int j = 0; j < node_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Apply(pnd_func, { id_atoms[i], node_atoms[j] })
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Apply(pnd_func, { id_atoms[i], node_atoms[j] })
+      ))));
+    }
+  }
+
+  for (int i = 0; i < id_atoms.size(); i++) {
+    for (int j = 0; j < id_atoms.size(); j++) {
+      if (i != j) {
+        pieces.push_back(shared_ptr<Value>(
+          new Apply(le_func, { id_atoms[i], id_atoms[j] })
+        ));
+      }
+    }
+  }
+
+  for (int i = 0; i < id_atoms.size(); i++) {
+    for (int j = i+1; j < id_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Eq(id_atoms[i], id_atoms[j])
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Eq(id_atoms[i], id_atoms[j])
+      ))));
+    }
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    for (int j = i+1; j < node_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Eq(node_atoms[i], node_atoms[j])
+      ))));
+    }
+  }
+
+  for (int i = 0; i < pieces.size(); i++) {
+    for (int j = i+1; j < pieces.size(); j++) {
+      for (int k = j+1; k < pieces.size(); k++) {
+        result.push_back(shared_ptr<Value>(new Forall(
+            decls,
+            shared_ptr<Value>(new And({ pieces[i], pieces[j], pieces[k] })))));
+      }
+    }
+  }
+
+  return result;
+}
+
 int main() {
   try {
+    vector<shared_ptr<Value>> candidates = get_values_list();
+    /*
+    for (auto v : candidates) {
+      printf("%s\n", v->to_string().c_str());
+    }
+    return 0;
+    */
+
     std::istreambuf_iterator<char> begin(std::cin), end;
     std::string json_src(begin, end);
 
@@ -138,6 +289,9 @@ int main() {
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
+    auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
+
+    try_to_add_invariants(initctx, indctx, conjctx, invctx, candidates);
 
     //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
     //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);

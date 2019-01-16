@@ -413,3 +413,20 @@ ConjectureContext::ConjectureContext(
   shared_ptr<Value> not_conjectures = shared_ptr<Value>(new Not(all_conjectures));
   ctx->solver.add(this->e->value2expr(not_conjectures));
 }
+
+/*
+ * InvariantsContext
+ */
+
+InvariantsContext::InvariantsContext(
+    z3::context& z3ctx,
+    std::shared_ptr<Module> module)
+    : ctx(new BackgroundContext(z3ctx, module))
+{
+  this->e = ModelEmbedding::makeEmbedding(ctx, module);
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->e->value2expr(axiom));
+  }
+}
