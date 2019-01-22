@@ -134,14 +134,14 @@ object_value Model::do_exists(
   return false;
 }
 
-Model Model::extract_model_from_z3(
+shared_ptr<Model> Model::extract_model_from_z3(
     z3::context& ctx,
     z3::solver& solver,
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
-  Model model;
-  model.module = module;
+  shared_ptr<Model> model = make_shared<Model>();
+  model->module = module;
 
   z3::model z3model = solver.get_model();
 
@@ -162,7 +162,7 @@ Model Model::extract_model_from_z3(
 
     SortInfo sinfo;
     sinfo.domain_size = len;
-    model.sort_info[name] = sinfo;
+    model->sort_info[name] = sinfo;
   }
 
   auto get_value = [&z3model, &ctx, &universes](
@@ -230,7 +230,7 @@ Model Model::extract_model_from_z3(
         if (dynamic_cast<BooleanSort*>(argsort)) {
           sz = 2;
         } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(argsort)) {
-          sz = model.sort_info[usort->name].domain_size;
+          sz = model->sort_info[usort->name].domain_size;
         } else {
           assert(false && "expected boolean sort or uninterpreted sort");
         }
@@ -241,8 +241,8 @@ Model Model::extract_model_from_z3(
       range_sort = decl.sort.get();
     }
 
-    model.function_info.insert(make_pair(name, FunctionInfo()));
-    FunctionInfo& finfo = model.function_info[name];
+    model->function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& finfo = model->function_info[name];
 
     if (z3model.has_interp(fdecl)) {
       z3::func_interp finterp = z3model.get_func_interp(fdecl);

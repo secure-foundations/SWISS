@@ -95,7 +95,49 @@ bool is_redundant(
   return (res == z3::unsat);
 }
 
+// get a Model that can be an initial state
+shared_ptr<Model> get_dumb_model(
+    shared_ptr<InitContext> initctx,
+    shared_ptr<Module> module)
+{
+  z3::solver& solver = initctx->ctx->solver;
+
+  solver.push();
+
+  shared_ptr<Sort> node_sort = shared_ptr<Sort>(new UninterpretedSort("node"));
+  VarDecl decl_a = VarDecl("A", node_sort);
+  VarDecl decl_b = VarDecl("B", node_sort);
+  VarDecl decl_c = VarDecl("C", node_sort);
+
+  shared_ptr<Value> var_a = shared_ptr<Value>(new Var("A", node_sort));
+  shared_ptr<Value> var_b = shared_ptr<Value>(new Var("B", node_sort));
+  shared_ptr<Value> var_c = shared_ptr<Value>(new Var("C", node_sort));
+
+  solver.add(initctx->e->value2expr(shared_ptr<Value>(new Exists(
+      { decl_a, decl_b, decl_c },
+      shared_ptr<Value>(new And({
+        shared_ptr<Value>(new Not(shared_ptr<Value>(new Eq(var_a, var_b)))),
+        shared_ptr<Value>(new Not(shared_ptr<Value>(new Eq(var_b, var_c)))),
+        shared_ptr<Value>(new Not(shared_ptr<Value>(new Eq(var_c, var_a))))
+      }))
+    ))));
+
+  z3::check_result res = solver.check();
+  assert (res == z3::sat);
+  
+  shared_ptr<Model> result = Model::extract_model_from_z3(
+      initctx->ctx->ctx,
+      solver,
+      module,
+      *(initctx->e));
+
+  solver.pop();
+
+  return result;
+}
+
 bool try_to_add_invariants(
+    shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
@@ -105,13 +147,24 @@ bool try_to_add_invariants(
   printf("going to try: %d\n", (int)invariants.size());
   int count = 0;
   int redundancy_count = 0;
+  int num_skipped = 0;
 
   bool solved = false;
+
+  shared_ptr<Model> model = get_dumb_model(initctx, module);
+  model->dump();
 
   int i;
   for (i = 0; i < invariants.size()*2; i++) {
     auto invariant = invariants[i % invariants.size()];
-    if (i%100 == 0) printf("doing %d\n", i);
+    if (i%100 == 0) printf("doing %d (skipped %d)\n", i, num_skipped);
+
+    if (!model->eval_predicate(invariant)) {
+      //printf("skipped: %s\n", invariant->to_string().c_str());
+      num_skipped++;
+      continue;
+    }
+
     if (is_redundant(invctx, invariant)) {
       redundancy_count++;
     } else {
@@ -132,6 +185,7 @@ bool try_to_add_invariants(
   printf("solved: %s\n", solved ? "yes" : "no");
   printf("total num invariants: %d\n", count);
   printf("total redundant invariants: %d\n", redundancy_count);
+  printf("skipped: %d\n", num_skipped);
 
   return false;
 }
@@ -304,7 +358,7 @@ int main() {
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
     auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-    try_to_add_invariants(initctx, indctx, conjctx, invctx, candidates);
+    try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
     return 0;
 
     //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
