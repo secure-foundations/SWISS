@@ -86,4 +86,6 @@ public:
   InvariantsContext(z3::context& ctx, std::shared_ptr<Module> module);
 };
 
+std::string name(std::string basename);
+
 #endif

@@ -42,6 +42,8 @@ public:
   size_t get_domain_size(std::string) const;
   FunctionInfo const& get_function_info(std::string) const;
 
+  void assert_model_is(std::shared_ptr<ModelEmbedding> e);
+
 private:
   std::shared_ptr<Module> module;
 
@@ -61,5 +63,10 @@ private:
     std::unordered_map<std::string, object_value>&,
     int quantifier_index) const;
 };
+
+std::shared_ptr<Model> transition_model(
+    z3::context& ctx,
+    std::shared_ptr<Module> module,
+    std::shared_ptr<Model> start_state);
 
 #endif

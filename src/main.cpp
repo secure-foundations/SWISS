@@ -150,7 +150,7 @@ bool try_to_add_invariants(
   bool solved = false;
 
   shared_ptr<Model> model = get_dumb_model(initctx, module);
-  model->dump();
+  shared_ptr<Model> model2 = transition_model(initctx->ctx->ctx, module, model);
 
   int count_iterations = 0;
   int count_evals = 0;
@@ -178,6 +178,12 @@ bool try_to_add_invariants(
 
     count_evals++;
     if (!model->eval_predicate(invariant)) {
+      is_good_candidate[i] = false;
+      continue;
+    }
+
+    count_evals++;
+    if (!model2->eval_predicate(invariant)) {
       is_good_candidate[i] = false;
       continue;
     }
