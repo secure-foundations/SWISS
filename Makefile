@@ -4,6 +4,7 @@ OBJECTS = $(addprefix bin/,\
 	main.o \
 	model.o \
 	smt.o \
+	benchmarking.o \
 	lib/json11/json11.o \
 )
 

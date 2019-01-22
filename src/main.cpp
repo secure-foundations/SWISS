@@ -3,6 +3,7 @@
 #include "model.h"
 #include "grammar.h"
 #include "smt.h"
+#include "benchmarking.h"
 
 #include <iostream>
 #include <iterator>
@@ -144,6 +145,7 @@ bool try_to_add_invariants(
     shared_ptr<InvariantsContext> invctx,
     vector<shared_ptr<Value>> const& invariants
 ) {
+  Benchmarking bench;
 
   printf("have a list of %d candidate invariants\n", (int)invariants.size());
 
@@ -177,23 +179,35 @@ bool try_to_add_invariants(
     if (i_ % 100 == 0) printf("doing %d\n", i_);
 
     count_evals++;
-    if (!model->eval_predicate(invariant)) {
+    bench.start("eval");
+    bool model_eval_1 = model->eval_predicate(invariant);
+    bench.end();
+    if (!model_eval_1) {
       is_good_candidate[i] = false;
       continue;
     }
 
     count_evals++;
-    if (!model2->eval_predicate(invariant)) {
+    bench.start("eval");
+    bool model_eval_2 = model2->eval_predicate(invariant);
+    bench.end();
+    if (!model_eval_2) {
       is_good_candidate[i] = false;
       continue;
     }
 
     count_redundancy_checks++;
-    if (is_redundant(invctx, invariant)) {
+    bench.start("redundancy");
+    bool isr = is_redundant(invctx, invariant);
+    bench.end();
+    if (isr) {
       is_good_candidate[i] = false;
     } else {
       count_invariance_checks++;
-      if (try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
+      bench.start("try_to_add_invariant");
+      bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
+      bench.end();
+      if (ttai) {
         is_good_candidate[i] = false;
         // We added an invariant!
         // Now check if we're done.
@@ -212,6 +226,8 @@ bool try_to_add_invariants(
   printf("total redundancy checks: %d\n", count_redundancy_checks);
   printf("total invariance checks: %d\n", count_invariance_checks);
   printf("total invariants added: %d\n", count_invariants_added);
+
+  bench.dump();
 
   return false;
 }
