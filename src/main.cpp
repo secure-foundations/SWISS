@@ -158,21 +158,37 @@ bool try_to_add_invariants(
   int count_invariance_checks = 0;
   int count_invariants_added = 0;
 
-  for (int i = 0; i < invariants.size()*2; i++) {
+  vector<bool> is_good_candidate;
+  is_good_candidate.resize(invariants.size());
+  for (int i = 0; i < invariants.size(); i++) {
+    is_good_candidate[i] = true;
+  }
+
+  for (int i_ = 0; i_ < invariants.size()*2; i_++) {
+    int i = i_ % invariants.size();
+
+    if (!is_good_candidate[i]) {
+      continue;
+    }
+
     count_iterations++;
 
-    auto invariant = invariants[i % invariants.size()];
-    if (i % 100 == 0) printf("doing %d\n", i);
+    auto invariant = invariants[i];
+    if (i_ % 100 == 0) printf("doing %d\n", i_);
 
     count_evals++;
     if (!model->eval_predicate(invariant)) {
+      is_good_candidate[i] = false;
       continue;
     }
 
     count_redundancy_checks++;
-    if (!is_redundant(invctx, invariant)) {
+    if (is_redundant(invctx, invariant)) {
+      is_good_candidate[i] = false;
+    } else {
       count_invariance_checks++;
       if (try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
+        is_good_candidate[i] = false;
         // We added an invariant!
         // Now check if we're done.
         printf("found invariant: %s\n", invariant->to_string().c_str());
@@ -270,9 +286,9 @@ vector<shared_ptr<Value>> get_values_list() {
         pieces.push_back(shared_ptr<Value>(
           new Apply(btw_func, { node_atoms[i], node_atoms[j], node_atoms[k] })
         ));
-        pieces.push_back(shared_ptr<Value>(
-          new Apply(btw_func, { node_atoms[i], node_atoms[k], node_atoms[j] })
-        ));
+        pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+          new Apply(btw_func, { node_atoms[i], node_atoms[j], node_atoms[k] })
+        ))));
       }
     }
   }
