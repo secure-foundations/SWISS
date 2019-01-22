@@ -144,35 +144,39 @@ bool try_to_add_invariants(
     shared_ptr<InvariantsContext> invctx,
     vector<shared_ptr<Value>> const& invariants
 ) {
-  printf("going to try: %d\n", (int)invariants.size());
-  int count = 0;
-  int redundancy_count = 0;
-  int num_skipped = 0;
+
+  printf("have a list of %d candidate invariants\n", (int)invariants.size());
 
   bool solved = false;
 
   shared_ptr<Model> model = get_dumb_model(initctx, module);
   model->dump();
 
-  int i;
-  for (i = 0; i < invariants.size()*2; i++) {
-    auto invariant = invariants[i % invariants.size()];
-    if (i%100 == 0) printf("doing %d (skipped %d)\n", i, num_skipped);
+  int count_iterations = 0;
+  int count_evals = 0;
+  int count_redundancy_checks = 0;
+  int count_invariance_checks = 0;
+  int count_invariants_added = 0;
 
+  for (int i = 0; i < invariants.size()*2; i++) {
+    count_iterations++;
+
+    auto invariant = invariants[i % invariants.size()];
+    if (i % 100 == 0) printf("doing %d\n", i);
+
+    count_evals++;
     if (!model->eval_predicate(invariant)) {
-      //printf("skipped: %s\n", invariant->to_string().c_str());
-      num_skipped++;
       continue;
     }
 
-    if (is_redundant(invctx, invariant)) {
-      redundancy_count++;
-    } else {
+    count_redundancy_checks++;
+    if (!is_redundant(invctx, invariant)) {
+      count_invariance_checks++;
       if (try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant)) {
         // We added an invariant!
         // Now check if we're done.
         printf("found invariant: %s\n", invariant->to_string().c_str());
-        count++;
+        count_invariants_added++;
         if (do_invariants_imply_conjecture(conjctx)) {
           solved = true;
           break;
@@ -181,11 +185,11 @@ bool try_to_add_invariants(
     }
   }
 
-  printf("did %d invariants\n", i);
-  printf("solved: %s\n", solved ? "yes" : "no");
-  printf("total num invariants: %d\n", count);
-  printf("total redundant invariants: %d\n", redundancy_count);
-  printf("skipped: %d\n", num_skipped);
+  printf("total iterations: %d\n", count_iterations);
+  printf("total evals: %d\n", count_evals);
+  printf("total redundancy checks: %d\n", count_redundancy_checks);
+  printf("total invariance checks: %d\n", count_invariance_checks);
+  printf("total invariants added: %d\n", count_invariants_added);
 
   return false;
 }
