@@ -209,7 +209,7 @@ bool try_to_add_invariants(
         is_good_candidate[i] = false;
         // We added an invariant!
         // Now check if we're done.
-        printf("found invariant: %s\n", invariant->to_string().c_str());
+        printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
         count_invariants_added++;
         if (do_invariants_imply_conjecture(conjctx)) {
           solved = true;

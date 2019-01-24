@@ -42,7 +42,7 @@ object_value Model::eval(
     return ftable == NULL ? finfo.else_value : ftable->value;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
-    return (object_value)(eval(value->left, vars), eval(value->right, vars));
+    return (object_value)(eval(value->left, vars) == eval(value->right, vars));
   }
   else if (Not* value = dynamic_cast<Not*>(v.get())) {
     return (object_value)(!eval(value->value, vars));
