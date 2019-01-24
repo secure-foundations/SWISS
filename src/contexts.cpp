@@ -168,21 +168,6 @@ z3::expr ModelEmbedding::value2expr(
  * InductionContext
  */
 
-struct ActionResult {
-  std::shared_ptr<ModelEmbedding> e;
-  expr constraint;
-
-  ActionResult(
-    std::shared_ptr<ModelEmbedding> e,
-    expr constraint)
-  : e(e), constraint(constraint) { }
-};
-
-ActionResult applyAction(
-    shared_ptr<ModelEmbedding> e,
-    shared_ptr<Action> action,
-    unordered_map<string, expr> const& consts);
-
 InductionContext::InductionContext(
     z3::context& z3ctx,
     std::shared_ptr<Module> module)

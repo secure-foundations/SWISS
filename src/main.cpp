@@ -151,8 +151,10 @@ bool try_to_add_invariants(
 
   bool solved = false;
 
-  shared_ptr<Model> model = get_dumb_model(initctx, module);
-  shared_ptr<Model> model2 = transition_model(initctx->ctx->ctx, module, model);
+  shared_ptr<Model> root_model = get_dumb_model(initctx, module);
+  vector<shared_ptr<Model>> models = get_tree_of_models(initctx->ctx->ctx,
+      module, root_model, 5);
+  printf("using %d models\n", (int)models.size());
 
   int count_iterations = 0;
   int count_evals = 0;
@@ -178,21 +180,17 @@ bool try_to_add_invariants(
     auto invariant = invariants[i];
     if (i_ % 100 == 0) printf("doing %d\n", i_);
 
-    count_evals++;
-    bench.start("eval");
-    bool model_eval_1 = model->eval_predicate(invariant);
-    bench.end();
-    if (!model_eval_1) {
-      is_good_candidate[i] = false;
-      continue;
+    for (auto model : models) {
+      count_evals++;
+      bench.start("eval");
+      bool model_eval = model->eval_predicate(invariant);
+      bench.end();
+      if (!model_eval) {
+        is_good_candidate[i] = false;
+        break;
+      }
     }
-
-    count_evals++;
-    bench.start("eval");
-    bool model_eval_2 = model2->eval_predicate(invariant);
-    bench.end();
-    if (!model_eval_2) {
-      is_good_candidate[i] = false;
+    if (!is_good_candidate[i]) {
       continue;
     }
 

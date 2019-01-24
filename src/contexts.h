@@ -88,4 +88,19 @@ public:
 
 std::string name(std::string basename);
 
+struct ActionResult {
+  std::shared_ptr<ModelEmbedding> e;
+  z3::expr constraint;
+
+  ActionResult(
+    std::shared_ptr<ModelEmbedding> e,
+    z3::expr constraint)
+  : e(e), constraint(constraint) { }
+};
+
+ActionResult applyAction(
+    std::shared_ptr<ModelEmbedding> e,
+    std::shared_ptr<Action> action,
+    std::unordered_map<std::string, z3::expr> const& consts);
+
 #endif

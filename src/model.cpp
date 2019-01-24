@@ -535,12 +535,66 @@ void Model::assert_model_is(shared_ptr<ModelEmbedding> e) {
 shared_ptr<Model> transition_model(
     z3::context& ctx,
     shared_ptr<Module> module,
-    std::shared_ptr<Model> start_state
+    std::shared_ptr<Model> start_state,
+    int which_action
 ) {
-  InductionContext indctx(ctx, module);
-  start_state->assert_model_is(indctx.e1);
-  z3::solver& solver = indctx.ctx->solver;
-  z3::check_result res = solver.check();
-  assert (res == z3::sat);
-  return Model::extract_model_from_z3(ctx, solver, module, *indctx.e2);
+  shared_ptr<BackgroundContext> bgctx = make_shared<BackgroundContext>(ctx, module);
+  z3::solver& solver = bgctx->solver;
+
+  shared_ptr<ModelEmbedding> e1 = ModelEmbedding::makeEmbedding(bgctx, module);
+  shared_ptr<Action> action;
+  if (which_action == -1) {
+    // allow any action
+    action.reset(new ChoiceAction(module->actions));
+  } else {
+    assert(0 <= which_action && which_action < module->actions.size());
+    action = module->actions[which_action];
+  }
+  ActionResult res = applyAction(e1, action, {});
+  shared_ptr<ModelEmbedding> e2 = res.e;
+  // Add the relation between the two states
+  solver.add(res.constraint);
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    solver.add(e1->value2expr(axiom, {}));
+  }
+
+  start_state->assert_model_is(e1);
+  z3::check_result sat_result = solver.check();
+  if (sat_result == z3::sat) {
+    return Model::extract_model_from_z3(ctx, solver, module, *e2);
+  } else {
+    return nullptr;
+  }
+}
+
+void get_tree_of_models_(
+  z3::context& ctx,
+  shared_ptr<Module> module,
+  std::shared_ptr<Model> start_state,
+  int depth,
+  vector<shared_ptr<Model>>& res
+) {
+  res.push_back(start_state);
+  if (depth == 0) {
+    return;
+  }
+
+  for (int i = 0; i < module->actions.size(); i++) {
+    shared_ptr<Model> next_state = transition_model(ctx, module, start_state, i);
+    if (next_state != nullptr) {
+      get_tree_of_models_(ctx, module, next_state, depth - 1, res);
+    }
+  }
+}
+
+vector<shared_ptr<Model>> get_tree_of_models(
+  z3::context& ctx,
+  shared_ptr<Module> module,
+  std::shared_ptr<Model> start_state,
+  int depth
+) {
+  vector<shared_ptr<Model>> res;
+  get_tree_of_models_(ctx, module, start_state, depth, res);
+  return res;
 }

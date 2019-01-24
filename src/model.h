@@ -67,6 +67,13 @@ private:
 std::shared_ptr<Model> transition_model(
     z3::context& ctx,
     std::shared_ptr<Module> module,
-    std::shared_ptr<Model> start_state);
+    std::shared_ptr<Model> start_state,
+    int which_action = -1);
+
+std::vector<std::shared_ptr<Model>> get_tree_of_models(
+    z3::context& ctx,
+    std::shared_ptr<Module> module,
+    std::shared_ptr<Model> start_state,
+    int depth);
 
 #endif
