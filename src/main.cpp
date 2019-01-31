@@ -245,15 +245,21 @@ Grammar createGrammar() {
   std::vector<Type> input_id_node{id_type, node_type};
   std::vector<Type> input_node_node{node_type, node_type};
   std::vector<Type> input_empty{empty_type};
+  // this production controls the number of conjunctions
+  std::vector<Type> input_and{bool_type, bool_type, bool_type};
   functions.push_back(Function("nid", input_node, id_type));
   functions.push_back(Function("le", input_id_id, bool_type));
+  functions.push_back(Function("~le", input_id_id, bool_type));
   functions.push_back(Function("leader", input_node_empty, bool_type));
+  functions.push_back(Function("~leader", input_node_empty, bool_type));
   functions.push_back(Function("pnd", input_id_node, bool_type));
   functions.push_back(Function("~=", input_node_node, bool_type));
+  functions.push_back(Function("=", input_node_node, bool_type));
   functions.push_back(Function("empty", input_empty, empty_type));
   functions.push_back(Function("A", input_empty, node_type));
   functions.push_back(Function("B", input_empty, node_type));
   functions.push_back(Function("C", input_empty, node_type));
+  functions.push_back(Function("and",input_and, bool_type));
 
   Grammar g = Grammar(types, functions);
   return g;
@@ -377,7 +383,13 @@ vector<shared_ptr<Value>> get_values_list() {
 }
 
 int main() {
+
+  // FIXME: quick hack to control which enumeration to use
+  bool smt_enumeration = false;
+
   try {
+
+    if (!smt_enumeration) {
     vector<shared_ptr<Value>> candidates = get_values_list();
     /*
     for (auto v : candidates) {
@@ -412,22 +424,23 @@ int main() {
     Model m = Model::extract_model_from_z3(ctx, initctx->ctx->solver, module, *initctx->e);
     m.dump();
     */
+  } else {
 
     // TODO: connect with the add invariant code
     Grammar grammar = createGrammar();
-    context _z3_ctx;
-    SMT solver = SMT(3, grammar, _z3_ctx);
+    context z3_ctx;
+    solver z3_solver(z3_ctx);
+    SMT solver = SMT(grammar, z3_ctx, z3_solver);
     int program = 0;
     while (solver.solve()){
       std::cout << "#program= " << program << std::endl;
       program++;
       // solver.getOutput() // returns a vector with tree representation of the program
-      for (int i = 0; i < 3; i++){
-        std::cout << solver.treeToString(i) << std::endl;
-      }
+      //std::cout << solver.solutionToString() << std::endl;
     }
+    std::cout << "end" << std::endl;
+  }
 
-    printf("done\n");
   } catch (z3::exception exc) {
     printf("got z3 exception: %s\n", exc.msg());
     throw;
