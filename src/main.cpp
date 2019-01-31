@@ -247,6 +247,9 @@ Grammar createGrammar() {
   std::vector<Type> input_empty{empty_type};
   // this production controls the number of conjunctions
   std::vector<Type> input_and{bool_type, bool_type, bool_type};
+  std::vector<Type> input_node_node_node{node_type, node_type, node_type};
+  functions.push_back(Function("btw",input_node_node_node, bool_type));
+  functions.push_back(Function("~btw",input_node_node_node, bool_type));
   functions.push_back(Function("nid", input_node, id_type));
   functions.push_back(Function("le", input_id_id, bool_type));
   functions.push_back(Function("~le", input_id_id, bool_type));
@@ -435,7 +438,6 @@ int main() {
     while (solver.solve()){
       std::cout << "#program= " << program << std::endl;
       program++;
-      // solver.getOutput() // returns a vector with tree representation of the program
       //std::cout << solver.solutionToString() << std::endl;
     }
     std::cout << "end" << std::endl;

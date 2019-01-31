@@ -66,6 +66,9 @@ private:
 	std::vector<std::vector<int>> _and_nodes;
 	std::unordered_map<int, int> _node2var;
 	int _empty_production;
+	std::unordered_map<std::string, int> _name2production;
+	std::unordered_map<int, std::string> _production2name;
+	std::vector<std::vector<int>> _result;
 
 	
 public:
@@ -93,16 +96,36 @@ public:
 		// empty production
 		_empty_production = 0;
 		for (int z = 0; z < _grammar.getFunctions().size(); z++){
-			std::cout << _grammar.getFunctions()[z].getOutput().getType() << std::endl;
+			_name2production[_grammar.getFunctions()[z].getName()] = z;
+			_production2name[z] = _grammar.getFunctions()[z].getName();
+
+			//std::cout << _grammar.getFunctions()[z].getOutput().getType() << std::endl;
 			if (!_grammar.getFunctions()[z].getOutput().getType().compare("empty")){
 				_empty_production = z;
-				break;
 			}
 		}
 
 		createVariables();
 		createConstraints();
-		//std::cout << _z3_solver->to_smt2() << "\n";
+
+		// FIXME: generalize this to n children
+		int a[] = {1, 2, 3}; 
+		int n = sizeof a/sizeof a[0]; 
+		generatePermutations(a, n, n, _result);
+
+		createBinaryAssociativeConstraints("=");
+		createBinaryAssociativeConstraints("~=");
+
+		createAllDiffConstraints("=");
+		createAllDiffConstraints("~=");
+		// createAllDiffConstraints("btw");
+		// createAllDiffConstraints("~btw");
+
+		createAllDiffGrandChildrenConstraints("le");
+		createAllDiffGrandChildrenConstraints("~le");
+	
+		breakSymmetries("btw", "A", "B", "C");
+		breakSymmetries("~btw", "A", "B", "C");
 
 	}
 
@@ -120,6 +143,10 @@ private:
 	void blockModel();
 	void getAndNodes(Node root, std::vector<int>& ids);
 	void generatePermutations(int a[], int size, int n, std::vector<std::vector<int>>& permut);
+	void createBinaryAssociativeConstraints(std::string name);
+	void createAllDiffConstraints(std::string name);
+	void createAllDiffGrandChildrenConstraints(std::string name);
+	void breakSymmetries(std::string name, std::string a, std::string b, std::string c);
 
 };
 

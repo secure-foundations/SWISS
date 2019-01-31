@@ -35,18 +35,17 @@ void SMT::generatePermutations(int a[], int size, int n, std::vector<std::vector
 
 void SMT::blockModel(){
 
-	for (int i = 0; i < _nodes.size(); i++){
-		_nodes[i].setFunction("");
+	bool no_string = true;
+
+	if (!no_string){
+		for (int i = 0; i < _nodes.size(); i++){
+			_nodes[i].setFunction("");
+		}
 	}
 
-	// FIXME: generalize this to n children
-	int a[] = {1, 2, 3}; 
-	int n = sizeof a/sizeof a[0]; 
-	std::vector<std::vector<int>> result;
-	generatePermutations(a, n, n, result);
 	std::unordered_map<int, int> assignment;
 
-	expr_vector gctr(*_z3_ctx);
+	//expr_vector gctr(*_z3_ctx);
 	
 	model m = _z3_solver->get_model();
 	for (unsigned i = 0; i < m.size(); i++) {
@@ -55,11 +54,12 @@ void SMT::blockModel(){
 		int var = std::stoi(v.name().str().substr(v.name().str().find("node") + 4));
 		int value = m.get_const_interp(v).get_numeral_int();
 		if (value != _empty_production){
-			_nodes[var-1].setFunction(_grammar.getFunctions()[value].getName());
-			gctr.push_back(_variables[var-1] != m.get_const_interp(v).get_numeral_int());
+			if (!no_string)
+				_nodes[var-1].setFunction(_grammar.getFunctions()[value].getName());
+			//gctr.push_back(_variables[var-1] != m.get_const_interp(v).get_numeral_int());
 		}
-		else
-			_nodes[var-1].setFunction("");
+		// else
+		// 	_nodes[var-1].setFunction("");
 
 		assignment[var] = m.get_const_interp(v).get_numeral_int();
 	}
@@ -79,28 +79,25 @@ void SMT::blockModel(){
 		}
 	}
 
-	for (int i = 0; i < result.size(); i++){
+	// std::cout << _nodes[1].getFunction() << std::endl;
+	// std::cout << _nodes[2].getFunction() << std::endl;
+	// std::cout << _nodes[3].getFunction() << std::endl;
+
+	for (int i = 0; i < _result.size(); i++){
 		expr_vector ctr(*_z3_ctx);
-		// for (int j = 0; j < result[i].size(); j++){
-		// 	printf("%d ",result[i][j]);
-		// }
-		// printf("\n");
-		for (int j = 0; j < result[i].size(); j++){
-			int x = result[i][j]-1;
+		for (int j = 0; j < _result[i].size(); j++){
+			int x = _result[i][j]-1;
 			int y = j;
-			//std::cout << "adding " << x << " with values " << y << std::endl;
 			for (int z = 0; z < ids[x].size(); z++){
 				assert (ids[x].size() == values[y].size());
 				int id = ids[x][z];
 				int value = values[y][z];
-				//std::cout << "value = " << values[y][z] << std::endl;
 				if (value != _empty_production) {
 					expr xp = _z3_ctx->int_val(value);
 					ctr.push_back(_variables[id] != xp);	
 				}
 			}
 		}
-		//std::cout << "c= " << mk_or(ctr) << std::endl;
 		_z3_solver->add(mk_or(ctr));
 	}	
 
@@ -154,12 +151,12 @@ void SMT::getAndNodes(Node root, std::vector<int>& ids){
 	ids.clear();
 	std::deque<Node> work;
 	work.push_back(root);
-	printf("root = %d\n",root.getId());
+	// /printf("root = %d\n",root.getId());
 	while(!work.empty()){
 		Node current = work.front();
 		work.pop_front();
 		ids.push_back(current.getId());
-		printf("id=%d\n",current.getId());
+		//printf("id=%d\n",current.getId());
 		for (int i = 0; i < _nodes[current.getId()-1].getChildren().size(); i++){
 			work.push_back(_nodes[current.getId()-1].getChildren()[i]);
 		}
@@ -203,6 +200,76 @@ void SMT::createVariables(){
 		expr x = _z3_ctx->int_const(name.c_str());
 		_variables.push_back(x);
 		_node2var[_nodes[j].getId()] = _variables.size()-1;
+	}
+}
+
+// FIXME: generalize these constraints
+void SMT::createBinaryAssociativeConstraints(std::string name){
+	assert (_name2production.find(name) != _name2production.end());
+	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
+	assert (children == 2);
+	for (int i = 1; i <= 3; i++){
+		_z3_solver->add(implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),
+			_variables[_nodes[i].getChildren()[0].getId()-1] < _variables[_nodes[i].getChildren()[1].getId()-1]
+			));
+	}
+}
+
+void SMT::createAllDiffConstraints(std::string name){
+	//std::cout << "name = " << name << std::endl;
+	assert (_name2production.find(name) != _name2production.end());
+	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
+	//std::cout << "children=" << children << std::endl;
+	for (int i = 1; i <= 3; i++){
+
+		expr_vector rhs(*_z3_ctx);
+		for (int j = 0; j < children; j++){
+			for (int w = j+1; w < children; w++){
+				rhs.push_back(_variables[_nodes[i].getChildren()[j].getId()-1] != 
+					_variables[_nodes[i].getChildren()[w].getId()-1]);
+			}
+		}
+		_z3_solver->add(implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),
+			mk_and(rhs)));
+	}
+}
+
+// HACK for le: generalize afterwards
+void SMT::createAllDiffGrandChildrenConstraints(std::string name){
+	assert (_name2production.find(name) != _name2production.end());
+	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
+	for (int i = 1; i <= 3; i++){
+		expr ctr = implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),
+			_variables[_nodes[_nodes[i].getChildren()[0].getId()-1].getChildren()[0].getId()-1] != 
+			_variables[_nodes[_nodes[i].getChildren()[1].getId()-1].getChildren()[0].getId()-1]
+			);
+		_z3_solver->add(ctr);
+	}
+}
+
+// HACK for btw: generalize afterwards
+void SMT::breakSymmetries(std::string name, std::string a, std::string b, std::string c){
+	// ABC -> BCA -> CAB
+	// ACB -> CBA -> BAC
+	// only allow ABC and ACB
+	assert (_name2production.find(name) != _name2production.end());
+	for (int i = 1; i <= 3; i++){
+		expr_vector o1(*_z3_ctx);
+		o1.push_back(_variables[_nodes[i].getChildren()[0].getId()-1] == _z3_ctx->int_val(_name2production[a]));
+		o1.push_back(_variables[_nodes[i].getChildren()[1].getId()-1] == _z3_ctx->int_val(_name2production[b]));
+		o1.push_back(_variables[_nodes[i].getChildren()[2].getId()-1] == _z3_ctx->int_val(_name2production[c]));
+
+		expr_vector o2(*_z3_ctx);
+		o2.push_back(_variables[_nodes[i].getChildren()[0].getId()-1] == _z3_ctx->int_val(_name2production[a]));
+		o2.push_back(_variables[_nodes[i].getChildren()[1].getId()-1] == _z3_ctx->int_val(_name2production[c]));
+		o2.push_back(_variables[_nodes[i].getChildren()[2].getId()-1] == _z3_ctx->int_val(_name2production[b]));
+
+		expr_vector o3(*_z3_ctx);
+		o3.push_back(mk_and(o1));
+		o3.push_back(mk_and(o2));
+		expr ctr = implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),mk_or(o3));
+		//std::cout << "ctr = " << ctr << std::endl;
+		_z3_solver->add(ctr);
 	}
 }
 
@@ -268,7 +335,7 @@ for (int j = 0; j < domain; j++){
 	if (!_grammar.getFunctions()[j].getOutput().getType().compare(_output.getType())){
 		std::string name = _grammar.getFunctions()[j].getName();
 		if (!name.compare("and")){
-			std::cout << _grammar.getFunctions()[j].getName() << std::endl;
+			//std::cout << _grammar.getFunctions()[j].getName() << std::endl;
 			for (int z = 0; z < _variables.size(); z++){
 				if (z == 0){
 					expr_vector ctr(*_z3_ctx);
