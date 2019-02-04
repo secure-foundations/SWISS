@@ -1,0 +1,167 @@
+#lang ivy1.5
+
+type node
+type quorum
+type round
+type value
+type config
+
+individual bot: value
+
+module total_order(r) = {
+    axiom r(X,X)                        # Reflexivity
+    axiom r(X, Y) & r(Y, Z) -> r(X, Z)  # Transitivity
+    axiom r(X, Y) & r(Y, X) -> X = Y    # Anti-symmetry
+    axiom r(X, Y) | r(Y, X)             # Totality
+}
+
+relation le(X: round, Y: round)
+instantiate total_order(le)
+
+relation member(N: node, Q: quorum)
+relation quorum_in(Q: quorum, C: config)
+axiom forall C:config . forall QA:quorum . forall QB:quorum . quorum_in(QA, C) & quorum_in(QB, C) -> exists N:node . member(N, QA) & member(N, QB)
+
+relation start_round_msg(R: round, S: round)
+relation join_ack_msg(N: node, R: round, S: round, V: value)
+relation propose_msg(R: round, V: value)
+relation vote_msg(N: node, R: round, V: value)
+relation decision(N: node, R: round, V: value)
+relation configure_round_msg(R: round, C: config)
+relation complete_msg(R: round)
+relation complete_of(C: config, R: round)
+
+axiom forall C . forall RA . forall RB . complete_of(C, RA) & complete_of(C, RB) -> RA = RB
+
+individual master_complete : round
+relation left_round(N: node, R: round)
+
+init ~start_round_msg(RA, RB)
+init ~join_ack_msg(N, RA, RB, V)
+init ~propose_msg(R, V)
+init ~vote_msg(N, R, V)
+init ~decision(N, R, V)
+init ~configure_round_msg(R, C)
+init ~complete_msg(R)
+init le(master_complete, RP)
+
+# master actions
+
+action configure_round = {
+  local r: round, c: config {
+    assume ~configure_round_msg(r, C);
+    assume le(master_complete, r);
+    assume complete_of(c, master_complete);
+    configure_round_msg(r, c) := true;
+  }
+}
+
+# node actions
+
+action start_round = {
+  local r: round, c: config, cr: round {
+    assume configure_round_msg(r, c);
+    assume complete_of(c, cr);
+    start_round_msg(r, R) := start_round_msg(r, R) | (le(cr, R) & ~le(r, R));
+  }
+}
+
+action join_round = {
+  local n: node, r: round, rp: round {
+    assume start_round_msg(r, rp);
+    assume ~left_round(n, r);
+    local v: value {
+      if (forall VP . ~vote_msg(n, rp, VP)) {
+        assume v = bot;
+      } else {
+        assume vote_msg(n, rp, v);
+      };
+      join_ack_msg(n, r, rp, v) := true;
+      left_round(n, R) := left_round(n, R) | ~le(r, R)
+    }
+  }
+}
+
+function quorum_of_round(R: round): quorum
+
+action propose = {
+  local r: round, c: config, cr: round {
+    quorum_of_round(R) := *;
+    assume configure_round_msg(r, c);
+    assume complete_of(c, cr);
+    assume ~propose_msg(r, V);
+    assume forall RP . (le(cr, RP) & ~le(r, RP) -> exists C . configure_round_msg(RP, C));
+    assume forall RP . le(cr, RP) & ~le(r, RP) & configure_round_msg(RP, c) -> quorum_in(quorum_of_round(RP), c);
+    assume forall RP . forall N . le(cr, RP) & ~le(r, RP) & member(N, quorum_of_round(RP)) -> exists V . join_ack_msg(N, r, RP, V);
+    local maxr:round, v:value {
+      assume (v = bot &
+        (forall RP . forall VP . exists N . le(cr, RP) & ~le(r, RP) & member(N, quorum_of_round(RP)) & join_ack_msg(N, r, RP, VP) & VP ~= bot)
+       ) | (v ~= bot &
+        (exists N . le(cr, maxr) & ~le(r, maxr) & member(N, quorum_of_round(maxr)) & join_ack_msg(N, r, maxr, v) & v ~= bot)
+         & (forall RP . forall VP .
+        (exists N . le(cr, RP) & ~le(r, RP) & member(N, quorum_of_round(RP)) & join_ack_msg(N, r, RP, VP) & VP ~= bot)
+          -> le(RP, maxr)));
+      if (v = bot) {
+        v := *;
+        assume v ~= bot;
+        complete_msg(r) := true;
+      };
+      propose_msg(r, v) := true;
+    }
+  }
+}
+
+action vote = {
+  local n: node, r: round, v: value {
+    assume v ~= bot;
+    assume propose_msg(r, v);
+    assume ~left_round(n, r);
+    vote_msg(n, r, v) := true;
+  }
+}
+
+action learn = {
+  local n: node, r: round, c: config, v: value, q: quorum {
+    assume v ~= bot;
+    assume configure_round_msg(r, c);
+    assume quorum_in(q, c);
+    assume forall N . member(N, q) -> vote_msg(N, r, v);
+    decision(n, r, v) := true;
+    complete_msg(r) := true;
+  }
+}
+
+# (21)
+conjecture propose_msg(R, VA) & propose_msg(R, VB) -> VA = VB
+conjecture configure_round_msg(R, CA) & configure_round_msg(R, CB) -> CA = CB
+conjecture start_round_msg(RA, RB) -> exists C . configure_round_msg(RA, C)
+conjecture start_round_msg(RA, RB) -> ~le(RA, RB)
+conjecture vote_msg(N, R, V) -> propose_msg(R, V)
+conjecture propose_msg(RB, V) & ~le(RB, RA) -> exists C . configure_round_msg(RA, C)
+conjecture ~propose_msg(R, bot) & ~vote_msg(N,R,bot) & ~decision(N,R,bot)
+conjecture join_ack_msg(N,RA,RB,V) -> start_round_msg(RA, RB)
+conjecture join_ack_msg(N,RA,RB,bot) -> ~vote_msg(N,RB,V)
+conjecture join_ack_msg(N,RA,RB,V) & V ~= bot -> vote_msg(N,RB,V)
+
+
+conjecture configure_round_msg(R,C) & complete_of(C,CR) -> le(CR, R) & le(CR, master_complete)
+
+conjecture complete_msg(RB) & le(RA, RB) -> exists C . configure_round_msg(RA, C)
+
+conjecture (RB = master_complete | (configure_round_msg(RC, C) & complete_of(C, RB))) & ~le(RB, RA) -> complete_msg(RB)
+
+conjecture (exists N . decision(N,R,V)) -> exists C:config . exists Q:quorum . configure_round_msg(R,C) & quorum_in(Q,C) & (forall N . member(N,Q) -> vote_msg(N,R,V))
+
+conjecture ~le(RB, RA) & propose_msg(RB, VB) & VA ~= VB & configure_round_msg(RA, C) & quorum_in(Q, C) -> exists N . member(N,Q) & left_round(N, RA) & ~ vote_msg(N, RA, VA)
+
+conjecture complete_msg(RB) & ~le(RB, RA) & configure_round_msg(RA, C) & quorum_in(Q,C) & ~(exists N . member(N,Q) & left_round(N, RA) & ~vote_msg(N,R,V)) -> exists N . decision(N,R,V)
+
+# safety property
+conjecture (decision(N1, RA, V1) & decision(N2, R2, V2)) -> V1 = V2
+
+# not in paper?
+conjecture ~vote_msg(N,R,bot)
+
+#conjecture left_round(N,R) <-> (exists RA . exists RP . exists V . ~le(RA, R) & join_ack_msg(N, RA, RP, V))
+conjecture (~le(RA, R) & join_ack_msg(N, RA, RP, V)) -> left_round(N,R)
+#conjecture left_round(N,R) -> (exists RA . exists RP . exists V . ~le(RA, R) & join_ack_msg(N, RA, RP, V))
