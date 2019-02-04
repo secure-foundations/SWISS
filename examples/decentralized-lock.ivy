@@ -1,0 +1,47 @@
+#lang ivy1.5
+
+type node
+type time
+
+axiom forall X : time . X <= X
+axiom forall X : time . forall Y : time . X <= Y & Y <= Z -> X <= Z
+axiom forall X : time . forall Y : time . (X <= Y & Y <= X) -> X = Y
+axiom forall X : time . forall Y : time . X <= Y | Y <= X
+
+relation has_lock(X: node)
+relation msg(X: node, Y: node, E: time)
+function current_epoch(X: node): time
+
+init ~(X ~= Y & has_lock(X) & has_lock(Y))
+init ~msg(X,Y,T)
+init current_epoch(X) <= T
+
+action take_lock = {
+  local x: node, y: node, t: time {
+    assume msg(x, y, t);
+    assume ~(t <= current_epoch(y));
+    has_lock(y) := true;
+    current_epoch(y) := t;
+  }
+}
+
+action release_lock = {
+  local x: node, y : node, t: time {
+    assume has_lock(x);
+    assume ~(t <= current_epoch(x));
+    has_lock(x) := false;
+    msg(x, y, t) := true;
+  }
+}
+
+# safety property
+conjecture ~(X ~= Y & has_lock(X) & has_lock(Y))
+
+conjecture ~(X ~= Y &
+    ( has_lock(X) | (msg(X1, X, T) & ~(T <= current_epoch(X))) ) &
+    ( has_lock(Y) | (msg(Y1, Y, S) & ~(S <= current_epoch(Y))) )
+  )
+
+conjecture ~(has_lock(X) & (msg(X1, X, T) & ~(T <= current_epoch(X))))
+conjecture ~(S ~= T & msg(X1, Y, S) & msg(X2, Y, T) &
+    ~(T <= current_epoch(Y)) & ~(S <= current_epoch(Y)))
