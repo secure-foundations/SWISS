@@ -114,22 +114,22 @@ export learn
 
 conjecture (decision(N1, R1, V1) & decision(N2, R2, V2)) -> V1 = V2
 
-#conjecture propose_msg(R, V1) & propose_msg(R, V2) -> V1 = V2
-#conjecture vote_msg(N,R,V) -> propose_msg(R,V)
+conjecture propose_msg(R, V1) & propose_msg(R, V2) -> V1 = V2
+conjecture vote_msg(N,R,V) -> propose_msg(R,V)
 conjecture (exists N . decision(N,R,V)) -> (exists Q . (forall N . member(N,Q) -> vote_msg(N,R,V)))
 
-#conjecture (join_ack_msg(N,R,bot,V) & le(RP,R) & RP ~= R) -> ~(vote_msg(N,RP,VP))
-#conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot) -> (le(RP,R) & RP ~= R & vote_msg(N,RP,V))
-#conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot & le(RP,RPP) & RP~=RPP & le(RPP,R) & RPP~=R) -> ~(vote_msg(N,RPP,VP))
-#conjecture ~(vote_msg(N,bot,V))
+conjecture (join_ack_msg(N,R,bot,V) & le(RP,R) & RP ~= R) -> ~(vote_msg(N,RP,VP))
+conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot) -> (le(RP,R) & RP ~= R & vote_msg(N,RP,V))
+conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot & le(RP,RPP) & RP~=RPP & le(RPP,R) & RPP~=R) -> ~(vote_msg(N,RPP,VP))
+conjecture ~(vote_msg(N,bot,V))
 
 # rewritten (12) -> (13)
 conjecture (propose_msg(R2, V2) & le(R1,R2) & R1~=R2 & V1~=V2) -> (exists N . member(N,Q) & (~(vote_msg(N,R1,V1))) & (left_round(N, R1)))
 
 # (14)
 
-#conjecture (le(R1,R2) & R1~=R2 & joined_round(N,R2)) -> left_round(N,R1)
+conjecture (le(R1,R2) & R1~=R2 & joined_round(N,R2)) -> left_round(N,R1)
 
 # (15)
 
-#conjecture join_ack_msg(N,R,RP,V) -> joined_round(N,R)
+conjecture join_ack_msg(N,R,RP,V) -> joined_round(N,R)
