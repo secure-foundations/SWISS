@@ -129,10 +129,16 @@ z3::expr ModelEmbedding::value2expr(
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
     auto iter = consts.find(value->name);
     if (iter == consts.end()) {
-      printf("could not find %s\n", value->name.c_str());
-      assert(false);
+      auto iter = mapping.find(value->name);
+      if (iter == mapping.end()) {
+        printf("could not find %s\n", value->name.c_str());
+        assert(false);
+      }
+      z3::func_decl fd = iter->second;
+      return fd();
+    } else {
+      return iter->second;
     }
-    return iter->second;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
     return value2expr(value->left, consts, vars) == value2expr(value->right, consts, vars);
