@@ -4,7 +4,9 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <cassert>
 #include "z3++.h"
+#include "logic.h"
 
 class Type {
 
@@ -22,6 +24,14 @@ class Type {
 
   	std::string getType() {
   		return _type;
+  	}
+
+  	lsort toSort() {
+  	  if (_type == "bool") {
+  	    return s_bool();
+  	  } else {
+  	    return s_uninterp(_type);
+  	  }
   	}
 };
 
@@ -51,6 +61,17 @@ public:
 		return _output;
 	}
 
+  lsort toSort() {
+    if (_inputs.size() == 0) {
+      return _output.toSort();
+    } else {
+      std::vector<lsort> inps;
+      for (Type& t : _inputs) {
+        inps.push_back(t.toSort());
+      }
+      return s_fun(inps, _output.toSort());
+    }
+  }
 };
 
 class Grammar {
@@ -73,6 +94,14 @@ public:
 		return _functions;
 	}
 
+  Function getFunctionByName(std::string const& name) {
+    for (Function f : _functions) {
+      if (f.getName() == name) {
+        return f;
+      }
+    }
+    assert(false);
+  }
 };
 
 #endif

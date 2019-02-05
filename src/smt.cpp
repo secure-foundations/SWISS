@@ -124,55 +124,55 @@ void SMT::blockModel(){
 }
 
 std::string SMT::solutionToString(){
-	std::string invariant = "~(";
-	Node comma = Node(-1,0);
-	comma.setFunction(",");
-	Node left = Node(-1,0);
-	left.setFunction("(");
-	Node right = Node(-1,0);
-	right.setFunction(")");
+	return solutionToValue()->to_string();
+}
+
+value SMT::nodeToValue(Node const& node) {
+  std::string func = node.getFunction();
+  assert(func != "");
+
+  lsort function_sort = _grammar.getFunctionByName(func).toSort();
+
+  // FIXME hack
+  if (func == "A" || func == "B" || func == "C") {
+    return v_var(func, function_sort);
+  }
+
+  if (dynamic_cast<FunctionSort*>(function_sort.get())) {
+    std::vector<value> children;
+    for (int j = 0; j < _nodes[node.getId()-1].getChildren().size(); j++){
+      // FIXME: fix the pointers in the _nodes
+      if (_nodes[_nodes[node.getId()-1].getChildren()[j].getId()-1].getFunction().compare("")){						
+        children.push_back(
+            nodeToValue(_nodes[_nodes[node.getId()-1].getChildren()[j].getId()-1]));
+      }
+    }
+
+    if (func == "=") {
+      assert(children.size() == 2);
+      return v_eq(children[0], children[1]);
+    } else if (func == "~=") {
+      assert(children.size() == 2);
+      return v_not(v_eq(children[0], children[1]));
+    } else { 
+      return v_apply(
+          v_const(func, function_sort),
+          children);
+    }
+  } else {
+    return v_const(func, function_sort);
+  }
+}
+
+value SMT::solutionToValue() {
+	std::vector<value> conjuncts;
 	for (int i = 0; i < _and_nodes.size(); i++){
-		std::deque<Node> work;
-		work.push_back(_nodes[_and_nodes[i][0]-1]);
-		work.push_back(right);
-		while (!work.empty()){
-			Node current = work.front();
-			assert (current.getFunction().compare(""));
-			invariant += current.getFunction();
-			work.pop_front();
-			if (current.getId() == -1)
-				continue;
-			// quick hack for the A, B, C
-			if (!current.getFunction().compare("A") ||
-				!current.getFunction().compare("B") ||
-				!current.getFunction().compare("C"))
-				continue;
-
-			// quick hack for nid
-			if (!current.getFunction().compare("nid")){
-				work.push_front(right);
-			}
-
-			
-			int nb = 0;
-			for (int j = 0; j < _nodes[current.getId()-1].getChildren().size(); j++){
-				// FIXME: fix the pointers in the _nodes
-				if (_nodes[_nodes[current.getId()-1].getChildren()[j].getId()-1].getFunction().compare("")){						
-						if (nb > 0) work.push_front(comma);
-						work.push_front(_nodes[_nodes[current.getId()-1].getChildren()[j].getId()-1]);
-						nb++;
-				}
-			}
-			if (nb == 0)
-				work.push_front(right);
-			else
-				work.push_front(left);
-		}
-		if (i != _and_nodes.size()-1)
-			invariant += " & ";
+	  Node& node = _nodes[_and_nodes[i][0]-1];
+	  if (node.getFunction() != "") {
+      conjuncts.push_back(nodeToValue(node));
+    }
 	}
-	invariant += ")\n";
-	return invariant;
+	return v_not(v_and(conjuncts));
 }
 
 bool SMT::solve(){

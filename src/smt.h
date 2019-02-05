@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "z3++.h"
 #include "grammar.h"
+#include "logic.h"
 
 using namespace z3;
 
@@ -26,7 +27,7 @@ public:
 		_function = "";
 	}
 
-	std::vector<Node> getChildren(){
+	std::vector<Node> const& getChildren() const {
 		return _children;
 	}
 
@@ -38,11 +39,11 @@ public:
 		return _depth;
 	}
 
-	int getId(){
+	int getId() const {
 		return _id;
 	}
 
-	std::string getFunction(){
+	std::string getFunction() const {
 		return _function;
 	}
 
@@ -134,6 +135,7 @@ public:
 
 	bool solve();
 	std::string solutionToString();
+	value solutionToValue();
 	// std::vector<std::vector<Node>> getOutput(){
 	// 	return _output_nodes;
 	// } 
@@ -152,8 +154,7 @@ private:
 	void getAndNodes(Node root, std::vector<int>& ids);
 	void generatePermutations(int a[], int size, int n, std::vector<std::vector<int>>& permut);
 	void breakSymmetries(std::string name, std::string a, std::string b, std::string c);
-
-
+	value nodeToValue(Node const&);
 };
 
 #endif

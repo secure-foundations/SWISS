@@ -286,4 +286,48 @@ public:
 
 std::shared_ptr<Module> parse_module(std::string const& src);
 
+typedef std::shared_ptr<Value> value;
+typedef std::shared_ptr<Sort> lsort;
+
+inline value v_forall(std::vector<VarDecl> const& decls, value const& body) {
+  return std::shared_ptr<Value>(new Forall(decls, body));
+}
+inline value v_exists(std::vector<VarDecl> const& decls, value const& body) {
+  return std::shared_ptr<Value>(new Exists(decls, body));
+}
+inline value v_var(std::string const& name, lsort sort) {
+  return std::shared_ptr<Value>(new Var(name, sort));
+}
+inline value v_const(std::string const& name, lsort sort) {
+  return std::shared_ptr<Value>(new Const(name, sort));
+}
+inline value v_eq(value a, value b) {
+  return std::shared_ptr<Value>(new Eq(a, b));
+}
+inline value v_not(value a) {
+  return std::shared_ptr<Value>(new Not(a));
+}
+inline value v_implies(value a, value b) {
+  return std::shared_ptr<Value>(new Implies(a, b));
+}
+inline value v_apply(value func, std::vector<value> const& args) {
+  return std::shared_ptr<Value>(new Apply(func, args));
+}
+inline value v_and(std::vector<value> const& args) {
+  return std::shared_ptr<Value>(new And(args));
+}
+inline value v_or(std::vector<value> const& args) {
+  return std::shared_ptr<Value>(new Or(args));
+}
+
+inline lsort s_bool() {
+  return std::shared_ptr<Sort>(new BooleanSort());
+}
+inline lsort s_uninterp(std::string name) {
+  return std::shared_ptr<Sort>(new UninterpretedSort(name));
+}
+inline lsort s_fun(std::vector<lsort> inputs, lsort output) {
+  return std::shared_ptr<Sort>(new FunctionSort(inputs, output));
+}
+
 #endif

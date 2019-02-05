@@ -509,7 +509,7 @@ vector<shared_ptr<Value>> get_values_list() {
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
-  bool smt_enumeration = false;
+  bool smt_enumeration = true;
 
   try {
 
