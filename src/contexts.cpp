@@ -26,7 +26,12 @@ BackgroundContext::BackgroundContext(z3::context& ctx, std::shared_ptr<Module> m
 }
 
 z3::sort BackgroundContext::getUninterpretedSort(std::string name) {
-  return sorts.find(name)->second;
+  auto iter = sorts.find(name);
+  if (iter == sorts.end()) {
+    printf("failed to find sort %s\n", name.c_str());
+    assert(false);
+  }
+  return iter->second;
 }
 
 z3::sort BackgroundContext::getSort(std::shared_ptr<Sort> sort) {
@@ -123,7 +128,10 @@ z3::expr ModelEmbedding::value2expr(
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
     auto iter = consts.find(value->name);
-    assert(iter != consts.end());
+    if (iter == consts.end()) {
+      printf("could not find %s\n", value->name.c_str());
+      assert(false);
+    }
     return iter->second;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
@@ -219,7 +227,11 @@ expr funcs_equal(z3::context& ctx, func_decl a, func_decl b) {
     z3::sort arg_sort = a.domain(i);
     args.push_back(ctx.constant(name("arg").c_str(), arg_sort));
   }
-  return z3::forall(args, a(args) == b(args));
+  if (args.size() == 0) {
+    return a(args) == b(args);
+  } else {
+    return z3::forall(args, a(args) == b(args));
+  }
 }
 
 ActionResult applyAction(
@@ -303,10 +315,11 @@ ActionResult applyAction(
       );
   }
   else if (Assign* action = dynamic_cast<Assign*>(a.get())) {
-    Apply* apply = dynamic_cast<Apply*>(action->left.get());
-    assert(apply != NULL);
+    Value* left = action->left.get();
+    Apply* apply = dynamic_cast<Apply*>(left);
+    //assert(apply != NULL);
 
-    Const* func_const = dynamic_cast<Const*>(apply->func.get());
+    Const* func_const = dynamic_cast<Const*>(apply != NULL ? apply->func.get() : left);
     assert(func_const != NULL);
     func_decl orig_func = e->getFunc(func_const->name);
 
@@ -322,6 +335,7 @@ ActionResult applyAction(
     z3::expr_vector all_eq_parts(ctx->ctx);
     std::unordered_map<std::string, z3::expr> vars;
     for (int i = 0; i < orig_func.arity(); i++) {
+      assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
         expr qvar = ctx->ctx.constant(name(arg_var->name).c_str(), ctx->getSort(arg_var->sort));
@@ -339,11 +353,15 @@ ActionResult applyAction(
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
 
-    return ActionResult(shared_ptr<ModelEmbedding>(new_e),
-        z3::forall(qvars, new_func(qvars) == z3::ite(
+    z3::expr inner = new_func(qvars) == z3::ite(
           z3::mk_and(all_eq_parts),
           e->value2expr(action->right, consts, vars),
-          orig_func(qvars))));
+          orig_func(qvars));
+    z3::expr outer = qvars.size() == 0 ? inner : z3::forall(qvars, inner);
+
+    ActionResult ar(shared_ptr<ModelEmbedding>(new_e), outer);
+
+    return ar;
   }
   else {
     assert(false && "applyAction does not implement this unknown case");

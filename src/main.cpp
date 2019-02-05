@@ -268,6 +268,126 @@ Grammar createGrammar() {
   return g;
 }
 
+vector<shared_ptr<Value>> get_values_list_qle() {
+  vector<shared_ptr<Value>> result;
+
+  vector<shared_ptr<Value>> pieces;
+
+  shared_ptr<Sort> node_sort = shared_ptr<Sort>(new UninterpretedSort("node"));
+  shared_ptr<Sort> nset_sort = shared_ptr<Sort>(new UninterpretedSort("nset"));
+  shared_ptr<Sort> bool_sort = shared_ptr<Sort>(new BooleanSort());
+
+
+  shared_ptr<Value> isleader_func = shared_ptr<Value>(new Const(
+      "isleader",
+      shared_ptr<Sort>(new FunctionSort({node_sort}, bool_sort))));
+
+  shared_ptr<Value> voted_func = shared_ptr<Value>(new Const(
+      "voted",
+      shared_ptr<Sort>(new FunctionSort({node_sort, node_sort}, bool_sort))));
+
+  shared_ptr<Value> member_func = shared_ptr<Value>(new Const(
+      "member",
+      shared_ptr<Sort>(new FunctionSort({node_sort, nset_sort}, bool_sort))));
+
+  shared_ptr<Value> majority_func = shared_ptr<Value>(new Const(
+      "majority",
+      shared_ptr<Sort>(new FunctionSort({nset_sort}, bool_sort))));
+
+  shared_ptr<Value> quorum_func = shared_ptr<Value>(new Const(
+      "quorum",
+      shared_ptr<Sort>(new FunctionSort({}, nset_sort))));
+
+  vector<VarDecl> decls;
+  decls.push_back(VarDecl("A", node_sort));
+  decls.push_back(VarDecl("B", node_sort));
+  decls.push_back(VarDecl("C", node_sort));
+
+  vector<shared_ptr<Value>> node_atoms;
+  vector<shared_ptr<Value>> nset_atoms;
+
+  node_atoms.push_back(shared_ptr<Value>(new Var("A", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var("B", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var("C", node_sort)));
+
+  nset_atoms.push_back(shared_ptr<Value>(new Apply(quorum_func, {})));
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    pieces.push_back(shared_ptr<Value>(
+      new Apply(isleader_func, { node_atoms[i] })
+    ));
+    pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+      new Apply(isleader_func, { node_atoms[i] })
+    ))));
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    for (int j = 0; j < node_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Apply(voted_func, { node_atoms[i], node_atoms[j] })
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Apply(voted_func, { node_atoms[i], node_atoms[j] })
+      ))));
+    }
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    for (int j = 0; j < nset_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Apply(member_func, { node_atoms[i], nset_atoms[j] })
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Apply(member_func, { node_atoms[i], nset_atoms[j] })
+      ))));
+    }
+  }
+
+  for (int j = 0; j < nset_atoms.size(); j++) {
+    pieces.push_back(shared_ptr<Value>(
+      new Apply(majority_func, { nset_atoms[j] })
+    ));
+    pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+      new Apply(majority_func, { nset_atoms[j] })
+    ))));
+  }
+
+  for (int i = 0; i < nset_atoms.size(); i++) {
+    for (int j = i+1; j < nset_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Eq(nset_atoms[i], nset_atoms[j])
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Eq(nset_atoms[i], nset_atoms[j])
+      ))));
+    }
+  }
+
+  for (int i = 0; i < node_atoms.size(); i++) {
+    for (int j = i+1; j < node_atoms.size(); j++) {
+      pieces.push_back(shared_ptr<Value>(
+        new Eq(node_atoms[i], node_atoms[j])
+      ));
+      pieces.push_back(shared_ptr<Value>(new Not(shared_ptr<Value>(
+        new Eq(node_atoms[i], node_atoms[j])
+      ))));
+    }
+  }
+
+  for (int i = 0; i < pieces.size(); i++) {
+    for (int j = i+1; j < pieces.size(); j++) {
+      for (int k = j+1; k < pieces.size(); k++) {
+        result.push_back(shared_ptr<Value>(new Forall(decls,
+            shared_ptr<Value>(new Not(
+              shared_ptr<Value>(new And(
+                { pieces[i], pieces[j], pieces[k] })))))));
+      }
+    }
+  }
+
+  return result;
+}
+
 vector<shared_ptr<Value>> get_values_list() {
   vector<shared_ptr<Value>> result;
 
@@ -388,12 +508,12 @@ vector<shared_ptr<Value>> get_values_list() {
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
-  bool smt_enumeration = true;
+  bool smt_enumeration = false;
 
   try {
 
     if (!smt_enumeration) {
-    vector<shared_ptr<Value>> candidates = get_values_list();
+    vector<shared_ptr<Value>> candidates = get_values_list_qle();
     /*
     for (auto v : candidates) {
       printf("%s\n", v->to_string().c_str());

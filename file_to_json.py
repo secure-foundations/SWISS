@@ -24,10 +24,11 @@ def get_json():
       functions.append(logic_to_obj(func))  
 
     # XXX hack
-    functions.append(["const", "<=", ["functionSort", [
-        ["uninterpretedSort", "id"],
-        ["uninterpretedSort", "id"]],
-        ["booleanSort"]]])
+    if sys.argv[1] == "examples/leader-election.ivy":
+      functions.append(["const", "<=", ["functionSort", [
+          ["uninterpretedSort", "id"],
+          ["uninterpretedSort", "id"]],
+          ["booleanSort"]]])
 
     axioms = []
     for axiom in im.module.get_axioms():
