@@ -1,6 +1,8 @@
 #include "smt.h"
 #include <deque> 
 #include <unordered_map>
+#include <set>
+
 
 void SMT::generatePermutations(int a[], int size, int n, std::vector<std::vector<int>>& permutation){ 
     // if size becomes 1 then prints the obtained 
@@ -35,7 +37,7 @@ void SMT::generatePermutations(int a[], int size, int n, std::vector<std::vector
 
 void SMT::blockModel(){
 
-	bool no_string = true;
+	bool no_string = false;
 
 	if (!no_string){
 		for (int i = 0; i < _nodes.size(); i++){
@@ -122,15 +124,54 @@ void SMT::blockModel(){
 }
 
 std::string SMT::solutionToString(){
-	std::string invariant = "";
+	std::string invariant = "~(";
+	Node comma = Node(-1,0);
+	comma.setFunction(",");
+	Node left = Node(-1,0);
+	left.setFunction("(");
+	Node right = Node(-1,0);
+	right.setFunction(")");
 	for (int i = 0; i < _and_nodes.size(); i++){
-		for (int j = 0; j < _and_nodes[i].size(); j++){
-			if (_nodes[_and_nodes[i][j]-1].getFunction().compare("")){
-				invariant += _nodes[_and_nodes[i][j]-1].getFunction() + " ";
+		std::deque<Node> work;
+		work.push_back(_nodes[_and_nodes[i][0]-1]);
+		work.push_back(right);
+		while (!work.empty()){
+			Node current = work.front();
+			assert (current.getFunction().compare(""));
+			invariant += current.getFunction();
+			work.pop_front();
+			if (current.getId() == -1)
+				continue;
+			// quick hack for the A, B, C
+			if (!current.getFunction().compare("A") ||
+				!current.getFunction().compare("B") ||
+				!current.getFunction().compare("C"))
+				continue;
+
+			// quick hack for nid
+			if (!current.getFunction().compare("nid")){
+				work.push_front(right);
 			}
+
+			
+			int nb = 0;
+			for (int j = 0; j < _nodes[current.getId()-1].getChildren().size(); j++){
+				// FIXME: fix the pointers in the _nodes
+				if (_nodes[_nodes[current.getId()-1].getChildren()[j].getId()-1].getFunction().compare("")){						
+						if (nb > 0) work.push_front(comma);
+						work.push_front(_nodes[_nodes[current.getId()-1].getChildren()[j].getId()-1]);
+						nb++;
+				}
+			}
+			if (nb == 0)
+				work.push_front(right);
+			else
+				work.push_front(left);
 		}
-		invariant += "\n";
+		if (i != _and_nodes.size()-1)
+			invariant += " & ";
 	}
+	invariant += ")\n";
 	return invariant;
 }
 
@@ -208,7 +249,7 @@ void SMT::createBinaryAssociativeConstraints(std::string name){
 	assert (_name2production.find(name) != _name2production.end());
 	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
 	assert (children == 2);
-	for (int i = 1; i <= 3; i++){
+	for (int i = 1; i <= _num_and; i++){
 		_z3_solver->add(implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),
 			_variables[_nodes[i].getChildren()[0].getId()-1] < _variables[_nodes[i].getChildren()[1].getId()-1]
 			));
@@ -216,11 +257,9 @@ void SMT::createBinaryAssociativeConstraints(std::string name){
 }
 
 void SMT::createAllDiffConstraints(std::string name){
-	//std::cout << "name = " << name << std::endl;
 	assert (_name2production.find(name) != _name2production.end());
 	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
-	//std::cout << "children=" << children << std::endl;
-	for (int i = 1; i <= 3; i++){
+	for (int i = 1; i <= _num_and; i++){
 
 		expr_vector rhs(*_z3_ctx);
 		for (int j = 0; j < children; j++){
@@ -237,8 +276,8 @@ void SMT::createAllDiffConstraints(std::string name){
 // HACK for le: generalize afterwards
 void SMT::createAllDiffGrandChildrenConstraints(std::string name){
 	assert (_name2production.find(name) != _name2production.end());
-	int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
-	for (int i = 1; i <= 3; i++){
+	//int children = _grammar.getFunctions()[_name2production[name]].getInputs().size();
+	for (int i = 1; i <= _num_and; i++){
 		expr ctr = implies(_variables[i] == _z3_ctx->int_val(_name2production[name]),
 			_variables[_nodes[_nodes[i].getChildren()[0].getId()-1].getChildren()[0].getId()-1] != 
 			_variables[_nodes[_nodes[i].getChildren()[1].getId()-1].getChildren()[0].getId()-1]
@@ -247,13 +286,27 @@ void SMT::createAllDiffGrandChildrenConstraints(std::string name){
 	}
 }
 
+void SMT::breakOccurrences(std::string name, std::string a, std::string b, std::string c){
+	assert (_name2production.find(name) != _name2production.end());
+	for (int i = 1; i <= _num_and; i++){
+		expr_vector o1(*_z3_ctx);
+		o1.push_back(_variables[_nodes[i].getChildren()[0].getId()-1] == _z3_ctx->int_val(_name2production[a]));
+		o1.push_back(_variables[_nodes[i].getChildren()[1].getId()-1] == _z3_ctx->int_val(_name2production[b]));
+		o1.push_back(_variables[_nodes[i].getChildren()[2].getId()-1] == _z3_ctx->int_val(_name2production[c]));
+
+		expr ctr = implies(_variables[i] == _z3_ctx->int_val(_name2production[name]), not(mk_and(o1)));
+		std::cout << "ctr= " << ctr << std::endl;
+		_z3_solver->add(ctr);
+	}
+}
+
 // HACK for btw: generalize afterwards
 void SMT::breakSymmetries(std::string name, std::string a, std::string b, std::string c){
 	// ABC -> BCA -> CAB
 	// ACB -> CBA -> BAC
-	// only allow ABC and ACB
+	// only allow ABC or ACB
 	assert (_name2production.find(name) != _name2production.end());
-	for (int i = 1; i <= 3; i++){
+	for (int i = 1; i <= _num_and; i++){
 		expr_vector o1(*_z3_ctx);
 		o1.push_back(_variables[_nodes[i].getChildren()[0].getId()-1] == _z3_ctx->int_val(_name2production[a]));
 		o1.push_back(_variables[_nodes[i].getChildren()[1].getId()-1] == _z3_ctx->int_val(_name2production[b]));

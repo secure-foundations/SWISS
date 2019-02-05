@@ -388,7 +388,7 @@ vector<shared_ptr<Value>> get_values_list() {
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
-  bool smt_enumeration = false;
+  bool smt_enumeration = true;
 
   try {
 
@@ -433,12 +433,34 @@ int main() {
     Grammar grammar = createGrammar();
     context z3_ctx;
     solver z3_solver(z3_ctx);
-    SMT solver = SMT(grammar, z3_ctx, z3_solver);
-    int program = 0;
+    SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
+    solver.createBinaryAssociativeConstraints("="); // a = b <-> b = a
+    solver.createBinaryAssociativeConstraints("~="); // a ~= b <- b ~= a
+    solver.createAllDiffConstraints("="); // does not allow forall. x: x = x
+    solver.createAllDiffConstraints("~="); // does not allow forall. x: x ~= x
+    solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
+    solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
+    // ring properties:
+    // ABC -> BCA -> CAB -> ABC
+    // ACB -> CBA -> BAC -> ACB
+    // only allow ABC or ACB, i.e. do not allow the others
+    solver.breakOccurrences("btw","B","C","A");
+    solver.breakOccurrences("btw","C","A","B");
+    solver.breakOccurrences("btw","C","B","A");
+    solver.breakOccurrences("btw","B","A","C");
+    solver.breakOccurrences("~btw","B","C","A");
+    solver.breakOccurrences("~btw","C","A","B");
+    solver.breakOccurrences("~btw","C","B","A");
+    solver.breakOccurrences("~btw","B","A","C");
+
+    solver.createAllDiffConstraints("~btw");
+    solver.createAllDiffConstraints("btw");
+
+    int program = 1;
     while (solver.solve()){
       std::cout << "#program= " << program << std::endl;
       program++;
-      //std::cout << solver.solutionToString() << std::endl;
+      std::cout << solver.solutionToString() << std::endl;
     }
     std::cout << "end" << std::endl;
   }

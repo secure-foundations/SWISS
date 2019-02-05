@@ -69,6 +69,7 @@ private:
 	std::unordered_map<std::string, int> _name2production;
 	std::unordered_map<int, std::string> _production2name;
 	std::vector<std::vector<int>> _result;
+	int _num_and;
 
 	
 public:
@@ -78,16 +79,17 @@ public:
 		_z3_solver = &s;
 	}
 
-	SMT(Grammar grammar, context &z3_ctx, solver &z3_solver){
+	SMT(Grammar grammar, context &z3_ctx, solver &z3_solver, int num_and){
 		_z3_ctx = &z3_ctx;
 		_z3_solver = &z3_solver;
 		_grammar = grammar;
 		_num_children = findNumChildren();
 		_output = Type("bool");
+		_num_and = num_and;
 		// FIXME: compute the necessary depth on the fly
 		buildTree(_nodes, _num_children, 4);
 		
-		for (int i = 1; i <= 3; i++){
+		for (int i = 1; i <= _num_and; i++){
 			std::vector<int> tmp;
 			getAndNodes(_nodes[i], tmp);
 			_and_nodes.push_back(tmp);
@@ -109,23 +111,24 @@ public:
 		createConstraints();
 
 		// FIXME: generalize this to n children
-		int a[] = {1, 2, 3}; 
+		int a[_num_and];
+		for (int i = 0; i < _num_and; i++){
+			a[i] = i+1;
+		}
 		int n = sizeof a/sizeof a[0]; 
 		generatePermutations(a, n, n, _result);
 
-		createBinaryAssociativeConstraints("=");
-		createBinaryAssociativeConstraints("~=");
+		// createBinaryAssociativeConstraints("=");
+		// createBinaryAssociativeConstraints("~=");
 
-		createAllDiffConstraints("=");
-		createAllDiffConstraints("~=");
-		// createAllDiffConstraints("btw");
-		// createAllDiffConstraints("~btw");
+		// createAllDiffConstraints("=");
+		// createAllDiffConstraints("~=");
 
-		createAllDiffGrandChildrenConstraints("le");
-		createAllDiffGrandChildrenConstraints("~le");
+		// createAllDiffGrandChildrenConstraints("le");
+		// createAllDiffGrandChildrenConstraints("~le");
 	
-		breakSymmetries("btw", "A", "B", "C");
-		breakSymmetries("~btw", "A", "B", "C");
+		// breakSymmetries("btw", "A", "B", "C");
+		// breakSymmetries("~btw", "A", "B", "C");
 
 	}
 
@@ -135,6 +138,11 @@ public:
 	// 	return _output_nodes;
 	// } 
 
+	void createBinaryAssociativeConstraints(std::string name);
+	void createAllDiffConstraints(std::string name);
+	void createAllDiffGrandChildrenConstraints(std::string name);
+	void breakOccurrences(std::string name, std::string a, std::string b, std::string c);
+
 private:
 	int findNumChildren();
 	void createVariables();
@@ -143,10 +151,8 @@ private:
 	void blockModel();
 	void getAndNodes(Node root, std::vector<int>& ids);
 	void generatePermutations(int a[], int size, int n, std::vector<std::vector<int>>& permut);
-	void createBinaryAssociativeConstraints(std::string name);
-	void createAllDiffConstraints(std::string name);
-	void createAllDiffGrandChildrenConstraints(std::string name);
 	void breakSymmetries(std::string name, std::string a, std::string b, std::string c);
+
 
 };
 
