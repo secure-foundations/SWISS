@@ -245,69 +245,76 @@ shared_ptr<Model> Model::extract_model_from_z3(
     FunctionInfo& finfo = model->function_info[name];
 
     if (z3model.has_interp(fdecl)) {
-      z3::func_interp finterp = z3model.get_func_interp(fdecl);
+      if (fdecl.is_const()) {
+        z3::expr e = z3model.get_const_interp(fdecl);
+        finfo.else_value = 0;
+        finfo.table.reset(new FunctionTable());
+        finfo.table->value = get_value(range_sort, e);
+      } else {
+        z3::func_interp finterp = z3model.get_func_interp(fdecl);
 
-      /*
-      printf("name = %s\n", fdecl.name().str().c_str());
-      printf("else value\n");
-      finfo.else_value = get_value(range_sort, finterp.else_value());
-      */
-      vector<object_value> args;
-      for (int i = 0; i < num_args; i++) {
-        args.push_back(0);
-      }
-      while (true) {
-        z3::expr_vector args_exprs(ctx);
-        unique_ptr<FunctionTable>* table = &finfo.table;
-        for (int argnum = 0; argnum < num_args; argnum++) {
-          object_value argvalue = args[argnum];
-          args_exprs.push_back(get_expr(domain_sorts[argnum], argvalue));
+        /*
+        printf("name = %s\n", fdecl.name().str().c_str());
+        printf("else value\n");
+        finfo.else_value = get_value(range_sort, finterp.else_value());
+        */
+        vector<object_value> args;
+        for (int i = 0; i < num_args; i++) {
+          args.push_back(0);
+        }
+        while (true) {
+          z3::expr_vector args_exprs(ctx);
+          unique_ptr<FunctionTable>* table = &finfo.table;
+          for (int argnum = 0; argnum < num_args; argnum++) {
+            object_value argvalue = args[argnum];
+            args_exprs.push_back(get_expr(domain_sorts[argnum], argvalue));
+            if (!table->get()) {
+              table->reset(new FunctionTable());
+              (*table)->children.resize(domain_sort_sizes[argnum]);
+            }
+            assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
+            table = &(*table)->children[argvalue];
+          }
+          object_value result_value =
+              get_value(range_sort, finterp.else_value().substitute(args_exprs));
+
+          assert (table != NULL);
           if (!table->get()) {
             table->reset(new FunctionTable());
-            (*table)->children.resize(domain_sort_sizes[argnum]);
           }
-          assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
-          table = &(*table)->children[argvalue];
-        }
-        object_value result_value =
-            get_value(range_sort, finterp.else_value().substitute(args_exprs));
+          (*table)->value = result_value;
 
-        assert (table != NULL);
-        if (!table->get()) {
-          table->reset(new FunctionTable());
-        }
-        (*table)->value = result_value;
-
-        int i;
-        for (i = num_args - 1; i >= 0; i--) {
-          args[i]++;
-          if (args[i] == domain_sort_sizes[i]) {
-            args[i] = 0;
-          } else {
+          int i;
+          for (i = num_args - 1; i >= 0; i--) {
+            args[i]++;
+            if (args[i] == domain_sort_sizes[i]) {
+              args[i] = 0;
+            } else {
+              break;
+            }
+          }
+          if (i == -1) {
             break;
           }
         }
-        if (i == -1) {
-          break;
-        }
-      }
 
-      for (size_t i = 0; i < finterp.num_entries(); i++) {
-        z3::func_entry fentry = finterp.entry(i);
-        
-        unique_ptr<FunctionTable>* table = &finfo.table;
-        for (int argnum = 0; argnum < num_args; argnum++) {
-          object_value argvalue = get_value(domain_sorts[argnum], fentry.arg(argnum));
+        for (size_t i = 0; i < finterp.num_entries(); i++) {
+          z3::func_entry fentry = finterp.entry(i);
+          
+          unique_ptr<FunctionTable>* table = &finfo.table;
+          for (int argnum = 0; argnum < num_args; argnum++) {
+            object_value argvalue = get_value(domain_sorts[argnum], fentry.arg(argnum));
 
-          if (!table->get()) {
-            table->reset(new FunctionTable());
-            (*table)->children.resize(domain_sort_sizes[argnum]);
+            if (!table->get()) {
+              table->reset(new FunctionTable());
+              (*table)->children.resize(domain_sort_sizes[argnum]);
+            }
+            assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
+            table = &(*table)->children[argvalue];
           }
-          assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
-          table = &(*table)->children[argvalue];
-        }
 
-        (*table)->value = get_value(range_sort, fentry.value());
+          (*table)->value = get_value(range_sort, fentry.value());
+        }
       }
     } else {
       finfo.else_value = 0;

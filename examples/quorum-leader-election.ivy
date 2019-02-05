@@ -31,5 +31,5 @@ action become_leader = {
 }
 
 conjecture (isleader(N) & isleader(M)) -> N = M
-conjecture voted(N,M) & voted(N,O) -> M = O
-conjecture isleader(N) -> (majority(quorum) & (member(M,quorum) -> voted(M, N)))
+#conjecture voted(N,M) & voted(N,O) -> M = O
+#conjecture isleader(N) -> (majority(quorum) & (member(M,quorum) -> voted(M, N)))

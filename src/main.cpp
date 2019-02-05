@@ -219,6 +219,7 @@ bool try_to_add_invariants(
     }
   }
 
+  printf("solved: %s\n", solved ? "yes" : "no");
   printf("total iterations: %d\n", count_iterations);
   printf("total evals: %d\n", count_evals);
   printf("total redundancy checks: %d\n", count_redundancy_checks);
