@@ -511,8 +511,14 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
   solver.createBinaryAssociativeConstraints("~=.node"); // a ~= b <- b ~= a
   solver.createAllDiffConstraints("=.node"); // does not allow forall. x: x = x
   solver.createAllDiffConstraints("~=.node"); // does not allow forall. x: x ~= x
+
+  solver.createAllDiffGrandChildrenConstraints("le");
+  solver.createAllDiffGrandChildrenConstraints("~le");
+
+  /*
   solver.createAllDiffGrandChildrenConstraints("<="); // does not allow forall. x: le (pnd x) (pnd x)
   solver.createAllDiffGrandChildrenConstraints("~<="); // does not allow forall. x: ~le (pnd x) (pnd x)
+
   // ring properties:
   // ABC -> BCA -> CAB -> ABC
   // ACB -> CBA -> BAC -> ACB
@@ -528,6 +534,7 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
 
   solver.createAllDiffConstraints("~btw");
   solver.createAllDiffConstraints("btw");
+  */
 }
 
 int main() {
@@ -547,7 +554,10 @@ int main() {
       vector<pair<string, string>> vars = {
         {"A", "node"},
         {"B", "node"},
-        {"C", "node"}
+        {"C", "node"},
+        {"D", "node"},
+        {"S", "time"},
+        {"T", "time"}
       };
 
       printf("enumerating candidates...\n");

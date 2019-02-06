@@ -134,7 +134,7 @@ value SMT::nodeToValue(Node const& node) {
   lsort function_sort = _grammar.getFunctionByName(func).toSort();
 
   // FIXME hack
-  if (func == "A" || func == "B" || func == "C") {
+  if (func == "A" || func == "B" || func == "C" || func == "D" || func == "S" || func == "T") {
     return v_var(func, function_sort);
   }
 
