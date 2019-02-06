@@ -148,16 +148,22 @@ value SMT::nodeToValue(Node const& node) {
       }
     }
 
-    if (func == "=") {
+    if (func.substr(0, 2) == "=.") {
       assert(children.size() == 2);
       return v_eq(children[0], children[1]);
-    } else if (func == "~=") {
+    } else if (func.substr(0, 3) == "~=.") {
       assert(children.size() == 2);
       return v_not(v_eq(children[0], children[1]));
     } else { 
-      return v_apply(
-          v_const(func, function_sort),
-          children);
+      if (func[0] == '~') {
+        return v_not(v_apply(
+            v_const(func.substr(1), function_sort),
+            children));
+      } else {
+        return v_apply(
+            v_const(func, function_sort),
+            children);
+      }
     }
   } else {
     return v_const(func, function_sort);

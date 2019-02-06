@@ -506,19 +506,56 @@ vector<shared_ptr<Value>> get_values_list() {
   return result;
 }
 
+void add_constraints(shared_ptr<Module> module, SMT& solver) {
+  solver.createBinaryAssociativeConstraints("=.node"); // a = b <-> b = a
+  solver.createBinaryAssociativeConstraints("~=.node"); // a ~= b <- b ~= a
+  solver.createAllDiffConstraints("=.node"); // does not allow forall. x: x = x
+  solver.createAllDiffConstraints("~=.node"); // does not allow forall. x: x ~= x
+  solver.createAllDiffGrandChildrenConstraints("<="); // does not allow forall. x: le (pnd x) (pnd x)
+  solver.createAllDiffGrandChildrenConstraints("~<="); // does not allow forall. x: ~le (pnd x) (pnd x)
+  // ring properties:
+  // ABC -> BCA -> CAB -> ABC
+  // ACB -> CBA -> BAC -> ACB
+  // only allow ABC or ACB, i.e. do not allow the others
+  solver.breakOccurrences("btw","B","C","A");
+  solver.breakOccurrences("btw","C","A","B");
+  solver.breakOccurrences("btw","C","B","A");
+  solver.breakOccurrences("btw","B","A","C");
+  solver.breakOccurrences("~btw","B","C","A");
+  solver.breakOccurrences("~btw","C","A","B");
+  solver.breakOccurrences("~btw","C","B","A");
+  solver.breakOccurrences("~btw","B","A","C");
+
+  solver.createAllDiffConstraints("~btw");
+  solver.createAllDiffConstraints("btw");
+}
+
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
   bool smt_enumeration = false;
 
+  std::istreambuf_iterator<char> begin(std::cin), end;
+  std::string json_src(begin, end);
+
+  shared_ptr<Module> module = parse_module(json_src);
+
   try {
     if (!smt_enumeration) {
-      vector<shared_ptr<Value>> candidates = get_values_list_qle();
+      //vector<shared_ptr<Value>> candidates = get_values_list_qle();
 
-      std::istreambuf_iterator<char> begin(std::cin), end;
-      std::string json_src(begin, end);
-
-      shared_ptr<Module> module = parse_module(json_src);
+      printf("enumerating candidates...\n");
+      vector<shared_ptr<Value>> candidates;
+      Grammar grammar = createGrammarFromModule(module);
+      context z3_ctx;
+      solver z3_solver(z3_ctx);
+      SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
+      add_constraints(module, solver);
+      while (solver.solve()){
+        candidates.push_back(solver.solutionToValue());
+        if (candidates.size() % 100 == 0) printf("%d\n", (int) candidates.size());
+      }
+      printf("done enumerating.\n");
 
       z3::context ctx;
 
@@ -544,32 +581,11 @@ int main() {
     } else {
 
       // TODO: connect with the add invariant code
-      Grammar grammar = createGrammar();
+      Grammar grammar = createGrammarFromModule(module);
       context z3_ctx;
       solver z3_solver(z3_ctx);
       SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
-      solver.createBinaryAssociativeConstraints("="); // a = b <-> b = a
-      solver.createBinaryAssociativeConstraints("~="); // a ~= b <- b ~= a
-      solver.createAllDiffConstraints("="); // does not allow forall. x: x = x
-      solver.createAllDiffConstraints("~="); // does not allow forall. x: x ~= x
-      solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-      solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
-      // ring properties:
-      // ABC -> BCA -> CAB -> ABC
-      // ACB -> CBA -> BAC -> ACB
-      // only allow ABC or ACB, i.e. do not allow the others
-      solver.breakOccurrences("btw","B","C","A");
-      solver.breakOccurrences("btw","C","A","B");
-      solver.breakOccurrences("btw","C","B","A");
-      solver.breakOccurrences("btw","B","A","C");
-      solver.breakOccurrences("~btw","B","C","A");
-      solver.breakOccurrences("~btw","C","A","B");
-      solver.breakOccurrences("~btw","C","B","A");
-      solver.breakOccurrences("~btw","B","A","C");
-
-      solver.createAllDiffConstraints("~btw");
-      solver.createAllDiffConstraints("btw");
-
+      add_constraints(module, solver);
       int program = 1;
       while (solver.solve()){
         std::cout << "#program= " << program << std::endl;

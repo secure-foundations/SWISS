@@ -8,6 +8,11 @@
 #include "z3++.h"
 #include "logic.h"
 
+class Type;
+class Grammar;
+
+Grammar createGrammarFromModule(std::shared_ptr<Module> module);
+
 class Type {
 
 	private:

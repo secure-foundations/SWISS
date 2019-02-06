@@ -5,6 +5,7 @@ OBJECTS = $(addprefix bin/,\
 	model.o \
 	smt.o \
 	benchmarking.o \
+	grammar.o \
 	lib/json11/json11.o \
 )
 
