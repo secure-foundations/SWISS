@@ -509,82 +509,75 @@ vector<shared_ptr<Value>> get_values_list() {
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
-  bool smt_enumeration = true;
+  bool smt_enumeration = false;
 
   try {
-
     if (!smt_enumeration) {
-    vector<shared_ptr<Value>> candidates = get_values_list_qle();
-    /*
-    for (auto v : candidates) {
-      printf("%s\n", v->to_string().c_str());
+      vector<shared_ptr<Value>> candidates = get_values_list_qle();
+
+      std::istreambuf_iterator<char> begin(std::cin), end;
+      std::string json_src(begin, end);
+
+      shared_ptr<Module> module = parse_module(json_src);
+
+      z3::context ctx;
+
+      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+      auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
+      auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
+
+      try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
+      return 0;
+
+      //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
+      //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);
+      //}
+
+      /*
+      initctx->ctx->solver.add(initctx->e->value2expr(shared_ptr<Value>(new Not(module->conjectures[0]))));
+      z3::check_result res = initctx->ctx->solver.check();
+      assert(res == z3::sat);
+      Model m = Model::extract_model_from_z3(ctx, initctx->ctx->solver, module, *initctx->e);
+      m.dump();
+      */
+    } else {
+
+      // TODO: connect with the add invariant code
+      Grammar grammar = createGrammar();
+      context z3_ctx;
+      solver z3_solver(z3_ctx);
+      SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
+      solver.createBinaryAssociativeConstraints("="); // a = b <-> b = a
+      solver.createBinaryAssociativeConstraints("~="); // a ~= b <- b ~= a
+      solver.createAllDiffConstraints("="); // does not allow forall. x: x = x
+      solver.createAllDiffConstraints("~="); // does not allow forall. x: x ~= x
+      solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
+      solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
+      // ring properties:
+      // ABC -> BCA -> CAB -> ABC
+      // ACB -> CBA -> BAC -> ACB
+      // only allow ABC or ACB, i.e. do not allow the others
+      solver.breakOccurrences("btw","B","C","A");
+      solver.breakOccurrences("btw","C","A","B");
+      solver.breakOccurrences("btw","C","B","A");
+      solver.breakOccurrences("btw","B","A","C");
+      solver.breakOccurrences("~btw","B","C","A");
+      solver.breakOccurrences("~btw","C","A","B");
+      solver.breakOccurrences("~btw","C","B","A");
+      solver.breakOccurrences("~btw","B","A","C");
+
+      solver.createAllDiffConstraints("~btw");
+      solver.createAllDiffConstraints("btw");
+
+      int program = 1;
+      while (solver.solve()){
+        std::cout << "#program= " << program << std::endl;
+        program++;
+        std::cout << solver.solutionToString() << std::endl;
+      }
+      std::cout << "end" << std::endl;
     }
-    return 0;
-    */
-
-    std::istreambuf_iterator<char> begin(std::cin), end;
-    std::string json_src(begin, end);
-
-    shared_ptr<Module> module = parse_module(json_src);
-
-    z3::context ctx;
-
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-    auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
-    auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
-
-    try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
-    return 0;
-
-    //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
-    //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);
-    //}
-
-    /*
-    initctx->ctx->solver.add(initctx->e->value2expr(shared_ptr<Value>(new Not(module->conjectures[0]))));
-    z3::check_result res = initctx->ctx->solver.check();
-    assert(res == z3::sat);
-    Model m = Model::extract_model_from_z3(ctx, initctx->ctx->solver, module, *initctx->e);
-    m.dump();
-    */
-  } else {
-
-    // TODO: connect with the add invariant code
-    Grammar grammar = createGrammar();
-    context z3_ctx;
-    solver z3_solver(z3_ctx);
-    SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
-    solver.createBinaryAssociativeConstraints("="); // a = b <-> b = a
-    solver.createBinaryAssociativeConstraints("~="); // a ~= b <- b ~= a
-    solver.createAllDiffConstraints("="); // does not allow forall. x: x = x
-    solver.createAllDiffConstraints("~="); // does not allow forall. x: x ~= x
-    solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-    solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
-    // ring properties:
-    // ABC -> BCA -> CAB -> ABC
-    // ACB -> CBA -> BAC -> ACB
-    // only allow ABC or ACB, i.e. do not allow the others
-    solver.breakOccurrences("btw","B","C","A");
-    solver.breakOccurrences("btw","C","A","B");
-    solver.breakOccurrences("btw","C","B","A");
-    solver.breakOccurrences("btw","B","A","C");
-    solver.breakOccurrences("~btw","B","C","A");
-    solver.breakOccurrences("~btw","C","A","B");
-    solver.breakOccurrences("~btw","C","B","A");
-    solver.breakOccurrences("~btw","B","A","C");
-
-    solver.createAllDiffConstraints("~btw");
-    solver.createAllDiffConstraints("btw");
-
-    int program = 1;
-    while (solver.solve()){
-      std::cout << "#program= " << program << std::endl;
-      program++;
-      std::cout << solver.solutionToString() << std::endl;
-    }
-    std::cout << "end" << std::endl;
-  }
 
   } catch (z3::exception exc) {
     printf("got z3 exception: %s\n", exc.msg());
