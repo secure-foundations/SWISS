@@ -544,18 +544,47 @@ int main() {
     if (!smt_enumeration) {
       //vector<shared_ptr<Value>> candidates = get_values_list_qle();
 
+      vector<pair<string, string>> vars = {
+        {"A", "node"},
+        {"B", "node"},
+        {"C", "node"}
+      };
+
       printf("enumerating candidates...\n");
-      vector<shared_ptr<Value>> candidates;
       Grammar grammar = createGrammarFromModule(module);
       context z3_ctx;
       solver z3_solver(z3_ctx);
-      SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
+      SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
       add_constraints(module, solver);
+      vector<shared_ptr<Value>> pieces;
       while (solver.solve()){
-        candidates.push_back(solver.solutionToValue());
-        if (candidates.size() % 100 == 0) printf("%d\n", (int) candidates.size());
+        pieces.push_back(solver.solutionToValue());
       }
       printf("done enumerating.\n");
+
+      vector<shared_ptr<Value>> candidates;
+      for (int i = 0; i < pieces.size(); i++) {
+        candidates.push_back(pieces[i]);
+      }
+      for (int i = 0; i < pieces.size(); i++) {
+        for (int j = i+1; j < pieces.size(); j++) {
+          candidates.push_back(v_or({pieces[i], pieces[j]}));
+        }
+      }
+      for (int i = 0; i < pieces.size(); i++) {
+        for (int j = i+1; j < pieces.size(); j++) {
+          for (int k = j+1; k < pieces.size(); k++) {
+            candidates.push_back(v_or({pieces[i], pieces[j], pieces[k]}));
+          }
+        }
+      }
+      vector<VarDecl> decls;
+      for (auto p : vars) {
+        decls.push_back(VarDecl(p.first, s_uninterp(p.second)));
+      }
+      for (int i = 0; i < candidates.size(); i++) {
+        candidates[i] = v_forall(decls, candidates[i]);
+      }
 
       z3::context ctx;
 

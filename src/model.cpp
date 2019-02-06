@@ -31,7 +31,10 @@ object_value Model::eval(
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
-    assert(iter != vars.end());
+    if (iter == vars.end()) {
+      printf("could not find var: %s\n", value->name.c_str());
+      assert(false);
+    }
     return iter->second;
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
