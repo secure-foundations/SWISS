@@ -608,3 +608,52 @@ vector<shared_ptr<Model>> get_tree_of_models(
   get_tree_of_models_(ctx, module, start_state, depth, res);
   return res;
 }
+
+void get_tree_of_models2_(
+  z3::context& z3ctx,
+  shared_ptr<Module> module,
+  vector<int> action_indices,
+  int depth,
+  vector<shared_ptr<Model>>& res
+) {
+  shared_ptr<BackgroundContext> ctx = make_shared<BackgroundContext>(z3ctx, module);
+  z3::solver& solver = ctx->solver;
+
+  shared_ptr<ModelEmbedding> e1 = ModelEmbedding::makeEmbedding(ctx, module);
+
+  shared_ptr<ModelEmbedding> e2 = e1;
+  for (int action_index : action_indices) {
+    ActionResult res = applyAction(e2, module->actions[action_index], {});
+    e2 = res.e;
+    ctx->solver.add(res.constraint);
+  }
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(e1->value2expr(axiom, {}));
+  }
+
+  z3::check_result sat_result = solver.check();
+  if (sat_result == z3::sat) {
+    auto model = Model::extract_model_from_z3(z3ctx, solver, module, *e2);
+    res.push_back(model);
+
+    if (action_indices.size() < depth) { 
+      action_indices.push_back(0);
+      for (int i = 0; i < module->actions.size(); i++) {
+        action_indices[action_indices.size() - 1] = i;
+        get_tree_of_models2_(z3ctx, module, action_indices, depth, res);
+      }
+    }
+  }
+}
+
+vector<shared_ptr<Model>> get_tree_of_models2(
+  z3::context& ctx,
+  shared_ptr<Module> module,
+  int depth
+) {
+  vector<shared_ptr<Model>> res;
+  get_tree_of_models2_(ctx, module, {}, depth, res);
+  return res;
+}

@@ -76,4 +76,9 @@ std::vector<std::shared_ptr<Model>> get_tree_of_models(
     std::shared_ptr<Model> start_state,
     int depth);
 
+std::vector<std::shared_ptr<Model>> get_tree_of_models2(
+  z3::context& ctx,
+  std::shared_ptr<Module> module,
+  int depth);
+
 #endif
