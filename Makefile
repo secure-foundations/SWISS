@@ -21,7 +21,7 @@ synthesis: $(OBJECTS)
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
 	@mkdir -p $(DEP_DIR)/$(basename $<)
-	clang++ $(CXXFLAGS) -c -o $@ $< -MD -MP -MF "$(DEP_DIR)/$(<:.cpp=.d)"
+	clang++ $(CXXFLAGS) -c -o $@ $< -MMD -MP -MF "$(DEP_DIR)/$(<:.cpp=.d)"
 
 clean:
 	rm -rf bin synthesis

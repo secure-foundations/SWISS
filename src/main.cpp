@@ -153,9 +153,9 @@ bool try_to_add_invariants(
 
   bool solved = false;
 
-  shared_ptr<Model> root_model = get_dumb_model(initctx, module);
-  vector<shared_ptr<Model>> models = get_tree_of_models(initctx->ctx->ctx,
-      module, root_model, 5);
+  vector<shared_ptr<Model>> models = get_tree_of_models2(
+      initctx->ctx->ctx,
+      module, 5);
   printf("using %d models\n", (int)models.size());
 
   int count_iterations = 0;
@@ -180,7 +180,8 @@ bool try_to_add_invariants(
     count_iterations++;
 
     auto invariant = invariants[i];
-    if (i_ % 100 == 0) printf("doing %d\n", i_);
+    //if (i_ % 100 == 0) printf("doing %d\n", i_);
+    //printf("%s\n", invariant->to_string().c_str());
 
     for (auto model : models) {
       count_evals++;
@@ -413,7 +414,7 @@ vector<shared_ptr<Value>> get_values_list() {
       "pnd",
       shared_ptr<Sort>(new FunctionSort({id_sort, node_sort}, bool_sort))));
   shared_ptr<Value> le_func = shared_ptr<Value>(new Const(
-      "<=",
+      "le",
       shared_ptr<Sort>(new FunctionSort({id_sort, id_sort}, bool_sort))));
 
   vector<VarDecl> decls;
@@ -514,12 +515,8 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
   solver.createAllDiffConstraints("=.node"); // does not allow forall. x: x = x
   solver.createAllDiffConstraints("~=.node"); // does not allow forall. x: x ~= x
 
-  solver.createAllDiffGrandChildrenConstraints("le");
-  solver.createAllDiffGrandChildrenConstraints("~le");
-
-  /*
-  solver.createAllDiffGrandChildrenConstraints("<="); // does not allow forall. x: le (pnd x) (pnd x)
-  solver.createAllDiffGrandChildrenConstraints("~<="); // does not allow forall. x: ~le (pnd x) (pnd x)
+  solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
+  solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
 
   // ring properties:
   // ABC -> BCA -> CAB -> ABC
@@ -536,7 +533,6 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
 
   solver.createAllDiffConstraints("~btw");
   solver.createAllDiffConstraints("btw");
-  */
 }
 
 int main() {
@@ -551,15 +547,18 @@ int main() {
 
   try {
     if (!smt_enumeration) {
-      //vector<shared_ptr<Value>> candidates = get_values_list_qle();
+      vector<shared_ptr<Value>> candidates = get_values_list();
 
+#if 0
       vector<pair<string, string>> vars = {
         {"A", "node"},
         {"B", "node"},
         {"C", "node"},
+        /*
         {"D", "node"},
         {"S", "time"},
         {"T", "time"}
+        */
       };
 
       printf("enumerating candidates...\n");
@@ -590,6 +589,7 @@ int main() {
           }
         }
       }
+      /*
       for (int i = 0; i < pieces.size(); i++) {
         for (int j = i+1; j < pieces.size(); j++) {
           for (int k = j+1; k < pieces.size(); k++) {
@@ -599,6 +599,7 @@ int main() {
           }
         }
       }
+      */
       vector<VarDecl> decls;
       for (auto p : vars) {
         decls.push_back(VarDecl(p.first, s_uninterp(p.second)));
@@ -606,6 +607,7 @@ int main() {
       for (int i = 0; i < candidates.size(); i++) {
         candidates[i] = v_forall(decls, candidates[i]);
       }
+#endif
 
       z3::context ctx;
 

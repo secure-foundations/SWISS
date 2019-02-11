@@ -56,7 +56,10 @@ object_value Model::eval(
   else if (Apply* value = dynamic_cast<Apply*>(v.get())) {
     Const* func = dynamic_cast<Const*>(value->func.get());
     auto iter = function_info.find(func->name);
-    assert (iter != function_info.end());
+    if (iter == function_info.end()) {
+      printf("could not find function name %s\n", func->name.c_str());
+      assert(false);
+    }
     FunctionInfo const& finfo = iter->second;
     FunctionTable* ftable = finfo.table.get();
     for (auto arg : value->args) {
@@ -631,6 +634,10 @@ void get_tree_of_models2_(
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
     ctx->solver.add(e1->value2expr(axiom, {}));
+  }
+  // Add initial conditions
+  for (shared_ptr<Value> init : module->inits) {
+    ctx->solver.add(e1->value2expr(init));
   }
 
   z3::check_result sat_result = solver.check();

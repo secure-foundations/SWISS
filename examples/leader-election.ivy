@@ -7,15 +7,16 @@ function nid(N:node) : id
 relation btw(X:node, Y:node, Z:node)
 relation leader(X:node)
 relation pnd(X:id, N:node)
+relation le(X:id, Y:id)
 
 # unique ids
 axiom forall N : node . forall M : node . (N ~= M) -> (nid(N) ~= nid(M))
 
 # <=
-axiom forall X : id . X <= X
-axiom forall X : id . forall Y : id . X <= Y & Y <= Z -> X <= Z
-axiom forall X : id . forall Y : id . (X <= Y & Y <= X) -> X = Y
-axiom forall X : id . forall Y : id . X <= Y | Y <= X
+axiom forall X : id . le(X, X)
+axiom forall X : id . forall Y : id . le(X, Y) & le(Y, Z) -> le(X, Z)
+axiom forall X : id . forall Y : id . (le(X, Y) & le(Y, X)) -> X = Y
+axiom forall X : id . forall Y : id . le(X, Y) | le(Y, X)
 
 # ring_topology
 axiom btw(X,Y,Z) -> btw(Y,Z,X)
@@ -40,7 +41,7 @@ action receive = {
     if (nid(n) = i) {
       leader(n) := true;
     } else {
-      if (nid(n) <= i) {
+      if (le(nid(n), i)) {
         assume forall X : node . (X ~= n & X ~= m) -> btw(n,m,X); # next(n,m)
         pnd(i, m) := true;
       }
@@ -56,12 +57,12 @@ conjecture ~(leader(N) & leader(M) & N ~= M)
 #conjecture ~(leader(N) & leader(M))
 
 # other invariants
-#conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & nid(N) <= nid(M))
-#conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & nid(N) <= nid(M))
-#conjecture ~(btw(N,M,O) & pnd(nid(M),N) & nid(M) <= nid(O))
-#conjecture ~(nid(Q) <= nid(P) & pnd(nid(Q),N) & btw(N,Q,P))
+#conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & le(nid(N), nid(M)))
+#conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & le(nid(N), nid(M)))
+#conjecture ~(btw(N,M,O) & pnd(nid(M),N) & le(nid(M), nid(O)))
+#conjecture ~(le(nid(Q), nid(P)) & pnd(nid(Q),N) & btw(N,Q,P))
 
 
-#conjecture ~(~nid(P) <= nid(Q) & pnd(nid(Q),N) & ~pnd(nid(Q),P) & ~btw(N,P,Q))
+#conjecture ~(~le(nid(P), nid(Q)) & pnd(nid(Q),N) & ~pnd(nid(Q),P) & ~btw(N,P,Q))
 
 
