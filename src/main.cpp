@@ -170,7 +170,7 @@ bool try_to_add_invariants(
     is_good_candidate[i] = true;
   }
 
-  for (int i_ = 0; i_ < invariants.size()*2; i_++) {
+  for (int i_ = 0; i_ < invariants.size(); i_++) {
     int i = i_ % invariants.size();
 
     if (!is_good_candidate[i]) {
@@ -180,7 +180,7 @@ bool try_to_add_invariants(
     count_iterations++;
 
     auto invariant = invariants[i];
-    //if (i_ % 100 == 0) printf("doing %d\n", i_);
+    if (i_ % 1000 == 0) printf("doing %d\n", i_);
     //printf("%s\n", invariant->to_string().c_str());
 
     for (auto model : models) {
@@ -196,6 +196,8 @@ bool try_to_add_invariants(
     if (!is_good_candidate[i]) {
       continue;
     }
+
+    //printf("%s\n", invariant->to_string().c_str());
 
     count_redundancy_checks++;
     bench.start("redundancy");
@@ -518,6 +520,7 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
   solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
   solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
 
+/*
   // ring properties:
   // ABC -> BCA -> CAB -> ABC
   // ACB -> CBA -> BAC -> ACB
@@ -533,6 +536,7 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
 
   solver.createAllDiffConstraints("~btw");
   solver.createAllDiffConstraints("btw");
+*/
 }
 
 int main() {
@@ -547,9 +551,9 @@ int main() {
 
   try {
     if (!smt_enumeration) {
-      vector<shared_ptr<Value>> candidates = get_values_list();
+      //vector<shared_ptr<Value>> candidates = get_values_list();
 
-#if 0
+#if 1
       vector<pair<string, string>> vars = {
         {"A", "node"},
         {"B", "node"},
