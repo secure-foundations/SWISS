@@ -105,6 +105,7 @@ shared_ptr<Model> get_dumb_model(
 
   solver.push();
 
+  {
   shared_ptr<Sort> node_sort = shared_ptr<Sort>(new UninterpretedSort("node"));
   VarDecl decl_a = VarDecl("A", node_sort);
   VarDecl decl_b = VarDecl("B", node_sort);
@@ -122,6 +123,7 @@ shared_ptr<Model> get_dumb_model(
         shared_ptr<Value>(new Not(shared_ptr<Value>(new Eq(var_c, var_a))))
       }))
     ))));
+  }
 
   z3::check_result res = solver.check();
   assert (res == z3::sat);
@@ -585,6 +587,15 @@ int main() {
         for (int j = i+1; j < pieces.size(); j++) {
           for (int k = j+1; k < pieces.size(); k++) {
             candidates.push_back(v_or({pieces[i], pieces[j], pieces[k]}));
+          }
+        }
+      }
+      for (int i = 0; i < pieces.size(); i++) {
+        for (int j = i+1; j < pieces.size(); j++) {
+          for (int k = j+1; k < pieces.size(); k++) {
+            for (int l = k+1; l < pieces.size(); l++) {
+              candidates.push_back(v_or({pieces[i], pieces[j], pieces[k], pieces[l]}));
+            }
           }
         }
       }
