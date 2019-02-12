@@ -305,7 +305,11 @@ inline value v_eq(value a, value b) {
   return std::shared_ptr<Value>(new Eq(a, b));
 }
 inline value v_not(value a) {
-  return std::shared_ptr<Value>(new Not(a));
+  if (Not* n = dynamic_cast<Not*>(a.get())) {
+    return n->value;
+  } else {
+    return std::shared_ptr<Value>(new Not(a));
+  }
 }
 inline value v_implies(value a, value b) {
   return std::shared_ptr<Value>(new Implies(a, b));

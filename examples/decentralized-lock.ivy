@@ -11,7 +11,7 @@ axiom forall X : time . forall Y : time . le(X, Y) | le(Y, X)
 
 relation has_lock(X: node)
 relation msg(X: node, Y: node, E: time)
-function current_epoch(X: node): time
+function epoch(X: node): time
 
 init (exists U . exists V . exists W . exists X . exists Y . exists Z .
     ~le(U, V) & ~le(V, W) & ~le(W, X) & ~le(X, Y) & ~le(Y, Z))
@@ -19,21 +19,21 @@ init (exists U . exists V . exists W . exists X . exists Y . exists Z .
 init (exists X . has_lock(X))
 init ~(X ~= Y & has_lock(X) & has_lock(Y))
 init ~msg(X,Y,T)
-init le(current_epoch(X), T)
+init le(epoch(X), T)
 
 action take_lock = {
   local x: node, y: node, t: time {
     assume msg(x, y, t);
-    assume ~le(t, current_epoch(y));
+    assume ~le(t, epoch(y));
     has_lock(y) := true;
-    current_epoch(y) := t;
+    epoch(y) := t;
   }
 }
 
 action release_lock = {
   local x: node, y : node, t: time {
     assume has_lock(x);
-    assume ~le(t, current_epoch(x));
+    assume ~le(t, epoch(x));
     has_lock(x) := false;
     msg(x, y, t) := true;
   }
@@ -41,8 +41,8 @@ action release_lock = {
 
 # safety property
 
-#conjecture ~(X ~= Y & ( has_lock(X) | (msg(X1, X, T) & ~le(T, current_epoch(X))) ) & ( has_lock(Y) | (msg(Y1, Y, S) & ~le(S, current_epoch(Y))) ))
-#conjecture ~(has_lock(X) & (msg(X1, X, T) & ~le(T, current_epoch(X))))
-conjecture ~(S ~= T & msg(X1, Y, S) & msg(X2, Y, T) & ~le(T, current_epoch(Y)) & ~le(S, current_epoch(Y)))
+#conjecture ~(X ~= Y & ( has_lock(X) | (msg(X1, X, T) & ~le(T, epoch(X))) ) & ( has_lock(Y) | (msg(Y1, Y, S) & ~le(S, epoch(Y))) ))
+#conjecture ~(has_lock(X) & (msg(X1, X, T) & ~le(T, epoch(X))))
+conjecture ~(S ~= T & msg(X1, Y, S) & msg(X2, Y, T) & ~le(T, epoch(Y)) & ~le(S, epoch(Y)))
 
 conjecture ~(X ~= Y & has_lock(X) & has_lock(Y))

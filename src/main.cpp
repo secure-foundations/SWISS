@@ -197,8 +197,6 @@ bool try_to_add_invariants(
       continue;
     }
 
-    //printf("%s\n", invariant->to_string().c_str());
-
     count_redundancy_checks++;
     bench.start("redundancy");
     bool isr = is_redundant(invctx, invariant);
@@ -208,6 +206,7 @@ bool try_to_add_invariants(
     } else {
       count_invariance_checks++;
       bench.start("try_to_add_invariant");
+      printf("%s\n", invariant->to_string().c_str());
       bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
       bench.end();
       if (ttai) {
@@ -573,7 +572,7 @@ int main() {
       add_constraints(module, solver);
       vector<shared_ptr<Value>> pieces;
       while (solver.solve()){
-        pieces.push_back(solver.solutionToValue());
+        pieces.push_back(v_not(solver.solutionToValue()));
       }
       printf("done enumerating.\n");
 
@@ -583,13 +582,13 @@ int main() {
       }
       for (int i = 0; i < pieces.size(); i++) {
         for (int j = i+1; j < pieces.size(); j++) {
-          candidates.push_back(v_or({pieces[i], pieces[j]}));
+          candidates.push_back(v_and({pieces[i], pieces[j]}));
         }
       }
       for (int i = 0; i < pieces.size(); i++) {
         for (int j = i+1; j < pieces.size(); j++) {
           for (int k = j+1; k < pieces.size(); k++) {
-            candidates.push_back(v_or({pieces[i], pieces[j], pieces[k]}));
+            candidates.push_back(v_and({pieces[i], pieces[j], pieces[k]}));
           }
         }
       }
@@ -598,7 +597,7 @@ int main() {
         for (int j = i+1; j < pieces.size(); j++) {
           for (int k = j+1; k < pieces.size(); k++) {
             for (int l = k+1; l < pieces.size(); l++) {
-              candidates.push_back(v_or({pieces[i], pieces[j], pieces[k], pieces[l]}));
+              candidates.push_back(v_and({pieces[i], pieces[j], pieces[k], pieces[l]}));
             }
           }
         }
@@ -609,7 +608,7 @@ int main() {
         decls.push_back(VarDecl(p.first, s_uninterp(p.second)));
       }
       for (int i = 0; i < candidates.size(); i++) {
-        candidates[i] = v_forall(decls, candidates[i]);
+        candidates[i] = v_forall(decls, v_not(candidates[i]));
       }
 #endif
 
