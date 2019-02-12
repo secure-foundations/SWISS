@@ -4,6 +4,7 @@
 #include "grammar.h"
 #include "smt.h"
 #include "benchmarking.h"
+#include "bmc.h"
 
 #include <iostream>
 #include <iterator>
@@ -158,11 +159,14 @@ bool try_to_add_invariants(
       module, 5);
   printf("using %d models\n", (int)models.size());
 
+  BMCContext bmc(initctx->ctx->ctx, module, 4);
+
   int count_iterations = 0;
   int count_evals = 0;
   int count_redundancy_checks = 0;
   int count_invariance_checks = 0;
   int count_invariants_added = 0;
+  int count_bmc_checks = 0;
 
   vector<bool> is_good_candidate;
   is_good_candidate.resize(invariants.size());
@@ -203,22 +207,33 @@ bool try_to_add_invariants(
     bench.end();
     if (isr) {
       is_good_candidate[i] = false;
-    } else {
-      count_invariance_checks++;
-      bench.start("try_to_add_invariant");
-      printf("%s\n", invariant->to_string().c_str());
-      bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
-      bench.end();
-      if (ttai) {
-        is_good_candidate[i] = false;
-        // We added an invariant!
-        // Now check if we're done.
-        printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
-        count_invariants_added++;
-        if (do_invariants_imply_conjecture(conjctx)) {
-          solved = true;
-          break;
-        }
+      continue;
+    }
+
+    count_bmc_checks++;
+    bench.start("bmc");
+    bool is_k_inv = bmc.is_k_invariant(invariant);
+    bench.end();
+    if (!is_k_inv) {
+      is_good_candidate[i] = false;
+      continue;
+    }
+
+    count_invariance_checks++;
+    bench.start("try_to_add_invariant");
+
+    //printf("%s\n", invariant->to_string().c_str());
+    bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
+    bench.end();
+    if (ttai) {
+      is_good_candidate[i] = false;
+      // We added an invariant!
+      // Now check if we're done.
+      printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
+      count_invariants_added++;
+      if (do_invariants_imply_conjecture(conjctx)) {
+        solved = true;
+        break;
       }
     }
   }
@@ -227,6 +242,7 @@ bool try_to_add_invariants(
   printf("total iterations: %d\n", count_iterations);
   printf("total evals: %d\n", count_evals);
   printf("total redundancy checks: %d\n", count_redundancy_checks);
+  printf("total bmc checks: %d\n", count_bmc_checks);
   printf("total invariance checks: %d\n", count_invariance_checks);
   printf("total invariants added: %d\n", count_invariants_added);
 

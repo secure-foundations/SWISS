@@ -16,10 +16,10 @@ function epoch(X: node): time
 init (exists U . exists V . exists W . exists X . exists Y . exists Z .
     ~le(U, V) & ~le(V, W) & ~le(W, X) & ~le(X, Y) & ~le(Y, Z))
 
-init (exists X . has_lock(X))
+#init (exists X . has_lock(X))
 init ~(X ~= Y & has_lock(X) & has_lock(Y))
 init ~msg(X,Y,T)
-init le(epoch(X), T)
+#init le(epoch(X), T)
 
 action take_lock = {
   local x: node, y: node, t: time {

@@ -33,6 +33,7 @@ bool FixedBMCContext::is_exactly_k_invariant(value v) {
   solver.add(this->e2->value2expr(v_not(v)));
   z3::check_result res = solver.check();
   assert(res == z3::sat || res == z3::unsat);
+  solver.pop();
   return res == z3::unsat;
 }
 
