@@ -575,6 +575,10 @@ class ConjectureDecl(LabeledDecl):
     def name(self):
         return 'conjecture'
 
+class TemplateDecl(LabeledDecl):
+    def name(self):
+        return 'template'
+
 class ProofDecl(Decl):
     def name(self):
         return 'proof'

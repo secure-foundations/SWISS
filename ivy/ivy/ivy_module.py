@@ -41,6 +41,7 @@ class Module(object):
         self.instantiations = []
         self.concept_spaces = []
         self.labeled_conjs = []  # conjectures
+        self.labeled_templates = []  # conjectures
         self.hierarchy = defaultdict(set)
         self.actions = {}
         self.predicates = {}

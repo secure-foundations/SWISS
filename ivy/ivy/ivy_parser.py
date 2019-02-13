@@ -372,6 +372,13 @@ def p_top_conjecture_labeledfmla(p):
     d.lineno = get_lineno(p,2)
     p[0].declare(d)
 
+def p_top_template_labeledfmla(p):
+    'top : top TEMPLATE labeledfmla'
+    p[0] = p[1]
+    d = TemplateDecl(addlabel(p[3],'templ'))
+    d.lineno = get_lineno(p,2)
+    p[0].declare(d)
+
 # from version 1.7, "invariant" replaces "conjecture"
 if not iu.get_numeric_version() <= [1,6]:
     def p_top_invariant_labeledfmla(p):

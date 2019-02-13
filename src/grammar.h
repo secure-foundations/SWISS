@@ -11,7 +11,17 @@
 class Type;
 class Grammar;
 
-Grammar createGrammarFromModule(std::shared_ptr<Module> module);
+class GrammarVar {
+public:
+  std::string name;
+  std::string type;
+  GrammarVar(std::string name, std::string type) : name(name), type(type) { }
+};
+
+Grammar createGrammarFromModule(
+    std::shared_ptr<Module> module,
+    std::vector<GrammarVar> vars
+);
 
 class Type {
 

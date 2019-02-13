@@ -45,6 +45,7 @@ reserved = all_reserved = {
    'function' : 'FUNCTION',
    'axiom' : 'AXIOM',
    'conjecture' : 'CONJECTURE',
+   'template' : 'TEMPLATE',
    'schema' : 'SCHEMA',
    'instantiate' : 'INSTANTIATE',
    'instance' : 'INSTANTIATE',

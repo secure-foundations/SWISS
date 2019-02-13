@@ -2,7 +2,7 @@ import sys
 import json
 import os
 
-sys.path.append(os.path.abspath(os.path.join(
+sys.path.insert(0, os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'ivy')))
 
 from ivy.ivy_init import ivy_init 
@@ -37,7 +37,18 @@ def get_json():
     conjectures = []
     for conj in im.module.conjs:
       for fmla in conj.fmlas:
+        #print fmla
+        #print logic_to_obj(ivy_logic_utils.close_epr(fmla))
         conjectures.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
+
+    templates = []
+    for template in im.module.labeled_templates:
+      #print template
+      #print template.formula
+      templates.append(logic_to_obj(template.formula))
+      #template = ivy_logic_utils.formula_to_clauses(template)
+      #or fmla in template.fmlas:
+      # templates.append(logic_to_obj(fmla))
 
     inits = []
     for fmla in im.module.init_cond.fmlas:
@@ -53,9 +64,27 @@ def get_json():
       "functions": functions,
       "inits": inits,
       "axioms": axioms,
-      "conjectures": conjectures,
+      "conjectures": conjectures, #[c for c in conjectures if not has_wildcard(c)],
+      "templates": templates, #[c for c in conjectures if has_wildcard(c)],
       "actions": actions,
     })
+
+def has_wildcard(o):
+  if type(o) == dict:
+    for k in o:
+      if has_wildcard(o[k]):
+        return True
+    return False
+  elif type(o) == list:
+    if len(o) == 1:
+      return o[0] == '__wild'
+    else:
+      for k in xrange(0, len(o)):
+        if has_wildcard(o[k]):
+          return True
+      return False
+  else:
+    return False
 
 def action_to_obj(l):
   if isinstance(l, ivy_actions.LocalAction):
@@ -100,11 +129,18 @@ def action_to_obj(l):
 
 def logic_to_obj(l):
   if isinstance(l, logic.ForAll):
-    return ["forall", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
+    vs = [v for v in l.variables if v.name != "WILD"]
+    if len(vs) > 0:
+      return ["forall", [logic_to_obj(var) for var in vs], logic_to_obj(l.body)]
+    else:
+      return logic_to_obj(l.body)
   if isinstance(l, logic.Exists):
     return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
   elif isinstance(l, logic.Var):
-    return ["var", l.name, sort_to_obj(l.sort)]
+    if l.name == "WILD":
+      return ["__wild"]
+    else:
+      return ["var", l.name, sort_to_obj(l.sort)]
   elif isinstance(l, logic.Const):
     return ["const", l.name, sort_to_obj(l.sort)]
   elif isinstance(l, logic.Implies):

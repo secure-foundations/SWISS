@@ -5,6 +5,7 @@
 #include "smt.h"
 #include "benchmarking.h"
 #include "bmc.h"
+#include "enumerator.h"
 
 #include <iostream>
 #include <iterator>
@@ -526,34 +527,6 @@ vector<shared_ptr<Value>> get_values_list() {
   return result;
 }
 
-void add_constraints(shared_ptr<Module> module, SMT& solver) {
-  solver.createBinaryAssociativeConstraints("=.node"); // a = b <-> b = a
-  solver.createBinaryAssociativeConstraints("~=.node"); // a ~= b <- b ~= a
-  solver.createAllDiffConstraints("=.node"); // does not allow forall. x: x = x
-  solver.createAllDiffConstraints("~=.node"); // does not allow forall. x: x ~= x
-
-  solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-  solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
-
-/*
-  // ring properties:
-  // ABC -> BCA -> CAB -> ABC
-  // ACB -> CBA -> BAC -> ACB
-  // only allow ABC or ACB, i.e. do not allow the others
-  solver.breakOccurrences("btw","B","C","A");
-  solver.breakOccurrences("btw","C","A","B");
-  solver.breakOccurrences("btw","C","B","A");
-  solver.breakOccurrences("btw","B","A","C");
-  solver.breakOccurrences("~btw","B","C","A");
-  solver.breakOccurrences("~btw","C","A","B");
-  solver.breakOccurrences("~btw","C","B","A");
-  solver.breakOccurrences("~btw","B","A","C");
-
-  solver.createAllDiffConstraints("~btw");
-  solver.createAllDiffConstraints("btw");
-*/
-}
-
 int main() {
 
   // FIXME: quick hack to control which enumeration to use
@@ -568,65 +541,12 @@ int main() {
     if (!smt_enumeration) {
       //vector<shared_ptr<Value>> candidates = get_values_list();
 
-#if 1
-      vector<pair<string, string>> vars = {
-        {"A", "node"},
-        {"B", "node"},
-        {"C", "node"},
-        /*
-        {"D", "node"},
-        {"S", "time"},
-        {"T", "time"}
-        */
-      };
-
-      printf("enumerating candidates...\n");
-      Grammar grammar = createGrammarFromModule(module);
-      context z3_ctx;
-      solver z3_solver(z3_ctx);
-      SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
-      add_constraints(module, solver);
-      vector<shared_ptr<Value>> pieces;
-      while (solver.solve()){
-        pieces.push_back(v_not(solver.solutionToValue()));
+      assert(module->templates.size() == 1);
+      vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
+          module->templates[0]);
+      for (auto can : candidates) {
+        printf("%s\n", can->to_string().c_str());
       }
-      printf("done enumerating.\n");
-
-      vector<shared_ptr<Value>> candidates;
-      for (int i = 0; i < pieces.size(); i++) {
-        candidates.push_back(pieces[i]);
-      }
-      for (int i = 0; i < pieces.size(); i++) {
-        for (int j = i+1; j < pieces.size(); j++) {
-          candidates.push_back(v_and({pieces[i], pieces[j]}));
-        }
-      }
-      for (int i = 0; i < pieces.size(); i++) {
-        for (int j = i+1; j < pieces.size(); j++) {
-          for (int k = j+1; k < pieces.size(); k++) {
-            candidates.push_back(v_and({pieces[i], pieces[j], pieces[k]}));
-          }
-        }
-      }
-      /*
-      for (int i = 0; i < pieces.size(); i++) {
-        for (int j = i+1; j < pieces.size(); j++) {
-          for (int k = j+1; k < pieces.size(); k++) {
-            for (int l = k+1; l < pieces.size(); l++) {
-              candidates.push_back(v_and({pieces[i], pieces[j], pieces[k], pieces[l]}));
-            }
-          }
-        }
-      }
-      */
-      vector<VarDecl> decls;
-      for (auto p : vars) {
-        decls.push_back(VarDecl(p.first, s_uninterp(p.second)));
-      }
-      for (int i = 0; i < candidates.size(); i++) {
-        candidates[i] = v_forall(decls, v_not(candidates[i]));
-      }
-#endif
 
       z3::context ctx;
 
@@ -637,31 +557,16 @@ int main() {
 
       try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       return 0;
-
-      //for (int i = module->conjectures.size() - 1; i >= 0; i--) {
-      //  add_invariant(indctx, initctx, conjctx, module->conjectures[i]);
-      //}
-
-      /*
-      initctx->ctx->solver.add(initctx->e->value2expr(shared_ptr<Value>(new Not(module->conjectures[0]))));
-      z3::check_result res = initctx->ctx->solver.check();
-      assert(res == z3::sat);
-      Model m = Model::extract_model_from_z3(ctx, initctx->ctx->solver, module, *initctx->e);
-      m.dump();
-      */
     } else {
+      assert(module->templates.size() == 1);
+      vector<value> candidates = enumerate_for_template(module,
+          module->templates[0]);
 
-      // TODO: connect with the add invariant code
-      Grammar grammar = createGrammarFromModule(module);
-      context z3_ctx;
-      solver z3_solver(z3_ctx);
-      SMT solver = SMT(grammar, z3_ctx, z3_solver, 3);
-      add_constraints(module, solver);
       int program = 1;
-      while (solver.solve()){
+      for (value v : candidates) {
         std::cout << "#program= " << program << std::endl;
         program++;
-        std::cout << solver.solutionToString() << std::endl;
+        std::cout << v->to_string() << std::endl;
       }
       std::cout << "end" << std::endl;
     }

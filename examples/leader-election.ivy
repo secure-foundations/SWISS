@@ -65,4 +65,4 @@ conjecture ~(leader(N) & leader(M) & N ~= M)
 
 #conjecture ~(~le(nid(P), nid(Q)) & pnd(nid(Q),N) & ~pnd(nid(Q),P) & ~btw(N,P,Q))
 
-
+template forall A:node . forall B:node . forall C:node . WILD

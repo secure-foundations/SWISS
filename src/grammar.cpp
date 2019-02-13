@@ -16,7 +16,7 @@ Type sort_to_type(lsort s) {
   }
 }
 
-Grammar createGrammarFromModule(shared_ptr<Module> module) {
+Grammar createGrammarFromModule(shared_ptr<Module> module, vector<GrammarVar> vars) {
   //int numChildren = 2; // FIXME
 
   Type bool_type = Type("bool");
@@ -64,10 +64,9 @@ Grammar createGrammarFromModule(shared_ptr<Module> module) {
   functions.push_back(Function("empty", {empty_type}, empty_type));
 
   // variables
-  // FIXME
-  functions.push_back(Function("A", {empty_type}, Type("node")));
-  functions.push_back(Function("B", {empty_type}, Type("node")));
-  functions.push_back(Function("C", {empty_type}, Type("node")));
+  for (GrammarVar v : vars) {
+    functions.push_back(Function(v.name, {empty_type}, Type(v.type)));
+  }
 
   // and
   functions.push_back(Function("and", {bool_type, bool_type, bool_type}, bool_type));

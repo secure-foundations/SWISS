@@ -178,6 +178,12 @@ public:
   std::string to_string() const override;
 };
 
+class TemplateHole : public Value {
+public:
+  TemplateHole() { }
+  std::string to_string() const override;
+};
+
 /* Action */
 
 class Action {
@@ -267,6 +273,7 @@ public:
   std::vector<std::shared_ptr<Value>> axioms;
   std::vector<std::shared_ptr<Value>> inits;
   std::vector<std::shared_ptr<Value>> conjectures;
+  std::vector<std::shared_ptr<Value>> templates;
   std::vector<std::shared_ptr<Action>> actions;
 
   Module(
@@ -275,12 +282,14 @@ public:
     std::vector<std::shared_ptr<Value>> const& axioms,
     std::vector<std::shared_ptr<Value>> const& inits,
     std::vector<std::shared_ptr<Value>> const& conjectures,
+    std::vector<std::shared_ptr<Value>> const& templates,
     std::vector<std::shared_ptr<Action>> const& actions)
     : sorts(sorts),
       functions(functions),
       axioms(axioms),
       inits(inits),
       conjectures(conjectures),
+      templates(templates),
       actions(actions) { }
 };
 
@@ -322,6 +331,9 @@ inline value v_and(std::vector<value> const& args) {
 }
 inline value v_or(std::vector<value> const& args) {
   return std::shared_ptr<Value>(new Or(args));
+}
+inline value v_template_hole() {
+  return std::shared_ptr<Value>(new TemplateHole());
 }
 
 inline lsort s_bool() {

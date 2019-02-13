@@ -1027,6 +1027,25 @@ class IvyConjectureSetup(IvyDeclInterp):
         global last_fmla
         last_fmla = self.last_fact.formula
         self.domain.proofs.append((self.last_fact,pf.compile()))
+      
+class IvyTemplateSetup(IvyDeclInterp):
+    def __init__(self,domain):
+        self.domain = domain
+        self.last_fact = None
+    def template(self,ax):
+        cax = ax.compile()
+        self.domain.labeled_templates.append(cax)
+        self.last_fact = cax
+    def property(self,p):
+        self.last_fact = None
+    def definition(self,p):
+        self.last_fact = None
+    def proof(self,pf):
+        if self.last_fact is None:
+            return # this is a not a conjecture
+        global last_fmla
+        last_fmla = self.last_fact.formula
+        self.domain.proofs.append((self.last_fact,pf.compile()))
 
 def check_is_action(mod,ast,name):
     if name not in mod.actions:
@@ -1561,6 +1580,7 @@ def ivy_compile(decls,mod=None,create_isolate=True,**kwargs):
         with TopContext(collect_actions(decls.decls)):
             IvyDomainSetup(mod)(decls)
             IvyConjectureSetup(mod)(decls)
+            IvyTemplateSetup(mod)(decls)
             IvyARGSetup(mod)(decls)
         mod.macros = decls.macros
         # progress properties are not state symbols -- remove from sig

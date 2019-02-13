@@ -32,6 +32,7 @@ shared_ptr<Module> json2module(Json j) {
       json2value_array(j["axioms"]),
       json2value_array(j["inits"]),
       json2value_array(j["conjectures"]),
+      json2value_array(j["templates"]),
       json2action_array_from_map(j["actions"])));
 }
 
@@ -140,6 +141,10 @@ shared_ptr<Value> json2value(Json j) {
   else if (type == "or") {
     assert (j.array_items().size() == 2);
     return shared_ptr<Value>(new Or(json2value_array(j[1])));
+  }
+  else if (type == "__wild") {
+    assert (j.array_items().size() == 1);
+    return shared_ptr<Value>(new TemplateHole());
   }
   else {
     printf("value type: %s\n", type.c_str());
@@ -282,4 +287,8 @@ string Apply::to_string() const {
     res += args[i]->to_string();
   }
   return res + ")";
+}
+
+string TemplateHole::to_string() const {
+  return "WILD";
 }
