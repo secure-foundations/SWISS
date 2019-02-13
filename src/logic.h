@@ -327,9 +327,11 @@ inline value v_apply(value func, std::vector<value> const& args) {
   return std::shared_ptr<Value>(new Apply(func, args));
 }
 inline value v_and(std::vector<value> const& args) {
+  if (args.size() == 1) return args[0];
   return std::shared_ptr<Value>(new And(args));
 }
 inline value v_or(std::vector<value> const& args) {
+  if (args.size() == 1) return args[0];
   return std::shared_ptr<Value>(new Or(args));
 }
 inline value v_template_hole() {

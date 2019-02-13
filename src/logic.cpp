@@ -249,7 +249,11 @@ string Eq::to_string() const {
 }
 
 string Not::to_string() const {
-  return "~(" + value->to_string() + ")";
+  if (Eq* e = dynamic_cast<Eq*>(value.get())) {
+    return "(" + e->left->to_string() + ") ~= (" + e->right->to_string() + ")";
+  } else {
+    return "~(" + value->to_string() + ")";
+  }
 }
 
 string Implies::to_string() const {

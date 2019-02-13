@@ -211,6 +211,7 @@ bool try_to_add_invariants(
       continue;
     }
 
+      /*
     count_bmc_checks++;
     bench.start("bmc");
     bool is_k_inv = bmc.is_k_invariant(invariant);
@@ -219,11 +220,12 @@ bool try_to_add_invariants(
       is_good_candidate[i] = false;
       continue;
     }
+    */
 
     count_invariance_checks++;
     bench.start("try_to_add_invariant");
 
-    //printf("%s\n", invariant->to_string().c_str());
+    printf("%s\n", invariant->to_string().c_str());
     bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
     bench.end();
     if (ttai) {
@@ -545,7 +547,7 @@ int main() {
       vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
           module->templates[0]);
       for (auto can : candidates) {
-        printf("%s\n", can->to_string().c_str());
+       // printf("%s\n", can->to_string().c_str());
       }
 
       z3::context ctx;
