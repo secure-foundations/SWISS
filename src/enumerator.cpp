@@ -233,13 +233,18 @@ vector<value> enum_conjuncts(vector<value> const& pieces, int k) {
   return result;
 }
 
-bool is_boring(value v) {
+bool is_boring(value v, bool pos) {
   if (Not* va = dynamic_cast<Not*>(v.get())) {
-    return is_boring(va->value);
+    return is_boring(va->value, !pos);
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {
     // FIXME to_string comparison is sketch
-    return va->left->to_string() == va->right->to_string();
+    return va->left->to_string() == va->right->to_string() ||
+      (pos && (
+        dynamic_cast<Var*>(va->left.get()) != NULL ||
+        dynamic_cast<Var*>(va->right.get()) != NULL
+      ));
+    /*
   } else if (And* va = dynamic_cast<And*>(v.get())) {
     for (value arg : va->args) {
       if (is_boring(arg)) return true;
@@ -250,6 +255,7 @@ bool is_boring(value v) {
       if (is_boring(arg)) return true;
     }
     return false;
+    */
   } else {
     return false;
   }
@@ -258,7 +264,7 @@ bool is_boring(value v) {
 vector<value> filter_boring(vector<value> const& values) {
   vector<value> results;
   for (value v : values) {
-    if (!is_boring(v)) {
+    if (!is_boring(v, true)) {
       results.push_back(v);
     }
   }
