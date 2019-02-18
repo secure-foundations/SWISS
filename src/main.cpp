@@ -6,6 +6,7 @@
 #include "benchmarking.h"
 #include "bmc.h"
 #include "enumerator.h"
+#include "utils.h"
 
 #include <iostream>
 #include <iterator>
@@ -175,6 +176,8 @@ bool try_to_add_invariants(
     is_good_candidate[i] = true;
   }
 
+  vector<value> probable_candidates;
+
   for (int i_ = 0; i_ < invariants.size(); i_++) {
     int i = i_ % invariants.size();
 
@@ -222,10 +225,21 @@ bool try_to_add_invariants(
     }
     */
 
+    bool is_redun = false;
+    for (value pc : probable_candidates) {
+      if (is_redundant_quick(pc, invariant)) {
+        is_redun = true;
+        break;
+      }
+    }
+    if (is_redun) {
+      continue;
+    }
+
     count_invariance_checks++;
     bench.start("try_to_add_invariant");
 
-    printf("%s\n", invariant->to_string().c_str());
+    //printf("%s\n", invariant->to_string().c_str());
     bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
     bench.end();
     if (ttai) {
@@ -238,6 +252,9 @@ bool try_to_add_invariants(
         solved = true;
         break;
       }
+    } else {
+      probable_candidates.push_back(invariant);
+      printf("\"probable\" invariant (%d): %s\n", i, invariant->to_string().c_str());
     }
   }
 

@@ -8,6 +8,7 @@ OBJECTS = $(addprefix bin/,\
 	grammar.o \
 	bmc.o \
 	enumerator.o \
+	utils.o \
 	lib/json11/json11.o \
 )
 
