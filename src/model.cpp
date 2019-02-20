@@ -442,10 +442,25 @@ FunctionInfo const& Model::get_function_info(std::string name) const {
 }
 
 void Model::assert_model_is(shared_ptr<ModelEmbedding> e) {
+  assert_model_is_or_isnt(e, true, false);
+}
+
+void Model::assert_model_is_not(shared_ptr<ModelEmbedding> e) {
+  assert_model_is_or_isnt(e, true, true);
+}
+
+void Model::assert_model_does_not_have_substructure(shared_ptr<ModelEmbedding> e) {
+  assert_model_is_or_isnt(e, false, true);
+}
+
+void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
+    bool exact, bool negate) {
   BackgroundContext& bgctx = *e->ctx;
   z3::solver& solver = bgctx.solver;
 
   unordered_map<string, z3::expr_vector> consts;
+
+  z3::expr_vector assertions(bgctx.ctx);
 
   for (auto p : this->sort_info) {
     string sort_name = p.first;
@@ -458,18 +473,20 @@ void Model::assert_model_is(shared_ptr<ModelEmbedding> e) {
     }
     for (int i = 0; i < vec.size(); i++) {
       for (int j = i+1; j < vec.size(); j++) {
-        solver.add(vec[i] != vec[j]);
+        assertions.push_back(vec[i] != vec[j]);
       }
     }
 
-    z3::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
-    z3::expr_vector eqs(bgctx.ctx);
-    for (int i = 0; i < vec.size(); i++) {
-      eqs.push_back(vec[i] == elem);
+    if (exact) {
+      z3::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
+      z3::expr_vector eqs(bgctx.ctx);
+      for (int i = 0; i < vec.size(); i++) {
+        eqs.push_back(vec[i] == elem);
+      }
+      z3::expr_vector qvars(bgctx.ctx);
+      qvars.push_back(elem);
+      assertions.push_back(z3::forall(qvars, mk_or(eqs)));
     }
-    z3::expr_vector qvars(bgctx.ctx);
-    qvars.push_back(elem);
-    solver.add(z3::forall(qvars, mk_or(eqs)));
 
     consts.insert(make_pair(sort_name, vec));
   }
@@ -525,7 +542,7 @@ void Model::assert_model_is(shared_ptr<ModelEmbedding> e) {
       for (int i = 0; i < domain_sorts.size(); i++) {
         z3_args.push_back(mkExpr(domain_sorts[i], args[i]));
       }
-      solver.add(e->getFunc(name)(z3_args) == mkExpr(range_sort, res));
+      assertions.push_back(e->getFunc(name)(z3_args) == mkExpr(range_sort, res));
 
       int i;
       for (i = num_args - 1; i >= 0; i--) {
@@ -540,6 +557,12 @@ void Model::assert_model_is(shared_ptr<ModelEmbedding> e) {
         break;
       }
     }
+  }
+
+  if (negate) {
+    solver.add(!z3::mk_and(assertions));
+  } else {
+    solver.add(z3::mk_and(assertions));
   }
 
   //printf("'%s'\n", solver.to_smt2().c_str());
@@ -617,6 +640,8 @@ void get_tree_of_models2_(
   shared_ptr<Module> module,
   vector<int> action_indices,
   int depth,
+  int multiplicity,
+  bool reversed, // find bad models starting at NOT(safety condition)
   vector<shared_ptr<Model>>& res
 ) {
   shared_ptr<BackgroundContext> ctx = make_shared<BackgroundContext>(z3ctx, module);
@@ -625,7 +650,13 @@ void get_tree_of_models2_(
   shared_ptr<ModelEmbedding> e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
   shared_ptr<ModelEmbedding> e2 = e1;
-  for (int action_index : action_indices) {
+
+  vector<int> action_indices_ordered = action_indices;
+  if (reversed) {
+    reverse(action_indices_ordered.begin(), action_indices_ordered.end());
+  }
+
+  for (int action_index : action_indices_ordered) {
     ActionResult res = applyAction(e2, module->actions[action_index], {});
     e2 = res.e;
     ctx->solver.add(res.constraint);
@@ -635,21 +666,39 @@ void get_tree_of_models2_(
   for (shared_ptr<Value> axiom : module->axioms) {
     ctx->solver.add(e1->value2expr(axiom, {}));
   }
-  // Add initial conditions
-  for (shared_ptr<Value> init : module->inits) {
-    ctx->solver.add(e1->value2expr(init));
+
+  if (!reversed) {
+    // Add initial conditions
+    for (shared_ptr<Value> init : module->inits) {
+      ctx->solver.add(e1->value2expr(init));
+    }
+  } else {
+    // Add the opposite of the safety condition
+    ctx->solver.add(e2->value2expr(v_not(v_and(module->conjectures))));
   }
 
-  z3::check_result sat_result = solver.check();
-  if (sat_result == z3::sat) {
-    auto model = Model::extract_model_from_z3(z3ctx, solver, module, *e2);
-    res.push_back(model);
+  bool found_any = false;
 
+  for (int j = 0; j < multiplicity; j++) {
+    z3::check_result sat_result = solver.check();
+    if (sat_result != z3::sat) {
+      break;
+    } else {
+      auto model = Model::extract_model_from_z3(z3ctx, solver, module, reversed ? *e1 : *e2);
+      res.push_back(model);
+      found_any = true;
+
+      model->assert_model_is_not(reversed ? e1 : e2);
+    }
+  }
+
+  // recurse
+  if (found_any) {
     if (action_indices.size() < depth) { 
       action_indices.push_back(0);
       for (int i = 0; i < module->actions.size(); i++) {
         action_indices[action_indices.size() - 1] = i;
-        get_tree_of_models2_(z3ctx, module, action_indices, depth, res);
+        get_tree_of_models2_(z3ctx, module, action_indices, depth, multiplicity, reversed, res);
       }
     }
   }
@@ -658,9 +707,11 @@ void get_tree_of_models2_(
 vector<shared_ptr<Model>> get_tree_of_models2(
   z3::context& ctx,
   shared_ptr<Module> module,
-  int depth
+  int depth,
+  int multiplicity,
+  bool reversed // find bad models instead of good ones (starting at NOT(safety condition))
 ) {
   vector<shared_ptr<Model>> res;
-  get_tree_of_models2_(ctx, module, {}, depth, res);
+  get_tree_of_models2_(ctx, module, {}, depth, multiplicity, reversed, res);
   return res;
 }

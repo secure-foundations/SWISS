@@ -43,6 +43,11 @@ public:
   FunctionInfo const& get_function_info(std::string) const;
 
   void assert_model_is(std::shared_ptr<ModelEmbedding> e);
+  void assert_model_is_not(std::shared_ptr<ModelEmbedding> e);
+  void assert_model_does_not_have_substructure(std::shared_ptr<ModelEmbedding> e);
+
+  void assert_model_is_or_isnt(std::shared_ptr<ModelEmbedding> e,
+      bool exact, bool negate);
 
 private:
   std::shared_ptr<Module> module;
@@ -79,6 +84,9 @@ std::vector<std::shared_ptr<Model>> get_tree_of_models(
 std::vector<std::shared_ptr<Model>> get_tree_of_models2(
   z3::context& ctx,
   std::shared_ptr<Module> module,
-  int depth);
+  int depth,
+  int multiplicity,
+  bool reversed = false // find bad models starting at NOT(safety condition)
+);
 
 #endif

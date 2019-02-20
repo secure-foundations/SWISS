@@ -142,7 +142,7 @@ shared_ptr<Model> get_dumb_model(
   return result;
 }
 
-bool try_to_add_invariants(
+void try_to_add_invariants(
     shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
@@ -152,19 +152,31 @@ bool try_to_add_invariants(
 ) {
   Benchmarking bench;
 
+  if (try_to_add_invariant(initctx, indctx, conjctx, invctx, v_and(module->conjectures))) {
+    printf("conjectures already invariant\n");
+    return;
+  }
+
   printf("have a list of %d candidate invariants\n", (int)invariants.size());
 
   bool solved = false;
 
   vector<shared_ptr<Model>> models = get_tree_of_models2(
       initctx->ctx->ctx,
-      module, 5);
+      module, 5, 3);
   printf("using %d models\n", (int)models.size());
+  /*
+  vector<shared_ptr<Model>> bad_models = get_tree_of_models2(
+      initctx->ctx->ctx,
+      module, 5, true);
+  printf("using %d bad models\n", (int)bad_models.size());
+  */
 
   BMCContext bmc(initctx->ctx->ctx, module, 4);
 
   int count_iterations = 0;
   int count_evals = 0;
+  int count_bad_evals = 0;
   int count_redundancy_checks = 0;
   int count_invariance_checks = 0;
   int count_invariants_added = 0;
@@ -188,11 +200,22 @@ bool try_to_add_invariants(
     count_iterations++;
 
     auto invariant = invariants[i];
-    if (i_ % 1000 == 0) printf("doing %d\n", i_);
+    if (i_ % 1000 == 0) {
+      printf("doing %d\n", i_);
+
+      printf("total iterations: %d\n", count_iterations);
+      printf("total evals against good models: %d\n", count_evals);
+      printf("total evals against bad models: %d\n", count_bad_evals);
+      printf("total redundancy checks: %d\n", count_redundancy_checks);
+      printf("total bmc checks: %d\n", count_bmc_checks);
+      printf("total invariance checks: %d\n", count_invariance_checks);
+      printf("total invariants added: %d\n", count_invariants_added);
+      bench.dump();
+    }
     //printf("%s\n", invariant->to_string().c_str());
 
+    count_evals++;
     for (auto model : models) {
-      count_evals++;
       bench.start("eval");
       bool model_eval = model->eval_predicate(invariant);
       bench.end();
@@ -204,6 +227,22 @@ bool try_to_add_invariants(
     if (!is_good_candidate[i]) {
       continue;
     }
+
+    /*
+    count_bad_evals++;
+    for (auto model : bad_models) {
+      bench.start("eval");
+      bool model_eval = model->eval_predicate(invariant);
+      bench.end();
+      if (model_eval) {
+        is_good_candidate[i] = false;
+        break;
+      }
+    }
+    if (!is_good_candidate[i]) {
+      continue;
+    }
+    */
 
     count_redundancy_checks++;
     bench.start("redundancy");
@@ -260,7 +299,8 @@ bool try_to_add_invariants(
 
   printf("solved: %s\n", solved ? "yes" : "no");
   printf("total iterations: %d\n", count_iterations);
-  printf("total evals: %d\n", count_evals);
+  printf("total evals against good models: %d\n", count_evals);
+  printf("total evals against bad models: %d\n", count_bad_evals);
   printf("total redundancy checks: %d\n", count_redundancy_checks);
   printf("total bmc checks: %d\n", count_bmc_checks);
   printf("total invariance checks: %d\n", count_invariance_checks);
@@ -268,7 +308,7 @@ bool try_to_add_invariants(
 
   bench.dump();
 
-  return false;
+  return;
 }
 
 // FIXME: create the grammar from the json file instead of manually specifying it

@@ -48,4 +48,12 @@ action release_lock = {
 conjecture ~(X ~= Y & has_lock(X) & has_lock(Y))
 #conjecture ~msg(B,B,epoch(B))
 
-#template forall A:node . forall B:node . forall C:node . forall E:time . forall F:time . WILD
+template forall A:node . forall B:node . forall C:node . forall E:time . forall F:time . WILD
+
+#conjecture (exists Z . exists W . exists S .
+#  (forall X . forall Y . forall T . ~has_lock(X) & ~msg(X, Y, T))
+#| (forall X . forall Y . forall T . ((Z ~= X -> ~has_lock(X)) &
+#    (~le(T, epoch(Y)) -> ~msg(X,Y,T))))
+#| forall X . forall Y . forall T . (~has_lock(X) &
+#    ((X ~= Z | Y ~= W | T ~= S) -> (~msg(X,Y,T) | le(T, epoch(Y)))))
+#)
