@@ -5,53 +5,105 @@
 
 using namespace std;
 
-bool Model::eval_predicate(shared_ptr<Value> value) const {
-  return eval(value, {}) == 1;
-}
+enum class EvalExprType {
+  Forall,
+  Exists,
+  Var,
+  Const,
+  Eq,
+  Not,
+  Implies,
+  Apply,
+  And,
+  Or
+};
 
-object_value Model::eval(
-    std::shared_ptr<Value> v,
-    std::unordered_map<std::string, object_value> const& vars) const
-{
+struct EvalExpr {
+  EvalExprType type;
+
+  vector<EvalExpr> args;
+  object_value const_value;
+  int quantifier_domain_size;
+  int var_index;
+  FunctionInfo const * function_info;
+};
+
+EvalExpr Model::value_to_eval_expr(
+    shared_ptr<Value> v,
+    vector<string> const& names) const {
   assert(v.get() != NULL);
 
-  if (Forall* value = dynamic_cast<Forall*>(v.get())) {
-    std::unordered_map<std::string, object_value> vars_copy(vars);
-    for (VarDecl decl : value->decls) {
-      vars_copy[decl.name] = 0;
+  EvalExpr ee;
+
+  if (dynamic_cast<Forall*>(v.get()) || dynamic_cast<Exists*>(v.get())) {
+    std::vector<VarDecl> const * decls;
+    std::shared_ptr<Value> body;
+
+    if (Forall* value = dynamic_cast<Forall*>(v.get())) {
+      decls = &value->decls;
+      body = value->body;
+    } else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
+      decls = &value->decls;
+      body = value->body;
+    } else {
+      assert(false);
     }
-    return do_forall(value, vars_copy, 0);
-  }
-  else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
-    std::unordered_map<std::string, object_value> vars_copy(vars);
-    for (VarDecl decl : value->decls) {
-      vars_copy[decl.name] = 0;
+
+    vector<string> new_names = names;
+    for (VarDecl decl : *decls) {
+      new_names.push_back(decl.name);
     }
-    return do_exists(value, vars_copy, 0);
+
+    ee = value_to_eval_expr(body, new_names); 
+
+    for (int i = decls->size() - 1; i >= 0; i--) {
+      VarDecl decl = (*decls)[i];
+      EvalExpr ee2;
+      ee2.type = dynamic_cast<Forall*>(v.get()) ? EvalExprType::Forall : EvalExprType::Exists;
+      ee2.quantifier_domain_size = get_domain_size(decl.sort.get());
+      ee2.var_index = names.size() + i;
+      ee2.args.push_back(move(ee));
+      ee = move(ee2);
+    }
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
-    auto iter = vars.find(value->name);
-    if (iter == vars.end()) {
+    int idx = -1;
+    for (int i = 0; i < names.size(); i++) {
+      if (names[i] == value->name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx == -1) {
       printf("could not find var: %s\n", value->name.c_str());
       assert(false);
     }
-    return iter->second;
+    ee.type = EvalExprType::Var;
+    ee.var_index = idx;
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
     auto iter = function_info.find(value->name);
     assert(iter != function_info.end());
     FunctionInfo const& finfo = iter->second;
     FunctionTable* ftable = finfo.table.get();
-    return ftable == NULL ? finfo.else_value : ftable->value;
+    int val = ftable == NULL ? finfo.else_value : ftable->value;
+
+    ee.type = EvalExprType::Const;
+    ee.const_value = val;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
-    return (object_value)(eval(value->left, vars) == eval(value->right, vars));
+    ee.type = EvalExprType::Eq;
+    ee.args.push_back(value_to_eval_expr(value->left, names));
+    ee.args.push_back(value_to_eval_expr(value->right, names));
   }
   else if (Not* value = dynamic_cast<Not*>(v.get())) {
-    return (object_value)(!eval(value->value, vars));
+    ee.type = EvalExprType::Not;
+    ee.args.push_back(value_to_eval_expr(value->value, names));
   }
   else if (Implies* value = dynamic_cast<Implies*>(v.get())) {
-    return (object_value)(!eval(value->left, vars) || eval(value->right, vars));
+    ee.type = EvalExprType::Implies;
+    ee.args.push_back(value_to_eval_expr(value->left, names));
+    ee.args.push_back(value_to_eval_expr(value->right, names));
   }
   else if (Apply* value = dynamic_cast<Apply*>(v.get())) {
     Const* func = dynamic_cast<Const*>(value->func.get());
@@ -61,83 +113,129 @@ object_value Model::eval(
       assert(false);
     }
     FunctionInfo const& finfo = iter->second;
-    FunctionTable* ftable = finfo.table.get();
+
+    ee.type = EvalExprType::Apply;
+    ee.function_info = &finfo;
+
     for (auto arg : value->args) {
-      if (ftable == NULL) {
-        break;
-      }
-      object_value arg_res = eval(arg, vars);
-      ftable = ftable->children[arg_res].get();
+      ee.args.push_back(value_to_eval_expr(arg, names));
     }
-    return ftable == NULL ? finfo.else_value : ftable->value;
   }
   else if (And* value = dynamic_cast<And*>(v.get())) {
+    ee.type = EvalExprType::And;
     for (auto arg : value->args) {
-      if (!eval(arg, vars)) {
-        return false;
-      }
+      ee.args.push_back(value_to_eval_expr(arg, names));
     }
-    return true;
   }
   else if (Or* value = dynamic_cast<Or*>(v.get())) {
+    ee.type = EvalExprType::Or;
     for (auto arg : value->args) {
-      if (eval(arg, vars)) {
-        return true;
-      }
+      ee.args.push_back(value_to_eval_expr(arg, names));
     }
-    return false;
   }
   else {
     assert(false && "value2expr does not support this case");
   }
+
+  return ee;
 }
 
-object_value Model::do_forall(
-    Forall* value,
-    std::unordered_map<std::string, object_value>& vars,
-    int quantifier_index) const
-{
-  if (quantifier_index == value->decls.size()) {
-    return eval(value->body, vars);    
+int max_var(EvalExpr& ee) {
+  int res = -1;
+  for (EvalExpr& child : ee.args) {
+    res = max(res, max_var(child));
   }
-
-  VarDecl const& decl = value->decls[quantifier_index];
-  auto iter = vars.find(decl.name);
-  assert(iter != vars.end());
-
-  size_t domain_size = get_domain_size(decl.sort.get());
-
-  for (object_value i = 0; i < domain_size; i++) {
-    iter->second = i;
-    if (!do_forall(value, vars, quantifier_index + 1)) {
-      return false;
-    }
+  if (ee.type == EvalExprType::Forall || ee.type == EvalExprType::Exists) {
+    res = max(res, ee.var_index);
   }
-  return true;
+  return res;
 }
 
-object_value Model::do_exists(
-    Exists* value,
-    std::unordered_map<std::string, object_value>& vars,
-    int quantifier_index) const
-{
-  if (quantifier_index == value->decls.size()) {
-    return eval(value->body, vars);    
-  }
-
-  VarDecl const& decl = value->decls[quantifier_index];
-  auto iter = vars.find(decl.name);
-  assert(iter != vars.end());
-
-  size_t domain_size = get_domain_size(decl.sort.get());
-
-  for (object_value i = 0; i < domain_size; i++) {
-    iter->second = i;
-    if (do_exists(value, vars, quantifier_index + 1)) {
-      return true;
+object_value eval(EvalExpr const& ee, int* var_values) {
+  switch (ee.type) {
+    case EvalExprType::Forall: {
+      int idx = ee.var_index;
+      int q = ee.quantifier_domain_size;
+      EvalExpr const& body = ee.args[0];
+      for (int i = 0; i < q; i++) {
+        var_values[idx] = i;
+        if (!eval(body, var_values)) {
+          return 0;
+        }
+      }
+      return 1;
     }
+
+    case EvalExprType::Exists: {
+      int idx = ee.var_index;
+      int q = ee.quantifier_domain_size;
+      EvalExpr const& body = ee.args[0];
+      for (int i = 0; i < q; i++) {
+        var_values[idx] = i;
+        if (eval(body, var_values)) {
+          return 1;
+        }
+      }
+      return 0;
+    }
+
+    case EvalExprType::Var:
+      return var_values[ee.var_index];
+
+    case EvalExprType::Const:
+      return ee.const_value;
+
+    case EvalExprType::Eq:
+      return eval(ee.args[0], var_values) ==
+             eval(ee.args[1], var_values);
+
+    case EvalExprType::Not:
+      return 1 - eval(ee.args[0], var_values);
+
+    case EvalExprType::Implies:
+      return (int)(!eval(ee.args[0], var_values) || (bool)eval(ee.args[1], var_values));
+
+    case EvalExprType::Apply: {
+      FunctionTable* ftable = ee.function_info->table.get();
+      for (EvalExpr const& arg : ee.args) {
+        if (ftable == NULL) {
+          break;
+        }
+        object_value arg_res = eval(arg, var_values);
+        ftable = ftable->children[arg_res].get();
+      }
+      return ftable == NULL ? ee.function_info->else_value : ftable->value;
+    }
+
+    case EvalExprType::And:
+      for (EvalExpr const& arg : ee.args) {
+        if (!eval(arg, var_values)) {
+          return 0;
+        }
+      }
+      return 1;
+
+    case EvalExprType::Or:
+      for (EvalExpr const& arg : ee.args) {
+        if (eval(arg, var_values)) {
+          return 1;
+        }
+      }
+      return 0;
   }
-  return false;
+}
+
+bool Model::eval_predicate(shared_ptr<Value> value) const {
+  EvalExpr ee = value_to_eval_expr(value, {});
+
+  int n_vars = max_var(ee) + 1;
+  int* var_values = new int[n_vars];
+
+  int ans = eval(ee, var_values);
+
+  delete[] var_values;
+
+  return ans == 1;
 }
 
 shared_ptr<Model> Model::extract_model_from_z3(

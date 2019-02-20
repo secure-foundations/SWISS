@@ -26,6 +26,8 @@ public:
   std::unique_ptr<FunctionTable> table;
 };
 
+struct EvalExpr;
+
 class Model {
 public:
   bool eval_predicate(std::shared_ptr<Value> value) const;
@@ -55,18 +57,9 @@ private:
   std::unordered_map<std::string, SortInfo> sort_info;
   std::unordered_map<std::string, FunctionInfo> function_info;
 
-  object_value eval(
-    std::shared_ptr<Value> value,
-    std::unordered_map<std::string, object_value> const&) const;
-
-  object_value do_forall(
-    Forall* value,
-    std::unordered_map<std::string, object_value>&,
-    int quantifier_index) const;
-  object_value do_exists(
-    Exists* value,
-    std::unordered_map<std::string, object_value>&,
-    int quantifier_index) const;
+  EvalExpr value_to_eval_expr(
+    std::shared_ptr<Value> v,
+    std::vector<std::string> const& names) const;
 };
 
 std::shared_ptr<Model> transition_model(
