@@ -120,11 +120,13 @@ conjecture (exists N . decision(N,R,V)) -> (exists Q . (forall N . member(N,Q) -
 
 conjecture (join_ack_msg(N,R,bot,V) & le(RP,R) & RP ~= R) -> ~(vote_msg(N,RP,VP))
 conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot) -> (le(RP,R) & RP ~= R & vote_msg(N,RP,V))
-conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot & le(RP,RPP) & RP~=RPP & le(RPP,R) & RPP~=R) -> ~(vote_msg(N,RPP,VP))
+conjecture (join_ack_msg(N,R,RP,V) & RP ~= bot &
+    le(RP,RPP) & RP~=RPP & le(RPP,R) & RPP~=R) -> ~(vote_msg(N,RPP,VP))
 conjecture ~(vote_msg(N,bot,V))
 
 # rewritten (12) -> (13)
-conjecture (propose_msg(R2, V2) & le(R1,R2) & R1~=R2 & V1~=V2) -> (exists N . member(N,Q) & (~(vote_msg(N,R1,V1))) & (left_round(N, R1)))
+conjecture (propose_msg(R2, V2) & le(R1,R2) & R1~=R2 & V1~=V2) ->
+    (exists N . member(N,Q) & (~(vote_msg(N,R1,V1))) & (left_round(N, R1)))
 
 # (14)
 

@@ -181,6 +181,7 @@ void try_to_add_invariants(
   int count_invariance_checks = 0;
   int count_invariants_added = 0;
   int count_bmc_checks = 0;
+  int count_models_added = 0;
 
   vector<bool> is_good_candidate;
   is_good_candidate.resize(invariants.size());
@@ -208,6 +209,7 @@ void try_to_add_invariants(
       printf("total evals against bad models: %d\n", count_bad_evals);
       printf("total redundancy checks: %d\n", count_redundancy_checks);
       printf("total bmc checks: %d\n", count_bmc_checks);
+      printf("total models added: %d\n", count_models_added);
       printf("total invariance checks: %d\n", count_invariance_checks);
       printf("total invariants added: %d\n", count_invariants_added);
       bench.dump();
@@ -253,16 +255,17 @@ void try_to_add_invariants(
       continue;
     }
 
-      /*
     count_bmc_checks++;
     bench.start("bmc");
-    bool is_k_inv = bmc.is_k_invariant(invariant);
+    shared_ptr<Model> violation_model = bmc.get_k_invariance_violation(invariant);
     bench.end();
-    if (!is_k_inv) {
+    if (violation_model) {
+      //violation_model->dump(); 
+      models.push_back(violation_model);
+      count_models_added++;
       is_good_candidate[i] = false;
       continue;
     }
-    */
 
     bool is_redun = false;
     for (value pc : probable_candidates) {
@@ -303,6 +306,7 @@ void try_to_add_invariants(
   printf("total evals against bad models: %d\n", count_bad_evals);
   printf("total redundancy checks: %d\n", count_redundancy_checks);
   printf("total bmc checks: %d\n", count_bmc_checks);
+  printf("total models added: %d\n", count_models_added);
   printf("total invariance checks: %d\n", count_invariance_checks);
   printf("total invariants added: %d\n", count_invariants_added);
 
