@@ -43,7 +43,7 @@ public:
 
 class VarDecl {
 public:
-  std::string name;
+  std::string name; // TODO replace this with int
   std::shared_ptr<Sort> sort;
 
   VarDecl(

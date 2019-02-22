@@ -697,6 +697,9 @@ bool eq_sort(lsort a, lsort b) {
   return cmp_sort(a, b) == 0;
 }
 
+vector<string> get_front_quantifier_order(value body, vector<VarDecl> const& decls,
+    set<string> const& vars_used);
+
 value forall_exists_normalize_symmetries(
     vector<VarDecl> const& decls,
     set<string> const& vars_used,
@@ -714,17 +717,51 @@ value forall_exists_normalize_symmetries(
     idx_end++;
   }
 
+  vector<string> front_vars = get_front_quantifier_order(body, decls, vars_used);
+
   vector<int> perm;
+  vector<int> perm_mid;
   vector<int> perm_back;
+  for (string const& name : front_vars) {
+    int this_idx = -1;
+    for (int i = idx; i < idx_end; i++) {
+      if (decls[i].name == name) {
+        this_idx = i;
+        break;
+      }
+    }
+    assert(this_idx != -1);
+    perm.push_back(this_idx);
+  }
   for (int i = idx; i < idx_end; i++) {
     if (vars_used.find(decls[i].name) == vars_used.end()) {
       perm_back.push_back(i);
     } else {
-      perm.push_back(i);
+      bool in_perm = false;
+      for (int j : perm) {
+        if (j == i) {
+          in_perm = true;
+          break;
+        }
+      }
+      if (!in_perm) {
+        perm_mid.push_back(i);
+      }
     }
   }
-  int perm_front_size = perm.size();
+
+  // We know what's at the front and back. Iterate over permutations
+  // of the middle segment.
+  int perm_start = perm.size();
+  int perm_end = perm.size() + perm_mid.size();
+  extend(perm, perm_mid);
   extend(perm, perm_back);
+  /*
+  for (int p : perm) {
+    printf("%d ", p);
+  }
+  printf("   :   %d -- %d\n\n", perm_start, perm_end);
+  */
 
   value smallest;
   vector<VarDecl> smallest_decls;
@@ -744,7 +781,7 @@ value forall_exists_normalize_symmetries(
         smallest_decls.push_back(decls[i]);
       }
     }
-  } while (next_permutation(perm.begin(), perm.begin() + perm_front_size));
+  } while (next_permutation(perm.begin() + perm_start, perm.begin() + perm_end));
 
   if (idx_end < decls.size()) {
     if (Forall* inner = dynamic_cast<Forall*>(smallest.get())) {
@@ -766,6 +803,7 @@ value forall_exists_normalize_symmetries(
 }
 
 value Forall::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+  //printf("%s\n", this->to_string().c_str());
   return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, true, 0, ss);
 }
 
@@ -981,6 +1019,259 @@ bool lt_value(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b
   return cmp_expr(a_, b_, ss_a, ss_b) < 0;
 }
 
+int cmp_expr_def(value a_, value b_) {
+  int a_id = a_->kind_id();
+  int b_id = b_->kind_id();
+  if (a_id != b_id) return a_id < b_id ? -1 : 1;
+
+  if (Forall* a = dynamic_cast<Forall*>(a_.get())) {
+    Forall* b = dynamic_cast<Forall*>(b_.get());
+    assert(b != NULL);
+    return cmp_expr_def(a->body, b->body);
+  }
+
+  if (Exists* a = dynamic_cast<Exists*>(a_.get())) {
+    Exists* b = dynamic_cast<Exists*>(b_.get());
+    assert(b != NULL);
+  
+    return cmp_expr_def(a->body, b->body);
+  }
+
+  if (Var* a = dynamic_cast<Var*>(a_.get())) {
+    return 0;
+  }
+
+  if (Const* a = dynamic_cast<Const*>(a_.get())) {
+    Const* b = dynamic_cast<Const*>(b_.get());
+    assert(b != NULL);
+
+    return a->name < b->name ? -1 : (a->name == b->name ? 0 : 1);
+  }
+
+  if (Eq* a = dynamic_cast<Eq*>(a_.get())) {
+    Eq* b = dynamic_cast<Eq*>(b_.get());
+    assert(b != NULL);
+
+    return 0;
+  }
+
+  if (Not* a = dynamic_cast<Not*>(a_.get())) {
+    Not* b = dynamic_cast<Not*>(b_.get());
+    assert(b != NULL);
+
+    return cmp_expr_def(a->val, b->val);
+  }
+
+  if (Implies* a = dynamic_cast<Implies*>(a_.get())) {
+    assert(false);
+  }
+
+  if (Apply* a = dynamic_cast<Apply*>(a_.get())) {
+    Apply* b = dynamic_cast<Apply*>(b_.get());
+    assert(b != NULL);
+
+    if (int c = cmp_expr_def(a->func, b->func)) return c;
+
+    if (a->args.size() < b->args.size()) return -1;
+    if (a->args.size() > b->args.size()) return 1;
+
+    for (int i = 0; i < a->args.size(); i++) {
+      if (int c = cmp_expr_def(a->args[i], b->args[i])) {
+        return c;
+      }
+    }
+
+    return 0;
+  }
+
+  if (And* a = dynamic_cast<And*>(a_.get())) {
+    return 0;
+  }
+
+  if (Or* a = dynamic_cast<Or*>(a_.get())) {
+    return 0;
+  }
+
+  assert(false);
+}
+
+bool get_certain_variable_order(
+    value a_,
+    vector<VarDecl> const& d,
+    vector<string> & res,
+    int n)
+{
+  if (Forall* a = dynamic_cast<Forall*>(a_.get())) {
+    return get_certain_variable_order(a->body, d, res, n);
+  }
+
+  else if (Exists* a = dynamic_cast<Exists*>(a_.get())) {
+    return get_certain_variable_order(a->body, d, res, n);
+  }
+
+  else if (Var* a = dynamic_cast<Var*>(a_.get())) {
+    for (int i = 0; i < d.size(); i++) {
+      if (d[i].name == a->name) {
+        bool contains = false;
+        for (int j = 0; j < res.size(); j++) {
+          if (res[j] == a->name) {
+            contains = true;
+            break;
+          }
+        }
+        if (!contains) {
+          res.push_back(a->name);
+        }
+
+        break;
+      }
+    }
+    return true;
+  }
+
+  else if (Const* a = dynamic_cast<Const*>(a_.get())) {
+    return true;
+  }
+
+  else if (Eq* a = dynamic_cast<Eq*>(a_.get())) {
+    int c = cmp_expr_def(a->left, a->right);
+    if (c == -1) {
+      if (!get_certain_variable_order(a->left, d, res, n)) return false;
+      return get_certain_variable_order(a->right, d, res, n);
+    }
+    else if (c == 1) {
+      if (!get_certain_variable_order(a->right, d, res, n)) return false;
+      return get_certain_variable_order(a->left, d, res, n);
+    }
+    else {
+      // If we don't know which order the == goes in, but there's only one
+      // additional variable anyway, it's fine.
+      int cur_size = res.size();
+      bool okay = get_certain_variable_order(a->left, d, res, n);
+      if (okay) {
+        okay = get_certain_variable_order(a->right, d, res, n);
+      }
+      if (okay && res.size() <= cur_size + 1) {
+        return true;
+      } else if (okay && res.size() == n && cur_size == n - 2 &&
+          dynamic_cast<Var*>(a->left.get()) && dynamic_cast<Var*>(a->right.get())) {
+        // A=B case where A and B are the last two 
+        // In this case, we learn nothing about the ordering from this term.
+        res.resize(cur_size);
+        return true;
+      } else {
+        res.resize(cur_size);
+        return false;
+      }
+    }
+  }
+
+  if (Not* a = dynamic_cast<Not*>(a_.get())) {
+    return get_certain_variable_order(a->val, d, res, n);
+  }
+
+  if (Implies* a = dynamic_cast<Implies*>(a_.get())) {
+    assert(false);
+  }
+
+  if (Apply* a = dynamic_cast<Apply*>(a_.get())) {
+    if (!get_certain_variable_order(a->func, d, res, n)) return false;
+    for (value arg : a->args) {
+      if (!get_certain_variable_order(arg, d, res, n)) return false;
+    }
+    return true;
+  }
+
+  if (And* a = dynamic_cast<And*>(a_.get())) {
+    for (value arg : a->args) {
+      if (!get_certain_variable_order(arg, d, res, n)) return false;
+    }
+    return true;
+  }
+
+  if (Or* a = dynamic_cast<Or*>(a_.get())) {
+    for (value arg : a->args) {
+      if (!get_certain_variable_order(arg, d, res, n)) return false;
+    }
+    return true;
+  }
+
+  assert(false);
+}
+
+vector<string> get_front_quantifier_order(
+    value body,
+    vector<VarDecl> const& decls,
+    set<string> const& vars_used)
+{
+  while (true) {
+    if (Forall* b = dynamic_cast<Forall*>(body.get())) {
+      body = b->body;
+    }
+    else if (Exists* b = dynamic_cast<Exists*>(body.get())) {
+      body = b->body;
+    }
+    else {
+      break;
+    }
+  }
+
+  vector<value> juncts;
+  if (And* b = dynamic_cast<And*>(body.get())) {
+    juncts = b->args;
+  }
+  else if (Or* b = dynamic_cast<Or*>(body.get())) {
+    juncts = b->args;
+  }
+  else {
+    juncts.push_back(body);
+  }
+
+  sort(juncts.begin(), juncts.end(), [](value const& a, value const& b) {
+    return cmp_expr_def(a, b) < 0;
+  });
+
+  int certain = 0;
+  while (certain < juncts.size() - 1 && cmp_expr_def(juncts[certain], juncts[certain+1]) < 0) {
+    certain++;
+  }
+  if (certain == juncts.size() - 1) {
+    certain++;
+  }
+
+  vector<string> used_decl_names;
+  for (int i = 0; i < decls.size(); i++) {
+    if (vars_used.count(decls[i].name)) {
+      used_decl_names.push_back(decls[i].name);
+    }
+  }
+
+  vector<string> certain_order;
+  bool failed = false;
+  for (int i = 0; i < certain; i++) {
+    if (!get_certain_variable_order(juncts[i], decls, certain_order, used_decl_names.size())) {
+      failed = true;
+      break;
+    }
+  }
+  if (!failed && certain == juncts.size()) {
+    for (string const& name : used_decl_names) {
+      bool used = false;
+      for (string const& s : certain_order) {
+        if (s == name) {
+          used = true;
+          break;
+        }
+      }
+      if (!used) {
+        certain_order.push_back(name);
+      }
+    }
+  }
+
+  return certain_order;
+}
+
 value Forall::indexify_vars(map<string, string> const& m) const {
   map<string, string> new_m = m;
   vector<VarDecl> new_decls;
@@ -1094,33 +1385,35 @@ void Or::get_used_vars(set<string>& s) const {
 void TemplateHole::get_used_vars(set<string>& s) const {
 }
 
-int counter = 0;
-Benchmarking bench;
+//int counter = 0;
+//Benchmarking bench;
 
 value Value::totally_normalize() const {
 
   ScopeState ss;
 
-  bench.start("structurally_normalize");
+  //bench.start("structurally_normalize");
   value res = this->structurally_normalize();
-  bench.end();
+  //bench.end();
 
   set<string> vars_used;
   res->get_used_vars(vars_used);
 
-  bench.start("normalize_symmetries");
+  //bench.start("normalize_symmetries");
   res = res->normalize_symmetries(ss, vars_used);
-  bench.end();
+  //bench.end();
 
-  bench.start("indexify_vars");
+  //bench.start("indexify_vars");
   res = res->indexify_vars({});
-  bench.end();
+  //bench.end();
 
+  /*
   counter++;
   if (counter % 1000 == 0) {
     printf("count = %d\n", counter);
     bench.dump();
   }
+  */
 
   return res;
 }
