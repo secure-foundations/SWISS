@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 
 /* Sort */
 
@@ -73,7 +74,8 @@ public:
   // only call this after uniquify_vars
   virtual std::shared_ptr<Value> structurally_normalize_() const = 0;
 
-  virtual std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const = 0;
+  virtual std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const = 0;
+  virtual void get_used_vars(std::set<std::string>&) const = 0;
 
   std::shared_ptr<Value> structurally_normalize() const {
     return this->uniquify_vars({})->structurally_normalize_();
@@ -101,7 +103,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 1; }
 };
@@ -123,7 +126,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 2; }
 };
@@ -145,9 +149,10 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
-  int kind_id() const override { return 3; }
+  int kind_id() const override { return 50; }
 };
 
 class Const : public Value {
@@ -167,7 +172,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 4; }
 };
@@ -189,9 +195,10 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
-  int kind_id() const override { return 5; }
+  int kind_id() const override { return 100; }
 };
 
 class Not : public Value {
@@ -209,7 +216,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 6; }
 };
@@ -231,7 +239,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 7; }
 };
@@ -253,7 +262,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 8; }
 };
@@ -273,7 +283,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 9; }
 };
@@ -293,7 +304,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
 
   int kind_id() const override { return 10; }
 };
@@ -307,7 +319,8 @@ public:
   std::shared_ptr<Value> uniquify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<std::string, std::string> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
-  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss) const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<std::string> const& vars_used) const override;
+  void get_used_vars(std::set<std::string>&) const override;
   int kind_id() const override { return 11; }
 };
 

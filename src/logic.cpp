@@ -1,5 +1,6 @@
 #include "logic.h"
 #include "lib/json11/json11.hpp"
+#include "benchmarking.h"
 
 #include <cassert>
 #include <iostream>
@@ -697,24 +698,33 @@ bool eq_sort(lsort a, lsort b) {
 }
 
 value forall_exists_normalize_symmetries(
-    vector<VarDecl> decls,
+    vector<VarDecl> const& decls,
+    set<string> const& vars_used,
     value body,
     bool is_forall,
     int idx,
     ScopeState const& ss)
 {
   if (idx == decls.size()) {
-    return body->normalize_symmetries(ss);
+    return body->normalize_symmetries(ss, vars_used);
   }
-
-  vector<int> perm;
-  perm.push_back(idx);
 
   int idx_end = idx + 1;
   while (idx_end < decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
-    perm.push_back(idx_end);
     idx_end++;
   }
+
+  vector<int> perm;
+  vector<int> perm_back;
+  for (int i = idx; i < idx_end; i++) {
+    if (vars_used.find(decls[i].name) == vars_used.end()) {
+      perm_back.push_back(i);
+    } else {
+      perm.push_back(i);
+    }
+  }
+  int perm_front_size = perm.size();
+  extend(perm, perm_back);
 
   value smallest;
   vector<VarDecl> smallest_decls;
@@ -724,7 +734,7 @@ value forall_exists_normalize_symmetries(
     for (int i : perm) {
       ss_.decls.push_back(decls[i]);
     }
-    value inner = forall_exists_normalize_symmetries(decls, body, is_forall, idx_end, ss_);
+    value inner = forall_exists_normalize_symmetries(decls, vars_used, body, is_forall, idx_end, ss_);
     if (smallest == nullptr || lt_value(inner, smallest, ss_, ss_smallest)) {
       smallest = inner;
       ss_smallest = move(ss_);
@@ -734,7 +744,7 @@ value forall_exists_normalize_symmetries(
         smallest_decls.push_back(decls[i]);
       }
     }
-  } while (next_permutation(perm.begin(), perm.end()));
+  } while (next_permutation(perm.begin(), perm.begin() + perm_front_size));
 
   if (idx_end < decls.size()) {
     if (Forall* inner = dynamic_cast<Forall*>(smallest.get())) {
@@ -755,42 +765,42 @@ value forall_exists_normalize_symmetries(
   return res;
 }
 
-value Forall::normalize_symmetries(ScopeState const& ss) const {
-  return forall_exists_normalize_symmetries(this->decls, this->body, true, 0, ss);
+value Forall::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+  return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, true, 0, ss);
 }
 
-value Exists::normalize_symmetries(ScopeState const& ss) const {
-  return forall_exists_normalize_symmetries(this->decls, this->body, false, 0, ss);
+value Exists::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+  return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, false, 0, ss);
 }
 
-value Var::normalize_symmetries(ScopeState const& ss) const {
+value Var::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   return v_var(name, sort);
 }
 
-value Const::normalize_symmetries(ScopeState const& ss) const {
+value Const::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   return v_const(name, sort);
 }
 
-value Eq::normalize_symmetries(ScopeState const& ss) const {
-  value a = left->normalize_symmetries(ss);
-  value b = right->normalize_symmetries(ss);
+value Eq::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+  value a = left->normalize_symmetries(ss, vars_used);
+  value b = right->normalize_symmetries(ss, vars_used);
   return lt_value(a, b, ss, ss) ? v_eq(a, b) : v_eq(b, a);
 }
 
-value Not::normalize_symmetries(ScopeState const& ss) const {
-  return v_not(val->normalize_symmetries(ss));
+value Not::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+  return v_not(val->normalize_symmetries(ss, vars_used));
 }
 
-value Implies::normalize_symmetries(ScopeState const& ss) const {
+value Implies::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   assert(false && "implies should have been replaced by |");
 }
 
-value Apply::normalize_symmetries(ScopeState const& ss) const {
+value Apply::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
-    new_args.push_back(arg->normalize_symmetries(ss));
+    new_args.push_back(arg->normalize_symmetries(ss, vars_used));
   }
-  return v_apply(func->normalize_symmetries(ss), move(new_args));
+  return v_apply(func->normalize_symmetries(ss, vars_used), move(new_args));
 }
 
 void sort_values(ScopeState const& ss, vector<value> & values) {
@@ -799,25 +809,25 @@ void sort_values(ScopeState const& ss, vector<value> & values) {
   });
 }
 
-value And::normalize_symmetries(ScopeState const& ss) const {
+value And::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
-    new_args.push_back(arg->normalize_symmetries(ss));
+    new_args.push_back(arg->normalize_symmetries(ss, vars_used));
   }
   sort_values(ss, new_args);
   return v_and(new_args);
 }
 
-value Or::normalize_symmetries(ScopeState const& ss) const {
+value Or::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
-    new_args.push_back(arg->normalize_symmetries(ss));
+    new_args.push_back(arg->normalize_symmetries(ss, vars_used));
   }
   sort_values(ss, new_args);
   return v_or(new_args);
 }
 
-value TemplateHole::normalize_symmetries(ScopeState const& ss) const {
+value TemplateHole::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
   return v_template_hole();
 }
 
@@ -1043,7 +1053,74 @@ value TemplateHole::indexify_vars(map<string, string> const& m) const {
   return v_template_hole();
 }
 
+void Forall::get_used_vars(set<string>& s) const {
+  body->get_used_vars(s);
+}
+void Exists::get_used_vars(set<string>& s) const {
+  body->get_used_vars(s);
+}
+void Var::get_used_vars(set<string>& s) const {
+  s.insert(name);
+}
+void Const::get_used_vars(set<string>& s) const {
+}
+void Eq::get_used_vars(set<string>& s) const {
+  left->get_used_vars(s);
+  right->get_used_vars(s);
+}
+void Not::get_used_vars(set<string>& s) const {
+  val->get_used_vars(s);
+}
+void Implies::get_used_vars(set<string>& s) const {
+  left->get_used_vars(s);
+  right->get_used_vars(s);
+}
+void Apply::get_used_vars(set<string>& s) const {
+  func->get_used_vars(s);
+  for (value arg : args) {
+    arg->get_used_vars(s);
+  }
+}
+void And::get_used_vars(set<string>& s) const {
+  for (value arg : args) {
+    arg->get_used_vars(s);
+  }
+}
+void Or::get_used_vars(set<string>& s) const {
+  for (value arg : args) {
+    arg->get_used_vars(s);
+  }
+}
+void TemplateHole::get_used_vars(set<string>& s) const {
+}
+
+int counter = 0;
+Benchmarking bench;
+
 value Value::totally_normalize() const {
+
   ScopeState ss;
-  return this->structurally_normalize()->normalize_symmetries(ss)->indexify_vars({});
+
+  bench.start("structurally_normalize");
+  value res = this->structurally_normalize();
+  bench.end();
+
+  set<string> vars_used;
+  res->get_used_vars(vars_used);
+
+  bench.start("normalize_symmetries");
+  res = res->normalize_symmetries(ss, vars_used);
+  bench.end();
+
+  bench.start("indexify_vars");
+  res = res->indexify_vars({});
+  bench.end();
+
+  counter++;
+  if (counter % 1000 == 0) {
+    printf("count = %d\n", counter);
+    bench.dump();
+  }
+
+  return res;
 }
