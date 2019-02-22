@@ -349,6 +349,26 @@ vector<value> remove_equiv(vector<value> const& values) {
   vector<value> result;
   set<string> seen;
   for (value v : values) {
+    NormalizeState ns;
+    value norm = normalize(v, ns);
+    string s = norm->to_string();
+    if (seen.find(s) == seen.end()) {
+      seen.insert(s);
+      result.push_back(v);
+    }
+  }
+  return result;
+}
+
+// This one is more thorough (cuts by about 3x) but also slower,
+// so we still do the first one to save time.
+vector<value> remove_equiv2(vector<value> const& values) {
+  vector<value> result;
+  set<string> seen;
+  int i = 0;
+  for (value v : values) {
+    i++;
+    if (i % 1000 == 0) printf("i = %d\n", i);
     value norm = v->totally_normalize();
     string s = norm->to_string();
     if (seen.find(s) == seen.end()) {
@@ -375,12 +395,14 @@ vector<value> enumerate_for_template(
     while (solver.solve()) {
       fills.push_back(solver.solutionToValue());
     }
-    fills = enum_conjuncts(filter_boring(fills), 3);
+    fills = remove_equiv(enum_conjuncts(filter_boring(fills), 3));
     for (int i = 0; i < fills.size(); i++) {
       fills[i] = v_not(fills[i]);
     }
     all_hole_fills.push_back(move(fills));
   }
 
-  return remove_equiv(fill_holes(templ, all_hole_fills));
+  vector<value> res = fill_holes(templ, all_hole_fills);
+  res = remove_equiv2(res);
+  return res;
 }
