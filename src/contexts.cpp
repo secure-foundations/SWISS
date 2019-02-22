@@ -144,7 +144,7 @@ z3::expr ModelEmbedding::value2expr(
     return value2expr(value->left, consts, vars) == value2expr(value->right, consts, vars);
   }
   else if (Not* value = dynamic_cast<Not*>(v.get())) {
-    return !value2expr(value->value, consts, vars);
+    return !value2expr(value->val, consts, vars);
   }
   else if (Implies* value = dynamic_cast<Implies*>(v.get())) {
     return !value2expr(value->left, consts, vars) || value2expr(value->right, consts, vars);

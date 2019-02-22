@@ -98,7 +98,7 @@ EvalExpr Model::value_to_eval_expr(
   }
   else if (Not* value = dynamic_cast<Not*>(v.get())) {
     ee.type = EvalExprType::Not;
-    ee.args.push_back(value_to_eval_expr(value->value, names));
+    ee.args.push_back(value_to_eval_expr(value->val, names));
   }
   else if (Implies* value = dynamic_cast<Implies*>(v.get())) {
     ee.type = EvalExprType::Implies;

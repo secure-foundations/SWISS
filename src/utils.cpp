@@ -46,7 +46,7 @@ value normalize(value v, NormalizeState& ns) {
   }
   else if (Not* va = dynamic_cast<Not*>(v.get())) {
     return v_not(
-        normalize(va->value, ns));
+        normalize(va->val, ns));
   }
   else if (Implies* va = dynamic_cast<Implies*>(v.get())) {
     return v_implies(
@@ -111,19 +111,19 @@ bool is_redundant_quick(value a, value b)
     return false;
   }
 
-  And* a_and = dynamic_cast<And*>(a_n->value.get());
-  And* b_and = dynamic_cast<And*>(b_n->value.get());
+  And* a_and = dynamic_cast<And*>(a_n->val.get());
+  And* b_and = dynamic_cast<And*>(b_n->val.get());
   vector<value> a_and_args;
   vector<value> b_and_args;
 
   if (a_and == NULL) {
-    a_and_args.push_back(a_n->value);
+    a_and_args.push_back(a_n->val);
   } else {
     a_and_args = a_and->args;
   }
 
   if (b_and == NULL) {
-    b_and_args.push_back(b_n->value);
+    b_and_args.push_back(b_n->val);
   } else {
     b_and_args = b_and->args;
   }

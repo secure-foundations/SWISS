@@ -212,6 +212,23 @@ shared_ptr<Action> json2action(Json j) {
   }
 }
 
+string BooleanSort::to_string() const {
+  return "bool";
+}
+
+string UninterpretedSort::to_string() const {
+  return name;
+}
+
+string FunctionSort::to_string() const {
+  string res = "(";
+  for (int i = 0; i < domain.size(); i++) {
+    if (i != 0) res += ", ";
+    res += domain[i]->to_string();
+  }
+  return res + " -> " + range->to_string();
+}
+
 string Forall::to_string() const {
   string res = "forall ";
   for (int i = 0; i < decls.size(); i++) {
@@ -249,10 +266,10 @@ string Eq::to_string() const {
 }
 
 string Not::to_string() const {
-  if (Eq* e = dynamic_cast<Eq*>(value.get())) {
+  if (Eq* e = dynamic_cast<Eq*>(val.get())) {
     return "(" + e->left->to_string() + ") ~= (" + e->right->to_string() + ")";
   } else {
-    return "~(" + value->to_string() + ")";
+    return "~(" + val->to_string() + ")";
   }
 }
 
@@ -295,4 +312,738 @@ string Apply::to_string() const {
 
 string TemplateHole::to_string() const {
   return "WILD";
+}
+
+value Forall::subst(string const& x, value e) const {
+  return v_forall(decls, body->subst(x, e)); 
+}
+
+value Exists::subst(string const& x, value e) const {
+  return v_exists(decls, body->subst(x, e)); 
+}
+
+value Var::subst(string const& x, value e) const {
+  if (x == name) {
+    return e;
+  } else {
+    return v_var(name, sort);
+  }
+}
+
+value Const::subst(string const& x, value e) const {
+  return v_const(name, sort);
+}
+
+value Eq::subst(string const& x, value e) const {
+  return v_eq(left->subst(x, e), right->subst(x, e));
+}
+
+value Not::subst(string const& x, value e) const {
+  return v_not(this->val->subst(x, e));
+}
+
+value Implies::subst(string const& x, value e) const {
+  return v_implies(left->subst(x, e), right->subst(x, e));
+}
+
+value Apply::subst(string const& x, value e) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->subst(x, e));
+  }
+  return v_apply(func->subst(x, e), move(new_args));
+}
+
+value And::subst(string const& x, value e) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->subst(x, e));
+  }
+  return v_and(move(new_args));
+}
+
+value Or::subst(string const& x, value e) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->subst(x, e));
+  }
+  return v_or(move(new_args));
+}
+
+value TemplateHole::subst(string const& x, value e) const {
+  return v_template_hole();
+}
+
+value Forall::negate() const {
+  return v_exists(decls, body->negate());
+}
+
+value Exists::negate() const {
+  return v_forall(decls, body->negate());
+}
+
+value Var::negate() const {
+  return v_not(v_var(name, sort));
+}
+
+value Const::negate() const {
+  return v_not(v_const(name, sort));
+}
+
+value Eq::negate() const {
+  return v_not(v_eq(left, right));
+}
+
+value Not::negate() const {
+  return val;
+}
+
+value Implies::negate() const {
+  return v_and({left, right->negate()});
+}
+
+value Apply::negate() const {
+  return v_not(v_apply(func, args));
+}
+
+value And::negate() const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->negate());
+  }
+  return v_or(move(new_args));
+}
+
+value Or::negate() const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->negate());
+  }
+  return v_and(move(new_args));
+}
+
+value TemplateHole::negate() const {
+  return v_not(v_template_hole());
+}
+
+uint64_t uid = 0;
+string new_var_id() {
+  return "__var." + to_string(uid++);
+}
+
+value Forall::uniquify_vars(map<string, string> const& m) const {
+  map<string, string> new_m = m;
+  vector<VarDecl> new_decls;
+  for (VarDecl const& decl : this->decls) {
+    string new_name = new_var_id();
+    new_m[decl.name] = new_name;
+    new_decls.push_back(VarDecl(new_name, decl.sort));
+  }
+  return v_forall(new_decls, body->uniquify_vars(new_m));
+}
+
+value Exists::uniquify_vars(map<string, string> const& m) const {
+  map<string, string> new_m = m;
+  vector<VarDecl> new_decls;
+  for (VarDecl const& decl : this->decls) {
+    string new_name = new_var_id();
+    new_m[decl.name] = new_name;
+    new_decls.push_back(VarDecl(new_name, decl.sort));
+  }
+  return v_forall(new_decls, body->uniquify_vars(new_m));
+}
+
+value Var::uniquify_vars(map<string, string> const& m) const {
+  auto iter = m.find(this->name);
+  assert(iter != m.end());
+  return v_var(iter->second, this->sort);
+}
+
+value Const::uniquify_vars(map<string, string> const& m) const {
+  return v_const(name, sort);
+}
+
+value Eq::uniquify_vars(map<string, string> const& m) const {
+  return v_eq(left->uniquify_vars(m), right->uniquify_vars(m));
+}
+
+value Not::uniquify_vars(map<string, string> const& m) const {
+  return v_not(this->val->uniquify_vars(m));
+}
+
+value Implies::uniquify_vars(map<string, string> const& m) const {
+  return v_implies(left->uniquify_vars(m), right->uniquify_vars(m));
+}
+
+value Apply::uniquify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->uniquify_vars(m));
+  }
+  return v_apply(func->uniquify_vars(m), move(new_args));
+}
+
+value And::uniquify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->uniquify_vars(m));
+  }
+  return v_and(move(new_args));
+}
+
+value Or::uniquify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->uniquify_vars(m));
+  }
+  return v_or(move(new_args));
+}
+
+value TemplateHole::uniquify_vars(map<string, string> const& m) const {
+  return v_template_hole();
+}
+
+template <typename T>
+void extend(vector<T> & a, vector<T> const& b) {
+  for (T const& t : b) {
+    a.push_back(t);
+  }
+}
+
+void sort_decls(vector<VarDecl>& decls) {
+  sort(decls.begin(), decls.end(), [](VarDecl const& a, VarDecl const& b) {
+    string a_name, b_name;
+    if (dynamic_cast<BooleanSort*>(a.sort.get())) {
+      a_name = "";
+    } else if (auto v = dynamic_cast<UninterpretedSort*>(a.sort.get())) {
+      a_name = v->name;
+    }
+    if (dynamic_cast<BooleanSort*>(b.sort.get())) {
+      b_name = "";
+    } else if (auto v = dynamic_cast<UninterpretedSort*>(b.sort.get())) {
+      b_name = v->name;
+    }
+    return a_name < b_name;
+  });
+}
+
+value Forall::structurally_normalize_() const {
+  value b = this->body->structurally_normalize_();
+  if (Forall* inner = dynamic_cast<Forall*>(b.get())) {
+    vector<VarDecl> new_decls = this->decls;
+    extend(new_decls, inner->decls);
+    sort_decls(new_decls);
+    return v_forall(new_decls, inner->body);
+  } else {
+    return v_forall(this->decls, b);
+  }
+}
+
+value Exists::structurally_normalize_() const {
+  value b = this->body->structurally_normalize_();
+  if (Exists* inner = dynamic_cast<Exists*>(b.get())) {
+    vector<VarDecl> new_decls = this->decls;
+    extend(new_decls, inner->decls);
+    sort_decls(new_decls);
+    return v_exists(new_decls, inner->body);
+  } else {
+    return v_exists(this->decls, b);
+  }
+}
+
+value Var::structurally_normalize_() const {
+  return v_var(name, sort);
+}
+
+value Const::structurally_normalize_() const {
+  return v_const(name, sort);
+}
+
+value Eq::structurally_normalize_() const {
+  return v_eq(left->structurally_normalize_(), right->structurally_normalize_());
+}
+
+value Not::structurally_normalize_() const {
+  return val->structurally_normalize_()->negate();
+}
+
+value Implies::structurally_normalize_() const {
+  return v_or({v_not(left), right})->structurally_normalize_();
+}
+
+value Apply::structurally_normalize_() const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->structurally_normalize_());
+  }
+  return v_apply(func->structurally_normalize_(), move(new_args));
+}
+
+value structurally_normalize_and_or_or(Value const * the_value) {
+  And const * the_and = dynamic_cast<And const*>(the_value);
+  Or const * the_or = dynamic_cast<Or const*>(the_value);
+
+  vector<value> args = the_and ? the_and->args : the_or->args;
+
+  vector<vector<VarDecl>> forall_decl_lists;
+  vector<vector<VarDecl>> exists_decl_lists;
+
+  while (true) {
+    vector<VarDecl> forall_decls;
+    vector<VarDecl> exists_decls;
+    vector<value> new_args;
+    bool found = false;
+    for (value arg : args) {
+      if (Forall* forall = dynamic_cast<Forall*>(arg.get())) {
+        extend(forall_decls, forall->decls);
+        arg = forall->body;
+        found = true;
+      }
+      if (Exists* exists = dynamic_cast<Exists*>(arg.get())) {
+        extend(exists_decls, exists->decls);
+        arg = exists->body;
+        found = true;
+      }
+      new_args.push_back(arg);
+    }
+    forall_decl_lists.push_back(move(forall_decls));
+    exists_decl_lists.push_back(move(exists_decls));
+    args = move(new_args);
+    if (!found) {
+      break;
+    }
+  }
+
+  vector<value> new_args;
+  for (value arg : args) {
+    And* sub_and;
+    Or* sub_or;
+    if (the_and && (sub_and = dynamic_cast<And*>(arg.get()))) {
+      extend(new_args, sub_and->args);
+    } else if (the_or && (sub_or = dynamic_cast<Or*>(arg.get()))) {
+      extend(new_args, sub_or->args);
+    } else {
+      new_args.push_back(arg);
+    }
+  }
+
+  value res = the_and ? v_and(new_args) : v_or(new_args);
+  for (int i = forall_decl_lists.size() - 1; i >= 0; i--) {
+    vector<VarDecl> const& f_decls = forall_decl_lists[i];
+    vector<VarDecl> const& e_decls = exists_decl_lists[i];
+    if (e_decls.size() > 0) {
+      res = v_exists(e_decls, res);
+    }
+    if (f_decls.size() > 0) {
+      res = v_exists(f_decls, res);
+    }
+  }
+
+  return res;
+}
+
+value And::structurally_normalize_() const {
+  return structurally_normalize_and_or_or(this);
+}
+
+value Or::structurally_normalize_() const {
+  return structurally_normalize_and_or_or(this);
+}
+
+value TemplateHole::structurally_normalize_() const {
+  return v_template_hole();
+}
+
+struct ScopeState {
+  vector<VarDecl> decls;
+};
+
+bool lt_value(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b);
+
+int cmp_sort(lsort a, lsort b) {
+  if (dynamic_cast<BooleanSort*>(a.get())) {
+    if (dynamic_cast<BooleanSort*>(b.get())) {
+      return 0;
+    }
+    else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(b.get())) {
+      return -1;
+    }
+    else {
+      assert(false);
+    }
+  }
+  else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(b.get())) {
+    if (dynamic_cast<BooleanSort*>(a.get())) {
+      return 1;
+    }
+    else if (UninterpretedSort* usort2 = dynamic_cast<UninterpretedSort*>(b.get())) {
+      string const& a_name = usort->name;
+      string const& b_name = usort2->name;
+      if (a_name < b_name) return -1;
+      if (a_name > b_name) return 1;
+      return 0;
+    }
+    else {
+      assert(false);
+    }
+  }
+  else {
+    assert(false);
+  }
+}
+
+bool eq_sort(lsort a, lsort b) {
+  return cmp_sort(a, b) == 0;
+}
+
+value forall_exists_normalize_symmetries(
+    vector<VarDecl> decls,
+    value body,
+    bool is_forall,
+    int idx,
+    ScopeState const& ss)
+{
+  if (idx == decls.size()) {
+    return body->normalize_symmetries(ss);
+  }
+
+  vector<int> perm;
+  perm.push_back(idx);
+
+  int idx_end = idx + 1;
+  while (idx_end < decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
+    perm.push_back(idx_end);
+    idx_end++;
+  }
+
+  value smallest;
+  vector<VarDecl> smallest_decls;
+  ScopeState ss_smallest;
+  do {
+    ScopeState ss_ = ss;
+    for (int i : perm) {
+      ss_.decls.push_back(decls[i]);
+    }
+    value inner = forall_exists_normalize_symmetries(decls, body, is_forall, idx_end, ss_);
+    if (smallest == nullptr || lt_value(inner, smallest, ss_, ss_smallest)) {
+      smallest = inner;
+      ss_smallest = move(ss_);
+
+      smallest_decls.clear();
+      for (int i : perm) {
+        smallest_decls.push_back(decls[i]);
+      }
+    }
+  } while (next_permutation(perm.begin(), perm.end()));
+
+  if (idx_end < decls.size()) {
+    if (Forall* inner = dynamic_cast<Forall*>(smallest.get())) {
+      smallest = inner->body;
+      extend(smallest_decls, inner->decls);
+    }
+    else if (Exists* inner = dynamic_cast<Exists*>(smallest.get())) {
+      smallest = inner->body;
+      extend(smallest_decls, inner->decls);
+    }
+    else {
+      assert(false);
+    }
+  }
+
+  value res = is_forall ? v_forall(smallest_decls, smallest)
+                        : v_exists(smallest_decls, smallest);
+  return res;
+}
+
+value Forall::normalize_symmetries(ScopeState const& ss) const {
+  return forall_exists_normalize_symmetries(this->decls, this->body, true, 0, ss);
+}
+
+value Exists::normalize_symmetries(ScopeState const& ss) const {
+  return forall_exists_normalize_symmetries(this->decls, this->body, false, 0, ss);
+}
+
+value Var::normalize_symmetries(ScopeState const& ss) const {
+  return v_var(name, sort);
+}
+
+value Const::normalize_symmetries(ScopeState const& ss) const {
+  return v_const(name, sort);
+}
+
+value Eq::normalize_symmetries(ScopeState const& ss) const {
+  value a = left->normalize_symmetries(ss);
+  value b = right->normalize_symmetries(ss);
+  return lt_value(a, b, ss, ss) ? v_eq(a, b) : v_eq(b, a);
+}
+
+value Not::normalize_symmetries(ScopeState const& ss) const {
+  return v_not(val->normalize_symmetries(ss));
+}
+
+value Implies::normalize_symmetries(ScopeState const& ss) const {
+  assert(false && "implies should have been replaced by |");
+}
+
+value Apply::normalize_symmetries(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->normalize_symmetries(ss));
+  }
+  return v_apply(func->normalize_symmetries(ss), move(new_args));
+}
+
+void sort_values(ScopeState const& ss, vector<value> & values) {
+  sort(values.begin(), values.end(), [&ss](value const& a, value const& b) {
+    return lt_value(a, b, ss, ss);
+  });
+}
+
+value And::normalize_symmetries(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->normalize_symmetries(ss));
+  }
+  sort_values(ss, new_args);
+  return v_and(new_args);
+}
+
+value Or::normalize_symmetries(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->normalize_symmetries(ss));
+  }
+  sort_values(ss, new_args);
+  return v_or(new_args);
+}
+
+value TemplateHole::normalize_symmetries(ScopeState const& ss) const {
+  return v_template_hole();
+}
+
+int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b) {
+  int a_id = a_->kind_id();
+  int b_id = b_->kind_id();
+  if (a_id != b_id) return a_id < b_id ? -1 : 1;
+
+  if (Forall* a = dynamic_cast<Forall*>(a_.get())) {
+    Forall* b = dynamic_cast<Forall*>(b_.get());
+    assert(b != NULL);
+  
+    if (a->decls.size() < b->decls.size()) return -1;
+    if (a->decls.size() > b->decls.size()) return 1;
+    ScopeState ss_a_new = ss_a;
+    ScopeState ss_b_new = ss_b;
+    for (int i = 0; i < a->decls.size(); i++) {
+      if (int c = cmp_sort(a->decls[i].sort, b->decls[i].sort)) {
+        return c;
+      }
+      ss_a_new.decls.push_back(a->decls[i]);
+      ss_b_new.decls.push_back(b->decls[i]);
+    }
+    return cmp_expr(a->body, b->body, ss_a_new, ss_b_new);
+  }
+
+  if (Exists* a = dynamic_cast<Exists*>(a_.get())) {
+    Exists* b = dynamic_cast<Exists*>(b_.get());
+    assert(b != NULL);
+  
+    if (a->decls.size() < b->decls.size()) return -1;
+    if (a->decls.size() > b->decls.size()) return 1;
+    ScopeState ss_a_new = ss_a;
+    ScopeState ss_b_new = ss_b;
+    for (int i = 0; i < a->decls.size(); i++) {
+      if (int c = cmp_sort(a->decls[i].sort, b->decls[i].sort)) {
+        return c;
+      }
+      ss_a_new.decls.push_back(a->decls[i]);
+      ss_b_new.decls.push_back(b->decls[i]);
+    }
+    return cmp_expr(a->body, b->body, ss_a_new, ss_b_new);
+  }
+
+  if (Var* a = dynamic_cast<Var*>(a_.get())) {
+    Var* b = dynamic_cast<Var*>(b_.get());
+    assert(b != NULL);
+
+    int a_idx = -1, b_idx = -1;
+    for (int i = 0; i < ss_a.decls.size(); i++) {
+      if (ss_a.decls[i].name == a->name) {
+        a_idx = i;
+        break;
+      }
+    }
+    for (int i = 0; i < ss_b.decls.size(); i++) {
+      if (ss_b.decls[i].name == b->name) {
+        b_idx = i;
+        break;
+      }
+    }
+    assert (a_idx != -1);
+    assert (b_idx != -1);
+    return a_idx < b_idx ? -1 : (a_idx == b_idx ? 0 : 1);
+  }
+
+  if (Const* a = dynamic_cast<Const*>(a_.get())) {
+    Const* b = dynamic_cast<Const*>(b_.get());
+    assert(b != NULL);
+
+    return a->name < b->name ? -1 : (a->name == b->name ? 0 : 1);
+  }
+
+  if (Eq* a = dynamic_cast<Eq*>(a_.get())) {
+    Eq* b = dynamic_cast<Eq*>(b_.get());
+    assert(b != NULL);
+
+    if (int c = cmp_expr(a->left, b->left, ss_a, ss_b)) return c;
+    return cmp_expr(a->right, b->right, ss_a, ss_b);
+  }
+
+  if (Not* a = dynamic_cast<Not*>(a_.get())) {
+    Not* b = dynamic_cast<Not*>(b_.get());
+    assert(b != NULL);
+
+    return cmp_expr(a->val, b->val, ss_a, ss_b);
+  }
+
+  if (Implies* a = dynamic_cast<Implies*>(a_.get())) {
+    Implies* b = dynamic_cast<Implies*>(b_.get());
+    assert(b != NULL);
+
+    if (int c = cmp_expr(a->left, a->right, ss_a, ss_b)) return c;
+    return cmp_expr(a->left, a->right, ss_a, ss_b);
+  }
+
+  if (Apply* a = dynamic_cast<Apply*>(a_.get())) {
+    Apply* b = dynamic_cast<Apply*>(b_.get());
+    assert(b != NULL);
+
+    if (int c = cmp_expr(a->func, b->func, ss_a, ss_b)) return c;
+
+    if (a->args.size() < b->args.size()) return -1;
+    if (a->args.size() > b->args.size()) return 1;
+
+    for (int i = 0; i < a->args.size(); i++) {
+      if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
+        return c;
+      }
+    }
+
+    return 0;
+  }
+
+  if (And* a = dynamic_cast<And*>(a_.get())) {
+    And* b = dynamic_cast<And*>(b_.get());
+    assert(b != NULL);
+
+    if (a->args.size() < b->args.size()) return -1;
+    if (a->args.size() > b->args.size()) return 1;
+
+    for (int i = 0; i < a->args.size(); i++) {
+      if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
+        return c;
+      }
+    }
+
+    return 0;
+  }
+
+  if (Or* a = dynamic_cast<Or*>(a_.get())) {
+    Or* b = dynamic_cast<Or*>(b_.get());
+    assert(b != NULL);
+
+    if (a->args.size() < b->args.size()) return -1;
+    if (a->args.size() > b->args.size()) return 1;
+
+    for (int i = 0; i < a->args.size(); i++) {
+      if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
+        return c;
+      }
+    }
+
+    return 0;
+  }
+
+  assert(false);
+}
+
+bool lt_value(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b) {
+  return cmp_expr(a_, b_, ss_a, ss_b) < 0;
+}
+
+value Forall::indexify_vars(map<string, string> const& m) const {
+  map<string, string> new_m = m;
+  vector<VarDecl> new_decls;
+  for (VarDecl const& decl : this->decls) {
+    string new_name = "A." + ::to_string(new_m.size() + 1);
+    new_m[decl.name] = new_name;
+    new_decls.push_back(VarDecl(new_name, decl.sort));
+  }
+  return v_forall(new_decls, body->indexify_vars(new_m));
+}
+
+value Exists::indexify_vars(map<string, string> const& m) const {
+  map<string, string> new_m = m;
+  vector<VarDecl> new_decls;
+  for (VarDecl const& decl : this->decls) {
+    string new_name = "A." + ::to_string(new_m.size() + 1);
+    new_m[decl.name] = new_name;
+    new_decls.push_back(VarDecl(new_name, decl.sort));
+  }
+  return v_forall(new_decls, body->indexify_vars(new_m));
+}
+
+value Var::indexify_vars(map<string, string> const& m) const {
+  auto iter = m.find(this->name);
+  assert(iter != m.end());
+  return v_var(iter->second, this->sort);
+}
+
+value Const::indexify_vars(map<string, string> const& m) const {
+  return v_const(name, sort);
+}
+
+value Eq::indexify_vars(map<string, string> const& m) const {
+  return v_eq(left->indexify_vars(m), right->indexify_vars(m));
+}
+
+value Not::indexify_vars(map<string, string> const& m) const {
+  return v_not(this->val->indexify_vars(m));
+}
+
+value Implies::indexify_vars(map<string, string> const& m) const {
+  return v_implies(left->indexify_vars(m), right->indexify_vars(m));
+}
+
+value Apply::indexify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->indexify_vars(m));
+  }
+  return v_apply(func->indexify_vars(m), move(new_args));
+}
+
+value And::indexify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->indexify_vars(m));
+  }
+  return v_and(move(new_args));
+}
+
+value Or::indexify_vars(map<string, string> const& m) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->indexify_vars(m));
+  }
+  return v_or(move(new_args));
+}
+
+value TemplateHole::indexify_vars(map<string, string> const& m) const {
+  return v_template_hole();
+}
+
+value Value::totally_normalize() const {
+  ScopeState ss;
+  return this->structurally_normalize()->normalize_symmetries(ss)->indexify_vars({});
 }

@@ -204,6 +204,7 @@ void try_to_add_invariants(
     if (i_ % 1000 == 0) {
       printf("doing %d\n", i_);
 
+      /*
       printf("total iterations: %d\n", count_iterations);
       printf("total evals against good models: %d\n", count_evals);
       printf("total evals against bad models: %d\n", count_bad_evals);
@@ -213,8 +214,10 @@ void try_to_add_invariants(
       printf("total invariance checks: %d\n", count_invariance_checks);
       printf("total invariants added: %d\n", count_invariants_added);
       bench.dump();
+      */
     }
     //printf("%s\n", invariant->to_string().c_str());
+    //printf("%s\n\n", invariant->totally_normalize()->to_string().c_str());
 
     count_evals++;
     for (auto model : models) {
@@ -296,7 +299,7 @@ void try_to_add_invariants(
       }
     } else {
       probable_candidates.push_back(invariant);
-      printf("\"probable\" invariant (%d): %s\n", i, invariant->to_string().c_str());
+      //printf("\"probable\" invariant (%d): %s\n", i, invariant->to_string().c_str());
     }
   }
 

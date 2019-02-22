@@ -40,7 +40,7 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
     getHoleInfo_(va->right, vars, res);
   }
   else if (Not* va = dynamic_cast<Not*>(v.get())) {
-    getHoleInfo_(va->value, vars, res);
+    getHoleInfo_(va->val, vars, res);
   }
   else if (Implies* va = dynamic_cast<Implies*>(v.get())) {
     getHoleInfo_(va->left, vars, res);
@@ -136,7 +136,7 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
   }
   else if (Not* va = dynamic_cast<Not*>(templ.get())) {
     return v_not(
-        fill_holes_in_value(va->value, fills, idx));
+        fill_holes_in_value(va->val, fills, idx));
   }
   else if (Implies* va = dynamic_cast<Implies*>(templ.get())) {
     return v_implies(
@@ -235,7 +235,7 @@ vector<value> enum_conjuncts(vector<value> const& pieces, int k) {
 
 bool is_boring(value v, bool pos) {
   if (Not* va = dynamic_cast<Not*>(v.get())) {
-    return is_boring(va->value, !pos);
+    return is_boring(va->val, !pos);
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {
     // FIXME to_string comparison is sketch
@@ -310,7 +310,7 @@ value normalize(value v, NormalizeState& ns) {
   }
   else if (Not* va = dynamic_cast<Not*>(v.get())) {
     return v_not(
-        normalize(va->value, ns));
+        normalize(va->val, ns));
   }
   else if (Implies* va = dynamic_cast<Implies*>(v.get())) {
     return v_implies(
