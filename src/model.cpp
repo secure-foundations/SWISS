@@ -30,7 +30,7 @@ struct EvalExpr {
 
 EvalExpr Model::value_to_eval_expr(
     shared_ptr<Value> v,
-    vector<string> const& names) const {
+    vector<iden> const& names) const {
   assert(v.get() != NULL);
 
   EvalExpr ee;
@@ -49,7 +49,7 @@ EvalExpr Model::value_to_eval_expr(
       assert(false);
     }
 
-    vector<string> new_names = names;
+    vector<iden> new_names = names;
     for (VarDecl decl : *decls) {
       new_names.push_back(decl.name);
     }
@@ -75,7 +75,7 @@ EvalExpr Model::value_to_eval_expr(
       }
     }
     if (idx == -1) {
-      printf("could not find var: %s\n", value->name.c_str());
+      printf("could not find var: %s\n", iden_to_string(value->name).c_str());
       assert(false);
     }
     ee.type = EvalExprType::Var;
@@ -109,7 +109,7 @@ EvalExpr Model::value_to_eval_expr(
     Const* func = dynamic_cast<Const*>(value->func.get());
     auto iter = function_info.find(func->name);
     if (iter == function_info.end()) {
-      printf("could not find function name %s\n", func->name.c_str());
+      printf("could not find function name %s\n", iden_to_string(func->name).c_str());
       assert(false);
     }
     FunctionInfo const& finfo = iter->second;
@@ -317,7 +317,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
   };
 
   for (VarDecl decl : module->functions) {
-    string name = decl.name;
+    iden name = decl.name;
     z3::func_decl fdecl = e.getFunc(name);
 
     int num_args;
@@ -436,7 +436,7 @@ void Model::dump() const {
   }
   printf("\n");
   for (VarDecl decl : module->functions) {
-    string name = decl.name;
+    iden name = decl.name;
     FunctionInfo const& finfo = get_function_info(name);
 
     size_t num_args;
@@ -454,7 +454,7 @@ void Model::dump() const {
       range_sort = decl.sort.get();
     }
 
-    printf("%s(default) -> %s\n", name.c_str(),
+    printf("%s(default) -> %s\n", iden_to_string(name).c_str(),
         obj_to_string(range_sort, finfo.else_value).c_str());
     
     vector<object_value> args;
@@ -469,7 +469,7 @@ void Model::dump() const {
       }
       if (ftable != NULL) {
         object_value res = ftable->value;
-        printf("%s(", name.c_str());
+        printf("%s(", iden_to_string(name).c_str());
         for (int i = 0; i < num_args; i++) {
           if (i > 0) {
             printf(", ");
@@ -533,7 +533,7 @@ size_t Model::get_domain_size(std::string name) const {
   return iter->second.domain_size;
 }
 
-FunctionInfo const& Model::get_function_info(std::string name) const {
+FunctionInfo const& Model::get_function_info(iden name) const {
   auto iter = function_info.find(name);
   assert(iter != function_info.end());
   return iter->second;
@@ -603,7 +603,7 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
   };
 
   for (VarDecl decl : module->functions) {
-    string name = decl.name;
+    iden name = decl.name;
     FunctionInfo const& finfo = get_function_info(name);
 
     size_t num_args;

@@ -48,9 +48,9 @@ Grammar createGrammarFromModule(shared_ptr<Module> module, vector<GrammarVar> va
     */
     Type output = sort_to_type(fun_sort->range);
 
-    functions.push_back(Function(decl.name, inputs, output));
+    functions.push_back(Function(iden_to_string(decl.name), inputs, output));
     if (output.getType() == "bool") {
-      functions.push_back(Function("~" + decl.name, inputs, output));
+      functions.push_back(Function("~" + iden_to_string(decl.name), inputs, output));
     }
   }
 

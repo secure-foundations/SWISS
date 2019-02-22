@@ -110,13 +110,13 @@ shared_ptr<Model> get_dumb_model(
 
   {
   shared_ptr<Sort> node_sort = shared_ptr<Sort>(new UninterpretedSort("node"));
-  VarDecl decl_a = VarDecl("A", node_sort);
-  VarDecl decl_b = VarDecl("B", node_sort);
-  VarDecl decl_c = VarDecl("C", node_sort);
+  VarDecl decl_a = VarDecl(string_to_iden("A"), node_sort);
+  VarDecl decl_b = VarDecl(string_to_iden("B"), node_sort);
+  VarDecl decl_c = VarDecl(string_to_iden("C"), node_sort);
 
-  shared_ptr<Value> var_a = shared_ptr<Value>(new Var("A", node_sort));
-  shared_ptr<Value> var_b = shared_ptr<Value>(new Var("B", node_sort));
-  shared_ptr<Value> var_c = shared_ptr<Value>(new Var("C", node_sort));
+  shared_ptr<Value> var_a = shared_ptr<Value>(new Var(string_to_iden("A"), node_sort));
+  shared_ptr<Value> var_b = shared_ptr<Value>(new Var(string_to_iden("B"), node_sort));
+  shared_ptr<Value> var_c = shared_ptr<Value>(new Var(string_to_iden("C"), node_sort));
 
   solver.add(initctx->e->value2expr(shared_ptr<Value>(new Exists(
       { decl_a, decl_b, decl_c },
@@ -367,36 +367,36 @@ vector<shared_ptr<Value>> get_values_list_qle() {
 
 
   shared_ptr<Value> isleader_func = shared_ptr<Value>(new Const(
-      "isleader",
+      string_to_iden("isleader"),
       shared_ptr<Sort>(new FunctionSort({node_sort}, bool_sort))));
 
   shared_ptr<Value> voted_func = shared_ptr<Value>(new Const(
-      "voted",
+      string_to_iden("voted"),
       shared_ptr<Sort>(new FunctionSort({node_sort, node_sort}, bool_sort))));
 
   shared_ptr<Value> member_func = shared_ptr<Value>(new Const(
-      "member",
+      string_to_iden("member"),
       shared_ptr<Sort>(new FunctionSort({node_sort, nset_sort}, bool_sort))));
 
   shared_ptr<Value> majority_func = shared_ptr<Value>(new Const(
-      "majority",
+      string_to_iden("majority"),
       shared_ptr<Sort>(new FunctionSort({nset_sort}, bool_sort))));
 
   shared_ptr<Value> quorum_func = shared_ptr<Value>(new Const(
-      "quorum",
+      string_to_iden("quorum"),
       shared_ptr<Sort>(new FunctionSort({}, nset_sort))));
 
   vector<VarDecl> decls;
-  decls.push_back(VarDecl("A", node_sort));
-  decls.push_back(VarDecl("B", node_sort));
-  decls.push_back(VarDecl("C", node_sort));
+  decls.push_back(VarDecl(string_to_iden("A"), node_sort));
+  decls.push_back(VarDecl(string_to_iden("B"), node_sort));
+  decls.push_back(VarDecl(string_to_iden("C"), node_sort));
 
   vector<shared_ptr<Value>> node_atoms;
   vector<shared_ptr<Value>> nset_atoms;
 
-  node_atoms.push_back(shared_ptr<Value>(new Var("A", node_sort)));
-  node_atoms.push_back(shared_ptr<Value>(new Var("B", node_sort)));
-  node_atoms.push_back(shared_ptr<Value>(new Var("C", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("A"), node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("B"), node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("C"), node_sort)));
 
   nset_atoms.push_back(shared_ptr<Value>(new Apply(quorum_func, {})));
 
@@ -486,32 +486,32 @@ vector<shared_ptr<Value>> get_values_list() {
   shared_ptr<Sort> bool_sort = shared_ptr<Sort>(new BooleanSort());
 
   shared_ptr<Value> id_func = shared_ptr<Value>(new Const(
-      "nid",
+      string_to_iden("nid"),
       shared_ptr<Sort>(new FunctionSort({node_sort}, id_sort))));
   shared_ptr<Value> btw_func = shared_ptr<Value>(new Const(
-      "btw",
+      string_to_iden("btw"),
       shared_ptr<Sort>(new FunctionSort({node_sort, node_sort, node_sort}, bool_sort))));
   shared_ptr<Value> leader_func = shared_ptr<Value>(new Const(
-      "leader",
+      string_to_iden("leader"),
       shared_ptr<Sort>(new FunctionSort({node_sort}, bool_sort))));
   shared_ptr<Value> pnd_func = shared_ptr<Value>(new Const(
-      "pnd",
+      string_to_iden("pnd"),
       shared_ptr<Sort>(new FunctionSort({id_sort, node_sort}, bool_sort))));
   shared_ptr<Value> le_func = shared_ptr<Value>(new Const(
-      "le",
+      string_to_iden("le"),
       shared_ptr<Sort>(new FunctionSort({id_sort, id_sort}, bool_sort))));
 
   vector<VarDecl> decls;
-  decls.push_back(VarDecl("A", node_sort));
-  decls.push_back(VarDecl("B", node_sort));
-  decls.push_back(VarDecl("C", node_sort));
+  decls.push_back(VarDecl(string_to_iden("A"), node_sort));
+  decls.push_back(VarDecl(string_to_iden("B"), node_sort));
+  decls.push_back(VarDecl(string_to_iden("C"), node_sort));
 
   vector<shared_ptr<Value>> node_atoms;
   vector<shared_ptr<Value>> id_atoms;
 
-  node_atoms.push_back(shared_ptr<Value>(new Var("A", node_sort)));
-  node_atoms.push_back(shared_ptr<Value>(new Var("B", node_sort)));
-  node_atoms.push_back(shared_ptr<Value>(new Var("C", node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("A"), node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("B"), node_sort)));
+  node_atoms.push_back(shared_ptr<Value>(new Var(string_to_iden("C"), node_sort)));
 
   for (auto node_atom : node_atoms) {
     id_atoms.push_back(shared_ptr<Value>(new Apply(id_func, { node_atom })));

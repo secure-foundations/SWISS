@@ -8,6 +8,10 @@ using z3::func_decl;
 using z3::expr;
 
 int name_counter = 1;
+string name(iden basename) {
+  return iden_to_string(basename) + "__" + to_string(name_counter++);
+}
+
 string name(string basename) {
   return basename + "__" + to_string(name_counter++);
 }
@@ -55,7 +59,7 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
     shared_ptr<BackgroundContext> ctx,
     shared_ptr<Module> module)
 {
-  unordered_map<string, func_decl> mapping;
+  unordered_map<iden, func_decl> mapping;
   for (VarDecl decl : module->functions) {
     Sort* s = decl.sort.get();
     if (FunctionSort* fsort = dynamic_cast<FunctionSort*>(s)) {
@@ -75,7 +79,7 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
   return shared_ptr<ModelEmbedding>(new ModelEmbedding(ctx, mapping));
 }
 
-z3::func_decl ModelEmbedding::getFunc(string name) const {
+z3::func_decl ModelEmbedding::getFunc(iden name) const {
   auto iter = mapping.find(name);
   assert(iter != mapping.end());
   return iter->second;
@@ -90,20 +94,20 @@ z3::expr ModelEmbedding::value2expr(
 
 z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value,
-    std::unordered_map<std::string, z3::expr> const& consts)
+    std::unordered_map<iden, z3::expr> const& consts)
 {
   return value2expr(value, consts, {});
 }
 
 z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> v,
-    std::unordered_map<std::string, z3::expr> const& consts,
-    std::unordered_map<std::string, z3::expr> const& vars)
+    std::unordered_map<iden, z3::expr> const& consts,
+    std::unordered_map<iden, z3::expr> const& vars)
 {
   assert(v.get() != NULL);
   if (Forall* value = dynamic_cast<Forall*>(v.get())) {
     z3::expr_vector vec_vars(ctx->ctx);
-    std::unordered_map<std::string, z3::expr> new_vars = vars;
+    std::unordered_map<iden, z3::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
       expr var = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
@@ -113,7 +117,7 @@ z3::expr ModelEmbedding::value2expr(
   }
   else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
     z3::expr_vector vec_vars(ctx->ctx);
-    std::unordered_map<std::string, z3::expr> new_vars = vars;
+    std::unordered_map<iden, z3::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
       expr var = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
@@ -131,7 +135,7 @@ z3::expr ModelEmbedding::value2expr(
     if (iter == consts.end()) {
       auto iter = mapping.find(value->name);
       if (iter == mapping.end()) {
-        printf("could not find %s\n", value->name.c_str());
+        printf("could not find %s\n", iden_to_string(value->name).c_str());
         assert(false);
       }
       z3::func_decl fd = iter->second;
@@ -207,7 +211,7 @@ ActionResult do_if_else(
     shared_ptr<Value> condition,
     shared_ptr<Action> then_body,
     shared_ptr<Action> else_body,
-    unordered_map<string, z3::expr> const& consts)
+    unordered_map<iden, z3::expr> const& consts)
 {
   vector<shared_ptr<Action>> seq1;
   seq1.push_back(shared_ptr<Action>(new Assume(condition)));
@@ -243,12 +247,12 @@ expr funcs_equal(z3::context& ctx, func_decl a, func_decl b) {
 ActionResult applyAction(
     shared_ptr<ModelEmbedding> e,
     shared_ptr<Action> a,
-    unordered_map<string, expr> const& consts)
+    unordered_map<iden, expr> const& consts)
 {
   shared_ptr<BackgroundContext> ctx = e->ctx;
 
   if (LocalAction* action = dynamic_cast<LocalAction*>(a.get())) {
-    unordered_map<string, expr> new_consts(consts);
+    unordered_map<iden, expr> new_consts(consts);
     for (VarDecl decl : action->args) {
       func_decl d = ctx->ctx.function(name(decl.name).c_str(), 0, 0, ctx->getSort(decl.sort));
       expr ex = d();
@@ -284,10 +288,10 @@ ActionResult applyAction(
       es.push_back(res.e);
       constraints.push_back(res.constraint);
     }
-    std::unordered_map<std::string, z3::func_decl> mapping;
+    unordered_map<iden, z3::func_decl> mapping;
 
     for (auto p : e->mapping) {
-      string func_name = p.first;
+      iden func_name = p.first;
 
       bool is_ident = true;
       func_decl new_func_decl = e->getFunc(func_name);
@@ -339,7 +343,7 @@ ActionResult applyAction(
 
     z3::expr_vector qvars(ctx->ctx);
     z3::expr_vector all_eq_parts(ctx->ctx);
-    std::unordered_map<std::string, z3::expr> vars;
+    unordered_map<iden, z3::expr> vars;
     for (int i = 0; i < orig_func.arity(); i++) {
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
@@ -354,7 +358,7 @@ ActionResult applyAction(
       }
     }
 
-    std::unordered_map<std::string, z3::func_decl> new_mapping = e->mapping;
+    unordered_map<iden, z3::func_decl> new_mapping = e->mapping;
     new_mapping.erase(func_const->name);
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
@@ -376,7 +380,7 @@ ActionResult applyAction(
 
 void ModelEmbedding::dump() {
   for (auto p : mapping) {
-    printf("%s -> %s\n", p.first.c_str(), p.second.name().str().c_str());
+    printf("%s -> %s\n", iden_to_string(p.first).c_str(), p.second.name().str().c_str());
   }
 }
 

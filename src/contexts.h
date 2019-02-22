@@ -30,25 +30,25 @@ public:
 class ModelEmbedding {
 public:
   std::shared_ptr<BackgroundContext> ctx;
-  std::unordered_map<std::string, z3::func_decl> mapping;
+  std::unordered_map<iden, z3::func_decl> mapping;
 
   ModelEmbedding(
       std::shared_ptr<BackgroundContext> ctx,
-      std::unordered_map<std::string, z3::func_decl> const& mapping)
+      std::unordered_map<iden, z3::func_decl> const& mapping)
       : ctx(ctx), mapping(mapping) { }
 
   static std::shared_ptr<ModelEmbedding> makeEmbedding(
       std::shared_ptr<BackgroundContext> ctx,
       std::shared_ptr<Module> module);
 
-  z3::func_decl getFunc(std::string) const;
+  z3::func_decl getFunc(iden) const;
 
   z3::expr value2expr(std::shared_ptr<Value>);
   z3::expr value2expr(std::shared_ptr<Value>,
-      std::unordered_map<std::string, z3::expr> const& consts);
+      std::unordered_map<iden, z3::expr> const& consts);
   z3::expr value2expr(std::shared_ptr<Value>,
-      std::unordered_map<std::string, z3::expr> const& consts,
-      std::unordered_map<std::string, z3::expr> const& vars);
+      std::unordered_map<iden, z3::expr> const& consts,
+      std::unordered_map<iden, z3::expr> const& vars);
 
   void dump();
 };
@@ -87,6 +87,7 @@ public:
 };
 
 std::string name(std::string basename);
+std::string name(iden basename);
 
 struct ActionResult {
   std::shared_ptr<ModelEmbedding> e;
@@ -101,6 +102,6 @@ struct ActionResult {
 ActionResult applyAction(
     std::shared_ptr<ModelEmbedding> e,
     std::shared_ptr<Action> action,
-    std::unordered_map<std::string, z3::expr> const& consts);
+    std::unordered_map<iden, z3::expr> const& consts);
 
 #endif

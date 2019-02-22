@@ -42,7 +42,7 @@ public:
   std::string obj_to_string(Sort*, object_value) const;
   size_t get_domain_size(Sort*) const;
   size_t get_domain_size(std::string) const;
-  FunctionInfo const& get_function_info(std::string) const;
+  FunctionInfo const& get_function_info(iden) const;
 
   void assert_model_is(std::shared_ptr<ModelEmbedding> e);
   void assert_model_is_not(std::shared_ptr<ModelEmbedding> e);
@@ -55,11 +55,11 @@ private:
   std::shared_ptr<Module> module;
 
   std::unordered_map<std::string, SortInfo> sort_info;
-  std::unordered_map<std::string, FunctionInfo> function_info;
+  std::unordered_map<iden, FunctionInfo> function_info;
 
   EvalExpr value_to_eval_expr(
     std::shared_ptr<Value> v,
-    std::vector<std::string> const& names) const;
+    std::vector<iden> const& names) const;
 };
 
 std::shared_ptr<Model> transition_model(

@@ -16,7 +16,7 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
   if (Forall* va = dynamic_cast<Forall*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
-        vars.push_back(GrammarVar(decl.name, usort->name));
+        vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
       }
     }
     getHoleInfo_(va->body, vars, res);
@@ -24,7 +24,7 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
   else if (Exists* va = dynamic_cast<Exists*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
-        vars.push_back(GrammarVar(decl.name, usort->name));
+        vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
       }
     }
     getHoleInfo_(va->body, vars, res);
@@ -91,7 +91,7 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
 
   bool has_btw = false;
   for (VarDecl decl : module->functions) {
-    if (decl.name == "btw") {
+    if (iden_to_string(decl.name) == "btw") {
       has_btw = true;
     }
   }
@@ -272,8 +272,8 @@ vector<value> filter_boring(vector<value> const& values) {
 }
 
 struct NormalizeState {
-  vector<string> names;
-  string get_name(string name) {
+  vector<iden> names;
+  iden get_name(iden name) {
     int idx = -1;
     for (int i = 0; i < names.size(); i++) {
       if (names[i] == name) {
@@ -285,7 +285,7 @@ struct NormalizeState {
       names.push_back(name);
       idx = names.size() - 1;
     }
-    return "A." + to_string(idx);
+    return idx;
   }
 };
 

@@ -136,7 +136,7 @@ value SMT::nodeToValue(Node const& node) {
   // FIXME hack
   if (func == "A" || func == "B" || func == "C" || func == "D" || func == "S" || func == "T"
       || func == "D" || func == "E" || func == "F") {
-    return v_var(func, function_sort);
+    return v_var(string_to_iden(func), function_sort);
   }
 
   if (dynamic_cast<FunctionSort*>(function_sort.get())) {
@@ -158,16 +158,16 @@ value SMT::nodeToValue(Node const& node) {
     } else { 
       if (func[0] == '~') {
         return v_not(v_apply(
-            v_const(func.substr(1), function_sort),
+            v_const(string_to_iden(func.substr(1)), function_sort),
             children));
       } else {
         return v_apply(
-            v_const(func, function_sort),
+            v_const(string_to_iden(func), function_sort),
             children);
       }
     }
   } else {
-    return v_const(func, function_sort);
+    return v_const(string_to_iden(func), function_sort);
   }
 }
 

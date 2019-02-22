@@ -8,8 +8,8 @@ using namespace std;
 
 namespace {
 struct NormalizeState {
-  vector<string> names;
-  string get_name(string name) {
+  vector<iden> names;
+  iden get_name(iden name) {
     int idx = -1;
     for (int i = 0; i < names.size(); i++) {
       if (names[i] == name) {
@@ -21,7 +21,7 @@ struct NormalizeState {
       names.push_back(name);
       idx = names.size() - 1;
     }
-    return "A." + to_string(idx);
+    return idx;
   }
 };
 

@@ -91,7 +91,7 @@ vector<VarDecl> json2decl_array(Json j) {
     assert(elem.array_items().size() == 3);
     assert(elem[0] == "const" || elem[0] == "var");
     assert(elem[1].is_string());
-    res.push_back(VarDecl(elem[1].string_value(), json2sort(elem[2])));
+    res.push_back(VarDecl(string_to_iden(elem[1].string_value()), json2sort(elem[2])));
   }
   return res;
 }
@@ -112,12 +112,12 @@ shared_ptr<Value> json2value(Json j) {
   else if (type == "var") {
     assert (j.array_items().size() == 3);
     assert (j[1].is_string());
-    return shared_ptr<Value>(new Var(j[1].string_value(), json2sort(j[2])));
+    return shared_ptr<Value>(new Var(string_to_iden(j[1].string_value()), json2sort(j[2])));
   }
   else if (type == "const") {
     assert (j.array_items().size() == 3);
     assert (j[1].is_string());
-    return shared_ptr<Value>(new Const(j[1].string_value(), json2sort(j[2])));
+    return shared_ptr<Value>(new Const(string_to_iden(j[1].string_value()), json2sort(j[2])));
   }
   else if (type == "implies") {
     assert (j.array_items().size() == 3);
@@ -236,7 +236,7 @@ string Forall::to_string() const {
     if (i > 0) {
       res += ", ";
     }
-    res += decls[i].name;
+    res += iden_to_string(decls[i].name);
   }
   res += " . (" + body->to_string() + ")";
   return res;
@@ -248,18 +248,18 @@ string Exists::to_string() const {
     if (i > 0) {
       res += ", ";
     }
-    res += decls[i].name;
+    res += iden_to_string(decls[i].name);
   }
   res += " . (" + body->to_string() + ")";
   return res;
 }
 
 string Var::to_string() const {
-  return name;
+  return iden_to_string(name);
 }
 
 string Const::to_string() const {
-  return name;
+  return iden_to_string(name);
 }
 
 string Eq::to_string() const {
@@ -315,15 +315,15 @@ string TemplateHole::to_string() const {
   return "WILD";
 }
 
-value Forall::subst(string const& x, value e) const {
+value Forall::subst(iden x, value e) const {
   return v_forall(decls, body->subst(x, e)); 
 }
 
-value Exists::subst(string const& x, value e) const {
+value Exists::subst(iden x, value e) const {
   return v_exists(decls, body->subst(x, e)); 
 }
 
-value Var::subst(string const& x, value e) const {
+value Var::subst(iden x, value e) const {
   if (x == name) {
     return e;
   } else {
@@ -331,23 +331,23 @@ value Var::subst(string const& x, value e) const {
   }
 }
 
-value Const::subst(string const& x, value e) const {
+value Const::subst(iden x, value e) const {
   return v_const(name, sort);
 }
 
-value Eq::subst(string const& x, value e) const {
+value Eq::subst(iden x, value e) const {
   return v_eq(left->subst(x, e), right->subst(x, e));
 }
 
-value Not::subst(string const& x, value e) const {
+value Not::subst(iden x, value e) const {
   return v_not(this->val->subst(x, e));
 }
 
-value Implies::subst(string const& x, value e) const {
+value Implies::subst(iden x, value e) const {
   return v_implies(left->subst(x, e), right->subst(x, e));
 }
 
-value Apply::subst(string const& x, value e) const {
+value Apply::subst(iden x, value e) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->subst(x, e));
@@ -355,7 +355,7 @@ value Apply::subst(string const& x, value e) const {
   return v_apply(func->subst(x, e), move(new_args));
 }
 
-value And::subst(string const& x, value e) const {
+value And::subst(iden x, value e) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->subst(x, e));
@@ -363,7 +363,7 @@ value And::subst(string const& x, value e) const {
   return v_and(move(new_args));
 }
 
-value Or::subst(string const& x, value e) const {
+value Or::subst(iden x, value e) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->subst(x, e));
@@ -371,7 +371,7 @@ value Or::subst(string const& x, value e) const {
   return v_or(move(new_args));
 }
 
-value TemplateHole::subst(string const& x, value e) const {
+value TemplateHole::subst(iden x, value e) const {
   return v_template_hole();
 }
 
@@ -427,56 +427,56 @@ value TemplateHole::negate() const {
   return v_not(v_template_hole());
 }
 
-uint64_t uid = 0;
-string new_var_id() {
-  return "__var." + to_string(uid++);
+uint32_t uid = 0;
+uint32_t new_var_id() {
+  return (uid++);
 }
 
-value Forall::uniquify_vars(map<string, string> const& m) const {
-  map<string, string> new_m = m;
+value Forall::uniquify_vars(map<iden, iden> const& m) const {
+  map<iden, iden> new_m = m;
   vector<VarDecl> new_decls;
   for (VarDecl const& decl : this->decls) {
-    string new_name = new_var_id();
+    iden new_name = new_var_id();
     new_m[decl.name] = new_name;
     new_decls.push_back(VarDecl(new_name, decl.sort));
   }
   return v_forall(new_decls, body->uniquify_vars(new_m));
 }
 
-value Exists::uniquify_vars(map<string, string> const& m) const {
-  map<string, string> new_m = m;
+value Exists::uniquify_vars(map<iden, iden> const& m) const {
+  map<iden, iden> new_m = m;
   vector<VarDecl> new_decls;
   for (VarDecl const& decl : this->decls) {
-    string new_name = new_var_id();
+    iden new_name = new_var_id();
     new_m[decl.name] = new_name;
     new_decls.push_back(VarDecl(new_name, decl.sort));
   }
   return v_forall(new_decls, body->uniquify_vars(new_m));
 }
 
-value Var::uniquify_vars(map<string, string> const& m) const {
+value Var::uniquify_vars(map<iden, iden> const& m) const {
   auto iter = m.find(this->name);
   assert(iter != m.end());
   return v_var(iter->second, this->sort);
 }
 
-value Const::uniquify_vars(map<string, string> const& m) const {
+value Const::uniquify_vars(map<iden, iden> const& m) const {
   return v_const(name, sort);
 }
 
-value Eq::uniquify_vars(map<string, string> const& m) const {
+value Eq::uniquify_vars(map<iden, iden> const& m) const {
   return v_eq(left->uniquify_vars(m), right->uniquify_vars(m));
 }
 
-value Not::uniquify_vars(map<string, string> const& m) const {
+value Not::uniquify_vars(map<iden, iden> const& m) const {
   return v_not(this->val->uniquify_vars(m));
 }
 
-value Implies::uniquify_vars(map<string, string> const& m) const {
+value Implies::uniquify_vars(map<iden, iden> const& m) const {
   return v_implies(left->uniquify_vars(m), right->uniquify_vars(m));
 }
 
-value Apply::uniquify_vars(map<string, string> const& m) const {
+value Apply::uniquify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->uniquify_vars(m));
@@ -484,7 +484,7 @@ value Apply::uniquify_vars(map<string, string> const& m) const {
   return v_apply(func->uniquify_vars(m), move(new_args));
 }
 
-value And::uniquify_vars(map<string, string> const& m) const {
+value And::uniquify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->uniquify_vars(m));
@@ -492,7 +492,7 @@ value And::uniquify_vars(map<string, string> const& m) const {
   return v_and(move(new_args));
 }
 
-value Or::uniquify_vars(map<string, string> const& m) const {
+value Or::uniquify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->uniquify_vars(m));
@@ -500,7 +500,7 @@ value Or::uniquify_vars(map<string, string> const& m) const {
   return v_or(move(new_args));
 }
 
-value TemplateHole::uniquify_vars(map<string, string> const& m) const {
+value TemplateHole::uniquify_vars(map<iden, iden> const& m) const {
   return v_template_hole();
 }
 
@@ -697,12 +697,12 @@ bool eq_sort(lsort a, lsort b) {
   return cmp_sort(a, b) == 0;
 }
 
-vector<string> get_front_quantifier_order(value body, vector<VarDecl> const& decls,
-    set<string> const& vars_used);
+vector<iden> get_front_quantifier_order(value body, vector<VarDecl> const& decls,
+    set<iden> const& vars_used);
 
 value forall_exists_normalize_symmetries(
     vector<VarDecl> const& decls,
-    set<string> const& vars_used,
+    set<iden> const& vars_used,
     value body,
     bool is_forall,
     int idx,
@@ -717,12 +717,12 @@ value forall_exists_normalize_symmetries(
     idx_end++;
   }
 
-  vector<string> front_vars = get_front_quantifier_order(body, decls, vars_used);
+  vector<iden> front_vars = get_front_quantifier_order(body, decls, vars_used);
 
   vector<int> perm;
   vector<int> perm_mid;
   vector<int> perm_back;
-  for (string const& name : front_vars) {
+  for (iden name : front_vars) {
     int this_idx = -1;
     for (int i = idx; i < idx_end; i++) {
       if (decls[i].name == name) {
@@ -802,38 +802,38 @@ value forall_exists_normalize_symmetries(
   return res;
 }
 
-value Forall::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Forall::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   //printf("%s\n", this->to_string().c_str());
   return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, true, 0, ss);
 }
 
-value Exists::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Exists::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, false, 0, ss);
 }
 
-value Var::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Var::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return v_var(name, sort);
 }
 
-value Const::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Const::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return v_const(name, sort);
 }
 
-value Eq::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Eq::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   value a = left->normalize_symmetries(ss, vars_used);
   value b = right->normalize_symmetries(ss, vars_used);
   return lt_value(a, b, ss, ss) ? v_eq(a, b) : v_eq(b, a);
 }
 
-value Not::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Not::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return v_not(val->normalize_symmetries(ss, vars_used));
 }
 
-value Implies::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Implies::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   assert(false && "implies should have been replaced by |");
 }
 
-value Apply::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Apply::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
     new_args.push_back(arg->normalize_symmetries(ss, vars_used));
@@ -847,7 +847,7 @@ void sort_values(ScopeState const& ss, vector<value> & values) {
   });
 }
 
-value And::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value And::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
     new_args.push_back(arg->normalize_symmetries(ss, vars_used));
@@ -856,7 +856,7 @@ value And::normalize_symmetries(ScopeState const& ss, set<string> const& vars_us
   return v_and(new_args);
 }
 
-value Or::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value Or::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   vector<value> new_args;
   for (value arg : args) {
     new_args.push_back(arg->normalize_symmetries(ss, vars_used));
@@ -865,7 +865,7 @@ value Or::normalize_symmetries(ScopeState const& ss, set<string> const& vars_use
   return v_or(new_args);
 }
 
-value TemplateHole::normalize_symmetries(ScopeState const& ss, set<string> const& vars_used) const {
+value TemplateHole::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return v_template_hole();
 }
 
@@ -1098,7 +1098,7 @@ int cmp_expr_def(value a_, value b_) {
 bool get_certain_variable_order(
     value a_,
     vector<VarDecl> const& d,
-    vector<string> & res,
+    vector<iden> & res,
     int n)
 {
   if (Forall* a = dynamic_cast<Forall*>(a_.get())) {
@@ -1199,10 +1199,10 @@ bool get_certain_variable_order(
   assert(false);
 }
 
-vector<string> get_front_quantifier_order(
+vector<iden> get_front_quantifier_order(
     value body,
     vector<VarDecl> const& decls,
-    set<string> const& vars_used)
+    set<iden> const& vars_used)
 {
   while (true) {
     if (Forall* b = dynamic_cast<Forall*>(body.get())) {
@@ -1239,14 +1239,14 @@ vector<string> get_front_quantifier_order(
     certain++;
   }
 
-  vector<string> used_decl_names;
+  vector<iden> used_decl_names;
   for (int i = 0; i < decls.size(); i++) {
     if (vars_used.count(decls[i].name)) {
       used_decl_names.push_back(decls[i].name);
     }
   }
 
-  vector<string> certain_order;
+  vector<iden> certain_order;
   bool failed = false;
   for (int i = 0; i < certain; i++) {
     if (!get_certain_variable_order(juncts[i], decls, certain_order, used_decl_names.size())) {
@@ -1255,9 +1255,9 @@ vector<string> get_front_quantifier_order(
     }
   }
   if (!failed && certain == juncts.size()) {
-    for (string const& name : used_decl_names) {
+    for (iden name : used_decl_names) {
       bool used = false;
-      for (string const& s : certain_order) {
+      for (iden s : certain_order) {
         if (s == name) {
           used = true;
           break;
@@ -1272,51 +1272,51 @@ vector<string> get_front_quantifier_order(
   return certain_order;
 }
 
-value Forall::indexify_vars(map<string, string> const& m) const {
-  map<string, string> new_m = m;
+value Forall::indexify_vars(map<iden, iden> const& m) const {
+  map<iden, iden> new_m = m;
   vector<VarDecl> new_decls;
   for (VarDecl const& decl : this->decls) {
-    string new_name = "A." + ::to_string(new_m.size() + 1);
+    iden new_name = new_m.size();
     new_m[decl.name] = new_name;
     new_decls.push_back(VarDecl(new_name, decl.sort));
   }
   return v_forall(new_decls, body->indexify_vars(new_m));
 }
 
-value Exists::indexify_vars(map<string, string> const& m) const {
-  map<string, string> new_m = m;
+value Exists::indexify_vars(map<iden, iden> const& m) const {
+  map<iden, iden> new_m = m;
   vector<VarDecl> new_decls;
   for (VarDecl const& decl : this->decls) {
-    string new_name = "A." + ::to_string(new_m.size() + 1);
+    iden new_name = new_m.size();
     new_m[decl.name] = new_name;
     new_decls.push_back(VarDecl(new_name, decl.sort));
   }
   return v_forall(new_decls, body->indexify_vars(new_m));
 }
 
-value Var::indexify_vars(map<string, string> const& m) const {
+value Var::indexify_vars(map<iden, iden> const& m) const {
   auto iter = m.find(this->name);
   assert(iter != m.end());
   return v_var(iter->second, this->sort);
 }
 
-value Const::indexify_vars(map<string, string> const& m) const {
+value Const::indexify_vars(map<iden, iden> const& m) const {
   return v_const(name, sort);
 }
 
-value Eq::indexify_vars(map<string, string> const& m) const {
+value Eq::indexify_vars(map<iden, iden> const& m) const {
   return v_eq(left->indexify_vars(m), right->indexify_vars(m));
 }
 
-value Not::indexify_vars(map<string, string> const& m) const {
+value Not::indexify_vars(map<iden, iden> const& m) const {
   return v_not(this->val->indexify_vars(m));
 }
 
-value Implies::indexify_vars(map<string, string> const& m) const {
+value Implies::indexify_vars(map<iden, iden> const& m) const {
   return v_implies(left->indexify_vars(m), right->indexify_vars(m));
 }
 
-value Apply::indexify_vars(map<string, string> const& m) const {
+value Apply::indexify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->indexify_vars(m));
@@ -1324,7 +1324,7 @@ value Apply::indexify_vars(map<string, string> const& m) const {
   return v_apply(func->indexify_vars(m), move(new_args));
 }
 
-value And::indexify_vars(map<string, string> const& m) const {
+value And::indexify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->indexify_vars(m));
@@ -1332,7 +1332,7 @@ value And::indexify_vars(map<string, string> const& m) const {
   return v_and(move(new_args));
 }
 
-value Or::indexify_vars(map<string, string> const& m) const {
+value Or::indexify_vars(map<iden, iden> const& m) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->indexify_vars(m));
@@ -1340,49 +1340,49 @@ value Or::indexify_vars(map<string, string> const& m) const {
   return v_or(move(new_args));
 }
 
-value TemplateHole::indexify_vars(map<string, string> const& m) const {
+value TemplateHole::indexify_vars(map<iden, iden> const& m) const {
   return v_template_hole();
 }
 
-void Forall::get_used_vars(set<string>& s) const {
+void Forall::get_used_vars(set<iden>& s) const {
   body->get_used_vars(s);
 }
-void Exists::get_used_vars(set<string>& s) const {
+void Exists::get_used_vars(set<iden>& s) const {
   body->get_used_vars(s);
 }
-void Var::get_used_vars(set<string>& s) const {
+void Var::get_used_vars(set<iden>& s) const {
   s.insert(name);
 }
-void Const::get_used_vars(set<string>& s) const {
+void Const::get_used_vars(set<iden>& s) const {
 }
-void Eq::get_used_vars(set<string>& s) const {
+void Eq::get_used_vars(set<iden>& s) const {
   left->get_used_vars(s);
   right->get_used_vars(s);
 }
-void Not::get_used_vars(set<string>& s) const {
+void Not::get_used_vars(set<iden>& s) const {
   val->get_used_vars(s);
 }
-void Implies::get_used_vars(set<string>& s) const {
+void Implies::get_used_vars(set<iden>& s) const {
   left->get_used_vars(s);
   right->get_used_vars(s);
 }
-void Apply::get_used_vars(set<string>& s) const {
+void Apply::get_used_vars(set<iden>& s) const {
   func->get_used_vars(s);
   for (value arg : args) {
     arg->get_used_vars(s);
   }
 }
-void And::get_used_vars(set<string>& s) const {
+void And::get_used_vars(set<iden>& s) const {
   for (value arg : args) {
     arg->get_used_vars(s);
   }
 }
-void Or::get_used_vars(set<string>& s) const {
+void Or::get_used_vars(set<iden>& s) const {
   for (value arg : args) {
     arg->get_used_vars(s);
   }
 }
-void TemplateHole::get_used_vars(set<string>& s) const {
+void TemplateHole::get_used_vars(set<iden>& s) const {
 }
 
 //int counter = 0;
@@ -1396,7 +1396,7 @@ value Value::totally_normalize() const {
   value res = this->structurally_normalize();
   //bench.end();
 
-  set<string> vars_used;
+  set<iden> vars_used;
   res->get_used_vars(vars_used);
 
   //bench.start("normalize_symmetries");
@@ -1416,4 +1416,27 @@ value Value::totally_normalize() const {
   */
 
   return res;
+}
+
+vector<string> iden_to_string_map;
+map<string, iden> string_to_iden_map;
+
+std::string iden_to_string(iden id) {
+  if (id < iden_to_string_map.size()) {
+    return iden_to_string_map[id];
+  } else {
+    return "UNKNOWN__" + to_string(id);
+  }
+}
+
+iden string_to_iden(std::string const& s) {
+  auto iter = string_to_iden_map.find(s);
+  if (iter == string_to_iden_map.end()) {
+    iden id = iden_to_string_map.size();
+    iden_to_string_map.push_back(s);
+    string_to_iden_map.insert(make_pair(s, id));
+    return id;
+  } else {
+    return iter->second;
+  }
 }
