@@ -191,7 +191,7 @@ void try_to_add_invariants(
 
   vector<value> probable_candidates;
 
-  for (int i_ = 0; i_ < invariants.size(); i_++) {
+  for (int i_ = 0; i_ < 2*invariants.size(); i_++) {
     int i = i_ % invariants.size();
 
     if (!is_good_candidate[i]) {
