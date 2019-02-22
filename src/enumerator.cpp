@@ -349,8 +349,7 @@ vector<value> remove_equiv(vector<value> const& values) {
   vector<value> result;
   set<string> seen;
   for (value v : values) {
-    NormalizeState ns;
-    value norm = normalize(v, ns);
+    value norm = v->totally_normalize();
     string s = norm->to_string();
     if (seen.find(s) == seen.end()) {
       seen.insert(s);
@@ -376,12 +375,12 @@ vector<value> enumerate_for_template(
     while (solver.solve()) {
       fills.push_back(solver.solutionToValue());
     }
-    fills = remove_equiv(enum_conjuncts(filter_boring(fills), 3));
+    fills = enum_conjuncts(filter_boring(fills), 3);
     for (int i = 0; i < fills.size(); i++) {
       fills[i] = v_not(fills[i]);
     }
     all_hole_fills.push_back(move(fills));
   }
 
-  return fill_holes(templ, all_hole_fills);
+  return remove_equiv(fill_holes(templ, all_hole_fills));
 }
