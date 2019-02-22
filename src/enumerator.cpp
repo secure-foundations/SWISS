@@ -368,7 +368,7 @@ vector<value> remove_equiv2(vector<value> const& values) {
   int i = 0;
   for (value v : values) {
     i++;
-    if (i % 1000 == 0) printf("i = %d\n", i);
+    //if (i % 1000 == 0) printf("i = %d\n", i);
     value norm = v->totally_normalize();
     string s = norm->to_string();
     if (seen.find(s) == seen.end()) {
