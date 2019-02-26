@@ -238,6 +238,66 @@ bool Model::eval_predicate(shared_ptr<Value> value) const {
   return ans == 1;
 }
 
+int get_num_forall_quantifiers_at_top(EvalExpr* ee);
+
+bool eval_get_counterexample(
+    EvalExpr const& ee,
+    int* var_values,
+    QuantifierInstantiation& qi)
+{
+  if (ee.type != EvalExprType::Forall) {
+    return eval(ee, var_values) == 1;
+  }
+
+  int idx = ee.var_index;
+  int q = ee.quantifier_domain_size;
+  EvalExpr const& body = ee.args[0];
+  for (int i = 0; i < q; i++) {
+    var_values[idx] = i;
+    if (!eval(body, var_values)) {
+      qi.variable_values[idx] = i;
+      return false;
+    }
+  }
+  return true;
+}
+
+QuantifierInstantiation Model::get_counterexample(value v) const {
+  EvalExpr ee = value_to_eval_expr(v, {});
+  int n = get_num_forall_quantifiers_at_top(&ee);
+
+  QuantifierInstantiation qi;
+  qi.formula = v;
+  qi.variable_values.resize(n);
+
+  int n_vars = max_var(ee) + 1;
+  int* var_values = new int[n_vars];
+
+  bool ans = eval_get_counterexample(ee, var_values, qi);
+
+  delete[] var_values;
+
+  if (ans) {
+    qi.non_null = true;
+  } else {
+    qi.non_null = false;
+    qi.variable_values.clear();
+  }
+
+  return qi;
+}
+
+int get_num_forall_quantifiers_at_top(EvalExpr* ee) {
+  int n = 0;
+  while (true) {
+    if (ee->type == EvalExprType::Forall) {
+      n++;
+      ee = &ee->args[0];
+    }
+  }
+  return n;
+}
+
 shared_ptr<Model> Model::extract_model_from_z3(
     z3::context& ctx,
     z3::solver& solver,

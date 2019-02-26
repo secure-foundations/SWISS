@@ -26,11 +26,22 @@ public:
   std::unique_ptr<FunctionTable> table;
 };
 
+struct QuantifierInstantiation {
+  bool non_null;
+  value formula;
+  std::vector<object_value> variable_values;
+};
+
 struct EvalExpr;
 
 class Model {
 public:
-  bool eval_predicate(std::shared_ptr<Value> value) const;
+  bool eval_predicate(value) const;
+
+  // Give a value of the form `forall A,B,...,Z . expr`, returns
+  // instantions of the variables A,B,...,Z such that the expression returns false
+  // (if one exists, that is, if the entire expression evaluates to false).
+  QuantifierInstantiation get_counterexample(value) const;
 
   static std::shared_ptr<Model> extract_model_from_z3(
       z3::context& ctx,
