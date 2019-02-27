@@ -254,7 +254,7 @@ bool eval_get_counterexample(
   EvalExpr const& body = ee.args[0];
   for (int i = 0; i < q; i++) {
     var_values[idx] = i;
-    if (!eval(body, var_values)) {
+    if (!eval_get_counterexample(body, var_values, qi)) {
       qi.variable_values[idx] = i;
       return false;
     }
@@ -938,6 +938,7 @@ QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
 
 bool eval_qi(QuantifierInstantiation const& qi, value v)
 {
+  assert(qi.non_null);
   vector<iden> names;
   for (VarDecl const& decl : qi.decls) {
     names.push_back(decl.name);

@@ -174,7 +174,8 @@ void enumerate_next_level(
 {
   for (value fill : fills) {
     if (eval_qi(qi, fill)) {
-      next_level.push_back(augment_invariant(invariant, fill));
+      value newv = augment_invariant(invariant, fill);
+      next_level.push_back(newv);
     }
   }
 }
@@ -202,7 +203,7 @@ void guided_incremental(
 
   printf("%d fills\n", (int)fills.size());
   for (value fill : fills) {
-    printf("fill: %s\n", fill->to_string().c_str()); 
+    //printf("fill: %s\n", fill->to_string().c_str()); 
   }
 
   vector<shared_ptr<Model>> models = get_tree_of_models2(
@@ -213,19 +214,19 @@ void guided_incremental(
   BMCContext bmc(initctx->ctx->ctx, module, 4);
 
   vector<vector<value>> levels;
-  levels.push_back({});
-  levels.push_back(level1);
 
   while (true) {
+    levels.clear();
+    levels.push_back({});
+    levels.push_back(level1);
+
     for (int i = 1; true; i++) {
       vector<value> filtered = remove_equiv2(levels[i]);
-      printf("level %d: %d candidates, filtered down to %d\n", i, (int)levels[i].size(),
-          (int)filtered.size());
+      printf("level %d: %d candidates, (filtered down from %d)\n", i, (int)filtered.size(), (int)levels[i].size());
       levels[i] = move(filtered);
       vector<value> next_level;
       for (int j = 0; j < levels[i].size(); j++) {
         value invariant = levels[i][j];
-        //printf("starting %d %s\n", j, invariant->to_string().c_str());
 
         // Model-checking
         bool model_failed = false;
@@ -260,7 +261,7 @@ void guided_incremental(
             module, initctx, indctx, conjctx, invctx, invariant, &violation_inv_model);
         if (ttai) {
           printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
-          break;
+          goto big_loop_end;
         } else {
           QuantifierInstantiation qi = get_counterexample(violation_inv_model, invariant);
           enumerate_next_level(fills, next_level, invariant, qi);
@@ -269,6 +270,8 @@ void guided_incremental(
 
       levels.push_back(move(next_level));
     }
+
+    big_loop_end:
 
     if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
       printf("conjectures now invariant\n");
