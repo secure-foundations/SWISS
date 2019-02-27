@@ -262,13 +262,26 @@ bool eval_get_counterexample(
   return true;
 }
 
-QuantifierInstantiation Model::get_counterexample(value v) const {
-  EvalExpr ee = value_to_eval_expr(v, {});
+QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
+  EvalExpr ee = model->value_to_eval_expr(v, {});
   int n = get_num_forall_quantifiers_at_top(&ee);
 
   QuantifierInstantiation qi;
   qi.formula = v;
   qi.variable_values.resize(n);
+  qi.model = model;
+
+  value w = v;
+  int idx = 0;
+  for (int i = 0; i < n; i++) {
+    Forall* f = dynamic_cast<Forall*>(w.get());
+    qi.decls.push_back(f->decls[idx]);
+    idx++;
+    if (idx == f->decls.size()) {
+      idx = 0;
+      w = f->body;
+    }
+  }
 
   int n_vars = max_var(ee) + 1;
   int* var_values = new int[n_vars];
@@ -278,10 +291,10 @@ QuantifierInstantiation Model::get_counterexample(value v) const {
   delete[] var_values;
 
   if (ans) {
-    qi.non_null = true;
-  } else {
     qi.non_null = false;
     qi.variable_values.clear();
+  } else {
+    qi.non_null = true;
   }
 
   return qi;
@@ -293,6 +306,8 @@ int get_num_forall_quantifiers_at_top(EvalExpr* ee) {
     if (ee->type == EvalExprType::Forall) {
       n++;
       ee = &ee->args[0];
+    } else {
+      break;
     }
   }
   return n;
@@ -872,4 +887,73 @@ vector<shared_ptr<Model>> get_tree_of_models2(
   vector<shared_ptr<Model>> res;
   get_tree_of_models2_(ctx, module, {}, depth, multiplicity, reversed, res);
   return res;
+}
+
+/*
+Z3VarSet add_existential_constraint(
+    shared_ptr<ModelEmbedding> me,
+    value v)
+{
+  shared_ptr<BackgroundContext> bgctx = me->ctx;
+  z3::context& ctx = bgctx->ctx;
+  z3::solver& solver = bgctx->solver;
+
+  // Change NOT(forall ...) into a (exists ...)
+  if (Not* n = dynamic_cast<Not*>(v.get())) {
+    v = n->val->negate();
+  }
+
+  Z3VarSet res;
+  unordered_map<iden, z3::expr> vars;
+
+  Exists* exists;
+  while ((exists = dynamic_cast<Exists*>(v.get())) != NULL) {
+    for (VarDecl decl : exists->decls) {
+      z3::func_decl fd = ctx.function(name(decl.name).c_str(), 0, 0, bgctx->getSort(decl.sort));
+      z3::expr e = fd();
+      res.vars.push_back(e);
+      vars.insert(make_pair(decl.name, e));
+    }
+
+    v = exists->body;
+  }
+
+  solver.add(me->value2expr_with_vars(v, vars));
+
+  return res;
+}
+
+QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
+    Z3VarSet const&,
+    z3::solver&,
+    std::shared_ptr<Model>,
+    value v)
+{
+  QuantifierInstantiation qi;
+  qi.non_null = true;
+  qi.formula = v;
+  qi.
+}
+*/
+
+bool eval_qi(QuantifierInstantiation const& qi, value v)
+{
+  vector<iden> names;
+  for (VarDecl const& decl : qi.decls) {
+    names.push_back(decl.name);
+  }
+  EvalExpr ee = qi.model->value_to_eval_expr(v, names);
+
+  int n_vars = max_var(ee) + 1;
+  int* var_values = new int[n_vars];
+
+  for (int i = 0; i < qi.variable_values.size(); i++) {
+    var_values[i] = qi.variable_values[i];
+  }
+
+  int ans = eval(ee, var_values);
+
+  delete[] var_values;
+
+  return ans == 1;
 }

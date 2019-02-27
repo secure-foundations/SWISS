@@ -26,22 +26,11 @@ public:
   std::unique_ptr<FunctionTable> table;
 };
 
-struct QuantifierInstantiation {
-  bool non_null;
-  value formula;
-  std::vector<object_value> variable_values;
-};
-
 struct EvalExpr;
 
 class Model {
 public:
   bool eval_predicate(value) const;
-
-  // Give a value of the form `forall A,B,...,Z . expr`, returns
-  // instantions of the variables A,B,...,Z such that the expression returns false
-  // (if one exists, that is, if the entire expression evaluates to false).
-  QuantifierInstantiation get_counterexample(value) const;
 
   static std::shared_ptr<Model> extract_model_from_z3(
       z3::context& ctx,
@@ -68,6 +57,7 @@ private:
   std::unordered_map<std::string, SortInfo> sort_info;
   std::unordered_map<iden, FunctionInfo> function_info;
 
+public:
   EvalExpr value_to_eval_expr(
     std::shared_ptr<Value> v,
     std::vector<iden> const& names) const;
@@ -92,5 +82,32 @@ std::vector<std::shared_ptr<Model>> get_tree_of_models2(
   int multiplicity,
   bool reversed = false // find bad models starting at NOT(safety condition)
 );
+
+struct QuantifierInstantiation {
+  bool non_null;
+  value formula;
+  std::vector<VarDecl> decls;
+  std::vector<object_value> variable_values;
+  std::shared_ptr<Model> model;
+};
+
+struct Z3VarSet {
+  std::vector<z3::expr> vars;
+};
+
+// Give a value of the form `forall A,B,...,Z . expr`, returns
+// instantions of the variables A,B,...,Z such that the expression returns false
+// (if one exists, that is, if the entire expression evaluates to false).
+QuantifierInstantiation get_counterexample(std::shared_ptr<Model>, value);
+bool eval_qi(QuantifierInstantiation const& qi, value);
+
+/*
+Z3VarSet add_existential_constraint(std::shared_ptr<ModelEmbedding>, value);
+QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
+    Z3VarSet const&,
+    z3::solver&,
+    std::shared_ptr<Model>,
+    value v);
+*/
 
 #endif

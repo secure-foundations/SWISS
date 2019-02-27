@@ -44,8 +44,13 @@ public:
   z3::func_decl getFunc(iden) const;
 
   z3::expr value2expr(std::shared_ptr<Value>);
+
   z3::expr value2expr(std::shared_ptr<Value>,
       std::unordered_map<iden, z3::expr> const& consts);
+
+  z3::expr value2expr_with_vars(std::shared_ptr<Value>,
+      std::unordered_map<iden, z3::expr> const& vars);
+
   z3::expr value2expr(std::shared_ptr<Value>,
       std::unordered_map<iden, z3::expr> const& consts,
       std::unordered_map<iden, z3::expr> const& vars);

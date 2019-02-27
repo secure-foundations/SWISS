@@ -99,6 +99,13 @@ z3::expr ModelEmbedding::value2expr(
   return value2expr(value, consts, {});
 }
 
+z3::expr ModelEmbedding::value2expr_with_vars(
+    shared_ptr<Value> value,
+    std::unordered_map<iden, z3::expr> const& vars)
+{
+  return value2expr(value, {}, vars);
+}
+
 z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> v,
     std::unordered_map<iden, z3::expr> const& consts,

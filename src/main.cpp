@@ -7,6 +7,7 @@
 #include "bmc.h"
 #include "enumerator.h"
 #include "utils.h"
+#include "progress_bar.h"
 
 #include <iostream>
 #include <iterator>
@@ -15,11 +16,13 @@
 using namespace std;
 
 bool try_to_add_invariant(
+    shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
     shared_ptr<InvariantsContext> invctx,
-    shared_ptr<Value> conjecture
+    shared_ptr<Value> conjecture,
+    shared_ptr<Model>* second_state_model // if non-NULL, then return a model
 ) {
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
 
@@ -72,6 +75,13 @@ bool try_to_add_invariant(
   } else {
     // NOT INVARIANT
     // pop back to last good state
+    
+    if (second_state_model) {
+      *second_state_model = Model::extract_model_from_z3(
+          conjctx->ctx->ctx,
+          solver, module, *indctx->e2);
+    }
+
     solver.pop();
     solver.pop();
     return false;
@@ -142,6 +152,132 @@ shared_ptr<Model> get_dumb_model(
   return result;
 }
 
+value augment_invariant(value a, value b) {
+  if (Forall* f = dynamic_cast<Forall*>(a.get())) {
+    return v_forall(f->decls, augment_invariant(f->body, b));
+  }
+  else if (Or* o = dynamic_cast<Or*>(a.get())) {
+    vector<value> args = o->args;
+    args.push_back(b);
+    return v_or(args);
+  }
+  else {
+    return v_or({a, b});
+  }
+}
+
+void enumerate_next_level(
+    vector<value> const& fills,
+    vector<value>& next_level,
+    value invariant,
+    QuantifierInstantiation const& qi)
+{
+  for (value fill : fills) {
+    if (eval_qi(qi, fill)) {
+      next_level.push_back(augment_invariant(invariant, fill));
+    }
+  }
+}
+
+void guided_incremental(
+    shared_ptr<Module> module,
+    shared_ptr<InitContext> initctx,
+    shared_ptr<InductionContext> indctx,
+    shared_ptr<ConjectureContext> conjctx,
+    shared_ptr<InvariantsContext> invctx
+) {
+  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
+    printf("conjectures already invariant\n");
+    return;
+  }
+
+  vector<value> level1 = enumerate_fills_for_template(module, module->templates[0]);
+  vector<value> fills;
+  for (value v : level1) {
+    while (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      v = f->body;
+    }
+    fills.push_back(v);
+  }
+
+  printf("%d fills\n", (int)fills.size());
+  for (value fill : fills) {
+    printf("fill: %s\n", fill->to_string().c_str()); 
+  }
+
+  vector<shared_ptr<Model>> models = get_tree_of_models2(
+      initctx->ctx->ctx,
+      module, 5, 3);
+  printf("using %d models\n", (int)models.size());
+
+  BMCContext bmc(initctx->ctx->ctx, module, 4);
+
+  vector<vector<value>> levels;
+  levels.push_back({});
+  levels.push_back(level1);
+
+  while (true) {
+    for (int i = 1; true; i++) {
+      vector<value> filtered = remove_equiv2(levels[i]);
+      printf("level %d: %d candidates, filtered down to %d\n", i, (int)levels[i].size(),
+          (int)filtered.size());
+      levels[i] = move(filtered);
+      vector<value> next_level;
+      for (int j = 0; j < levels[i].size(); j++) {
+        value invariant = levels[i][j];
+        //printf("starting %d %s\n", j, invariant->to_string().c_str());
+
+        // Model-checking
+        bool model_failed = false;
+        for (auto model : models) {
+          QuantifierInstantiation qi = get_counterexample(model, invariant);
+          if (qi.non_null) {
+            enumerate_next_level(fills, next_level, invariant, qi);
+            model_failed = true;
+            break;
+          }
+        }
+        if (model_failed) {
+          continue;
+        }
+
+        // Redundancy check
+        bool isr = is_redundant(invctx, invariant);
+        if (isr) {
+          continue;
+        }
+
+        shared_ptr<Model> violation_model = bmc.get_k_invariance_violation(invariant);
+        if (violation_model) {
+          models.push_back(violation_model);
+          QuantifierInstantiation qi = get_counterexample(violation_model, invariant);
+          enumerate_next_level(fills, next_level, invariant, qi);
+          continue;
+        }
+
+        shared_ptr<Model> violation_inv_model;
+        bool ttai = try_to_add_invariant(
+            module, initctx, indctx, conjctx, invctx, invariant, &violation_inv_model);
+        if (ttai) {
+          printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
+          break;
+        } else {
+          QuantifierInstantiation qi = get_counterexample(violation_inv_model, invariant);
+          enumerate_next_level(fills, next_level, invariant, qi);
+        }
+      }
+
+      levels.push_back(move(next_level));
+    }
+
+    if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
+      printf("conjectures now invariant\n");
+      return;
+    }
+  }
+}
+    
+
 void try_to_add_invariants(
     shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
@@ -152,7 +288,7 @@ void try_to_add_invariants(
 ) {
   Benchmarking bench;
 
-  if (try_to_add_invariant(initctx, indctx, conjctx, invctx, v_and(module->conjectures))) {
+  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
     printf("conjectures already invariant\n");
     return;
   }
@@ -191,8 +327,12 @@ void try_to_add_invariants(
 
   vector<value> probable_candidates;
 
-  for (int i_ = 0; i_ < 2*invariants.size(); i_++) {
+  int N = invariants.size() * 2;
+  ProgressBar pb(N);
+
+  for (int i_ = 0; i_ < N; i_++) {
     int i = i_ % invariants.size();
+    pb.update(i_);
 
     if (!is_good_candidate[i]) {
       continue;
@@ -201,9 +341,8 @@ void try_to_add_invariants(
     count_iterations++;
 
     auto invariant = invariants[i];
-    if (i_ % 1000 == 0) {
-      printf("doing %d\n", i_);
 
+    if (i_ % 1000 == 0) {
       /*
       printf("total iterations: %d\n", count_iterations);
       printf("total evals against good models: %d\n", count_evals);
@@ -285,7 +424,7 @@ void try_to_add_invariants(
     bench.start("try_to_add_invariant");
 
     //printf("%s\n", invariant->to_string().c_str());
-    bool ttai = try_to_add_invariant(initctx, indctx, conjctx, invctx, invariant);
+    bool ttai = try_to_add_invariant(module, initctx, indctx, conjctx, invctx, invariant, NULL);
     bench.end();
     if (ttai) {
       is_good_candidate[i] = false;
@@ -302,6 +441,8 @@ void try_to_add_invariants(
       //printf("\"probable\" invariant (%d): %s\n", i, invariant->to_string().c_str());
     }
   }
+
+  pb.finish();
 
   printf("solved: %s\n", solved ? "yes" : "no");
   printf("total iterations: %d\n", count_iterations);
@@ -331,11 +472,13 @@ int main() {
   try {
     if (!just_enumeration) {
       assert(module->templates.size() == 1);
+      /*
       vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
           module->templates[0]);
       for (auto can : candidates) {
        // printf("%s\n", can->to_string().c_str());
       }
+      */
 
       z3::context ctx;
 
@@ -344,7 +487,8 @@ int main() {
       auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
       auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-      try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
+      //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
+      guided_incremental(module, initctx, indctx, conjctx, invctx);
       return 0;
     } else {
       assert(module->templates.size() == 1);

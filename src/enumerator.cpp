@@ -381,6 +381,35 @@ vector<value> remove_equiv2(vector<value> const& values) {
 
 vector<value> enumerate_for_template(
     shared_ptr<Module> module,
+    value templ, int k)
+{
+  vector<HoleInfo> all_hole_info = getHoleInfo(templ);
+  vector<vector<value>> all_hole_fills;
+  for (HoleInfo hi : all_hole_info) {
+    Grammar grammar = createGrammarFromModule(module, hi.vars);
+    context z3_ctx;
+    solver z3_solver(z3_ctx);
+    SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
+    add_constraints(module, solver);
+    vector<value> fills;
+    while (solver.solve()) {
+      fills.push_back(solver.solutionToValue());
+    }
+    fills = remove_equiv(enum_conjuncts(filter_boring(fills), k));
+    for (int i = 0; i < fills.size(); i++) {
+      fills[i] = v_not(fills[i]);
+    }
+    all_hole_fills.push_back(move(fills));
+  }
+
+  vector<value> res = fill_holes(templ, all_hole_fills);
+  res = remove_equiv2(res);
+  return res;
+}
+
+// XXX this doesn't make any sense
+vector<value> enumerate_fills_for_template(
+    shared_ptr<Module> module,
     value templ)
 {
   vector<HoleInfo> all_hole_info = getHoleInfo(templ);
@@ -395,14 +424,13 @@ vector<value> enumerate_for_template(
     while (solver.solve()) {
       fills.push_back(solver.solutionToValue());
     }
-    fills = remove_equiv(enum_conjuncts(filter_boring(fills), 3));
+    fills = filter_boring(fills);
     for (int i = 0; i < fills.size(); i++) {
-      fills[i] = v_not(fills[i]);
+      fills[i] = fills[i]->negate();
     }
     all_hole_fills.push_back(move(fills));
   }
 
   vector<value> res = fill_holes(templ, all_hole_fills);
-  res = remove_equiv2(res);
   return res;
 }
