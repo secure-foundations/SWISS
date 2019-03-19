@@ -263,6 +263,7 @@ bool eval_get_counterexample(
 }
 
 QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
+  //printf("v: %s\n", v->to_string().c_str());
   EvalExpr ee = model->value_to_eval_expr(v, {});
   int n = get_num_forall_quantifiers_at_top(&ee);
 
@@ -283,7 +284,7 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
     }
   }
 
-  int n_vars = max_var(ee) + 1;
+  int n_vars = max(max_var(ee), n) + 1;
   int* var_values = new int[n_vars];
 
   bool ans = eval_get_counterexample(ee, var_values, qi);
@@ -296,6 +297,7 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
   } else {
     qi.non_null = true;
   }
+  //printf("done\n");
 
   return qi;
 }

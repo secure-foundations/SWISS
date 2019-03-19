@@ -22,6 +22,7 @@ bool try_to_add_invariant(
     shared_ptr<ConjectureContext> conjctx,
     shared_ptr<InvariantsContext> invctx,
     shared_ptr<Value> conjecture,
+    shared_ptr<Model>* first_state_model, // if non-NULL, then return a model
     shared_ptr<Model>* second_state_model // if non-NULL, then return a model
 ) {
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
@@ -75,6 +76,12 @@ bool try_to_add_invariant(
   } else {
     // NOT INVARIANT
     // pop back to last good state
+
+    if (first_state_model) {
+      *first_state_model = Model::extract_model_from_z3(
+          conjctx->ctx->ctx,
+          solver, module, *indctx->e1);
+    }
     
     if (second_state_model) {
       *second_state_model = Model::extract_model_from_z3(
@@ -187,14 +194,18 @@ void guided_incremental(
     shared_ptr<ConjectureContext> conjctx,
     shared_ptr<InvariantsContext> invctx
 ) {
+  Benchmarking bench;
+
   printf("checking...\n");
-  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
+  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL, NULL)) {
     printf("conjectures already invariant\n");
     return;
   }
 
   printf("conjectures not invariant\n");
   printf("enumerating ...\n");
+
+  bench.start("enum");
 
   vector<value> level1 = enumerate_fills_for_template(module, module->templates[0]);
   vector<value> fills;
@@ -204,15 +215,18 @@ void guided_incremental(
     }
     fills.push_back(v);
   }
+  bench.end();
 
   printf("%d fills\n", (int)fills.size());
   for (value fill : fills) {
     //printf("fill: %s\n", fill->to_string().c_str()); 
   }
 
+  bench.start("model gen");
   vector<shared_ptr<Model>> models = get_tree_of_models2(
       initctx->ctx->ctx,
       module, 5, 3);
+  bench.end();
   printf("using %d models\n", (int)models.size());
 
   BMCContext bmc(initctx->ctx->ctx, module, 4);
@@ -224,7 +238,10 @@ void guided_incremental(
     levels.push_back({});
     levels.push_back(level1);
 
+    vector<pair<shared_ptr<Model>, shared_ptr<Model>>> double_models;
+
     for (int i = 1; true; i++) {
+      bench.start("loop " + to_string(i));
       vector<value> filtered = remove_equiv2(levels[i]);
       printf("level %d: %d candidates, (filtered down from %d)\n", i, (int)filtered.size(), (int)levels[i].size());
       levels[i] = move(filtered);
@@ -247,12 +264,35 @@ void guided_incremental(
           continue;
         }
 
+        //printf("passed model checking\n");
+
+        // Double-model-checking
+        for (auto p : double_models) {
+          if (p.first->eval_predicate(invariant)) {
+            QuantifierInstantiation qi = get_counterexample(p.second, invariant);
+            if (qi.non_null) {
+              enumerate_next_level(fills, next_level, invariant, qi);
+              //printf("failed double-model checking\n");
+              //p.first->dump();
+              //p.second->dump();
+              model_failed = true;
+              break;
+            }
+          }
+        }
+        if (model_failed) {
+          continue;
+        }
+
+        //printf("passed double-model checking\n");
+
         // Redundancy check
         bool isr = is_redundant(invctx, invariant);
         if (isr) {
           continue;
         }
 
+        /*
         shared_ptr<Model> violation_model = bmc.get_k_invariance_violation(invariant);
         if (violation_model) {
           models.push_back(violation_model);
@@ -260,29 +300,37 @@ void guided_incremental(
           enumerate_next_level(fills, next_level, invariant, qi);
           continue;
         }
+        */
 
-        shared_ptr<Model> violation_inv_model;
+        shared_ptr<Model> model1;
+        shared_ptr<Model> model2;
         bool ttai = try_to_add_invariant(
-            module, initctx, indctx, conjctx, invctx, invariant, &violation_inv_model);
+            module, initctx, indctx, conjctx, invctx, invariant, &model1, &model2);
         if (ttai) {
           printf("found invariant (%d): %s\n", i, invariant->to_string().c_str());
+          bench.end();
           goto big_loop_end;
         } else {
-          QuantifierInstantiation qi = get_counterexample(violation_inv_model, invariant);
+          double_models.push_back(make_pair(model1, model2));
+          QuantifierInstantiation qi = get_counterexample(model2, invariant);
           enumerate_next_level(fills, next_level, invariant, qi);
         }
       }
 
       levels.push_back(move(next_level));
+
+      bench.end();
+      bench.dump();
     }
 
     big_loop_end:
 
-    if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
+    if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL, NULL)) {
       printf("conjectures now invariant\n");
-      return;
+      break;
     }
   }
+  bench.dump();
 }
     
 
@@ -296,7 +344,7 @@ void try_to_add_invariants(
 ) {
   Benchmarking bench;
 
-  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
+  if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL, NULL)) {
     printf("conjectures already invariant\n");
     return;
   }
@@ -432,7 +480,7 @@ void try_to_add_invariants(
     bench.start("try_to_add_invariant");
 
     //printf("%s\n", invariant->to_string().c_str());
-    bool ttai = try_to_add_invariant(module, initctx, indctx, conjctx, invctx, invariant, NULL);
+    bool ttai = try_to_add_invariant(module, initctx, indctx, conjctx, invctx, invariant, NULL, NULL);
     bench.end();
     if (ttai) {
       is_good_candidate[i] = false;
