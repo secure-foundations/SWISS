@@ -945,7 +945,7 @@ bool eval_qi(QuantifierInstantiation const& qi, value v)
   }
   EvalExpr ee = qi.model->value_to_eval_expr(v, names);
 
-  int n_vars = max_var(ee) + 1;
+  int n_vars = max(max_var(ee), (int)qi.variable_values.size()) + 1;
   int* var_values = new int[n_vars];
 
   for (int i = 0; i < qi.variable_values.size(); i++) {

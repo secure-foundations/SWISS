@@ -187,10 +187,14 @@ void guided_incremental(
     shared_ptr<ConjectureContext> conjctx,
     shared_ptr<InvariantsContext> invctx
 ) {
+  printf("checking...\n");
   if (try_to_add_invariant(module, initctx, indctx, conjctx, invctx, v_and(module->conjectures), NULL)) {
     printf("conjectures already invariant\n");
     return;
   }
+
+  printf("conjectures not invariant\n");
+  printf("enumerating ...\n");
 
   vector<value> level1 = enumerate_fills_for_template(module, module->templates[0]);
   vector<value> fills;
@@ -227,6 +231,7 @@ void guided_incremental(
       vector<value> next_level;
       for (int j = 0; j < levels[i].size(); j++) {
         value invariant = levels[i][j];
+        //printf("trying invariant %s\n", invariant->to_string().c_str());
 
         // Model-checking
         bool model_failed = false;
