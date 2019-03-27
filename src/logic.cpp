@@ -280,23 +280,27 @@ string Implies::to_string() const {
 
 string And::to_string() const {
   string res = "";
+  if (args.size() <= 1) res += "AND[";
   for (int i = 0; i < args.size(); i++) {
     if (i > 0) {
       res += " & ";
     }
     res += "(" + args[i]->to_string() + ")";
   }
+  if (args.size() <= 1) res += "]";
   return res;
 }
 
 string Or::to_string() const {
   string res = "";
+  if (args.size() <= 1) res += "OR[";
   for (int i = 0; i < args.size(); i++) {
     if (i > 0) {
       res += " | ";
     }
     res += "(" + args[i]->to_string() + ")";
   }
+  if (args.size() <= 1) res += "]";
   return res;
 }
 
@@ -1440,3 +1444,28 @@ iden string_to_iden(std::string const& s) {
     return iter->second;
   }
 }
+
+std::vector<std::shared_ptr<Sort>> BooleanSort::get_domain_as_function() const {
+  return {};
+}
+
+std::shared_ptr<Sort> BooleanSort::get_range_as_function() const {
+  return s_bool();
+}
+
+std::vector<std::shared_ptr<Sort>> UninterpretedSort::get_domain_as_function() const {
+  return {};
+}
+
+std::shared_ptr<Sort> UninterpretedSort::get_range_as_function() const {
+  return s_uninterp(name);
+}
+
+std::vector<std::shared_ptr<Sort>> FunctionSort::get_domain_as_function() const {
+  return domain;
+}
+
+std::shared_ptr<Sort> FunctionSort::get_range_as_function() const {
+  return range;
+}
+

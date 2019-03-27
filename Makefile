@@ -9,6 +9,7 @@ OBJECTS = $(addprefix bin/,\
 	bmc.o \
 	enumerator.o \
 	utils.o \
+	sketch.o \
 	lib/json11/json11.o \
 )
 

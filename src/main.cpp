@@ -8,6 +8,7 @@
 #include "enumerator.h"
 #include "utils.h"
 #include "progress_bar.h"
+#include "sketch.h"
 
 #include <iostream>
 #include <iterator>
@@ -544,7 +545,16 @@ int main() {
       auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
-      guided_incremental(module, initctx, indctx, conjctx, invctx);
+      //guided_incremental(module, initctx, indctx, conjctx, invctx);
+
+      z3::solver solver = z3::solver(ctx);
+      SketchFormula sf(ctx, solver, {}, module, 2, 2);
+      z3::check_result res = solver.check();
+      assert (res == z3::sat);
+      z3::model model = solver.get_model();
+      value v = sf.to_value(model);
+      printf("value = %s\n", v->to_string().c_str());
+
       return 0;
     } else {
       assert(module->templates.size() == 1);

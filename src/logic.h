@@ -13,10 +13,15 @@ public:
   virtual ~Sort() {}
 
   virtual std::string to_string() const = 0;
+
+  virtual std::vector<std::shared_ptr<Sort>> get_domain_as_function() const = 0;
+  virtual std::shared_ptr<Sort> get_range_as_function() const = 0;
 };
 
 class BooleanSort : public Sort {
   std::string to_string() const override;
+  std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
+  std::shared_ptr<Sort> get_range_as_function() const override;
 };
 
 class UninterpretedSort : public Sort {
@@ -25,6 +30,8 @@ public:
 
   UninterpretedSort(std::string const& name) : name(name) { }
   std::string to_string() const override;
+  std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
+  std::shared_ptr<Sort> get_range_as_function() const override;
 };
 
 class FunctionSort : public Sort {
@@ -37,6 +44,8 @@ public:
       std::shared_ptr<Sort> range)
       : domain(domain), range(range) { }
   std::string to_string() const override;
+  std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
+  std::shared_ptr<Sort> get_range_as_function() const override;
 };
 
 /* VarDecl */
@@ -473,6 +482,12 @@ inline value v_apply(value func, std::vector<value> const& args) {
 inline value v_and(std::vector<value> const& args) {
   if (args.size() == 1) return args[0];
   return std::shared_ptr<Value>(new And(args));
+}
+inline value v_true() {
+  return std::shared_ptr<Value>(new And({}));
+}
+inline value v_false() {
+  return std::shared_ptr<Value>(new Or({}));
 }
 inline value v_or(std::vector<value> const& args) {
   if (args.size() == 1) return args[0];
