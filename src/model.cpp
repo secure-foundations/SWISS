@@ -610,6 +610,11 @@ size_t Model::get_domain_size(std::string name) const {
   return iter->second.domain_size;
 }
 
+size_t Model::get_domain_size(lsort s) const {
+  return this->get_domain_size(s.get());
+}
+
+
 FunctionInfo const& Model::get_function_info(iden name) const {
   auto iter = function_info.find(name);
   assert(iter != function_info.end());
@@ -959,4 +964,73 @@ bool eval_qi(QuantifierInstantiation const& qi, value v)
   delete[] var_values;
 
   return ans == 1;
+}
+
+std::vector<FunctionEntry> Model::getFunctionEntries(iden name)
+{
+  vector<FunctionEntry> entries;
+
+  lsort sort;
+  for (VarDecl decl : module->functions) {
+    if (decl.name == name) {
+      sort = decl.sort;
+      break;
+    }
+  }
+  assert(sort != nullptr);
+
+  FunctionInfo const& finfo = get_function_info(name);
+
+  size_t num_args;
+  Sort* range_sort;
+  vector<Sort*> domain_sorts;
+  if (FunctionSort* functionSort = dynamic_cast<FunctionSort*>(sort.get())) {
+    num_args = functionSort->domain.size();
+    range_sort = functionSort->range.get();
+    for (auto ptr : functionSort->domain) {
+      Sort* argsort = ptr.get();
+      domain_sorts.push_back(argsort);
+    }
+  } else {
+    num_args = 0;
+    range_sort = sort.get();
+  }
+
+  vector<object_value> args;
+  for (int i = 0; i < num_args; i++) {
+    args.push_back(0);
+  }
+  while (true) {
+    FunctionEntry entry;
+
+    FunctionTable* ftable = finfo.table.get();
+    for (int i = 0; i < num_args; i++) {
+      if (ftable == NULL) break;
+      ftable = ftable->children[args[i]].get();
+    }
+    for (int i = 0; i < num_args; i++) {
+      entry.args.push_back(args[i]);
+    }
+    if (ftable != NULL) {
+      entry.res = ftable->value;
+    } else {
+      entry.res = finfo.else_value;
+    }
+    entries.push_back(entry);
+
+    int i;
+    for (i = num_args - 1; i >= 0; i--) {
+      args[i]++;
+      if (args[i] == get_domain_size(domain_sorts[i])) {
+        args[i] = 0;
+      } else {
+        break;
+      }
+    }
+    if (i == -1) {
+      break;
+    }
+  }
+
+  return entries;
 }

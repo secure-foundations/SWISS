@@ -26,6 +26,12 @@ public:
   std::unique_ptr<FunctionTable> table;
 };
 
+class FunctionEntry {
+public:
+  std::vector<object_value> args;
+  object_value res;
+};
+
 struct EvalExpr;
 
 class Model {
@@ -40,6 +46,7 @@ public:
 
   void dump() const;
   std::string obj_to_string(Sort*, object_value) const;
+  size_t get_domain_size(lsort) const;
   size_t get_domain_size(Sort*) const;
   size_t get_domain_size(std::string) const;
   FunctionInfo const& get_function_info(iden) const;
@@ -50,6 +57,8 @@ public:
 
   void assert_model_is_or_isnt(std::shared_ptr<ModelEmbedding> e,
       bool exact, bool negate);
+
+  std::vector<FunctionEntry> getFunctionEntries(iden name);
 
 private:
   std::shared_ptr<Module> module;

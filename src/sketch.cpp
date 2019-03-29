@@ -78,15 +78,6 @@ SketchFormula::SketchFormula(
   }
 }
 
-/*
-z3::expr SketchFormula::interpret(
-    std::shared_ptr<Model>,
-    std::vector<object_value> const& vars)
-{
-  
-}
-*/
-
 void SketchFormula::make_sort_bools(SFNode* node) {
   for (int i = 0; i < sorts.size() + 1; i++) {
     node->sort_bools.push_back(ctx.bool_const(name("sort").c_str()));
@@ -163,7 +154,7 @@ value SketchFormula::node_to_value(SFNode* node) {
   }
 
   NodeType const& nt = node_types[j];
-  switch (nt.btt) {
+  switch (nt.ntt) {
     case NTT::True: {
       return v_true();
     }
@@ -235,4 +226,239 @@ bool SketchFormula::is_true(std::string name) {
   auto iter = bool_map.find(name);
   assert(iter != bool_map.end());
   return iter->second;
+}
+
+struct ValueVector {
+  z3::expr is_true;
+  vector<vector<z3::expr>> is_obj;
+
+  ValueVector(z3::expr is_true) : is_true(is_true) { }
+};
+
+z3::expr SketchFormula::interpret(
+    std::shared_ptr<Model> model,
+    std::vector<object_value> const& vars)
+{
+  ValueVector vv = to_value_vector(root, model, vars);  
+  return vv.is_true;
+}
+
+z3::expr z3_and(z3::context& ctx, z3::expr a, z3::expr b) {
+  z3::expr_vector v(ctx);
+  v.push_back(a);
+  v.push_back(b);
+  return z3::mk_and(v);
+}
+
+z3::expr z3_or(z3::context& ctx, z3::expr a, z3::expr b) {
+  z3::expr_vector v(ctx);
+  v.push_back(a);
+  v.push_back(b);
+  return z3::mk_or(v);
+}
+
+ValueVector SketchFormula::to_value_vector(
+    SFNode* node,
+    std::shared_ptr<Model> model,
+    std::vector<object_value> const& vars)
+{
+  vector<ValueVector> children;
+  for (SFNode* child : node->children) {
+    children.push_back(to_value_vector(child, model, vars));
+  }
+
+  z3::expr const_true = ctx.bool_val(true);
+  z3::expr const_false = ctx.bool_val(false);
+
+  vector<z3::expr> v_is_true;
+  vector<vector<vector<z3::expr>>> v_objs;
+  vector<int> domain_sizes;
+  for (int i = 0; i < sorts.size(); i++) {
+    int domain_size = model->get_domain_size(sorts[i]);
+    domain_sizes.push_back(domain_size);
+    v_objs.push_back({});
+    for (int j = 0; j < domain_size; j++) {
+      v_objs[v_objs.size() - 1].push_back({});
+    }
+  }
+  
+  for (int nt_i = 0; nt_i < node_types.size(); nt_i++) {
+    NodeType& nt = node_types[nt_i];
+
+    if (node->is_leaf && nt.domain.size() > 0) {
+      v_is_true.push_back(const_false);
+      for (int i = 0; i < sorts.size(); i++) {
+        for (int j = 0; j < domain_sizes[i]; j++) {
+          v_objs[i][j].push_back(const_false);
+        }
+      }
+      continue;
+    }
+
+    switch (nt.ntt) {
+      case NTT::True:
+      case NTT::False: {
+        v_is_true.push_back(nt.ntt == NTT::True ? const_true : const_false);
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+          }
+        }
+        
+        break;
+      }
+
+      case NTT::And: {
+        v_is_true.push_back(z3_and(ctx, children[0].is_true, children[1].is_true));
+        
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+          }
+        }
+      }
+
+      case NTT::Or: {
+        v_is_true.push_back(z3_or(ctx, children[0].is_true, children[1].is_true));
+        
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+          }
+        }
+      }
+
+      case NTT::Not: {
+        v_is_true.push_back(!children[0].is_true);
+        
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+          }
+        }
+      }
+
+      case NTT::Eq: {
+        z3::expr_vector possibilities(ctx);
+
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+            possibilities.push_back(z3_and(
+                ctx, children[0].is_obj[i][j], children[1].is_obj[i][j]));
+          }
+        }
+
+        v_is_true.push_back(z3::mk_or(possibilities));
+      }
+
+      case NTT::Func: {
+        assert(dynamic_cast<BooleanSort*>(nt.range.get()) &&
+            "TODO implement non-relation functions");
+
+        z3::expr_vector arg_possibilities(ctx);
+        for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
+          if (e.res == 1) {
+            z3::expr_vector arg_conjuncts(ctx);
+            assert(e.args.size() == nt.domain.size());
+            for (int i = 0; i < e.args.size(); i++) {
+              arg_conjuncts.push_back(get_vector_value_entry(
+                children[i], nt.domain[i], e.args[i]));
+            }
+            arg_possibilities.push_back(z3::mk_and(arg_conjuncts));
+          }
+        }
+
+        v_is_true.push_back(z3::mk_or(arg_possibilities));
+
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            v_objs[i][j].push_back(const_false);
+          }
+        }
+      }
+
+      case NTT::Var: {
+        int sort_index = get_sort_index(nt.range);
+
+        assert(nt.index < vars.size());
+        object_value value_index = vars[nt.index];
+
+        v_is_true.push_back(const_false);
+        for (int i = 0; i < sorts.size(); i++) {
+          for (int j = 0; j < domain_sizes[i]; j++) {
+            if (i == sort_index && j == value_index) {
+              v_objs[i][j].push_back(const_true);
+            } else {
+              v_objs[i][j].push_back(const_false);
+            }
+          }
+        }
+      }
+
+    }
+  }
+
+  ValueVector vv(new_const(case_by_node_type(node, v_is_true)));
+  for (int i = 0; i < sorts.size(); i++) {
+    vv.is_obj.push_back({});
+    for (int j = 0; j < domain_sizes[i]; j++) {
+      vv.is_obj[i].push_back(new_const(case_by_node_type(node, v_objs[i][j])));
+    }
+  }
+
+  return vv;
+}
+
+z3::expr SketchFormula::case_by_node_type(SFNode* node, std::vector<z3::expr> const& args)
+{
+  assert(args.size() == node_types.size());
+  assert(node->nt_bools.size() == node_types.size() - 1);
+  z3::expr res = args[args.size() - 1];
+  for (int i = args.size() - 2; i >= 0; i--) {
+    res = z3::ite(node->nt_bools[i], args[i], res);
+  }
+  return res;
+}
+
+z3::expr SketchFormula::new_const(z3::expr e) {
+  z3::expr b = ctx.bool_const(name("new_const").c_str());
+  solver.add(b == e);
+  return b;
+}
+
+z3::expr SketchFormula::get_vector_value_entry(ValueVector& vv,
+    lsort s, object_value o)
+{
+  if (dynamic_cast<BooleanSort*>(s.get())) {
+    if (o == 1) {
+      return vv.is_true;
+    } else {
+      return !vv.is_true;
+    }
+  }
+  else if (dynamic_cast<UninterpretedSort*>(s.get())) {
+    int sort_index = get_sort_index(s);
+    
+    assert(sort_index != -1);
+    assert(sort_index < vv.is_obj.size());
+    assert(o < vv.is_obj[sort_index].size());
+    return vv.is_obj[sort_index][o];
+  }
+  else {
+    assert(false);
+  }
+}
+
+int SketchFormula::get_sort_index(lsort s) {
+  UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(s.get());
+  assert(usort != NULL);
+  for (int i = 0; i < sorts.size(); i++) {
+    UninterpretedSort* usort2 = dynamic_cast<UninterpretedSort*>(sorts[i].get());
+    assert(usort2 != NULL);
+    if (usort2->name == usort->name) {
+      return i;
+    }
+  }
+  assert(false);
 }

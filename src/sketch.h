@@ -16,15 +16,15 @@ enum class NTT {
 };
 
 struct NodeType {
-  NTT btt;
+  NTT ntt;
   int index;
   
   std::vector<lsort> domain;
   lsort range;
 
-  NodeType(NTT btt, int index,
+  NodeType(NTT ntt, int index,
       std::vector<lsort> const& domain, lsort range)
-      : btt(btt) , index(index) , domain(domain), range(range) { }
+      : ntt(ntt) , index(index) , domain(domain), range(range) { }
 };
 
 struct SFNode {
@@ -35,6 +35,8 @@ struct SFNode {
 
   std::vector<z3::expr> sort_bools;
 };
+
+struct ValueVector;
 
 class SketchFormula {
 public:
@@ -58,7 +60,7 @@ public:
     int arity, int depth
   );
 
-  z3::expr interpret(std::vector<z3::expr>);
+  z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&);
   value to_value(z3::model& m);
 
 private:
@@ -72,6 +74,16 @@ private:
   std::map<std::string, bool> bool_map;
   void get_bools(z3::model model);
   bool is_true(std::string name);
+
+  ValueVector to_value_vector(
+    SFNode* node,
+    std::shared_ptr<Model> model,
+    std::vector<object_value> const&);
+  z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
+  z3::expr new_const(z3::expr e);
+  z3::expr get_vector_value_entry(ValueVector& vv,
+      lsort s, object_value o);
+  int get_sort_index(lsort s);
 };
 
 #endif
