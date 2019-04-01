@@ -8,7 +8,7 @@
 #include "enumerator.h"
 #include "utils.h"
 #include "progress_bar.h"
-#include "sketch.h"
+#include "synth_loop.h"
 
 #include <iostream>
 #include <iterator>
@@ -80,13 +80,13 @@ bool try_to_add_invariant(
 
     if (first_state_model) {
       *first_state_model = Model::extract_model_from_z3(
-          conjctx->ctx->ctx,
+          indctx->ctx->ctx,
           solver, module, *indctx->e1);
     }
     
     if (second_state_model) {
       *second_state_model = Model::extract_model_from_z3(
-          conjctx->ctx->ctx,
+          indctx->ctx->ctx,
           solver, module, *indctx->e2);
     }
 
@@ -546,7 +546,9 @@ int main() {
 
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       //guided_incremental(module, initctx, indctx, conjctx, invctx);
+      synth_loop(module);
 
+      /*
       z3::solver solver = z3::solver(ctx);
       SketchFormula sf(ctx, solver, {}, module, 2, 2);
       z3::check_result res = solver.check();
@@ -554,6 +556,7 @@ int main() {
       z3::model model = solver.get_model();
       value v = sf.to_value(model);
       printf("value = %s\n", v->to_string().c_str());
+      */
 
       return 0;
     } else {

@@ -10,6 +10,7 @@ OBJECTS = $(addprefix bin/,\
 	enumerator.o \
 	utils.o \
 	sketch.o \
+	synth_loop.o \
 	lib/json11/json11.o \
 )
 
