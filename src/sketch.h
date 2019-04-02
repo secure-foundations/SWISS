@@ -16,15 +16,17 @@ enum class NTT {
 };
 
 struct NodeType {
+  std::string name;
+
   NTT ntt;
   int index;
   
   std::vector<lsort> domain;
   lsort range;
 
-  NodeType(NTT ntt, int index,
+  NodeType(std::string const& name, NTT ntt, int index,
       std::vector<lsort> const& domain, lsort range)
-      : ntt(ntt) , index(index) , domain(domain), range(range) { }
+      : name(name) , ntt(ntt) , index(index) , domain(domain), range(range) { }
 };
 
 struct SFNode {
@@ -34,6 +36,8 @@ struct SFNode {
   std::vector<std::string> nt_bool_names;
 
   std::vector<z3::expr> sort_bools;
+
+  std::string name;
 };
 
 struct ValueVector;
@@ -80,7 +84,7 @@ private:
     std::shared_ptr<Model> model,
     std::vector<object_value> const&);
   z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
-  z3::expr new_const(z3::expr e);
+  z3::expr new_const(z3::expr e, std::string const& name);
   z3::expr get_vector_value_entry(ValueVector& vv,
       lsort s, object_value o);
   int get_sort_index(lsort s);

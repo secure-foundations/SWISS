@@ -40,9 +40,10 @@ Counterexample get_counterexample(
     cex.is_true = Model::extract_model_from_z3(
         initctx->ctx->ctx,
         init_solver, module, *initctx->e);
+
     printf("counterexample type: INIT\n");
     cex.is_true->dump();
-    printf("\n");
+
     init_solver.pop();
     return cex;
   } else {
@@ -55,10 +56,13 @@ Counterexample get_counterexample(
   z3::check_result conj_res = conj_solver.check();
 
   if (conj_res == z3::sat) {
-    printf("counterexample type: SAFETY\n");
     cex.is_false = Model::extract_model_from_z3(
         conjctx->ctx->ctx,
         conj_solver, module, *conjctx->e);
+
+    printf("counterexample type: SAFETY\n");
+    //cex.is_false->dump();
+
     conj_solver.pop();
     return cex;
   } else {
@@ -178,7 +182,7 @@ void synth_loop(shared_ptr<Module> module)
   SketchFormula sf(ctx, solver, quants, module, 2, 2);
 
   while (true) {
-    cout << solver << "\n";
+    //cout << solver << "\n";
     z3::check_result res = solver.check();
 
     assert(res == z3::sat || res == z3::unsat);

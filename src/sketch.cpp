@@ -24,26 +24,30 @@ SketchFormula::SketchFormula(
   lsort bool_sort = s_bool();
 
   this->node_types = {
-    NodeType(NTT::True, -1, {}, bool_sort),
-    NodeType(NTT::False, -1, {}, bool_sort),
-    NodeType(NTT::And, -1, {bool_sort, bool_sort}, bool_sort),
-    NodeType(NTT::Or, -1, {bool_sort, bool_sort}, bool_sort),
-    NodeType(NTT::Not, -1, {bool_sort}, bool_sort)
+    NodeType("true", NTT::True, -1, {}, bool_sort),
+    NodeType("false", NTT::False, -1, {}, bool_sort),
+    NodeType("and", NTT::And, -1, {bool_sort, bool_sort}, bool_sort),
+    NodeType("or", NTT::Or, -1, {bool_sort, bool_sort}, bool_sort),
+    NodeType("not", NTT::Not, -1, {bool_sort}, bool_sort)
   };
   for (lsort s : this->sorts) {
-    this->node_types.push_back(NodeType(NTT::Eq, -1, {s, s}, bool_sort));
+    this->node_types.push_back(NodeType(
+        "eq_" + dynamic_cast<UninterpretedSort*>(s.get())->name,
+        NTT::Eq, -1, {s, s}, bool_sort));
   }
   for (int i = 0; i < module->functions.size(); i++) {
     VarDecl const& decl = module->functions[i];
     if (decl.sort->get_domain_as_function().size() <= arity) {
-      this->node_types.push_back(NodeType(NTT::Func, i,
+      this->node_types.push_back(NodeType("func_" + iden_to_string(decl.name),
+        NTT::Func, i,
         decl.sort->get_domain_as_function(),
         decl.sort->get_range_as_function()));
     }
   }
   for (int i = 0; i < free_vars.size(); i++) {
     VarDecl& decl = free_vars[i];
-    this->node_types.push_back(NodeType(NTT::Var, i, {}, decl.sort));
+    this->node_types.push_back(NodeType("var_" + iden_to_string(decl.name),
+        NTT::Var, i, {}, decl.sort));
   }
 
   int num_branch_nodes = 0;
@@ -58,12 +62,15 @@ SketchFormula::SketchFormula(
   this->nodes.resize(num_total_nodes);
   this->root = &nodes[0];
 
+  nodes[0].name = "r";
   for (int i = 0; i < num_total_nodes; i++) {
     nodes[i].is_leaf = (i >= num_branch_nodes);
     if (!nodes[i].is_leaf) {
       for (int j = 0; j < arity; j++) {
         assert(i * arity + j < nodes.size());
-        nodes[i].children.push_back(&nodes[i * arity + j + 1]);
+        int c = i * arity + j + 1;
+        nodes[i].children.push_back(&nodes[c]);
+        nodes[c].name = nodes[i].name + to_string(j);
       }
     }
   }
@@ -80,7 +87,9 @@ SketchFormula::SketchFormula(
 
 void SketchFormula::make_sort_bools(SFNode* node) {
   for (int i = 0; i < sorts.size() + 1; i++) {
-    node->sort_bools.push_back(ctx.bool_const(name("sort").c_str()));
+    string na = name(node->name + (i == sorts.size() ? "sort_bool" : "sort_" +
+        dynamic_cast<UninterpretedSort*>(sorts[i].get())->name));
+    node->sort_bools.push_back(ctx.bool_const(na.c_str()));
     for (int j = 0; j < i; j++) {
       z3::expr_vector vec(ctx);
       vec.push_back(node->sort_bools[i]);
@@ -92,7 +101,7 @@ void SketchFormula::make_sort_bools(SFNode* node) {
 
 void SketchFormula::make_bt_bools(SFNode* node) {
   for (int i = 0; i < node_types.size() - 1; i++) {
-    string na = name("bt");
+    string na = node->name + "_nt_" + node_types[i].name;
     node->nt_bools.push_back(ctx.bool_const(na.c_str()));
     node->nt_bool_names.push_back(na);
   }
@@ -343,17 +352,20 @@ ValueVector SketchFormula::to_value_vector(
       }
 
       case NTT::Eq: {
+        int sort_index = get_sort_index(nt.domain[0]);
         z3::expr_vector possibilities(ctx);
+        for (int j = 0; j < domain_sizes[sort_index]; j++) {
+            possibilities.push_back(z3_and(
+                ctx, children[0].is_obj[sort_index][j], children[1].is_obj[sort_index][j]));
+        }
+
+        v_is_true.push_back(z3::mk_or(possibilities));
 
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             v_objs[i][j].push_back(const_false);
-            possibilities.push_back(z3_and(
-                ctx, children[0].is_obj[i][j], children[1].is_obj[i][j]));
           }
         }
-
-        v_is_true.push_back(z3::mk_or(possibilities));
 
         break;
       }
@@ -403,7 +415,7 @@ ValueVector SketchFormula::to_value_vector(
           for (int i = 0; i < sorts.size(); i++) {
             for (int j = 0; j < domain_sizes[i]; j++) {
               v_objs[i][j].push_back(i == sort_index ?
-                  z3::mk_and(arg_possibilities[j]) : const_false);
+                  z3::mk_or(arg_possibilities[j]) : const_false);
             }
           }
         }
@@ -437,11 +449,14 @@ ValueVector SketchFormula::to_value_vector(
     }
   }
 
-  ValueVector vv(new_const(case_by_node_type(node, v_is_true)));
+  ValueVector vv(new_const(case_by_node_type(node, v_is_true),
+      node->name + "_is_true"));
   for (int i = 0; i < sorts.size(); i++) {
     vv.is_obj.push_back({});
     for (int j = 0; j < domain_sizes[i]; j++) {
-      vv.is_obj[i].push_back(new_const(case_by_node_type(node, v_objs[i][j])));
+      vv.is_obj[i].push_back(new_const(case_by_node_type(node, v_objs[i][j]),
+        node->name + "_is_" + dynamic_cast<UninterpretedSort*>(sorts[i].get())->name + "_" + to_string(j)
+      ));
     }
   }
 
@@ -459,8 +474,8 @@ z3::expr SketchFormula::case_by_node_type(SFNode* node, std::vector<z3::expr> co
   return res;
 }
 
-z3::expr SketchFormula::new_const(z3::expr e) {
-  z3::expr b = ctx.bool_const(name("new_const").c_str());
+z3::expr SketchFormula::new_const(z3::expr e, string const& na) {
+  z3::expr b = ctx.bool_const(name(na).c_str());
   solver.add(b == e);
   return b;
 }
