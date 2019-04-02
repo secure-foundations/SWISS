@@ -174,6 +174,13 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
   }
 }
 
+value fill_holes_in_value(value templ, vector<value> const& fills) {
+  int idx = 0;
+  value res = fill_holes_in_value(templ, fills, idx);
+  assert(idx == fills.size());
+  return res;
+}
+
 vector<value> fill_holes(value templ, vector<vector<value>> const& fills) {
   vector<value> result;
 

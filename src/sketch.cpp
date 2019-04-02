@@ -62,8 +62,8 @@ SketchFormula::SketchFormula(
     nodes[i].is_leaf = (i >= num_branch_nodes);
     if (!nodes[i].is_leaf) {
       for (int j = 0; j < arity; j++) {
-        assert(i * arity + j <= nodes.size());
-        nodes[i].children.push_back(&nodes[i * arity + j]);
+        assert(i * arity + j < nodes.size());
+        nodes[i].children.push_back(&nodes[i * arity + j + 1]);
       }
     }
   }
@@ -184,7 +184,6 @@ value SketchFormula::node_to_value(SFNode* node) {
         node_to_value(node->children[1]));
     }
     case NTT::Func: {
-      assert(!node->is_leaf);
       vector<value> args;
       assert(nt.domain.size() <= node->children.size());
       for (int i = 0; i < nt.domain.size(); i++) {
@@ -195,8 +194,7 @@ value SketchFormula::node_to_value(SFNode* node) {
           args);
     }
     case NTT::Var: {
-      assert(!node->is_leaf);
-      return v_const(free_vars[nt.index].name, free_vars[nt.index].sort);
+      return v_var(free_vars[nt.index].name, free_vars[nt.index].sort);
     }
 
     default:
@@ -316,6 +314,8 @@ ValueVector SketchFormula::to_value_vector(
             v_objs[i][j].push_back(const_false);
           }
         }
+
+        break;
       }
 
       case NTT::Or: {
@@ -326,6 +326,8 @@ ValueVector SketchFormula::to_value_vector(
             v_objs[i][j].push_back(const_false);
           }
         }
+
+        break;
       }
 
       case NTT::Not: {
@@ -336,6 +338,8 @@ ValueVector SketchFormula::to_value_vector(
             v_objs[i][j].push_back(const_false);
           }
         }
+
+        break;
       }
 
       case NTT::Eq: {
@@ -350,32 +354,61 @@ ValueVector SketchFormula::to_value_vector(
         }
 
         v_is_true.push_back(z3::mk_or(possibilities));
+
+        break;
       }
 
       case NTT::Func: {
-        assert(dynamic_cast<BooleanSort*>(nt.range.get()) &&
-            "TODO implement non-relation functions");
+        if (dynamic_cast<BooleanSort*>(nt.range.get())) {
+          z3::expr_vector arg_possibilities(ctx);
+          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
+            if (e.res == 1) {
+              z3::expr_vector arg_conjuncts(ctx);
+              assert(e.args.size() == nt.domain.size());
+              for (int i = 0; i < e.args.size(); i++) {
+                arg_conjuncts.push_back(get_vector_value_entry(
+                  children[i], nt.domain[i], e.args[i]));
+              }
+              arg_possibilities.push_back(z3::mk_and(arg_conjuncts));
+            }
+          }
 
-        z3::expr_vector arg_possibilities(ctx);
-        for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-          if (e.res == 1) {
+          v_is_true.push_back(z3::mk_or(arg_possibilities));
+
+          for (int i = 0; i < sorts.size(); i++) {
+            for (int j = 0; j < domain_sizes[i]; j++) {
+              v_objs[i][j].push_back(const_false);
+            }
+          }
+        } else {
+          int sort_index = get_sort_index(nt.range);
+          int dsize = domain_sizes[sort_index];
+          vector<z3::expr_vector> arg_possibilities;
+          for (int i = 0; i < dsize; i++) {
+            arg_possibilities.push_back(z3::expr_vector(ctx));
+          }
+
+          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
             z3::expr_vector arg_conjuncts(ctx);
             assert(e.args.size() == nt.domain.size());
             for (int i = 0; i < e.args.size(); i++) {
               arg_conjuncts.push_back(get_vector_value_entry(
                 children[i], nt.domain[i], e.args[i]));
             }
-            arg_possibilities.push_back(z3::mk_and(arg_conjuncts));
+            arg_possibilities[e.res].push_back(z3::mk_and(arg_conjuncts));
+          }
+
+          v_is_true.push_back(const_false); 
+
+          for (int i = 0; i < sorts.size(); i++) {
+            for (int j = 0; j < domain_sizes[i]; j++) {
+              v_objs[i][j].push_back(i == sort_index ?
+                  z3::mk_and(arg_possibilities[j]) : const_false);
+            }
           }
         }
 
-        v_is_true.push_back(z3::mk_or(arg_possibilities));
-
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
-        }
+        break;
       }
 
       case NTT::Var: {
@@ -394,7 +427,12 @@ ValueVector SketchFormula::to_value_vector(
             }
           }
         }
+
+        break;
       }
+
+      default:
+        assert(false);
 
     }
   }

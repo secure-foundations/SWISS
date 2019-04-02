@@ -16,4 +16,6 @@ std::vector<value> enumerate_fills_for_template(
 
 std::vector<value> remove_equiv2(std::vector<value> const& values);
 
+value fill_holes_in_value(value templ, std::vector<value> const& fills);
+
 #endif

@@ -3,6 +3,7 @@
 #include "z3++.h"
 #include "model.h"
 #include "sketch.h"
+#include "enumerator.h"
 
 using namespace std;
 
@@ -39,6 +40,9 @@ Counterexample get_counterexample(
     cex.is_true = Model::extract_model_from_z3(
         initctx->ctx->ctx,
         init_solver, module, *initctx->e);
+    printf("counterexample type: INIT\n");
+    cex.is_true->dump();
+    printf("\n");
     init_solver.pop();
     return cex;
   } else {
@@ -51,6 +55,7 @@ Counterexample get_counterexample(
   z3::check_result conj_res = conj_solver.check();
 
   if (conj_res == z3::sat) {
+    printf("counterexample type: SAFETY\n");
     cex.is_false = Model::extract_model_from_z3(
         conjctx->ctx->ctx,
         conj_solver, module, *conjctx->e);
@@ -67,6 +72,7 @@ Counterexample get_counterexample(
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
+    printf("counterexample type: INDUCTIVE\n");
     cex.hypothesis = Model::extract_model_from_z3(
           indctx->ctx->ctx,
           solver, module, *indctx->e1);
@@ -110,6 +116,9 @@ z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<M
   args.resize(domain_sizes.size());
   while (true) {
     z3::expr e = sf.interpret(model, args);
+    if (args.size() == 5 && args[0] == 0 && args[1] == 1 &&
+        args[2] == 0 && args[3] == 0 && args[4] == 0) {
+    }
     vec.push_back(do_true ? e : !e);
 
     int i;
@@ -169,16 +178,18 @@ void synth_loop(shared_ptr<Module> module)
   SketchFormula sf(ctx, solver, quants, module, 2, 2);
 
   while (true) {
+    cout << solver << "\n";
     z3::check_result res = solver.check();
 
-    assert(res == z3::sat || z3::unsat);
+    assert(res == z3::sat || res == z3::unsat);
     if (res != z3::sat) {
       printf("unable to synthesize any formula\n");
       break;
     }
 
     z3::model model = solver.get_model();
-    value candidate = sf.to_value(model);
+    value candidate_inner = sf.to_value(model);
+    value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
     printf("candidate: %s\n", candidate->to_string().c_str());
 
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
