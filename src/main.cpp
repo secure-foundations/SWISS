@@ -516,7 +516,7 @@ void try_to_add_invariants(
   return;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
 
   // FIXME: quick hack to control which enumeration to use
   bool just_enumeration = false;
@@ -533,7 +533,7 @@ int main() {
       vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
           module->templates[0]);
       for (auto can : candidates) {
-       // printf("%s\n", can->to_string().c_str());
+        printf("%s\n", can->to_string().c_str());
       }
       */
 
@@ -546,7 +546,10 @@ int main() {
 
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       //guided_incremental(module, initctx, indctx, conjctx, invctx);
-      synth_loop(module);
+      assert(argc == 3);
+      int arity = atoi(argv[1]);
+      int depth = atoi(argv[2]);
+      synth_loop(module, arity, depth);
 
       /*
       z3::solver solver = z3::solver(ctx);

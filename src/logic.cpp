@@ -1231,6 +1231,11 @@ vector<iden> get_front_quantifier_order(
     juncts.push_back(body);
   }
 
+  if (juncts.size() == 0) {
+    vector<iden> res;
+    return res;
+  }
+
   sort(juncts.begin(), juncts.end(), [](value const& a, value const& b) {
     return cmp_expr_def(a, b) < 0;
   });

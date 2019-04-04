@@ -42,7 +42,7 @@ Counterexample get_counterexample(
         init_solver, module, *initctx->e);
 
     printf("counterexample type: INIT\n");
-    cex.is_true->dump();
+    //cex.is_true->dump();
 
     init_solver.pop();
     return cex;
@@ -148,6 +148,7 @@ z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model>
 
 z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
   return is_something(module, sf, model, false);
+  //return sf.interpret_not_forall(model);
 }
 
 void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex) {
@@ -170,7 +171,7 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   }
 }
 
-void synth_loop(shared_ptr<Module> module)
+void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
   z3::solver solver(ctx);
@@ -179,7 +180,7 @@ void synth_loop(shared_ptr<Module> module)
 
   vector<VarDecl> quants = get_quantifiers(module->templates[0]);
 
-  SketchFormula sf(ctx, solver, quants, module, 2, 2);
+  SketchFormula sf(ctx, solver, quants, module, arity, depth);
 
   while (true) {
     //cout << solver << "\n";

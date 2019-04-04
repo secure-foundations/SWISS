@@ -3,6 +3,6 @@
 
 #include "logic.h"
 
-void synth_loop(std::shared_ptr<Module> module);
+void synth_loop(std::shared_ptr<Module> module, int arity, int depth);
 
 #endif

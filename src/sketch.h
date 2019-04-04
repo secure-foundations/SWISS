@@ -65,6 +65,8 @@ public:
   );
 
   z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&);
+  z3::expr interpret_not_forall(std::shared_ptr<Model> model);
+
   value to_value(z3::model& m);
 
 private:
@@ -74,6 +76,8 @@ private:
   void make_sort_bools(SFNode* node);
   void make_bt_bools(SFNode* node);
   void make_sort_constraints(SFNode* node);
+  void add_lex_constraints();
+  void add_constraint_for_no_outer_negation();
 
   std::map<std::string, bool> bool_map;
   void get_bools(z3::model model);
@@ -82,7 +86,7 @@ private:
   ValueVector to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
-    std::vector<object_value> const&);
+    std::vector<std::vector<z3::expr>> const& var_exprs);
   z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
   z3::expr new_const(z3::expr e, std::string const& name);
   z3::expr get_vector_value_entry(ValueVector& vv,

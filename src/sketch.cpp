@@ -14,6 +14,8 @@ SketchFormula::SketchFormula(
 {
   assert (2 <= arity);
 
+  printf("depth = %d, arity = %d\n", depth, arity);
+
   for (string sort_name : module->sorts) {
     lsort s = s_uninterp(sort_name);
     this->sorts.push_back(s);
@@ -23,11 +25,16 @@ SketchFormula::SketchFormula(
 
   lsort bool_sort = s_bool();
 
+  vector<lsort> bool_sorts_of_arity;
+  for (int i = 0; i < arity; i++) {
+    bool_sorts_of_arity.push_back(bool_sort);
+  }
+
   this->node_types = {
     NodeType("true", NTT::True, -1, {}, bool_sort),
     NodeType("false", NTT::False, -1, {}, bool_sort),
-    NodeType("and", NTT::And, -1, {bool_sort, bool_sort}, bool_sort),
-    NodeType("or", NTT::Or, -1, {bool_sort, bool_sort}, bool_sort),
+    NodeType("and", NTT::And, -1, bool_sorts_of_arity, bool_sort),
+    NodeType("or", NTT::Or, -1, bool_sorts_of_arity, bool_sort),
     NodeType("not", NTT::Not, -1, {bool_sort}, bool_sort)
   };
   for (lsort s : this->sorts) {
@@ -83,6 +90,10 @@ SketchFormula::SketchFormula(
   for (int i = 0; i < num_total_nodes; i++) {
     make_sort_constraints(&nodes[i]);
   }
+  solver.add(expr_is_sort(root, bool_sort));
+
+  //add_constraint_for_no_outer_negation();
+  //add_lex_symmetries();
 }
 
 void SketchFormula::make_sort_bools(SFNode* node) {
@@ -170,17 +181,14 @@ value SketchFormula::node_to_value(SFNode* node) {
     case NTT::False: {
       return v_false();
     }
-    case NTT::And: {
-      assert(!node->is_leaf);
-      return v_and({
-        node_to_value(node->children[0]),
-        node_to_value(node->children[1])});
-    }
+    case NTT::And:
     case NTT::Or: {
       assert(!node->is_leaf);
-      return v_or({
-        node_to_value(node->children[0]),
-        node_to_value(node->children[1])});
+      vector<value> args;
+      for (int i = 0; i < nt.domain.size(); i++) {
+        args.push_back(node_to_value(node->children[i]));
+      }
+      return (nt.ntt == NTT::And ? v_and(args) : v_or(args));
     }
     case NTT::Not: {
       assert(!node->is_leaf);
@@ -231,23 +239,12 @@ void SketchFormula::get_bools(z3::model model) {
 
 bool SketchFormula::is_true(std::string name) {
   auto iter = bool_map.find(name);
-  assert(iter != bool_map.end());
+  if (iter == bool_map.end()) {
+    //printf("name: %s\n", name.c_str());
+    //assert(false);
+    return true;
+  }
   return iter->second;
-}
-
-struct ValueVector {
-  z3::expr is_true;
-  vector<vector<z3::expr>> is_obj;
-
-  ValueVector(z3::expr is_true) : is_true(is_true) { }
-};
-
-z3::expr SketchFormula::interpret(
-    std::shared_ptr<Model> model,
-    std::vector<object_value> const& vars)
-{
-  ValueVector vv = to_value_vector(root, model, vars);  
-  return vv.is_true;
 }
 
 z3::expr z3_and(z3::context& ctx, z3::expr a, z3::expr b) {
@@ -264,14 +261,69 @@ z3::expr z3_or(z3::context& ctx, z3::expr a, z3::expr b) {
   return z3::mk_or(v);
 }
 
-ValueVector SketchFormula::to_value_vector(
-    SFNode* node,
+struct ValueVector {
+  z3::expr is_true;
+  vector<vector<z3::expr>> is_obj;
+
+  ValueVector(z3::expr is_true) : is_true(is_true) { }
+};
+
+z3::expr SketchFormula::interpret(
     std::shared_ptr<Model> model,
     std::vector<object_value> const& vars)
 {
+  assert(vars.size() == free_vars.size());
+  vector<vector<z3::expr>> var_exps;
+  z3::expr const_true = ctx.bool_val(true);
+  z3::expr const_false = ctx.bool_val(false);
+  for (int i = 0; i < vars.size(); i++) {
+    vector<z3::expr> v;
+    int dsize = model->get_domain_size(free_vars[i].sort);
+    for (int j = 0; j < dsize; j++) {
+      v.push_back(j == vars[i] ? const_true : const_false);
+    }
+    var_exps.push_back(v);
+  }
+  ValueVector vv = to_value_vector(root, model, var_exps);
+  return vv.is_true;
+}
+
+z3::expr SketchFormula::interpret_not_forall(
+    std::shared_ptr<Model> model)
+{
+  vector<vector<z3::expr>> var_exps;
+  for (int i = 0; i < free_vars.size(); i++) {
+    vector<z3::expr> v;
+    int dsize = model->get_domain_size(free_vars[i].sort);
+    for (int j = 0; j < dsize; j++) {
+      z3::expr e = ctx.bool_const(name("existential_var_" + iden_to_string(free_vars[i].name) +
+          "_eq_" + to_string(j)).c_str());
+      v.push_back(e);
+    }
+
+    z3::expr_vector vec(ctx);
+    for (int j = 0; j < dsize; j++) {
+      vec.push_back(v[j]);
+      for (int k = j+1; k < dsize; k++) {
+        solver.add(!(z3_and(ctx, v[j], v[k])));
+      }
+    }
+    solver.add(z3::mk_or(vec));
+
+    var_exps.push_back(v);
+  }
+  ValueVector vv = to_value_vector(root, model, var_exps);
+  return !vv.is_true;
+}
+
+ValueVector SketchFormula::to_value_vector(
+    SFNode* node,
+    std::shared_ptr<Model> model,
+    std::vector<std::vector<z3::expr>> const& var_exprs)
+{
   vector<ValueVector> children;
   for (SFNode* child : node->children) {
-    children.push_back(to_value_vector(child, model, vars));
+    children.push_back(to_value_vector(child, model, var_exprs));
   }
 
   z3::expr const_true = ctx.bool_val(true);
@@ -315,20 +367,14 @@ ValueVector SketchFormula::to_value_vector(
         break;
       }
 
-      case NTT::And: {
-        v_is_true.push_back(z3_and(ctx, children[0].is_true, children[1].is_true));
-        
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
+      case NTT::And:
+      case NTT::Or: {
+        z3::expr_vector vec(ctx);
+        for (int i = 0; i < nt.domain.size(); i++) {
+          vec.push_back(children[i].is_true);
         }
 
-        break;
-      }
-
-      case NTT::Or: {
-        v_is_true.push_back(z3_or(ctx, children[0].is_true, children[1].is_true));
+        v_is_true.push_back(nt.ntt == NTT::And ? z3::mk_and(vec) : z3::mk_or(vec));
         
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
@@ -426,14 +472,13 @@ ValueVector SketchFormula::to_value_vector(
       case NTT::Var: {
         int sort_index = get_sort_index(nt.range);
 
-        assert(nt.index < vars.size());
-        object_value value_index = vars[nt.index];
+        assert(nt.index < var_exprs.size());
 
         v_is_true.push_back(const_false);
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
-            if (i == sort_index && j == value_index) {
-              v_objs[i][j].push_back(const_true);
+            if (i == sort_index) {
+              v_objs[i][j].push_back(var_exprs[nt.index][j]);
             } else {
               v_objs[i][j].push_back(const_false);
             }
@@ -515,3 +560,75 @@ int SketchFormula::get_sort_index(lsort s) {
   }
   assert(false);
 }
+
+/*
+void SketchFormula::add_constraint_for_no_outer_negation() {
+  for (int idx = 0; idx < nodes.size(); idx++) {
+    SFNode* node = &nodes[idx];
+    if (!node->is_leaf) {
+      solver.add(z3::implies(
+        node_is_nt_not(node),
+        !z3_or(ctx,
+          node_is_nt_true(node->children[0]),
+          node_is_nt_false(node->children[0]),
+          node_is_nt_and(node->children[0]),
+          node_is_nt_or(node->children[0])
+        )));
+    }
+  }
+}
+
+void SketchFormula::add_lex_constraints() {
+  for (int idx = 0; idx < nodes.size(); idx++) {
+    SFNode* node = &nodes[idx];
+    if (!node->is_leaf) {
+      solver.add(z3::implies(
+        node_is_nt_eq(node),
+        nodes_le(node->children[0], node->children[1])
+      );
+      solver.add(z3::implies(
+        node_is_nt_and(node),
+        children_ascending(node)
+      );
+    }
+  }
+}
+
+z3::expr SketchFormula::children_ascending(SFNode* node) {
+  assert(!node->is_leaf);
+  z3::expr_vector vec(ctx);
+  for (int i = 1; i < node->children.size(); i++) {
+    vec.push_back(nodes_le(node->children[i-1], node->children[i]));
+  }
+  return z3::mk_and(vec);
+}
+
+z3::expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
+  assert(!(a->is_leaf ^ b->is_leaf));
+
+  vector<SFNode*> as;
+  vector<SFNode*> bs;
+  get_pairs(a, b, as, bs);
+
+  for (int i 
+  z3::expr_vector vec(ctx);
+  z3::expr_vector vec_eq(ctx);
+  for (int i = 0; i < a->nt_bools.size(); i++) {
+    vec.push_back(z3::implies(a->nt_bools[i], b->nt_bools[i]));
+    if (!a->is_leaf) {
+      vec_eq.push_back(a->nt_bools[i], !b->nt_bools[i]);
+    }
+  }
+  if (a->is_leaf) {
+    return z3::mk_and(vec);
+  } else {
+    vec_eq.push_back(a->nt_bools[nt_bools.size() - 1]);
+    vec_eq.push_back(!b->nt_bools[0]);
+    z3::expr eq_types z3::mk_or(vec_eq);
+    return z3_and(ctx,
+      z3::mk_and(vec),
+      z3::implies(eq_types, 
+    );
+  }
+}
+*/
