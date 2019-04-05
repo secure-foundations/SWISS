@@ -51,6 +51,7 @@ Counterexample get_counterexample(
     init_solver.pop();
   }
 
+  /*
   z3::solver& conj_solver = conjctx->ctx->solver;
   conj_solver.push();
   conj_solver.add(conjctx->e->value2expr(candidate));
@@ -69,21 +70,34 @@ Counterexample get_counterexample(
   } else {
     conj_solver.pop();
   }
+  */
+
+  value full_conj = v_and(module->conjectures);
+  value full_candidate = v_and({candidate, full_conj});
 
   z3::solver& solver = indctx->ctx->solver;
   solver.push();
-  solver.add(indctx->e1->value2expr(candidate));
-  solver.add(indctx->e2->value2expr(v_not(candidate)));
+  solver.add(indctx->e1->value2expr(full_candidate));
+  solver.add(indctx->e2->value2expr(v_not(full_candidate)));
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
-    printf("counterexample type: INDUCTIVE\n");
-    cex.hypothesis = Model::extract_model_from_z3(
+    shared_ptr<Model> m1 = Model::extract_model_from_z3(
           indctx->ctx->ctx,
           solver, module, *indctx->e1);
-    cex.conclusion = Model::extract_model_from_z3(
+    shared_ptr<Model> m2 = Model::extract_model_from_z3(
           indctx->ctx->ctx,
           solver, module, *indctx->e2);
+
+    if (!m2->eval_predicate(full_conj)) {
+      printf("counterexample type: SAFETY\n");
+      cex.is_false = m1;
+    } else {
+      printf("counterexample type: INDUCTIVE\n");
+      cex.hypothesis = m1;
+      cex.conclusion = m2;
+    }
+
     solver.pop();
     return cex;
   }
@@ -210,6 +224,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
+      break;
     }
 
     add_counterexample(module, sf, cex);
