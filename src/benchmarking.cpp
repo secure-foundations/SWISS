@@ -32,5 +32,6 @@ void Benchmarking::end() {
 void Benchmarking::dump() {
   for (auto p : bench) {
     std::cout << p.first << " : " << p.second << " ms" << std::endl;
+    std::cout.flush();
   }
 }
