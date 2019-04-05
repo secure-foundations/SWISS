@@ -731,4 +731,29 @@ z3::expr SketchFormula::node_is_true(SFNode* a) { return node_is_ntt(a, NTT::Tru
 z3::expr SketchFormula::node_is_false(SFNode* a) { return node_is_ntt(a, NTT::False); }
 z3::expr SketchFormula::node_is_or(SFNode* a) { return node_is_ntt(a, NTT::Or); }
 z3::expr SketchFormula::node_is_and(SFNode* a) { return node_is_ntt(a, NTT::And); }
-z3::expr SketchFormula::node_is_eq(SFNode* a) { return node_is_ntt(a, NTT::Eq); }
+
+z3::expr SketchFormula::node_is_eq(SFNode* node) {
+  z3::expr_vector vec(ctx);
+  int i = 0;
+  for (NodeType& nt : node_types) {
+    if (nt.ntt == NTT::Eq) {
+      z3::expr_vector eq_vec(ctx);
+      for (int j = i; j < node_types.size(); j++) {
+        if (node_types[j].ntt == NTT::Eq) {
+          assert(j < node->nt_bools.size());
+          eq_vec.push_back(node->nt_bools[j]);
+        } else {
+          break;
+        }
+      }
+
+      vec.push_back(z3::mk_or(eq_vec));
+      return z3::mk_and(vec);
+    } else {
+      assert(i < node->nt_bools.size());
+      vec.push_back(!node->nt_bools[i]);
+    }
+    i++;
+  }
+  assert(false);
+}
