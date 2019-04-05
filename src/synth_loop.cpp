@@ -221,7 +221,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   SketchFormula sf(ctx, solver, quants, module, arity, depth);
 
-  int bmc_depth = 3;
+  int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(ctx, module, bmc_depth);
 
