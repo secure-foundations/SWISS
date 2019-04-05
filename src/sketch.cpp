@@ -92,8 +92,8 @@ SketchFormula::SketchFormula(
   }
   solver.add(expr_is_sort(root, bool_sort));
 
-  //add_constraint_for_no_outer_negation();
-  //add_lex_symmetries();
+  add_constraint_for_no_outer_negation();
+  add_lex_constraints();
 }
 
 void SketchFormula::make_sort_bools(SFNode* node) {
@@ -260,6 +260,17 @@ z3::expr z3_or(z3::context& ctx, z3::expr a, z3::expr b) {
   v.push_back(b);
   return z3::mk_or(v);
 }
+
+z3::expr z3_or(z3::context& ctx, z3::expr a, z3::expr b, z3::expr c, z3::expr d, z3::expr e) {
+  z3::expr_vector v(ctx);
+  v.push_back(a);
+  v.push_back(b);
+  v.push_back(c);
+  v.push_back(d);
+  v.push_back(e);
+  return z3::mk_or(v);
+}
+
 
 struct ValueVector {
   z3::expr is_true;
@@ -561,18 +572,18 @@ int SketchFormula::get_sort_index(lsort s) {
   assert(false);
 }
 
-/*
 void SketchFormula::add_constraint_for_no_outer_negation() {
   for (int idx = 0; idx < nodes.size(); idx++) {
     SFNode* node = &nodes[idx];
     if (!node->is_leaf) {
       solver.add(z3::implies(
-        node_is_nt_not(node),
+        node_is_not(node),
         !z3_or(ctx,
-          node_is_nt_true(node->children[0]),
-          node_is_nt_false(node->children[0]),
-          node_is_nt_and(node->children[0]),
-          node_is_nt_or(node->children[0])
+          node_is_true(node->children[0]),
+          node_is_false(node->children[0]),
+          node_is_and(node->children[0]),
+          node_is_or(node->children[0]),
+          node_is_not(node->children[0])
         )));
     }
   }
@@ -583,13 +594,17 @@ void SketchFormula::add_lex_constraints() {
     SFNode* node = &nodes[idx];
     if (!node->is_leaf) {
       solver.add(z3::implies(
-        node_is_nt_eq(node),
+        node_is_eq(node),
         nodes_le(node->children[0], node->children[1])
-      );
+      ));
       solver.add(z3::implies(
-        node_is_nt_and(node),
+        node_is_and(node),
         children_ascending(node)
-      );
+      ));
+      solver.add(z3::implies(
+        node_is_or(node),
+        children_ascending(node)
+      ));
     }
   }
 }
@@ -604,31 +619,116 @@ z3::expr SketchFormula::children_ascending(SFNode* node) {
 }
 
 z3::expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
+  auto iter = nodes_le_map.find(make_pair(a, b));
+  if (iter != nodes_le_map.end()) {
+    return iter->second;
+  }
+
   assert(!(a->is_leaf ^ b->is_leaf));
 
-  vector<SFNode*> as;
-  vector<SFNode*> bs;
-  get_pairs(a, b, as, bs);
-
-  for (int i 
   z3::expr_vector vec(ctx);
-  z3::expr_vector vec_eq(ctx);
   for (int i = 0; i < a->nt_bools.size(); i++) {
-    vec.push_back(z3::implies(a->nt_bools[i], b->nt_bools[i]));
-    if (!a->is_leaf) {
-      vec_eq.push_back(a->nt_bools[i], !b->nt_bools[i]);
+    vec.push_back(z3::implies(b->nt_bools[i], a->nt_bools[i]));
+  }
+
+  if (!a->is_leaf) {
+    vector<z3::expr> children_lex;
+    for (int i = 0; i < node_types.size(); i++) {
+      int arity = node_types[i].domain.size();
+      if (i < node_types.size() - 1) {
+        children_lex.push_back(z3::implies(b->nt_bools[i], children_lex_le(a, b, arity)));
+      } else {
+        children_lex.push_back(children_lex_le(a, b, arity));
+      }
+    }
+    vec.push_back(case_by_node_type(a, children_lex));
+  }
+
+  z3::expr res = new_const(z3::mk_and(vec),
+      a->name + "_le_" + b->name);
+
+  nodes_le_map.insert(make_pair(make_pair(a,b), res));
+  return res;
+}
+
+z3::expr SketchFormula::children_lex_le(SFNode* a, SFNode* b, int nchildren) {
+  assert(0 <= nchildren && nchildren <= arity);
+  assert(!a->is_leaf);
+  assert(!b->is_leaf);
+
+  z3::expr res = ctx.bool_val(true);
+  for (int i = nchildren - 1; i >= 0; i--) {
+    res = z3_and(ctx,
+        nodes_le(a->children[i], b->children[i]),
+        z3::implies(
+          nodes_eq(a->children[i], b->children[i]),
+          res));
+  }
+
+  return res;
+}
+
+z3::expr SketchFormula::nodes_eq(SFNode* a, SFNode* b) {
+  auto iter = nodes_eq_map.find(make_pair(a, b));
+  if (iter != nodes_eq_map.end()) {
+    return iter->second;
+  }
+
+  assert(!(a->is_leaf ^ b->is_leaf));
+
+  vector<z3::expr> children_eq_per_node_type;
+  for (int i = 0; i < node_types.size(); i++) {
+    int arity = node_types[i].domain.size();
+    if (arity == 0 || !a->is_leaf) {
+      z3::expr_vector children_eq(ctx);
+      for (int j = 0; j < arity; j++) {
+        children_eq.push_back(nodes_eq(a->children[j], b->children[j]));
+      }
+      children_eq_per_node_type.push_back(z3::mk_and(children_eq));
+    } else {
+      children_eq_per_node_type.push_back(ctx.bool_val(false));
     }
   }
-  if (a->is_leaf) {
-    return z3::mk_and(vec);
-  } else {
-    vec_eq.push_back(a->nt_bools[nt_bools.size() - 1]);
-    vec_eq.push_back(!b->nt_bools[0]);
-    z3::expr eq_types z3::mk_or(vec_eq);
-    return z3_and(ctx,
-      z3::mk_and(vec),
-      z3::implies(eq_types, 
-    );
-  }
+
+  z3::expr res = new_const(z3_and(ctx,
+      node_types_eq(a, b),
+      case_by_node_type(a, children_eq_per_node_type)),
+      a->name + "_eq_" + b->name);
+
+  nodes_eq_map.insert(make_pair(make_pair(a,b), res));
+  return res;
 }
-*/
+
+z3::expr SketchFormula::node_types_eq(SFNode* a, SFNode* b) {
+  z3::expr res = ctx.bool_val(true);
+  for (int i = node_types.size() - 2; i >= 0; i--) {
+    res = z3::ite(a->nt_bools[i],
+        b->nt_bools[i],
+        z3_and(ctx, !b->nt_bools[i], res));
+  }
+  return res;
+}
+
+z3::expr SketchFormula::node_is_ntt(SFNode* node, NTT ntt) {
+  z3::expr_vector vec(ctx);
+  int i = 0;
+  for (NodeType& nt : node_types) {
+    if (nt.ntt == ntt) {
+      if (i < node_types.size() - 1) {
+        vec.push_back(node->nt_bools[i]);
+      }
+      return z3::mk_and(vec);
+    } else {
+      vec.push_back(!node->nt_bools[i]);
+    }
+    i++;
+  }
+  assert(false);
+}
+
+z3::expr SketchFormula::node_is_not(SFNode* a) { return node_is_ntt(a, NTT::Not); }
+z3::expr SketchFormula::node_is_true(SFNode* a) { return node_is_ntt(a, NTT::True); }
+z3::expr SketchFormula::node_is_false(SFNode* a) { return node_is_ntt(a, NTT::False); }
+z3::expr SketchFormula::node_is_or(SFNode* a) { return node_is_ntt(a, NTT::Or); }
+z3::expr SketchFormula::node_is_and(SFNode* a) { return node_is_ntt(a, NTT::And); }
+z3::expr SketchFormula::node_is_eq(SFNode* a) { return node_is_ntt(a, NTT::Eq); }

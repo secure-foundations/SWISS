@@ -92,6 +92,21 @@ private:
   z3::expr get_vector_value_entry(ValueVector& vv,
       lsort s, object_value o);
   int get_sort_index(lsort s);
+
+  z3::expr node_is_not(SFNode* a);
+  z3::expr node_is_true(SFNode* a);
+  z3::expr node_is_false(SFNode* a);
+  z3::expr node_is_or(SFNode* a);
+  z3::expr node_is_and(SFNode* a);
+  z3::expr node_is_eq(SFNode* a);
+  z3::expr node_is_ntt(SFNode* a, NTT ntt);
+  z3::expr nodes_eq(SFNode* a, SFNode* b);
+  z3::expr children_lex_le(SFNode* a, SFNode* b, int nchildren);
+  z3::expr nodes_le(SFNode* a, SFNode* b);
+  z3::expr node_types_eq(SFNode* a, SFNode* b);
+  z3::expr children_ascending(SFNode* node);
+  std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_le_map;
+  std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_eq_map;
 };
 
 #endif
