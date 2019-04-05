@@ -5,6 +5,7 @@
 #include "sketch.h"
 #include "enumerator.h"
 #include "benchmarking.h"
+#include "bmc.h"
 
 using namespace std;
 
@@ -22,12 +23,30 @@ struct Counterexample {
   bool none;
 };
 
+Counterexample get_bmc_counterexample(
+    BMCContext& bmc,
+    value candidate)
+{
+  shared_ptr<Model> model = bmc.get_k_invariance_violation(candidate);
+  if (model) {
+    printf("counterexample type: INIT (after some steps)\n");
+    Counterexample cex;
+    cex.is_true = model;
+    return cex;
+  } else {
+    Counterexample cex;
+    cex.none = true;
+    return cex;
+  }
+}
+
 Counterexample get_counterexample(
     shared_ptr<Module> module,
+    BMCContext& bmc,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
-    shared_ptr<Value> candidate)
+    value candidate)
 {
   Counterexample cex;
   cex.none = false;
@@ -93,6 +112,11 @@ Counterexample get_counterexample(
       printf("counterexample type: SAFETY\n");
       cex.is_false = m1;
     } else {
+      Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+      if (!bmc_cex.none) {
+        return bmc_cex;
+      }
+
       printf("counterexample type: INDUCTIVE\n");
       cex.hypothesis = m1;
       cex.conclusion = m2;
@@ -197,6 +221,10 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   SketchFormula sf(ctx, solver, quants, module, arity, depth);
 
+  int bmc_depth = 3;
+  printf("bmc_depth = %d\n", bmc_depth);
+  BMCContext bmc(ctx, module, bmc_depth);
+
   while (true) {
     //cout << solver << "\n";
     Benchmarking bench;
@@ -221,7 +249,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-    Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+    Counterexample cex = get_counterexample(module, bmc, initctx, indctx, conjctx, candidate);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
       break;
