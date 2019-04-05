@@ -4,6 +4,7 @@
 #include "model.h"
 #include "sketch.h"
 #include "enumerator.h"
+#include "benchmarking.h"
 
 using namespace std;
 
@@ -184,7 +185,11 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   while (true) {
     //cout << solver << "\n";
+    Benchmarking bench;
+    bench.start("solver");
     z3::check_result res = solver.check();
+    bench.end();
+    bench.dump();
 
     assert(res == z3::sat || res == z3::unsat);
     if (res != z3::sat) {
