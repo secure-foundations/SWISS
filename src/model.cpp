@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <map>
+#include <algorithm>
 
 using namespace std;
 
@@ -372,7 +373,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
     }
   };
 
-  auto get_expr = [&z3model, &ctx, &universes](
+  auto get_expr = [&ctx, &universes](
         Sort* sort, object_value v) -> z3::expr {
     if (dynamic_cast<BooleanSort*>(sort)) {
       if (v == 0) {

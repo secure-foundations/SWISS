@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 using namespace json11;
