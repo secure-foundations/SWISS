@@ -42,9 +42,76 @@ Counterexample get_bmc_counterexample(
   }
 }
 
+Counterexample get_counterexample_simple(
+    shared_ptr<Module> module,
+    shared_ptr<InitContext> initctx,
+    shared_ptr<InductionContext> indctx,
+    shared_ptr<ConjectureContext> conjctx,
+    value candidate)
+{
+  Counterexample cex;
+  cex.none = false;
+
+  z3::solver& init_solver = initctx->ctx->solver;
+  init_solver.push();
+  init_solver.add(initctx->e->value2expr(v_not(candidate)));
+  z3::check_result init_res = init_solver.check();
+
+  if (init_res == z3::sat) {
+    cex.is_true = Model::extract_model_from_z3(
+        initctx->ctx->ctx,
+        init_solver, module, *initctx->e);
+
+    printf("counterexample type: INIT\n");
+    //cex.is_true->dump();
+
+    init_solver.pop();
+    return cex;
+  } else {
+    init_solver.pop();
+  }
+
+  z3::solver& conj_solver = conjctx->ctx->solver;
+  conj_solver.push();
+  conj_solver.add(conjctx->e->value2expr(candidate));
+  z3::check_result conj_res = conj_solver.check();
+
+  if (conj_res == z3::sat) {
+    cex.is_false = Model::extract_model_from_z3(
+        conjctx->ctx->ctx,
+        conj_solver, module, *conjctx->e);
+
+    printf("counterexample type: SAFETY\n");
+    //cex.is_false->dump();
+
+    conj_solver.pop();
+    return cex;
+  } else {
+    conj_solver.pop();
+  }
+
+  z3::solver& solver = indctx->ctx->solver;
+  solver.push();
+  solver.add(indctx->e1->value2expr(candidate));
+  solver.add(indctx->e2->value2expr(v_not(candidate)));
+  z3::check_result res = solver.check();
+
+  if (res == z3::sat) {
+    cex.hypothesis = Model::extract_model_from_z3(
+        indctx->ctx->ctx, solver, module, *indctx->e1);
+    cex.conclusion = Model::extract_model_from_z3(
+        indctx->ctx->ctx, solver, module, *indctx->e2);
+    solver.pop();
+
+    return cex;
+  }
+
+  cex.none = true;
+  return cex;
+}
+
 Counterexample get_counterexample(
     shared_ptr<Module> module,
-    BMCContext& bmc,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
@@ -234,13 +301,15 @@ void cex_stats(Counterexample cex) {
 void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
-  z3::solver solver(ctx);
+
 
   assert(module->templates.size() == 1);
 
   vector<VarDecl> quants = get_quantifiers(module->templates[0]);
 
-  SketchFormula sf(ctx, solver, quants, module, arity, depth);
+  z3::context ctx_sf;
+  z3::solver solver_sf(ctx_sf);
+  SketchFormula sf(ctx_sf, solver_sf, quants, module, arity, depth);
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -253,7 +322,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     //cout << solver << "\n";
     Benchmarking bench;
     bench.start("solver");
-    z3::check_result res = solver.check();
+    z3::check_result res = solver_sf.check();
     bench.end();
     bench.dump();
 
@@ -263,7 +332,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
       break;
     }
 
-    z3::model model = solver.get_model();
+    z3::model model = solver_sf.get_model();
     value candidate_inner = sf.to_value(model);
     value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
     printf("candidate: %s\n", candidate->to_string().c_str());
@@ -273,7 +342,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-    Counterexample cex = get_counterexample(module, bmc, initctx, indctx, conjctx, candidate);
+    //Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+    Counterexample cex = get_counterexample_simple(module, initctx, indctx, conjctx, candidate);
     //cex = simplify_cex(module, cex);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
