@@ -12,6 +12,8 @@ echo "logging to $LOGFILE"
 echo "./run.sh $@" >> $LOGFILE
 echo "" >> $LOGFILE
 
+z3 --version >> $LOGFILE
+echo "" >> $LOGFILE
 git rev-parse --verify HEAD >> $LOGFILE
 echo "" >> $LOGFILE
 git diff >> $LOGFILE

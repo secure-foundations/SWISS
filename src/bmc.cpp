@@ -53,6 +53,17 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v) {
   return ans;
 }
 
+bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
+  z3::solver& solver = ctx->solver;
+  solver.push();
+  model->assert_model_is(this->e2);
+
+  z3::check_result res = solver.check();
+  assert(res == z3::sat || res == z3::unsat);
+  solver.pop();
+  return res == z3::sat;
+}
+
 BMCContext::BMCContext(z3::context& ctx, shared_ptr<Module> module, int k) {
   for (int i = 1; i <= k; i++) {
     bmcs.push_back(shared_ptr<FixedBMCContext>(new FixedBMCContext(ctx, module, i)));
@@ -76,4 +87,13 @@ shared_ptr<Model> BMCContext::get_k_invariance_violation(value v) {
     }
   }
   return nullptr;
+}
+
+bool BMCContext::is_reachable(std::shared_ptr<Model> model) {
+  for (auto bmc : bmcs) {
+    if (bmc->is_reachable(model)) {
+      return true;
+    }
+  }
+  return false;
 }

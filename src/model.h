@@ -45,6 +45,7 @@ public:
       ModelEmbedding const& e);
 
   void dump() const;
+  void dump_sizes() const;
   std::string obj_to_string(Sort*, object_value) const;
   size_t get_domain_size(lsort) const;
   size_t get_domain_size(Sort*) const;

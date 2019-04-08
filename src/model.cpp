@@ -506,6 +506,20 @@ shared_ptr<Model> Model::extract_model_from_z3(
   return model;
 }
 
+void Model::dump_sizes() const {
+  printf("Model sizes: ");
+  bool start = true;
+  for (string sort : module->sorts) {
+    int domain_size = (int) get_domain_size(sort);
+    if (!start) {
+      printf(", ");
+    }
+    printf("%s: %d", sort.c_str(), domain_size);
+    start = false;
+  }
+  printf("\n");
+}
+
 void Model::dump() const {
   printf("Model:\n\n");
   for (string sort : module->sorts) {

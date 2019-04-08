@@ -107,6 +107,7 @@ Counterexample get_counterexample(
     shared_ptr<Model> m2 = Model::extract_model_from_z3(
           indctx->ctx->ctx,
           solver, module, *indctx->e2);
+    solver.pop();
 
     if (!m2->eval_predicate(full_conj)) {
       printf("counterexample type: SAFETY\n");
@@ -122,7 +123,6 @@ Counterexample get_counterexample(
       cex.conclusion = m2;
     }
 
-    solver.pop();
     return cex;
   }
 
@@ -210,6 +210,24 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   }
 }
 
+void cex_stats(Counterexample cex) {
+  shared_ptr<Model> model;
+  if (cex.is_true) {
+    model = cex.is_true;
+  }
+  else if (cex.is_false) {
+    model = cex.is_false;
+  }
+  else if (cex.hypothesis) {
+    model = cex.hypothesis;
+  }
+  else {
+    return;
+  }
+
+  model->dump_sizes();
+}
+
 void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
@@ -226,6 +244,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
   BMCContext bmc(ctx, module, bmc_depth);
 
   while (true) {
+    printf("\n");
+
     //cout << solver << "\n";
     Benchmarking bench;
     bench.start("solver");
@@ -250,11 +270,13 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
     Counterexample cex = get_counterexample(module, bmc, initctx, indctx, conjctx, candidate);
+    //cex = simplify_cex(module, cex);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
       break;
     }
 
+    cex_stats(cex);
     add_counterexample(module, sf, cex);
   }
 }

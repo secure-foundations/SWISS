@@ -16,6 +16,7 @@ public:
   FixedBMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k);
   bool is_exactly_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v);
+  bool is_reachable(std::shared_ptr<Model> model);
 };
 
 // Bounded model checking for <= k steps.
@@ -26,6 +27,7 @@ public:
   BMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k);
   bool is_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v);
+  bool is_reachable(std::shared_ptr<Model> model);
 };
 
 
