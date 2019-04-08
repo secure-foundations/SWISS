@@ -316,6 +316,71 @@ int get_num_forall_quantifiers_at_top(EvalExpr* ee) {
   return n;
 }
 
+vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
+    z3::context& ctx,
+    z3::solver& solver,
+    shared_ptr<Module> module,
+    vector<shared_ptr<ModelEmbedding>> es)
+{
+  assert (es.size() > 0);
+
+  vector<shared_ptr<Model>> all_models;
+  for (auto e : es) {
+    all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
+  }
+
+  shared_ptr<Model> model0 = all_models[0];
+
+  BackgroundContext& bgctx = *es[0]->ctx;
+
+  vector<string> sorts;
+  vector<int> sizes;
+  for (auto p : bgctx.sorts) {
+    sorts.push_back(p.first);
+    sizes.push_back(model0->get_domain_size(p.first));
+  }
+
+  int sort_idx = 0;
+  while (sort_idx < sorts.size()) {
+    if (sizes[sort_idx] <= 1) {
+      sort_idx++;
+      continue;
+    }
+
+    solver.push();
+    sizes[sort_idx]--;
+
+    for (int i = 0; i < sorts.size(); i++) {
+      z3::sort so = bgctx.getUninterpretedSort(sorts[i]);
+      z3::expr_vector vec(ctx);
+      z3::expr elem = ctx.constant(name("valvar").c_str(), so);
+      for (int j = 0; j < sizes[i]; j++) {
+        z3::expr c = ctx.constant(name("val").c_str(), so);
+        vec.push_back(elem == c);
+      }
+      z3::expr_vector qvars(ctx);
+      qvars.push_back(elem);
+      solver.add(z3::forall(qvars, mk_or(vec)));
+    }
+
+    z3::check_result res = solver.check();
+    assert(res == z3::sat || res == z3::unsat);
+    if (res == z3::sat) {
+      all_models.clear();
+      for (auto e : es) {
+        all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
+      }
+    } else {
+      sizes[sort_idx]++;
+      sort_idx++;
+    }
+
+    solver.pop();
+  }
+
+  return all_models;
+}
+
 shared_ptr<Model> Model::extract_model_from_z3(
     z3::context& ctx,
     z3::solver& solver,

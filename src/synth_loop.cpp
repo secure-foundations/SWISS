@@ -1,5 +1,7 @@
 #include "synth_loop.h"
 
+#include <iostream>
+
 #include "z3++.h"
 #include "model.h"
 #include "sketch.h"
@@ -57,9 +59,9 @@ Counterexample get_counterexample(
   z3::check_result init_res = init_solver.check();
 
   if (init_res == z3::sat) {
-    cex.is_true = Model::extract_model_from_z3(
+    cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
-        init_solver, module, *initctx->e);
+        init_solver, module, {initctx->e})[0];
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -101,22 +103,23 @@ Counterexample get_counterexample(
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
-    shared_ptr<Model> m1 = Model::extract_model_from_z3(
+    auto m1_and_m2 = Model::extract_minimal_models_from_z3(
           indctx->ctx->ctx,
-          solver, module, *indctx->e1);
-    shared_ptr<Model> m2 = Model::extract_model_from_z3(
-          indctx->ctx->ctx,
-          solver, module, *indctx->e2);
+          solver, module, {indctx->e1, indctx->e2});
+    shared_ptr<Model> m1 = m1_and_m2[0];
+    shared_ptr<Model> m2 = m1_and_m2[1];
     solver.pop();
 
     if (!m2->eval_predicate(full_conj)) {
       printf("counterexample type: SAFETY\n");
       cex.is_false = m1;
     } else {
+      /*
       Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
       if (!bmc_cex.none) {
         return bmc_cex;
       }
+      */
 
       printf("counterexample type: INDUCTIVE\n");
       cex.hypothesis = m1;
@@ -245,6 +248,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   while (true) {
     printf("\n");
+    std::cout.flush();
 
     //cout << solver << "\n";
     Benchmarking bench;
