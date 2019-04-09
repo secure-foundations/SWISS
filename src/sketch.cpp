@@ -4,6 +4,8 @@
 
 using namespace std;
 
+bool NEGATE_FUNCS = true;
+
 SketchFormula::SketchFormula(
     z3::context& ctx,
     z3::solver& solver,
@@ -35,8 +37,10 @@ SketchFormula::SketchFormula(
     NodeType("false", NTT::False, -1, {}, bool_sort),
     NodeType("and", NTT::And, -1, bool_sorts_of_arity, bool_sort),
     NodeType("or", NTT::Or, -1, bool_sorts_of_arity, bool_sort),
-    NodeType("not", NTT::Not, -1, {bool_sort}, bool_sort)
   };
+  if (!NEGATE_FUNCS) {
+    this->node_types.push_back(NodeType("not", NTT::Not, -1, {bool_sort}, bool_sort));
+  }
   for (lsort s : this->sorts) {
     this->node_types.push_back(NodeType(
         "eq_" + dynamic_cast<UninterpretedSort*>(s.get())->name,
@@ -49,6 +53,18 @@ SketchFormula::SketchFormula(
         NTT::Func, i,
         decl.sort->get_domain_as_function(),
         decl.sort->get_range_as_function()));
+    }
+  }
+  for (int i = 0; i < module->functions.size(); i++) {
+    VarDecl const& decl = module->functions[i];
+    if (decl.sort->get_domain_as_function().size() <= arity &&
+        dynamic_cast<BooleanSort*>(decl.sort->get_range_as_function().get())
+        ) {
+      this->node_types.push_back(NodeType("func_negated_" + iden_to_string(decl.name),
+        NTT::Func, i,
+        decl.sort->get_domain_as_function(),
+        decl.sort->get_range_as_function()));
+      this->node_types[this->node_types.size() - 1].negated_function = true;
     }
   }
   for (int i = 0; i < free_vars.size(); i++) {
@@ -206,9 +222,14 @@ value SketchFormula::node_to_value(SFNode* node) {
       for (int i = 0; i < nt.domain.size(); i++) {
         args.push_back(node_to_value(node->children[i]));
       }
-      return v_apply(
+      value res = v_apply(
           v_const(functions[nt.index].name, functions[nt.index].sort),
           args);
+      if (nt.negated_function) {
+        return v_not(res);
+      } else {
+        return res;
+      }
     }
     case NTT::Var: {
       return v_var(free_vars[nt.index].name, free_vars[nt.index].sort);
@@ -448,7 +469,7 @@ ValueVector SketchFormula::to_value_vector(
         if (dynamic_cast<BooleanSort*>(nt.range.get())) {
           z3::expr_vector arg_possibilities(ctx);
           for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-            if (e.res == 1) {
+            if (e.res == (nt.negated_function ? 0 : 1)) {
               z3::expr_vector arg_conjuncts(ctx);
               assert(e.args.size() == nt.domain.size());
               for (int i = 0; i < e.args.size(); i++) {
@@ -602,6 +623,9 @@ int SketchFormula::get_sort_index(lsort s) {
 }
 
 void SketchFormula::add_constraint_for_no_outer_negation() {
+  if (NEGATE_FUNCS) {
+    return;
+  }
   for (int idx = 0; idx < nodes.size(); idx++) {
     SFNode* node = &nodes[idx];
     if (!node->is_leaf) {
@@ -755,7 +779,10 @@ z3::expr SketchFormula::node_is_ntt(SFNode* node, NTT ntt) {
   assert(false);
 }
 
-z3::expr SketchFormula::node_is_not(SFNode* a) { return node_is_ntt(a, NTT::Not); }
+z3::expr SketchFormula::node_is_not(SFNode* a) {
+  if (NEGATE_FUNCS) return ctx.bool_val(false);
+  return node_is_ntt(a, NTT::Not);
+}
 z3::expr SketchFormula::node_is_true(SFNode* a) { return node_is_ntt(a, NTT::True); }
 z3::expr SketchFormula::node_is_false(SFNode* a) { return node_is_ntt(a, NTT::False); }
 z3::expr SketchFormula::node_is_or(SFNode* a) { return node_is_ntt(a, NTT::Or); }

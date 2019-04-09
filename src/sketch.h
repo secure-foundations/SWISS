@@ -20,13 +20,16 @@ struct NodeType {
 
   NTT ntt;
   int index;
+  bool negated_function;
   
   std::vector<lsort> domain;
   lsort range;
 
   NodeType(std::string const& name, NTT ntt, int index,
       std::vector<lsort> const& domain, lsort range)
-      : name(name) , ntt(ntt) , index(index) , domain(domain), range(range) { }
+      : name(name) , ntt(ntt) , index(index) ,
+        negated_function(false) ,
+        domain(domain), range(range) { }
 };
 
 struct SFNode {
