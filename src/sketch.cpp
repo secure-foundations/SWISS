@@ -271,6 +271,23 @@ z3::expr z3_or(z3::context& ctx, z3::expr a, z3::expr b, z3::expr c, z3::expr d,
   return z3::mk_or(v);
 }
 
+z3::expr exactly_one(z3::context& ctx, vector<z3::expr> const& bools) {
+  z3::expr_vector vec(ctx);
+  for (int i = 0; i < bools.size(); i++) {
+    for (int j = i+1; j < bools.size(); j++) {
+      vec.push_back(!z3_and(ctx, bools[i], bools[j]));
+    }
+  }
+
+  z3::expr_vector at_least_one_vec(ctx);
+  for (int i = 0; i < bools.size(); i++) {
+    at_least_one_vec.push_back(bools[i]);
+  }
+
+  vec.push_back(z3::mk_or(at_least_one_vec));
+
+  return z3::mk_and(vec);
+}
 
 struct ValueVector {
   z3::expr is_true;
@@ -516,7 +533,19 @@ ValueVector SketchFormula::to_value_vector(
     }
   }
 
+  //vv_constraints(vv, node);
+
   return vv;
+}
+
+void SketchFormula::vv_constraints(ValueVector& vv, SFNode* node) {
+  for (int i = 0; i < sorts.size(); i++) {
+    for (int j = 0; j < vv.is_obj[i].size(); j++) {
+      solver.add(z3::implies(vv.is_obj[i][j], node->sort_bools[i]));
+    }
+    solver.add(z3::implies(node->sort_bools[i],
+        exactly_one(ctx, vv.is_obj[i])));
+  }
 }
 
 z3::expr SketchFormula::case_by_node_type(SFNode* node, std::vector<z3::expr> const& args)

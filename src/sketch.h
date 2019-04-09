@@ -107,6 +107,7 @@ private:
   z3::expr children_ascending(SFNode* node);
   std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_le_map;
   std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_eq_map;
+  void vv_constraints(ValueVector& vv, SFNode* node);
 };
 
 #endif
