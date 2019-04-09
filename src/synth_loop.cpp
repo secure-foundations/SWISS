@@ -58,9 +58,9 @@ Counterexample get_counterexample_simple(
   z3::check_result init_res = init_solver.check();
 
   if (init_res == z3::sat) {
-    cex.is_true = Model::extract_model_from_z3(
+    cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
-        init_solver, module, *initctx->e);
+        init_solver, module, {initctx->e})[0];
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -77,9 +77,9 @@ Counterexample get_counterexample_simple(
   z3::check_result conj_res = conj_solver.check();
 
   if (conj_res == z3::sat) {
-    cex.is_false = Model::extract_model_from_z3(
+    cex.is_false = Model::extract_minimal_models_from_z3(
         conjctx->ctx->ctx,
-        conj_solver, module, *conjctx->e);
+        conj_solver, module, {conjctx->e})[0];
 
     printf("counterexample type: SAFETY\n");
     //cex.is_false->dump();
@@ -97,10 +97,11 @@ Counterexample get_counterexample_simple(
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
-    cex.hypothesis = Model::extract_model_from_z3(
-        indctx->ctx->ctx, solver, module, *indctx->e1);
-    cex.conclusion = Model::extract_model_from_z3(
-        indctx->ctx->ctx, solver, module, *indctx->e2);
+    auto ms = Model::extract_minimal_models_from_z3(
+        indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2});
+
+    cex.hypothesis = ms[0];
+    cex.conclusion = ms[1];
     solver.pop();
 
     return cex;
@@ -315,13 +316,17 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(ctx, module, bmc_depth);
 
+  int num_iterations = 0;
+
   while (true) {
+    num_iterations++;
+
     printf("\n");
     std::cout.flush();
 
     //cout << solver << "\n";
     Benchmarking bench;
-    bench.start("solver");
+    bench.start("solver (" + to_string(num_iterations) + ")");
     z3::check_result res = solver_sf.check();
     bench.end();
     bench.dump();
