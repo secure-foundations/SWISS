@@ -331,6 +331,32 @@ void cex_stats(Counterexample cex) {
   model->dump_sizes();
 }
 
+Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
+    BMCContext& bmc,
+    BMCContext& antibmc) {
+  if (cex.hypothesis) {
+    if (bmc.is_reachable(cex.conclusion) ||
+        antibmc.is_reachable(cex.hypothesis)) {
+      Counterexample res;
+      res.is_true = cex.conclusion;
+      printf("simplifying -> INIT\n");
+      return res;
+    }
+
+    if (antibmc.is_reachable(cex.conclusion) ||
+        bmc.is_reachable(cex.hypothesis)) {
+      Counterexample res;
+      res.is_false = cex.hypothesis;
+      printf("simplifying -> SAFETY\n");
+      return res;
+    }
+
+    return cex;
+  } else {
+    return cex;
+  }
+}
+
 void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
@@ -347,6 +373,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(ctx, module, bmc_depth);
+  BMCContext antibmc(ctx, module, bmc_depth, true);
 
   int num_iterations = 0;
 
@@ -385,7 +412,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
     //Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
     Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, candidate);
-    //cex = simplify_cex(module, cex);
+    cex = simplify_cex(module, cex, bmc, antibmc);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
       break;

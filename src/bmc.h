@@ -11,9 +11,10 @@ class FixedBMCContext {
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e1;
   std::shared_ptr<ModelEmbedding> e2;
+  bool from_safety;
 
 public:
-  FixedBMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k);
+  FixedBMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety);
   bool is_exactly_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v);
   bool is_reachable(std::shared_ptr<Model> model);
@@ -24,7 +25,7 @@ class BMCContext {
   std::vector<std::shared_ptr<FixedBMCContext>> bmcs;
 
 public:
-  BMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k);
+  BMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety = false);
   bool is_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v);
   bool is_reachable(std::shared_ptr<Model> model);

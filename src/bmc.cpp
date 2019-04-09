@@ -2,8 +2,9 @@
 
 using namespace std;
 
-FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, int k)
-    : module(module), ctx(new BackgroundContext(z3ctx, module))
+FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, int k,
+    bool from_safety)
+    : module(module), ctx(new BackgroundContext(z3ctx, module)), from_safety(from_safety)
 {
   this->e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
@@ -22,15 +23,23 @@ FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, 
   }
 
   // Add the inits
-  for (shared_ptr<Value> init : module->inits) {
-    ctx->solver.add(this->e1->value2expr(init));
+  if (!from_safety) {
+    for (shared_ptr<Value> init : module->inits) {
+      ctx->solver.add(this->e1->value2expr(init));
+    }
+  } else {
+    ctx->solver.add(this->e1->value2expr(v_not(v_and(module->conjectures))));
   }
 }
 
 bool FixedBMCContext::is_exactly_k_invariant(value v) {
   z3::solver& solver = ctx->solver;
   solver.push();
-  solver.add(this->e2->value2expr(v_not(v)));
+  if (!from_safety) {
+    solver.add(this->e2->value2expr(v_not(v)));
+  } else{
+    solver.add(this->e1->value2expr(v_not(v)));
+  }
   z3::check_result res = solver.check();
   assert(res == z3::sat || res == z3::unsat);
   solver.pop();
@@ -40,7 +49,11 @@ bool FixedBMCContext::is_exactly_k_invariant(value v) {
 shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v) {
   z3::solver& solver = ctx->solver;
   solver.push();
-  solver.add(this->e2->value2expr(v_not(v)));
+  if (!from_safety) {
+    solver.add(this->e2->value2expr(v_not(v)));
+  } else {
+    solver.add(this->e1->value2expr(v_not(v)));
+  }
   z3::check_result res = solver.check();
   assert(res == z3::sat || res == z3::unsat);
 
@@ -56,7 +69,11 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v) {
 bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
   z3::solver& solver = ctx->solver;
   solver.push();
-  model->assert_model_is(this->e2);
+  if (!from_safety) {
+    model->assert_model_is(this->e2);
+  } else {
+    model->assert_model_is(this->e1);
+  }
 
   z3::check_result res = solver.check();
   assert(res == z3::sat || res == z3::unsat);
@@ -64,9 +81,9 @@ bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
   return res == z3::sat;
 }
 
-BMCContext::BMCContext(z3::context& ctx, shared_ptr<Module> module, int k) {
+BMCContext::BMCContext(z3::context& ctx, shared_ptr<Module> module, int k, bool from_safety) {
   for (int i = 1; i <= k; i++) {
-    bmcs.push_back(shared_ptr<FixedBMCContext>(new FixedBMCContext(ctx, module, i)));
+    bmcs.push_back(shared_ptr<FixedBMCContext>(new FixedBMCContext(ctx, module, i, from_safety)));
   }
 }
 
