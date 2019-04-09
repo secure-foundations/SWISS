@@ -44,11 +44,15 @@ Counterexample get_bmc_counterexample(
 
 Counterexample get_counterexample_simple(
     shared_ptr<Module> module,
+    BMCContext& bmc,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
     value candidate)
 {
+  bool use_minimal = false;
+  bool use_bmc = true;
+
   Counterexample cex;
   cex.none = false;
 
@@ -58,9 +62,15 @@ Counterexample get_counterexample_simple(
   z3::check_result init_res = init_solver.check();
 
   if (init_res == z3::sat) {
-    cex.is_true = Model::extract_minimal_models_from_z3(
-        initctx->ctx->ctx,
-        init_solver, module, {initctx->e})[0];
+    if (use_minimal) {
+      cex.is_true = Model::extract_minimal_models_from_z3(
+          initctx->ctx->ctx,
+          init_solver, module, {initctx->e})[0];
+    } else {
+      cex.is_true = Model::extract_model_from_z3(
+          initctx->ctx->ctx,
+          init_solver, module, *initctx->e);
+    }
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -77,9 +87,15 @@ Counterexample get_counterexample_simple(
   z3::check_result conj_res = conj_solver.check();
 
   if (conj_res == z3::sat) {
-    cex.is_false = Model::extract_minimal_models_from_z3(
-        conjctx->ctx->ctx,
-        conj_solver, module, {conjctx->e})[0];
+    if (use_minimal) {
+      cex.is_false = Model::extract_minimal_models_from_z3(
+          conjctx->ctx->ctx,
+          conj_solver, module, {conjctx->e})[0];
+    } else {
+      cex.is_false = Model::extract_model_from_z3(
+          conjctx->ctx->ctx,
+          conj_solver, module, *conjctx->e);
+    }
 
     printf("counterexample type: SAFETY\n");
     //cex.is_false->dump();
@@ -97,12 +113,26 @@ Counterexample get_counterexample_simple(
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
-    auto ms = Model::extract_minimal_models_from_z3(
-        indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2});
+    if (use_minimal) {
+      auto ms = Model::extract_minimal_models_from_z3(
+          indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2});
+      cex.hypothesis = ms[0];
+      cex.conclusion = ms[1];
+    } else {
+      cex.hypothesis = Model::extract_model_from_z3(
+          indctx->ctx->ctx, solver, module, *indctx->e1);
+      cex.conclusion = Model::extract_model_from_z3(
+          indctx->ctx->ctx, solver, module, *indctx->e2);
+    }
 
-    cex.hypothesis = ms[0];
-    cex.conclusion = ms[1];
     solver.pop();
+
+    if (use_bmc) {
+      Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+      if (!bmc_cex.none) {
+        return bmc_cex;
+      }
+    }
 
     printf("counterexample type: INDUCTIVE\n");
 
@@ -320,6 +350,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   int num_iterations = 0;
 
+  Benchmarking total_bench;
+
   while (true) {
     num_iterations++;
 
@@ -329,8 +361,10 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     //cout << solver << "\n";
     Benchmarking bench;
     bench.start("solver (" + to_string(num_iterations) + ")");
+    total_bench.start("total solver time");
     z3::check_result res = solver_sf.check();
     bench.end();
+    total_bench.end();
     bench.dump();
 
     assert(res == z3::sat || res == z3::unsat);
@@ -350,7 +384,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
     //Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
-    Counterexample cex = get_counterexample_simple(module, initctx, indctx, conjctx, candidate);
+    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, candidate);
     //cex = simplify_cex(module, cex);
     if (cex.none) {
       printf("found invariant: %s\n", candidate->to_string().c_str());
@@ -360,4 +394,6 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     cex_stats(cex);
     add_counterexample(module, sf, cex);
   }
+
+  total_bench.dump();
 }
