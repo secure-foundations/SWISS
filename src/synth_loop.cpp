@@ -50,7 +50,8 @@ Counterexample get_counterexample_simple(
     shared_ptr<ConjectureContext> conjctx,
     value candidate)
 {
-  bool use_minimal = false;
+  bool use_minimal = true;
+  bool use_minimal_only_for_safety = true;
   bool use_bmc = true;
 
   Counterexample cex;
@@ -87,7 +88,7 @@ Counterexample get_counterexample_simple(
   z3::check_result conj_res = conj_solver.check();
 
   if (conj_res == z3::sat) {
-    if (use_minimal) {
+    if (use_minimal || use_minimal_only_for_safety) {
       cex.is_false = Model::extract_minimal_models_from_z3(
           conjctx->ctx->ctx,
           conj_solver, module, {conjctx->e})[0];
