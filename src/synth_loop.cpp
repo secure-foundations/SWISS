@@ -104,6 +104,8 @@ Counterexample get_counterexample_simple(
     cex.conclusion = ms[1];
     solver.pop();
 
+    printf("counterexample type: INDUCTIVE\n");
+
     return cex;
   }
 
