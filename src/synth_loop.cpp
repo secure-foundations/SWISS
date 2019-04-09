@@ -337,7 +337,7 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     BMCContext& antibmc) {
   if (cex.hypothesis) {
     if (bmc.is_reachable(cex.conclusion) ||
-        antibmc.is_reachable(cex.hypothesis)) {
+        bmc.is_reachable(cex.hypothesis)) {
       Counterexample res;
       res.is_true = cex.conclusion;
       printf("simplifying -> INIT\n");
@@ -345,7 +345,7 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     }
 
     if (antibmc.is_reachable(cex.conclusion) ||
-        bmc.is_reachable(cex.hypothesis)) {
+        antibmc.is_reachable(cex.hypothesis)) {
       Counterexample res;
       res.is_false = cex.hypothesis;
       printf("simplifying -> SAFETY\n");
