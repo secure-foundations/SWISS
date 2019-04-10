@@ -1,5 +1,7 @@
 #include "contexts.h"
 
+#include <cstdlib>
+
 using namespace std;
 using z3::context;
 using z3::solver;
@@ -9,7 +11,8 @@ using z3::expr;
 
 int name_counter = 1;
 string name(iden basename) {
-  return iden_to_string(basename) + "__" + to_string(name_counter++);
+  return "x" + to_string(rand()) + "_" +
+      iden_to_string(basename) + "__" + to_string(name_counter++);
 }
 
 string name(string basename) {

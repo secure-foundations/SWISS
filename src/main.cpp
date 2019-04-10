@@ -13,6 +13,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <cstdlib>
 
 using namespace std;
 
@@ -526,6 +527,15 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = parse_module(json_src);
 
+  int seed = 1234;
+  for (int i = 1; i < argc; i++) {
+    if (argv[i] == string("--random")) {
+      seed = (int)time(NULL);
+    }
+  }
+  printf("random seed = %d\n", seed);
+  srand(seed);
+
   try {
     if (!just_enumeration) {
       assert(module->templates.size() == 1);
@@ -546,7 +556,7 @@ int main(int argc, char* argv[]) {
 
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       //guided_incremental(module, initctx, indctx, conjctx, invctx);
-      assert(argc == 3);
+      assert(argc >= 3);
       int arity = atoi(argv[1]);
       int depth = atoi(argv[2]);
       synth_loop(module, arity, depth);

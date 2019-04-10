@@ -362,7 +362,6 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
 
-
   assert(module->templates.size() == 1);
 
   vector<VarDecl> quants = get_quantifiers(module->templates[0]);
