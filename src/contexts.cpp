@@ -16,7 +16,8 @@ string name(iden basename) {
 }
 
 string name(string basename) {
-  return basename + "__" + to_string(name_counter++);
+  return "x" + to_string(rand()) + "_" +
+      basename + "__" + to_string(name_counter++);
 }
 
 /*

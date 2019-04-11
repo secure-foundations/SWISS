@@ -86,6 +86,7 @@ SketchFormula::SketchFormula(
   this->root = &nodes[0];
 
   nodes[0].name = "r";
+  nodes[0].parent = NULL;
   for (int i = 0; i < num_total_nodes; i++) {
     nodes[i].is_leaf = (i >= num_branch_nodes);
     if (!nodes[i].is_leaf) {
@@ -94,6 +95,7 @@ SketchFormula::SketchFormula(
         int c = i * arity + j + 1;
         nodes[i].children.push_back(&nodes[c]);
         nodes[c].name = nodes[i].name + to_string(j);
+        nodes[c].parent = &nodes[i];
       }
     }
   }
@@ -110,6 +112,7 @@ SketchFormula::SketchFormula(
 
   add_constraint_for_no_outer_negation();
   add_lex_constraints();
+  //add_variable_ordering_constraints();
 }
 
 void SketchFormula::make_sort_bools(SFNode* node) {
@@ -810,6 +813,132 @@ z3::expr SketchFormula::node_is_eq(SFNode* node) {
       vec.push_back(!node->nt_bools[i]);
     }
     i++;
+  }
+  assert(false);
+}
+
+z3::expr SketchFormula::node_is_var(SFNode* node, int var_index) {
+  z3::expr_vector vec(ctx);
+  int i = 0;
+  for (NodeType& nt : node_types) {
+    if (nt.ntt == NTT::Var && nt.index == var_index) {
+      if (i < node_types.size() - 1) {
+        vec.push_back(node->nt_bools[i]);
+      }
+      return z3::mk_and(vec);
+    } else {
+      vec.push_back(!node->nt_bools[i]);
+    }
+    i++;
+  }
+  assert(false);
+}
+
+void SketchFormula::add_variable_ordering_constraints() {
+  for (lsort so : this->sorts) {
+    vector<int> var_indices;
+    for (int i = 0; i < free_vars.size(); i++) {
+      if (sorts_eq(free_vars[i].sort, so)) {
+        var_indices.push_back(i);
+      }
+    }
+    if (var_indices.size() > 1) {
+      add_variable_ordering_constraints_for_variables(var_indices);
+    }
+  }
+
+  //std::cout << solver << "\n";
+}
+
+bool contains(vector<int> const& v, int t) {
+  for (int i = 0; i < v.size(); i++) {
+    if (v[i] == t) return true;
+  }
+  return false;
+}
+
+void SketchFormula::add_variable_ordering_constraints_for_variables(
+    vector<int> const& var_indices)
+{
+  int m = var_indices.size();
+  map<SFNode*, vector<z3::expr>> all_seen_vars;
+
+  z3::expr const_false = ctx.bool_val(false);
+  z3::expr const_true = ctx.bool_val(true);
+
+  for (SFNode* node : post_order_traversal()) {
+    SFNode* prev = get_node_latest_before_subtree_in_post_order(node);
+
+    vector<z3::expr> emp;
+    vector<z3::expr>& prev_seen_vars = (prev != NULL ? all_seen_vars.find(prev)->second : emp);
+
+    vector<vector<z3::expr>> seen_var_parts;
+    seen_var_parts.resize(m - 1);
+    for (NodeType& nt : node_types) {
+      if (nt.ntt == NTT::Var && contains(var_indices, nt.index)) {
+        for (int i = 0; i < m-1; i++) {
+          seen_var_parts[i].push_back(var_indices[i] == nt.index ? const_true :
+              prev == NULL ? const_false : prev_seen_vars[i]);
+        }
+      } else if (nt.domain.size() > 0 && !node->is_leaf) {
+        vector<z3::expr>& child_seen_vars =
+            all_seen_vars.find(node->children[nt.domain.size() - 1])->second;
+        for (int i = 0; i < m-1; i++) {
+          seen_var_parts[i].push_back(child_seen_vars[i]);
+        }
+      } else {
+        for (int i = 0; i < m-1; i++) {
+          seen_var_parts[i].push_back(prev == NULL ? const_false : prev_seen_vars[i]);
+        }
+      }
+    }
+
+    vector<z3::expr> seen_vars;
+    for (int i = 0; i < m-1; i++) {
+      seen_vars.push_back(new_const(case_by_node_type(node, seen_var_parts[i]),
+          node->name + "_seen_var_" + to_string(i)));
+    }
+    all_seen_vars.insert(make_pair(node, seen_vars));
+
+    for (int i = 1; i < m; i++) {
+      solver.add(z3::implies(
+        node_is_var(node, var_indices[i]),
+        prev == NULL ? const_false : prev_seen_vars[i-1]));
+    }
+  }
+}
+
+vector<SFNode*> SketchFormula::post_order_traversal() {
+  vector<SFNode*> res;
+  post_order_traversal_(root, res);
+  return res;
+}
+
+void SketchFormula::post_order_traversal_(SFNode* node, vector<SFNode*>& res) {
+  for (SFNode* child : node->children) {
+    post_order_traversal_(child, res);
+  }
+  res.push_back(node);
+}
+
+SFNode* SketchFormula::get_node_latest_before_subtree_in_post_order(SFNode* node) {
+  SFNode* pa = node->parent;
+  if (pa == NULL) {
+    return NULL;
+  }
+
+  while (node == pa->children[0]) {
+    pa = pa->parent;
+    node = node->parent;
+    if (pa == NULL) {
+      return NULL;
+    }
+  }
+
+  for (int i = 1; i < pa->children.size(); i++) {
+    if (pa->children[i] == node) {
+      return pa->children[i-1];
+    }
   }
   assert(false);
 }

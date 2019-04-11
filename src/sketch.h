@@ -34,6 +34,7 @@ struct NodeType {
 
 struct SFNode {
   std::vector<SFNode*> children;
+  SFNode* parent;
   bool is_leaf;
   std::vector<z3::expr> nt_bools;
   std::vector<std::string> nt_bool_names;
@@ -103,6 +104,7 @@ private:
   z3::expr node_is_and(SFNode* a);
   z3::expr node_is_eq(SFNode* a);
   z3::expr node_is_ntt(SFNode* a, NTT ntt);
+  z3::expr node_is_var(SFNode* a, int var_index);
   z3::expr nodes_eq(SFNode* a, SFNode* b);
   z3::expr children_lex_le(SFNode* a, SFNode* b, int nchildren);
   z3::expr nodes_le(SFNode* a, SFNode* b);
@@ -111,6 +113,12 @@ private:
   std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_le_map;
   std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_eq_map;
   void vv_constraints(ValueVector& vv, SFNode* node);
+
+  void add_variable_ordering_constraints();
+  void add_variable_ordering_constraints_for_variables(std::vector<int> const&);
+  std::vector<SFNode*> post_order_traversal();
+  void post_order_traversal_(SFNode* node, std::vector<SFNode*>& res);
+  SFNode* get_node_latest_before_subtree_in_post_order(SFNode* node);
 };
 
 #endif

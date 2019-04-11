@@ -1475,3 +1475,25 @@ std::shared_ptr<Sort> FunctionSort::get_range_as_function() const {
   return range;
 }
 
+bool sorts_eq(lsort s, lsort t) {
+  if (dynamic_cast<BooleanSort*>(s.get())) {
+    return dynamic_cast<BooleanSort*>(t.get()) != NULL;
+  }
+  else if (UninterpretedSort* u1 = dynamic_cast<UninterpretedSort*>(s.get())) {
+    UninterpretedSort* u2 = dynamic_cast<UninterpretedSort*>(t.get());
+    return u2 != NULL && u1->name == u2->name; 
+  }
+  else if (FunctionSort* u1 = dynamic_cast<FunctionSort*>(s.get())) {
+    FunctionSort* u2 = dynamic_cast<FunctionSort*>(t.get());
+    if (u2 == NULL) return false;
+    if (u1->domain.size() != u2->domain.size()) return false;
+    if (!sorts_eq(u1->range, u2->range)) return false;
+    for (int i = 0; i < u1->domain.size(); i++) {
+      if (!sorts_eq(u1->domain[i], u2->domain[i])) return false;
+    }
+    return true;
+  }
+  else {
+    assert(false);
+  }
+}

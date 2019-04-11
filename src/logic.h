@@ -508,4 +508,6 @@ inline lsort s_fun(std::vector<lsort> inputs, lsort output) {
   return std::shared_ptr<Sort>(new FunctionSort(inputs, output));
 }
 
+bool sorts_eq(lsort s, lsort t);
+
 #endif
