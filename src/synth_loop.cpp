@@ -384,6 +384,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     num_iterations++;
 
     printf("\n");
+
+    printf("number of boolean variables: %d\n", sf.get_bool_count());
     std::cout.flush();
 
     //cout << solver << "\n";

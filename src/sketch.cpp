@@ -12,7 +12,8 @@ SketchFormula::SketchFormula(
     vector<VarDecl> free_vars,
     shared_ptr<Module> module,
     int arity, int depth)
-  : ctx(ctx), solver(solver), free_vars(free_vars), arity(arity), depth(depth)
+  : ctx(ctx), solver(solver), free_vars(free_vars), arity(arity), depth(depth),
+      bool_count(0)
 {
   assert (2 <= arity);
 
@@ -119,7 +120,7 @@ void SketchFormula::make_sort_bools(SFNode* node) {
   for (int i = 0; i < sorts.size() + 1; i++) {
     string na = name(node->name + (i == sorts.size() ? "sort_bool" : "sort_" +
         dynamic_cast<UninterpretedSort*>(sorts[i].get())->name));
-    node->sort_bools.push_back(ctx.bool_const(na.c_str()));
+    node->sort_bools.push_back(bool_const(na));
     for (int j = 0; j < i; j++) {
       z3::expr_vector vec(ctx);
       vec.push_back(node->sort_bools[i]);
@@ -132,7 +133,7 @@ void SketchFormula::make_sort_bools(SFNode* node) {
 void SketchFormula::make_bt_bools(SFNode* node) {
   for (int i = 0; i < node_types.size() - 1; i++) {
     string na = node->name + "_nt_" + node_types[i].name;
-    node->nt_bools.push_back(ctx.bool_const(na.c_str()));
+    node->nt_bools.push_back(bool_const(na));
     node->nt_bool_names.push_back(na);
   }
 }
@@ -348,8 +349,8 @@ z3::expr SketchFormula::interpret_not_forall(
     vector<z3::expr> v;
     int dsize = model->get_domain_size(free_vars[i].sort);
     for (int j = 0; j < dsize; j++) {
-      z3::expr e = ctx.bool_const(name("existential_var_" + iden_to_string(free_vars[i].name) +
-          "_eq_" + to_string(j)).c_str());
+      z3::expr e = bool_const(name("existential_var_" + iden_to_string(free_vars[i].name) +
+          "_eq_" + to_string(j)));
       v.push_back(e);
     }
 
@@ -584,7 +585,7 @@ z3::expr SketchFormula::case_by_node_type(SFNode* node, std::vector<z3::expr> co
 }
 
 z3::expr SketchFormula::new_const(z3::expr e, string const& na) {
-  z3::expr b = ctx.bool_const(name(na).c_str());
+  z3::expr b = bool_const(name(na));
   solver.add(b == e);
   return b;
 }
@@ -941,4 +942,9 @@ SFNode* SketchFormula::get_node_latest_before_subtree_in_post_order(SFNode* node
     }
   }
   assert(false);
+}
+
+z3::expr SketchFormula::bool_const(std::string const& name) {
+  bool_count++;
+  return ctx.bool_const(name.c_str());
 }

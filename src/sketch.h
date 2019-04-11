@@ -73,6 +73,8 @@ public:
 
   value to_value(z3::model& m);
 
+  int get_bool_count() { return bool_count; }
+
 private:
   value node_to_value(SFNode*);
   z3::expr expr_is_sort(SFNode* node, lsort s);
@@ -119,6 +121,9 @@ private:
   std::vector<SFNode*> post_order_traversal();
   void post_order_traversal_(SFNode* node, std::vector<SFNode*>& res);
   SFNode* get_node_latest_before_subtree_in_post_order(SFNode* node);
+
+  z3::expr bool_const(std::string const& name);
+  int bool_count;
 };
 
 #endif
