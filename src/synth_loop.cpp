@@ -286,20 +286,23 @@ z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<M
   return do_true ? z3::mk_and(vec) : z3::mk_or(vec);
 }
 
-z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
+z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
+    value /*candidate*/) {
   return is_something(module, sf, model, true);
 }
 
 z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
-  return is_something(module, sf, model, false);
-  //return sf.interpret_not_forall(model);
+  //return is_something(module, sf, model, false);
+  return sf.interpret_not_forall(model);
 }
 
-void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex) {
+void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex,
+      value candidate)
+{
   z3::context& ctx = sf.ctx;
 
   if (cex.is_true) {
-    sf.solver.add(is_true(module, sf, cex.is_true));
+    sf.solver.add(is_true(module, sf, cex.is_true, candidate));
   }
   else if (cex.is_false) {
     sf.solver.add(is_false(module, sf, cex.is_false));
@@ -307,7 +310,7 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   else if (cex.hypothesis && cex.conclusion) {
     z3::expr_vector vec(ctx);
     vec.push_back(is_false(module, sf, cex.hypothesis));
-    vec.push_back(is_true(module, sf, cex.conclusion));
+    vec.push_back(is_true(module, sf, cex.conclusion, candidate));
     sf.solver.add(z3::mk_or(vec));
   }
   else {
@@ -422,7 +425,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
     }
 
     cex_stats(cex);
-    add_counterexample(module, sf, cex);
+    add_counterexample(module, sf, cex, candidate);
   }
 
   total_bench.dump();
