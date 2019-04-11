@@ -27,9 +27,10 @@ struct Counterexample {
 
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
-    value candidate)
+    value candidate,
+    bool minimal)
 {
-  shared_ptr<Model> model = bmc.get_k_invariance_violation(candidate);
+  shared_ptr<Model> model = bmc.get_k_invariance_violation(candidate, minimal);
   if (model) {
     printf("counterexample type: INIT (after some steps)\n");
     Counterexample cex;
@@ -129,7 +130,7 @@ Counterexample get_counterexample_simple(
     solver.pop();
 
     if (use_bmc) {
-      Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+      Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, use_minimal);
       if (!bmc_cex.none) {
         return bmc_cex;
       }
