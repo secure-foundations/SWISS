@@ -11,6 +11,7 @@ OBJECTS = $(addprefix bin/,\
 	utils.o \
 	sketch.o \
 	synth_loop.o \
+	quantifier_permutations.o \
 	lib/json11/json11.o \
 )
 

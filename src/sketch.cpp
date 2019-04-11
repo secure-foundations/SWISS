@@ -332,6 +332,7 @@ z3::expr SketchFormula::interpret(
   for (int i = 0; i < vars.size(); i++) {
     vector<z3::expr> v;
     int dsize = model->get_domain_size(free_vars[i].sort);
+    assert(vars[i] < dsize);
     for (int j = 0; j < dsize; j++) {
       v.push_back(j == vars[i] ? const_true : const_false);
     }
