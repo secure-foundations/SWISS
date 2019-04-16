@@ -7,6 +7,8 @@
 #include <map>
 #include <set>
 
+#include "lib/json11/json11.hpp"
+
 /* Sort */
 
 class Sort {
@@ -14,6 +16,7 @@ public:
   virtual ~Sort() {}
 
   virtual std::string to_string() const = 0;
+  virtual json11::Json to_json() const = 0;
 
   virtual std::vector<std::shared_ptr<Sort>> get_domain_as_function() const = 0;
   virtual std::shared_ptr<Sort> get_range_as_function() const = 0;
@@ -21,6 +24,7 @@ public:
 
 class BooleanSort : public Sort {
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
   std::shared_ptr<Sort> get_range_as_function() const override;
 };
@@ -31,6 +35,7 @@ public:
 
   UninterpretedSort(std::string const& name) : name(name) { }
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
   std::shared_ptr<Sort> get_range_as_function() const override;
 };
@@ -45,6 +50,7 @@ public:
       std::shared_ptr<Sort> range)
       : domain(domain), range(range) { }
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::vector<std::shared_ptr<Sort>> get_domain_as_function() const override;
   std::shared_ptr<Sort> get_range_as_function() const override;
 };
@@ -79,6 +85,8 @@ public:
   virtual ~Value() {}
 
   virtual std::string to_string() const = 0;
+  virtual json11::Json to_json() const = 0;
+  static std::shared_ptr<Value> from_json(json11::Json);
   virtual std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const = 0;
   virtual std::shared_ptr<Value> negate() const = 0;
 
@@ -111,6 +119,7 @@ public:
       : decls(decls), body(body) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -134,6 +143,7 @@ public:
       : decls(decls), body(body) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -157,6 +167,7 @@ public:
       : name(name), sort(sort) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -180,6 +191,7 @@ public:
       : name(name), sort(sort) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -203,6 +215,7 @@ public:
     : left(left), right(right) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -224,6 +237,7 @@ public:
     : val(val) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -247,6 +261,7 @@ public:
     : left(left), right(right) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -270,6 +285,7 @@ public:
     : func(func), args(args) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -291,6 +307,7 @@ public:
     : args(args) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -312,6 +329,7 @@ public:
     : args(args) { }
 
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -328,6 +346,7 @@ class TemplateHole : public Value {
 public:
   TemplateHole() { }
   std::string to_string() const override;
+  json11::Json to_json() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;

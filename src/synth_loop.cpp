@@ -9,8 +9,10 @@
 #include "benchmarking.h"
 #include "bmc.h"
 #include "quantifier_permutations.h"
+#include "lib/json11/json11.hpp"
 
 using namespace std;
+using namespace json11;
 
 #define DO_FORALL_PRUNING true
 
@@ -26,6 +28,9 @@ struct Counterexample {
   shared_ptr<Model> conclusion;
 
   bool none;
+
+  Json to_json() const;
+  static Counterexample from_json(Json, shared_ptr<Module>);
 };
 
 Counterexample get_bmc_counterexample(
@@ -391,6 +396,84 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
   }
 }
 
+struct Transcript {
+  vector<pair<Counterexample, value>> entries;
+
+  Json to_json() const;
+  static Transcript from_json(Json, shared_ptr<Module>);
+};
+
+Json Counterexample::to_json() const {
+  if (none) {
+    return Json();
+  }
+  else if (is_true) {
+    return Json(vector<Json>{Json("is_true"), is_true->to_json()});
+  }
+  else if (is_false) {
+    return Json(vector<Json>{Json("is_false"), is_false->to_json()});
+  }
+  else {
+    assert(hypothesis != nullptr);
+    assert(conclusion != nullptr);
+    return Json({Json("ind"), hypothesis->to_json(), conclusion->to_json()});
+  }
+}
+
+Counterexample Counterexample::from_json(Json j, shared_ptr<Module> module) {
+  Counterexample cex;
+  if (j.is_null()) {
+    cex.none = true;
+    return cex;
+  }
+
+  assert(j.is_array());
+  assert(j.array_items().size() >= 2);
+  assert(j[0].is_string());
+  string type = j[0].string_value();
+  if (type == "is_true") {
+    assert(j.array_items().size() == 2);
+    cex.is_true = Model::from_json(j[1], module);
+  }
+  else if (type == "is_false") {
+    assert(j.array_items().size() == 2);
+    cex.is_false = Model::from_json(j[1], module);
+  }
+  else if (type == "ind") {
+    assert(j.array_items().size() == 3);
+    cex.hypothesis = Model::from_json(j[1], module);
+    cex.conclusion = Model::from_json(j[2], module);
+  }
+  else {
+    assert(false);
+  }
+
+  return cex;
+}
+
+Json Transcript::to_json() const {
+  vector<Json> ar;
+  for (auto p : entries) {
+    map<string, Json> o_ent;
+    o_ent.insert(make_pair("cex", p.first.to_json()));
+    o_ent.insert(make_pair("candidate", p.second->to_json()));
+    ar.push_back(Json(o_ent));
+  }
+  return Json(ar);
+}
+
+Transcript Transcript::from_json(Json j, shared_ptr<Module> module) {
+  Transcript t;
+  assert(j.is_array());
+  for (auto ent : j.array_items()) {
+    assert(ent.is_object());
+    Counterexample cex = Counterexample::from_json(ent["cex"], module);
+    value v = Value::from_json(ent["candidate"]);
+    t.entries.push_back(make_pair(cex, v));
+  }
+  return t;
+}
+
 void synth_loop(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
@@ -411,6 +494,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
   int num_iterations = 0;
 
   Benchmarking total_bench;
+  Transcript transcript;
 
   while (true) {
     num_iterations++;
@@ -455,7 +539,9 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
     cex_stats(cex);
     add_counterexample(module, sf, cex, candidate);
+    transcript.entries.push_back(make_pair(cex, candidate));
   }
 
+  cout << transcript.to_json().dump() << endl;
   total_bench.dump();
 }

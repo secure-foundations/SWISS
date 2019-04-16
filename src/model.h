@@ -6,6 +6,7 @@
 #include "logic.h"
 #include "contexts.h"
 #include "z3++.h"
+#include "lib/json11/json11.hpp"
 
 class SortInfo {
 public:
@@ -18,12 +19,18 @@ class FunctionTable {
 public:
   std::vector<std::unique_ptr<FunctionTable>> children;
   object_value value;
+
+  json11::Json to_json() const;
+  static std::unique_ptr<FunctionTable> from_json(json11::Json);
 };
 
 class FunctionInfo {
 public:
   object_value else_value;
   std::unique_ptr<FunctionTable> table;
+
+  json11::Json to_json() const;
+  static FunctionInfo from_json(json11::Json);
 };
 
 class FunctionEntry {
@@ -66,6 +73,9 @@ public:
       bool exact, bool negate);
 
   std::vector<FunctionEntry> getFunctionEntries(iden name);
+
+  json11::Json to_json() const;
+  static std::shared_ptr<Model> from_json(json11::Json, std::shared_ptr<Module>);
 
 private:
   std::shared_ptr<Module> module;

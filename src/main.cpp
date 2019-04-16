@@ -532,6 +532,10 @@ int main(int argc, char* argv[]) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);
     }
+    else if (argv[i] == string("--seed")) {
+      assert(i + 1 < argc);
+      seed = atoi(argv[i+1]);
+    }
   }
   printf("random seed = %d\n", seed);
   srand(seed);

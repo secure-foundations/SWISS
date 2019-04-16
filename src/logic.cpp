@@ -1,10 +1,11 @@
 #include "logic.h"
-#include "lib/json11/json11.hpp"
-#include "benchmarking.h"
 
 #include <cassert>
 #include <iostream>
 #include <algorithm>
+
+#include "lib/json11/json11.hpp"
+#include "benchmarking.h"
 
 using namespace std;
 using namespace json11;
@@ -154,6 +155,10 @@ shared_ptr<Value> json2value(Json j) {
   }
 }
 
+shared_ptr<Value> Value::from_json(Json j) {
+  return json2value(j);
+}
+
 shared_ptr<Sort> json2sort(Json j) {
   assert(j.is_array());
   assert(j.array_items().size() >= 1);
@@ -212,6 +217,90 @@ shared_ptr<Action> json2action(Json j) {
   else {
     assert(false && "unrecognized Action type");
   }
+}
+
+vector<Json> sort_array_2_json(vector<lsort> const& sorts) {
+  vector<Json> res;
+  for (lsort s : sorts) {
+    res.push_back(s->to_json());
+  }
+  return res;
+}
+
+vector<Json> value_array_2_json(vector<value> const& values) {
+  vector<Json> res;
+  for (value v : values) {
+    res.push_back(v->to_json());
+  }
+  return res;
+}
+
+vector<Json> decl_array_2_json(vector<VarDecl> const& decls) {
+  vector<Json> res;
+  for (VarDecl const& decl : decls) {
+    res.push_back(Json({
+        Json("var"),
+        Json(iden_to_string(decl.name)),
+        decl.sort->to_json()
+    }));
+  }
+  return res;
+}
+
+Json BooleanSort::to_json() const {
+  return Json({Json("booleanSort")});
+}
+
+Json UninterpretedSort::to_json() const {
+  return Json(vector<Json>{Json("uninterpretedSort"), Json(name)});
+}
+
+Json FunctionSort::to_json() const {
+  return Json({Json("functionSort"), sort_array_2_json(domain), range->to_json()});
+}
+
+Json Forall::to_json() const {
+  return Json({Json("forall"), decl_array_2_json(decls), body->to_json()});
+}
+
+Json Exists::to_json() const {
+  return Json({Json("exists"), decl_array_2_json(decls), body->to_json()});
+}
+
+Json Var::to_json() const {
+  return Json({Json("var"), Json(iden_to_string(name)), sort->to_json()});
+}
+
+Json Const::to_json() const {
+  return Json({Json("const"), Json(iden_to_string(name)), sort->to_json()});
+}
+
+Json Implies::to_json() const {
+  return Json({Json("implies"), left->to_json(), right->to_json()});
+}
+
+Json Eq::to_json() const {
+  return Json({Json("eq"), left->to_json(), right->to_json()});
+}
+
+Json Not::to_json() const {
+  return Json(vector<Json>{Json("eq"), val->to_json()});
+}
+
+Json Apply::to_json() const {
+  return Json({Json("apply"), func->to_json(), value_array_2_json(args)});
+}
+
+Json And::to_json() const {
+  return Json({Json("and"), value_array_2_json(args)});
+}
+
+Json Or::to_json() const {
+  return Json({Json("or"), value_array_2_json(args)});
+}
+
+Json TemplateHole::to_json() const {
+  return Json({Json("__wild")});
 }
 
 string BooleanSort::to_string() const {

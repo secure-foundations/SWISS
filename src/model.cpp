@@ -5,6 +5,7 @@
 #include <algorithm>
 
 using namespace std;
+using namespace json11;
 
 enum class EvalExprType {
   Forall,
@@ -1113,4 +1114,92 @@ std::vector<FunctionEntry> Model::getFunctionEntries(iden name)
   }
 
   return entries;
+}
+
+Json Model::to_json() const {
+  map<string, Json> o_sort_info;
+  for (auto& p : sort_info) {
+    o_sort_info.insert(make_pair(p.first, Json((int)p.second.domain_size)));
+  }
+  Json j_sort_info = Json(o_sort_info);
+
+  map<string, Json> o_function_info;
+  for (auto& p : function_info) {
+    o_function_info.insert(make_pair(iden_to_string(p.first), p.second.to_json()));
+  }
+  Json j_function_info = Json(o_function_info);
+
+  map<string, Json> o;
+  o.insert(make_pair("sorts", j_sort_info));
+  o.insert(make_pair("functions", j_function_info));
+  return Json(o);
+}
+
+shared_ptr<Model> Model::from_json(Json j, shared_ptr<Module> module) {
+  shared_ptr<Model> model(new Model());
+  model->module = module;
+
+  Json j_sort_info = j["sorts"];
+  Json j_func_info = j["functions"];
+  assert(j_sort_info.is_array());
+  assert(j_func_info.is_array());
+
+  for (auto p : j_sort_info.object_items()) {
+    Json j = p.second;
+    assert(j.is_number());
+    SortInfo si;
+    si.domain_size = j.int_value();
+
+    model->sort_info.insert(make_pair(p.first, si));
+  }
+
+  for (auto p : j_func_info.object_items()) {
+    Json j = p.second;
+    model->function_info.insert(make_pair(string_to_iden(p.first), FunctionInfo::from_json(j)));
+  }
+
+  return model;
+}
+
+Json FunctionInfo::to_json() const {
+  map<string, Json> o;
+  o.insert(make_pair("else", Json((int)else_value)));
+  o.insert(make_pair("table", table == nullptr ? Json() : table->to_json()));
+  return Json(o);
+}
+
+FunctionInfo FunctionInfo::from_json(Json j) {
+  assert(j.is_object());
+  FunctionInfo fi;
+  assert(j["else"].is_number());
+  fi.else_value = (object_value) j["else"].int_value();
+  fi.table = FunctionTable::from_json(j["table"]);
+  return fi;
+}
+
+Json FunctionTable::to_json() const {
+  if (children.size() > 0) {
+    vector<Json> v;
+    for (auto& ftable : children) {
+      v.push_back(ftable == nullptr ? Json() : ftable->to_json());
+    }
+    return Json(v);
+  } else {
+    return Json((int)value);
+  }
+}
+
+unique_ptr<FunctionTable> FunctionTable::from_json(Json j) {
+  unique_ptr<FunctionTable> ft(new FunctionTable());
+  if (j.is_null()) {
+    return ft;
+  } else if (j.is_array()) {
+    for (Json j1 : j.array_items()) {
+      ft->children.push_back(FunctionTable::from_json(j1));
+    }
+  } else {
+    assert(j.is_number());
+    ft->value = (object_value) j.int_value();
+  }
+  return ft;
 }
