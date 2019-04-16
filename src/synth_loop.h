@@ -3,6 +3,9 @@
 
 #include "logic.h"
 
-void synth_loop(std::shared_ptr<Module> module, int arity, int depth);
+struct Transcript;
+
+void synth_loop(std::shared_ptr<Module> module, int arity, int depth, Transcript*);
+void synth_loop_from_transcript(std::shared_ptr<Module> module, int arity, int depth);
 
 #endif

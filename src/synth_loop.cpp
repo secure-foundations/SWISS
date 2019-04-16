@@ -1,6 +1,8 @@
 #include "synth_loop.h"
 
 #include <iostream>
+#include <fstream>
+#include <streambuf>
 
 #include "z3++.h"
 #include "model.h"
@@ -474,7 +476,8 @@ Transcript Transcript::from_json(Json j, shared_ptr<Module> module) {
   return t;
 }
 
-void synth_loop(shared_ptr<Module> module, int arity, int depth)
+void synth_loop(shared_ptr<Module> module, int arity, int depth,
+    Transcript* init_transcript)
 {
   z3::context ctx;
 
@@ -493,8 +496,18 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   int num_iterations = 0;
 
+  if (init_transcript) {
+    printf("using init_transcript with %d entries\n", (int)init_transcript->entries.size());
+    for (auto p : init_transcript->entries) {
+      Counterexample cex = p.first;
+      value candidate = p.second;
+      add_counterexample(module, sf, cex, candidate);
+    }
+  }
+
   Benchmarking total_bench;
   Transcript transcript;
+
 
   while (true) {
     num_iterations++;
@@ -544,4 +557,27 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
 
   cout << transcript.to_json().dump() << endl;
   total_bench.dump();
+}
+
+void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
+{
+  string filename = "../../ms";
+  ifstream t(filename);
+  string contents((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
+
+  cout << "read in transcript contents:" << endl;
+  cout << contents << endl << endl;
+
+  string err;
+  if (err.size()) cout << err << "\n";
+  Json j = Json::parse(contents, err);
+  Transcript transcript = Transcript::from_json(j, module);
+
+  Benchmarking bench;
+  bench.start("synth_loop with transcript");
+
+  synth_loop(module, arity, depth, &transcript);
+
+  bench.end();
+  bench.dump();
 }

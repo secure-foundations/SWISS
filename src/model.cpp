@@ -1141,8 +1141,8 @@ shared_ptr<Model> Model::from_json(Json j, shared_ptr<Module> module) {
 
   Json j_sort_info = j["sorts"];
   Json j_func_info = j["functions"];
-  assert(j_sort_info.is_array());
-  assert(j_func_info.is_array());
+  assert(j_sort_info.is_object());
+  assert(j_func_info.is_object());
 
   for (auto p : j_sort_info.object_items()) {
     Json j = p.second;

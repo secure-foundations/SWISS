@@ -284,7 +284,7 @@ Json Eq::to_json() const {
 }
 
 Json Not::to_json() const {
-  return Json(vector<Json>{Json("eq"), val->to_json()});
+  return Json(vector<Json>{Json("not"), val->to_json()});
 }
 
 Json Apply::to_json() const {
