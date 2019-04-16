@@ -160,6 +160,7 @@ shared_ptr<Value> Value::from_json(Json j) {
 }
 
 shared_ptr<Sort> json2sort(Json j) {
+  cout << j.dump() << endl;
   assert(j.is_array());
   assert(j.array_items().size() >= 1);
   assert(j[0].is_string());
@@ -248,7 +249,7 @@ vector<Json> decl_array_2_json(vector<VarDecl> const& decls) {
 }
 
 Json BooleanSort::to_json() const {
-  return Json({Json("booleanSort")});
+  return Json(vector<Json>{Json("booleanSort")});
 }
 
 Json UninterpretedSort::to_json() const {
@@ -256,31 +257,31 @@ Json UninterpretedSort::to_json() const {
 }
 
 Json FunctionSort::to_json() const {
-  return Json({Json("functionSort"), sort_array_2_json(domain), range->to_json()});
+  return Json(vector<Json>{Json("functionSort"), sort_array_2_json(domain), range->to_json()});
 }
 
 Json Forall::to_json() const {
-  return Json({Json("forall"), decl_array_2_json(decls), body->to_json()});
+  return Json(vector<Json>{Json("forall"), decl_array_2_json(decls), body->to_json()});
 }
 
 Json Exists::to_json() const {
-  return Json({Json("exists"), decl_array_2_json(decls), body->to_json()});
+  return Json(vector<Json>{Json("exists"), decl_array_2_json(decls), body->to_json()});
 }
 
 Json Var::to_json() const {
-  return Json({Json("var"), Json(iden_to_string(name)), sort->to_json()});
+  return Json(vector<Json>{Json("var"), Json(iden_to_string(name)), sort->to_json()});
 }
 
 Json Const::to_json() const {
-  return Json({Json("const"), Json(iden_to_string(name)), sort->to_json()});
+  return Json(vector<Json>{Json("const"), Json(iden_to_string(name)), sort->to_json()});
 }
 
 Json Implies::to_json() const {
-  return Json({Json("implies"), left->to_json(), right->to_json()});
+  return Json(vector<Json>{Json("implies"), left->to_json(), right->to_json()});
 }
 
 Json Eq::to_json() const {
-  return Json({Json("eq"), left->to_json(), right->to_json()});
+  return Json(vector<Json>{Json("eq"), left->to_json(), right->to_json()});
 }
 
 Json Not::to_json() const {
@@ -288,19 +289,19 @@ Json Not::to_json() const {
 }
 
 Json Apply::to_json() const {
-  return Json({Json("apply"), func->to_json(), value_array_2_json(args)});
+  return Json(vector<Json>{Json("apply"), func->to_json(), value_array_2_json(args)});
 }
 
 Json And::to_json() const {
-  return Json({Json("and"), value_array_2_json(args)});
+  return Json(vector<Json>{Json("and"), value_array_2_json(args)});
 }
 
 Json Or::to_json() const {
-  return Json({Json("or"), value_array_2_json(args)});
+  return Json(vector<Json>{Json("or"), value_array_2_json(args)});
 }
 
 Json TemplateHole::to_json() const {
-  return Json({Json("__wild")});
+  return Json(vector<Json>{Json("__wild")});
 }
 
 string BooleanSort::to_string() const {
