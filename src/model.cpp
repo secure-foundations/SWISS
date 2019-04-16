@@ -1190,14 +1190,16 @@ Json FunctionTable::to_json() const {
 }
 
 unique_ptr<FunctionTable> FunctionTable::from_json(Json j) {
-  unique_ptr<FunctionTable> ft(new FunctionTable());
+  unique_ptr<FunctionTable> ft;
   if (j.is_null()) {
     return ft;
   } else if (j.is_array()) {
+    ft.reset(new FunctionTable());
     for (Json j1 : j.array_items()) {
       ft->children.push_back(FunctionTable::from_json(j1));
     }
   } else {
+    ft.reset(new FunctionTable());
     assert(j.is_number());
     ft->value = (object_value) j.int_value();
   }

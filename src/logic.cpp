@@ -160,7 +160,6 @@ shared_ptr<Value> Value::from_json(Json j) {
 }
 
 shared_ptr<Sort> json2sort(Json j) {
-  cout << j.dump() << endl;
   assert(j.is_array());
   assert(j.array_items().size() >= 1);
   assert(j[0].is_string());

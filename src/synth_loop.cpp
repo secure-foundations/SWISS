@@ -503,6 +503,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
       value candidate = p.second;
       add_counterexample(module, sf, cex, candidate);
     }
+    printf("done\n");
   }
 
   Benchmarking total_bench;
