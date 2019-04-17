@@ -31,6 +31,8 @@ struct Counterexample {
 
   bool none;
 
+  Counterexample() : none(false) { }
+
   Json to_json() const;
   static Counterexample from_json(Json, shared_ptr<Module>);
 };
@@ -531,10 +533,9 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
   while (true) {
     num_iterations++;
 
-    log_smtlib(solver_sf);
-
     printf("\n");
 
+    log_smtlib(solver_sf);
     printf("number of boolean variables: %d\n", sf.get_bool_count());
     std::cout.flush();
 
