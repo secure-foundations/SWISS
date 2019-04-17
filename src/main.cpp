@@ -517,6 +517,8 @@ void try_to_add_invariants(
   return;
 }
 
+int run_id;
+
 int main(int argc, char* argv[]) {
 
   // FIXME: quick hack to control which enumeration to use
@@ -526,6 +528,9 @@ int main(int argc, char* argv[]) {
   std::string json_src(begin, end);
 
   shared_ptr<Module> module = parse_module(json_src);
+
+  srand((int)time(NULL));
+  run_id = rand();
 
   int seed = 1234;
   for (int i = 1; i < argc; i++) {

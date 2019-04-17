@@ -478,6 +478,22 @@ Transcript Transcript::from_json(Json j, shared_ptr<Module> module) {
   return t;
 }
 
+extern int run_id;
+
+void log_smtlib(z3::solver& solver) {
+  static int log_num = 1;
+
+  string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
+  log_num++;
+
+  cout << "logging smtlib to " << filename << endl;
+
+  ofstream myfile;
+  myfile.open(filename);
+  myfile << solver << endl;
+  myfile.close();
+}
+
 void synth_loop(shared_ptr<Module> module, int arity, int depth,
     Transcript* init_transcript)
 {
@@ -514,6 +530,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
 
   while (true) {
     num_iterations++;
+
+    log_smtlib(solver_sf);
 
     printf("\n");
 
