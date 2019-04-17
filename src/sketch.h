@@ -121,6 +121,9 @@ private:
   std::vector<SFNode*> post_order_traversal();
   void post_order_traversal_(SFNode* node, std::vector<SFNode*>& res);
   SFNode* get_node_latest_before_subtree_in_post_order(SFNode* node);
+  void constrain_conj_disj_form();
+  void constrain_node_as_and(SFNode* node);
+  void constrain_node_as_or(SFNode* node);
 
   z3::expr bool_const(std::string const& name);
   int bool_count;

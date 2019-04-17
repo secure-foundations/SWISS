@@ -556,7 +556,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     transcript.entries.push_back(make_pair(cex, candidate));
   }
 
-  cout << transcript.to_json().dump() << endl;
+  //cout << transcript.to_json().dump() << endl;
   total_bench.dump();
 }
 

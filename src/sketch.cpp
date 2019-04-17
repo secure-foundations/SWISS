@@ -114,6 +114,7 @@ SketchFormula::SketchFormula(
   add_constraint_for_no_outer_negation();
   add_lex_constraints();
   //add_variable_ordering_constraints();
+  constrain_conj_disj_form();
 }
 
 void SketchFormula::make_sort_bools(SFNode* node) {
@@ -948,4 +949,27 @@ SFNode* SketchFormula::get_node_latest_before_subtree_in_post_order(SFNode* node
 z3::expr SketchFormula::bool_const(std::string const& name) {
   bool_count++;
   return ctx.bool_const(name.c_str());
+}
+
+void SketchFormula::constrain_conj_disj_form() {
+  assert(2 <= depth);
+
+  constrain_node_as_and(root);
+  for (SFNode* child : root->children) {
+    constrain_node_as_or(child);
+  }
+}
+
+void SketchFormula::constrain_node_as_and(SFNode* node) {
+  for (int i = 0; i < node->nt_bools.size(); i++) {
+    z3::expr e = node->nt_bools[i];
+    solver.add(node_types[i].ntt == NTT::And ? e : !e);
+  }
+}
+
+void SketchFormula::constrain_node_as_or(SFNode* node) {
+  for (int i = 0; i < node->nt_bools.size(); i++) {
+    z3::expr e = node->nt_bools[i];
+    solver.add(node_types[i].ntt == NTT::Or ? e : !e);
+  }
 }

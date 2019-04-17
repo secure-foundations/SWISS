@@ -564,8 +564,8 @@ int main(int argc, char* argv[]) {
       int arity = atoi(argv[1]);
       int depth = atoi(argv[2]);
 
-      //synth_loop(module, arity, depth);
-      synth_loop_from_transcript(module, arity, depth);
+      synth_loop(module, arity, depth);
+      //synth_loop_from_transcript(module, arity, depth);
 
       /*
       z3::solver solver = z3::solver(ctx);
