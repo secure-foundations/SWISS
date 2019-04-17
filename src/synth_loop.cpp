@@ -344,6 +344,8 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
     sf.solver.add(is_false(module, sf, cex.is_false));
   }
   else if (cex.hypothesis && cex.conclusion) {
+    //cex.hypothesis->dump();
+    //cex.conclusion->dump();
     z3::expr_vector vec(ctx);
     vec.push_back(is_false(module, sf, cex.hypothesis));
     vec.push_back(is_true(module, sf, cex.conclusion, candidate));

@@ -28,7 +28,7 @@ FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, 
       ctx->solver.add(this->e1->value2expr(init));
     }
   } else {
-    ctx->solver.add(this->e1->value2expr(v_not(v_and(module->conjectures))));
+    ctx->solver.add(this->e2->value2expr(v_not(v_and(module->conjectures))));
   }
 }
 
