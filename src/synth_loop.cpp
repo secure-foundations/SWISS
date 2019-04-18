@@ -488,12 +488,12 @@ void log_smtlib(z3::solver& solver) {
   string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
   log_num++;
 
-  cout << "logging smtlib to " << filename << endl;
-
   ofstream myfile;
   myfile.open(filename);
   myfile << solver << endl;
   myfile.close();
+
+  cout << "logged smtlib to " << filename << endl;
 }
 
 void synth_loop(shared_ptr<Module> module, int arity, int depth,
