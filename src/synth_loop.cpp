@@ -275,8 +275,7 @@ z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<M
   vector<object_value> args;
   args.resize(domain_sizes.size());
   while (true) {
-    z3::expr e = sf.interpret(model, args);
-    vec.push_back(do_true ? e : !e);
+    z3::expr e = sf.interpret(model, args, do_true);
 
     int i;
     for (i = 0; i < domain_sizes.size(); i++) {
@@ -312,7 +311,7 @@ z3::expr assert_true_for_some_qs(
   printf("using %d instantiations\n", (int)all_perms.size());
 
   for (vector<object_value> const& ovs : all_perms) {
-    z3::expr e = sf.interpret(model, ovs);
+    z3::expr e = sf.interpret(model, ovs, true);
     vec.push_back(e);
   }
 

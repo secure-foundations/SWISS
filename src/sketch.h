@@ -68,7 +68,8 @@ public:
     int arity, int depth
   );
 
-  z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&);
+  z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
+      bool target_value);
   z3::expr interpret_not_forall(std::shared_ptr<Model> model);
 
   value to_value(z3::model& m);
@@ -95,6 +96,7 @@ private:
     std::vector<std::vector<z3::expr>> const& var_exprs);
   z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
   z3::expr new_const(z3::expr e, std::string const& name);
+  z3::expr new_const_impl(z3::expr e, std::string const& name);
   z3::expr get_vector_value_entry(ValueVector& vv,
       lsort s, object_value o);
   int get_sort_index(lsort s);
