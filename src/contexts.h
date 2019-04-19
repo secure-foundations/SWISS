@@ -109,4 +109,6 @@ ActionResult applyAction(
     std::shared_ptr<Action> action,
     std::unordered_map<iden, z3::expr> const& consts);
 
+bool is_complete_invariant(std::shared_ptr<Module>, value);
+
 #endif

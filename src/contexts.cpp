@@ -454,3 +454,43 @@ InvariantsContext::InvariantsContext(
     ctx->solver.add(this->e->value2expr(axiom));
   }
 }
+
+bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
+  z3::context ctx;  
+
+  {
+    InitContext initctx(ctx, module);
+    z3::solver& init_solver = initctx.ctx->solver;
+    init_solver.add(initctx.e->value2expr(v_not(candidate)));
+    z3::check_result init_res = init_solver.check();
+    assert (init_res == z3::sat || init_res == z3::unsat);
+    if (init_res == z3::sat) {
+      return false;
+    }
+  }
+
+  {
+    ConjectureContext conjctx(ctx, module);
+    z3::solver& conj_solver = conjctx.ctx->solver;
+    conj_solver.add(conjctx.e->value2expr(candidate));
+    z3::check_result conj_res = conj_solver.check();
+    assert (conj_res == z3::sat || conj_res == z3::unsat);
+    if (conj_res == z3::sat) {
+      return false;
+    }
+  }
+
+  {
+    InductionContext indctx(ctx, module);
+    z3::solver& solver = indctx.ctx->solver;
+    solver.add(indctx.e1->value2expr(candidate));
+    solver.add(indctx.e2->value2expr(v_not(candidate)));
+    z3::check_result res = solver.check();
+    assert (res == z3::sat || res == z3::unsat);
+    if (res == z3::sat) {
+      return false;
+    }
+  }
+
+  return true;
+}

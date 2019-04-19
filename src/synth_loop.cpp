@@ -567,7 +567,13 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, candidate);
     cex = simplify_cex(module, cex, bmc, antibmc);
     if (cex.none) {
-      printf("found invariant: %s\n", candidate->to_string().c_str());
+      // Extra verification:
+      if (is_complete_invariant(module, candidate)) {
+        printf("found invariant: %s\n", candidate->to_string().c_str());
+      } else {
+        printf("ERROR: invariant is not actually invariant");
+        assert(false);
+      }
       break;
     }
 
