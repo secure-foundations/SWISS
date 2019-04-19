@@ -129,6 +129,12 @@ private:
 
   z3::expr bool_const(std::string const& name);
   int bool_count;
+
+  z3::expr ftree_to_expr(
+      z3::context& ctx,
+      std::shared_ptr<FTree> ftree,
+      std::vector<ValueVector>& children,
+      NodeType& nt);
 };
 
 #endif

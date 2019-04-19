@@ -4,8 +4,9 @@
 
 using namespace std;
 
-#define USE_2_FOR_BOOLS false
+#define USE_2_FOR_BOOLS true
 #define NEGATE_FUNCS true
+#define USE_FTREE true
 
 SketchFormula::SketchFormula(
     z3::context& ctx,
@@ -400,6 +401,47 @@ z3::expr SketchFormula::interpret_not_forall(
 }
 
 #if USE_2_FOR_BOOLS
+
+z3::expr SketchFormula::ftree_to_expr(
+    z3::context& ctx,
+    shared_ptr<FTree> ft,
+    vector<ValueVector>& children,
+    NodeType& nt)
+{
+  switch (ft->type) {
+    case FTree::Type::True: {
+      return ctx.bool_val(true);
+    }
+    case FTree::Type::False: {
+      return ctx.bool_val(false);
+    }
+
+    case FTree::Type::And: {
+      return z3_and(ctx,
+          ftree_to_expr(ctx, ft->left, children, nt),
+          ftree_to_expr(ctx, ft->right, children, nt));
+    }
+
+    case FTree::Type::Or: {
+      return z3_or(ctx,
+          ftree_to_expr(ctx, ft->left, children, nt),
+          ftree_to_expr(ctx, ft->right, children, nt));
+    }
+
+    case FTree::Type::Atom: {
+      assert(0 <= ft->arg_idx && ft->arg_idx < nt.domain.size());
+      return get_vector_value_entry(
+          children[ft->arg_idx],
+          nt.domain[ft->arg_idx],
+          ft->arg_value);
+    }
+
+    default:
+      assert(false);
+  }
+
+}
+
 ValueVector SketchFormula::to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
@@ -522,56 +564,95 @@ ValueVector SketchFormula::to_value_vector(
       }
 
       case NTT::Func: {
-        if (dynamic_cast<BooleanSort*>(nt.range.get())) {
-          z3::expr_vector arg_possibilities(ctx);
-          z3::expr_vector arg_possibilities_not(ctx);
-          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-            z3::expr_vector arg_conjuncts(ctx);
-            assert(e.args.size() == nt.domain.size());
-            for (int i = 0; i < e.args.size(); i++) {
-              arg_conjuncts.push_back(get_vector_value_entry(
-                children[i], nt.domain[i], e.args[i]));
-            }
-            if (e.res == (nt.negated_function ? 0 : 1)) {
-              arg_possibilities.push_back(z3::mk_and(arg_conjuncts));
+        if (USE_FTREE) {
+          int range_size = model->get_domain_size(nt.range);
+          vector<z3::expr> exprs;
+          for (int val = 0; val < range_size; val++) {
+            shared_ptr<FTree> ftree = model->getFunctionFTree(
+                this->functions[nt.index].name, val);
+            z3::expr e = ftree_to_expr(ctx, ftree, children, nt);
+            exprs.push_back(e);
+          }
+
+          if (dynamic_cast<BooleanSort*>(nt.range.get())) {
+            if (nt.negated_function) {
+              v_is_true.push_back(exprs[0]);
+              v_is_false.push_back(exprs[1]);
             } else {
-              arg_possibilities_not.push_back(z3::mk_and(arg_conjuncts));
+              v_is_true.push_back(exprs[1]);
+              v_is_false.push_back(exprs[0]);
+            }
+
+            for (int i = 0; i < sorts.size(); i++) {
+              for (int j = 0; j < domain_sizes[i]; j++) {
+                v_objs[i][j].push_back(const_false);
+              }
+            }
+          } else {
+            v_is_true.push_back(const_false); 
+            v_is_false.push_back(const_false); 
+
+            int sort_index = get_sort_index(nt.range);
+
+            for (int i = 0; i < sorts.size(); i++) {
+              for (int j = 0; j < domain_sizes[i]; j++) {
+                v_objs[i][j].push_back(i == sort_index ? exprs[j] : const_false);
+              }
             }
           }
 
-          v_is_true.push_back(z3::mk_or(arg_possibilities));
-          v_is_false.push_back(z3::mk_or(arg_possibilities_not));
-
-          for (int i = 0; i < sorts.size(); i++) {
-            for (int j = 0; j < domain_sizes[i]; j++) {
-              v_objs[i][j].push_back(const_false);
-            }
-          }
         } else {
-          int sort_index = get_sort_index(nt.range);
-          int dsize = domain_sizes[sort_index];
-          vector<z3::expr_vector> arg_possibilities;
-          for (int i = 0; i < dsize; i++) {
-            arg_possibilities.push_back(z3::expr_vector(ctx));
-          }
-
-          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-            z3::expr_vector arg_conjuncts(ctx);
-            assert(e.args.size() == nt.domain.size());
-            for (int i = 0; i < e.args.size(); i++) {
-              arg_conjuncts.push_back(get_vector_value_entry(
-                children[i], nt.domain[i], e.args[i]));
+          if (dynamic_cast<BooleanSort*>(nt.range.get())) {
+            z3::expr_vector arg_possibilities(ctx);
+            z3::expr_vector arg_possibilities_not(ctx);
+            for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
+              z3::expr_vector arg_conjuncts(ctx);
+              assert(e.args.size() == nt.domain.size());
+              for (int i = 0; i < e.args.size(); i++) {
+                arg_conjuncts.push_back(get_vector_value_entry(
+                  children[i], nt.domain[i], e.args[i]));
+              }
+              if (e.res == (nt.negated_function ? 0 : 1)) {
+                arg_possibilities.push_back(z3::mk_and(arg_conjuncts));
+              } else {
+                arg_possibilities_not.push_back(z3::mk_and(arg_conjuncts));
+              }
             }
-            arg_possibilities[e.res].push_back(z3::mk_and(arg_conjuncts));
-          }
 
-          v_is_true.push_back(const_false); 
-          v_is_false.push_back(const_false); 
+            v_is_true.push_back(z3::mk_or(arg_possibilities));
+            v_is_false.push_back(z3::mk_or(arg_possibilities_not));
 
-          for (int i = 0; i < sorts.size(); i++) {
-            for (int j = 0; j < domain_sizes[i]; j++) {
-              v_objs[i][j].push_back(i == sort_index ?
-                  z3::mk_or(arg_possibilities[j]) : const_false);
+            for (int i = 0; i < sorts.size(); i++) {
+              for (int j = 0; j < domain_sizes[i]; j++) {
+                v_objs[i][j].push_back(const_false);
+              }
+            }
+          } else {
+            int sort_index = get_sort_index(nt.range);
+            int dsize = domain_sizes[sort_index];
+            vector<z3::expr_vector> arg_possibilities;
+            for (int i = 0; i < dsize; i++) {
+              arg_possibilities.push_back(z3::expr_vector(ctx));
+            }
+
+            for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
+              z3::expr_vector arg_conjuncts(ctx);
+              assert(e.args.size() == nt.domain.size());
+              for (int i = 0; i < e.args.size(); i++) {
+                arg_conjuncts.push_back(get_vector_value_entry(
+                  children[i], nt.domain[i], e.args[i]));
+              }
+              arg_possibilities[e.res].push_back(z3::mk_and(arg_conjuncts));
+            }
+
+            v_is_true.push_back(const_false); 
+            v_is_false.push_back(const_false); 
+
+            for (int i = 0; i < sorts.size(); i++) {
+              for (int j = 0; j < domain_sizes[i]; j++) {
+                v_objs[i][j].push_back(i == sort_index ?
+                    z3::mk_or(arg_possibilities[j]) : const_false);
+              }
             }
           }
         }
