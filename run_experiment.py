@@ -17,6 +17,9 @@ for i in xrange(n):
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
   ret = proc.wait()
+  if ret != 0:
+    print 'Error:'
+    print err
   assert ret == 0
 
   log_line = ""
