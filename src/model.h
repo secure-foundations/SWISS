@@ -39,6 +39,19 @@ public:
   object_value res;
 };
 
+struct FTree {
+  enum class Type { True, False, And, Or, Atom };
+  Type type;
+
+  // For Atoms:
+  int arg_idx;
+  object_value arg_value;
+
+  // For And/Or:
+  std::shared_ptr<FTree> left;
+  std::shared_ptr<FTree> right;
+};
+
 struct EvalExpr;
 
 class Model {
@@ -74,6 +87,9 @@ public:
 
   std::vector<FunctionEntry> getFunctionEntries(iden name);
 
+  // return a FTree which computes whether f(...) = res
+  std::shared_ptr<FTree> getFunctionFTree(iden name, object_value res);
+
   json11::Json to_json() const;
   static std::shared_ptr<Model> from_json(json11::Json, std::shared_ptr<Module>);
 
@@ -87,6 +103,10 @@ public:
   EvalExpr value_to_eval_expr(
     std::shared_ptr<Value> v,
     std::vector<iden> const& names) const;
+
+private:
+  std::map<pair<iden, object_value>, std::shared_ptr<FTree>> dtree_cache;
+  std::shared_ptr<FTree> constructFunctionFTree(iden name, object_value res);
 };
 
 std::shared_ptr<Model> transition_model(

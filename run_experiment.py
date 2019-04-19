@@ -38,6 +38,9 @@ for i in xrange(n):
   print log_line
   print solver_time_line
   print total_time_line
+  print 'average so far:', (total_ms / 1000.0 / (i+1)), 'seconds'
   print ''
+
+  sys.stdout.flush()
 
 print 'average total solver time:', (total_ms / 1000.0 / n), 'seconds'

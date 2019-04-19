@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define USE_2_FOR_BOOLS true
+#define USE_2_FOR_BOOLS false
 #define NEGATE_FUNCS true
 
 SketchFormula::SketchFormula(
