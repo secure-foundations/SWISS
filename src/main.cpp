@@ -520,7 +520,6 @@ void try_to_add_invariants(
 int run_id;
 
 int main(int argc, char* argv[]) {
-
   // FIXME: quick hack to control which enumeration to use
   bool just_enumeration = false;
 

@@ -37,6 +37,12 @@ class FunctionEntry {
 public:
   std::vector<object_value> args;
   object_value res;
+
+
+  FunctionEntry() { }
+  FunctionEntry(
+    std::vector<object_value> const& args,
+    object_value res) : args(args), res(res) { }
 };
 
 struct FTree {
@@ -50,6 +56,8 @@ struct FTree {
   // For And/Or:
   std::shared_ptr<FTree> left;
   std::shared_ptr<FTree> right;
+
+  std::string to_string() const;
 };
 
 struct EvalExpr;
@@ -76,6 +84,7 @@ public:
   size_t get_domain_size(lsort) const;
   size_t get_domain_size(Sort*) const;
   size_t get_domain_size(std::string) const;
+  std::vector<size_t> get_domain_sizes_for_function(iden) const;
   FunctionInfo const& get_function_info(iden) const;
 
   void assert_model_is(std::shared_ptr<ModelEmbedding> e);
@@ -105,7 +114,7 @@ public:
     std::vector<iden> const& names) const;
 
 private:
-  std::map<pair<iden, object_value>, std::shared_ptr<FTree>> dtree_cache;
+  std::map<std::pair<iden, object_value>, std::shared_ptr<FTree>> ftree_cache;
   std::shared_ptr<FTree> constructFunctionFTree(iden name, object_value res);
 };
 
@@ -155,5 +164,7 @@ QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
     std::shared_ptr<Model>,
     value v);
 */
+
+void ftree_tests();
 
 #endif

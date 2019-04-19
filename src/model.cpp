@@ -1047,6 +1047,26 @@ bool eval_qi(QuantifierInstantiation const& qi, value v)
   return ans == 1;
 }
 
+vector<size_t> Model::get_domain_sizes_for_function(iden name) const {
+  lsort sort;
+  for (VarDecl decl : module->functions) {
+    if (decl.name == name) {
+      sort = decl.sort;
+      break;
+    }
+  }
+  assert(sort != nullptr);
+
+  vector<size_t> domain_sizes;
+  if (FunctionSort* functionSort = dynamic_cast<FunctionSort*>(sort.get())) {
+    for (auto so : functionSort->domain) {
+      domain_sizes.push_back(get_domain_size(so));
+    }
+  }
+
+  return domain_sizes;
+}
+
 std::vector<FunctionEntry> Model::getFunctionEntries(iden name)
 {
   vector<FunctionEntry> entries;
