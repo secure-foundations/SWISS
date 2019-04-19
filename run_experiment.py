@@ -25,6 +25,7 @@ for i in xrange(n):
   log_line = ""
   solver_time_line = ""
   total_time_line = ""
+  found_invariant = ""
   for line in out.split('\n'):
     if "total solver time :" in line:
       solver_time_line = line
@@ -32,8 +33,11 @@ for i in xrange(n):
       total_time_line = line
     elif "logged to" in line:
       log_line = line
+    elif "found invariant" in line:
+      found_invariant = True
 
   assert solver_time_line != ""
+  assert found_invariant
   solver_ms = int(solver_time_line.split(':')[1].split()[0])
   total_ms += solver_ms
   
