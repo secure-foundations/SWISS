@@ -528,6 +528,11 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = parse_module(json_src);
 
+  for (value v : module->conjectures) {
+    cout << v->to_string() << endl;
+  }
+  exit(1);
+
   srand((int)time(NULL));
   run_id = rand();
 

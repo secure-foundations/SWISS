@@ -48,12 +48,12 @@ action release_lock = {
 conjecture ~(X ~= Y & has_lock(X) & has_lock(Y))
 #conjecture ~msg(B,B,epoch(B))
 
-conjecture (
+conjecture (exists FakeOutHackExists:node . (
   forall Nearly_1_A:node . forall Nearly_1_T:time . 
   forall Src:node .
-  ~(has_lock(Nearly_1_A) & epoch(Nearly_1_A) = Nearly_1_t) &
-  ~(msg(Src, Nearly_1_A, Nearly_1_t) & ~le(Nearly_1_t, epoch(Nearly_1_A)))
-)
+  ~(has_lock(Nearly_1_A) & epoch(Nearly_1_A) = Nearly_1_T) &
+  ~(msg(Src, Nearly_1_A, Nearly_1_T) & ~le(Nearly_1_T, epoch(Nearly_1_A)))
+))
 
 #template forall A:node . forall B:node . forall C:node . forall E:time . forall F:time . WILD
 template (

@@ -40,6 +40,7 @@ def get_json():
         #print fmla
         #print logic_to_obj(ivy_logic_utils.close_epr(fmla))
         conjectures.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
+      #conjectures.append(logic_to_obj(conj.formula))
 
     templates = []
     for template in im.module.labeled_templates:
@@ -159,7 +160,11 @@ def logic_to_obj(l):
     else:
       return logic_to_obj(l.body)
   if isinstance(l, logic.Exists):
-    return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
+    vars = [logic_to_obj(var) for var in l.variables]
+    if len(vars) > 1 and vars[0][1] != 'FakeOutHackExists':
+      return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
+    else:
+      return logic_to_obj(l.body)
   elif isinstance(l, logic.Var):
     if l.name == "WILD":
       return ["__wild"]
