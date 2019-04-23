@@ -136,6 +136,26 @@ z3::expr ModelEmbedding::value2expr(
     }
     return z3::exists(vec_vars, value2expr(value->body, consts, new_vars));
   }
+  else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
+    z3::expr_vector vec_vars(ctx->ctx);
+    z3::expr_vector all_eq(ctx->ctx);
+    std::unordered_map<iden, z3::expr> new_vars1 = vars;
+    std::unordered_map<iden, z3::expr> new_vars2 = vars;
+    for (VarDecl decl : value->decls) {
+      expr var1 = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      expr var2 = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      vec_vars.push_back(var1);
+      vec_vars.push_back(var2);
+      new_vars1.insert(make_pair(decl.name, var1));
+      new_vars2.insert(make_pair(decl.name, var2));
+      all_eq.push_back(var1 == var2);
+    }
+    z3::expr_vector vec_or(ctx->ctx);
+    vec_or.push_back(value2expr(value->body, consts, new_vars1));
+    vec_or.push_back(value2expr(value->body, consts, new_vars2));
+    vec_or.push_back(z3::mk_and(all_eq));
+    return z3::forall(vec_vars, z3::mk_or(vec_or));
+  }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
     assert(iter != vars.end());

@@ -528,15 +528,16 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = parse_module(json_src);
 
+  cout << "conjectures:" << endl;
   for (value v : module->conjectures) {
     cout << v->to_string() << endl;
   }
-  exit(1);
 
   srand((int)time(NULL));
   run_id = rand();
 
   int seed = 1234;
+  bool check_inductiveness;
   for (int i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);
@@ -545,7 +546,21 @@ int main(int argc, char* argv[]) {
       assert(i + 1 < argc);
       seed = atoi(argv[i+1]);
     }
+    else if (argv[i] == string("--check-inductiveness")) {
+      check_inductiveness = true;
+    }
   }
+
+  if (check_inductiveness) {
+    printf("just checking inductiveness...\n");
+    if (is_complete_invariant(module, v_and(module->conjectures))) {
+      printf("yes\n");
+    } else{
+      printf("no\n");
+    }
+    return 0;
+  }
+
   printf("random seed = %d\n", seed);
   srand(seed);
 
