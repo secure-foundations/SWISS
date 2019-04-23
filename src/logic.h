@@ -132,6 +132,30 @@ public:
   int kind_id() const override { return 1; }
 };
 
+class NearlyForall : public Value {
+public:
+  std::vector<VarDecl> const decls;
+  std::shared_ptr<Value> const body;
+
+  NearlyForall(
+      std::vector<VarDecl> const& decls,
+      std::shared_ptr<Value> body)
+      : decls(decls), body(body) { }
+
+  std::string to_string() const override;
+  json11::Json to_json() const override;
+  std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> negate() const override;
+
+  std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
+  std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
+  std::shared_ptr<Value> structurally_normalize_() const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
+  void get_used_vars(std::set<iden>&) const override;
+
+  int kind_id() const override { return 1; }
+};
+
 class Exists : public Value {
 public:
   std::vector<VarDecl> const decls;
@@ -473,6 +497,9 @@ typedef std::shared_ptr<Sort> lsort;
 
 inline value v_forall(std::vector<VarDecl> const& decls, value const& body) {
   return std::shared_ptr<Value>(new Forall(decls, body));
+}
+inline value v_nearlyforall(std::vector<VarDecl> const& decls, value const& body) {
+  return std::shared_ptr<Value>(new NearlyForall(decls, body));
 }
 inline value v_exists(std::vector<VarDecl> const& decls, value const& body) {
   return std::shared_ptr<Value>(new Exists(decls, body));

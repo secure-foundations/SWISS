@@ -127,11 +127,35 @@ def action_to_obj(l):
     print 'action_to_obj failed', type(l)
     assert False
 
+def maybe_merge_nearlys(obj):
+  if obj[0] == "nearlyforall" and obj[2][0] == "nearlyforall":
+    vs1 = obj[1]
+    vs2 = obj[2][1]
+
+    name1 = vs1[0][1]
+    name2 = vs2[0][1]
+
+    parts1 = name1.split('_')
+    parts2 = name2.split('_')
+    assert len(parts1) >= 3
+    assert len(parts2) >= 3
+    assert parts1[0] == 'Nearly'
+    assert parts2[0] == 'Nearly'
+    if parts1[1] == parts2[1]:
+      return ["nearlyforall", vs1 + vs2, obj[2][2]]
+    else:
+      return obj
+  else:
+    return obj
+
 def logic_to_obj(l):
   if isinstance(l, logic.ForAll):
     vs = [v for v in l.variables if v.name != "WILD"]
     if len(vs) > 0:
-      return ["forall", [logic_to_obj(var) for var in vs], logic_to_obj(l.body)]
+      the_vars = [logic_to_obj(var) for var in vs]
+      is_nearly = the_vars[0][1].startswith("Nearly_")
+      name = "nearlyforall" if is_nearly else "forall"
+      return maybe_merge_nearlys([name, the_vars, logic_to_obj(l.body)])
     else:
       return logic_to_obj(l.body)
   if isinstance(l, logic.Exists):

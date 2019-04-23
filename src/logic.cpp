@@ -107,6 +107,10 @@ shared_ptr<Value> json2value(Json j) {
     assert (j.array_items().size() == 3);
     return shared_ptr<Value>(new Forall(json2decl_array(j[1]), json2value(j[2])));
   }
+  if (type == "nearlyforall") {
+    assert (j.array_items().size() == 3);
+    return shared_ptr<Value>(new NearlyForall(json2decl_array(j[1]), json2value(j[2])));
+  }
   else if (type == "exists") {
     assert (j.array_items().size() == 3);
     return shared_ptr<Value>(new Exists(json2decl_array(j[1]), json2value(j[2])));
@@ -263,6 +267,10 @@ Json Forall::to_json() const {
   return Json(vector<Json>{Json("forall"), decl_array_2_json(decls), body->to_json()});
 }
 
+Json NearlyForall::to_json() const {
+  return Json(vector<Json>{Json("nearlyforall"), decl_array_2_json(decls), body->to_json()});
+}
+
 Json Exists::to_json() const {
   return Json(vector<Json>{Json("exists"), decl_array_2_json(decls), body->to_json()});
 }
@@ -331,6 +339,19 @@ string Forall::to_string() const {
   res += " . (" + body->to_string() + ")";
   return res;
 }
+
+string NearlyForall::to_string() const {
+  string res = "nearlyforall ";
+  for (int i = 0; i < decls.size(); i++) {
+    if (i > 0) {
+      res += ", ";
+    }
+    res += iden_to_string(decls[i].name);
+  }
+  res += " . (" + body->to_string() + ")";
+  return res;
+}
+
 
 string Exists::to_string() const {
   string res = "exists ";
@@ -413,6 +434,10 @@ value Forall::subst(iden x, value e) const {
   return v_forall(decls, body->subst(x, e)); 
 }
 
+value NearlyForall::subst(iden x, value e) const {
+  return v_nearlyforall(decls, body->subst(x, e)); 
+}
+
 value Exists::subst(iden x, value e) const {
   return v_exists(decls, body->subst(x, e)); 
 }
@@ -471,6 +496,10 @@ value TemplateHole::subst(iden x, value e) const {
 
 value Forall::negate() const {
   return v_exists(decls, body->negate());
+}
+
+value NearlyForall::negate() const {
+  assert(false && "NearlyForall::negate() not implemented");
 }
 
 value Exists::negate() const {
@@ -535,6 +564,10 @@ value Forall::uniquify_vars(map<iden, iden> const& m) const {
     new_decls.push_back(VarDecl(new_name, decl.sort));
   }
   return v_forall(new_decls, body->uniquify_vars(new_m));
+}
+
+value NearlyForall::uniquify_vars(map<iden, iden> const& m) const {
+  assert(false && "NearlyForall::uniquify_vars not implemented");
 }
 
 value Exists::uniquify_vars(map<iden, iden> const& m) const {
@@ -633,6 +666,11 @@ value Forall::structurally_normalize_() const {
     return v_forall(this->decls, b);
   }
 }
+
+value NearlyForall::structurally_normalize_() const {
+  assert (false && "NearlyForall::structurally_normalize_ not implemented");
+}
+
 
 value Exists::structurally_normalize_() const {
   value b = this->body->structurally_normalize_();
@@ -899,6 +937,10 @@ value forall_exists_normalize_symmetries(
 value Forall::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   //printf("%s\n", this->to_string().c_str());
   return forall_exists_normalize_symmetries(this->decls, vars_used, this->body, true, 0, ss);
+}
+
+value NearlyForall::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
+  assert(false && "NearlyForall::normalize_symmetries not implemented");
 }
 
 value Exists::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
@@ -1382,6 +1424,10 @@ value Forall::indexify_vars(map<iden, iden> const& m) const {
   return v_forall(new_decls, body->indexify_vars(new_m));
 }
 
+value NearlyForall::indexify_vars(map<iden, iden> const& m) const {
+  assert(false && "NearlyForall::indexify_vars not implemented");
+}
+
 value Exists::indexify_vars(map<iden, iden> const& m) const {
   map<iden, iden> new_m = m;
   vector<VarDecl> new_decls;
@@ -1444,6 +1490,9 @@ value TemplateHole::indexify_vars(map<iden, iden> const& m) const {
 }
 
 void Forall::get_used_vars(set<iden>& s) const {
+  body->get_used_vars(s);
+}
+void NearlyForall::get_used_vars(set<iden>& s) const {
   body->get_used_vars(s);
 }
 void Exists::get_used_vars(set<iden>& s) const {
