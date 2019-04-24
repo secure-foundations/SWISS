@@ -389,7 +389,7 @@ void append_vector(vector<A>& a, vector<A> const& b) {
 bool eval_get_multiqi_counterexample(
     EvalExpr const& ee,
     int* var_values,
-    vector<vector<object_value>> res, int n)
+    vector<vector<object_value>>& res, int n)
 {
   if (ee.type == EvalExprType::Forall) {
     int idx = ee.var_index;
