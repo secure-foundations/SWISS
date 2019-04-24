@@ -45,6 +45,7 @@ struct SFNode {
 };
 
 struct ValueVector;
+struct VarEncoding;
 
 class SketchFormula {
 public:
@@ -71,6 +72,9 @@ public:
   z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
       bool target_value);
   z3::expr interpret_not_forall(std::shared_ptr<Model> model);
+  z3::expr interpret_not_forall_nearlyforall(
+      std::shared_ptr<Model> model,
+      value templ);
 
   value to_value(z3::model& m);
 
@@ -93,7 +97,7 @@ private:
   ValueVector to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
-    std::vector<std::vector<z3::expr>> const& var_exprs);
+    std::vector<VarEncoding> const& var_exprs);
   z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
   z3::expr new_const(z3::expr e, std::string const& name);
   z3::expr new_const_impl(z3::expr e, std::string const& name);
@@ -135,6 +139,10 @@ private:
       std::shared_ptr<FTree> ftree,
       std::vector<ValueVector>& children,
       NodeType& nt);
+
+  std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, int idx, value templ, std::string const&);
+  VarEncoding make_existential_var_encoding(std::shared_ptr<Model>, lsort, std::string const&);
+  z3::expr encodings_not_eq(VarEncoding&, VarEncoding&);
 };
 
 #endif

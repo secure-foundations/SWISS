@@ -255,6 +255,11 @@ vector<VarDecl> get_quantifiers(value v) {
         res.push_back(d);
       }
       v = f->body;
+    } else if (NearlyForall* f = dynamic_cast<NearlyForall*>(v.get())) {
+      for (VarDecl d : f->decls) {
+        res.push_back(d);
+      }
+      v = f->body;
     } else {
       break;
     }
@@ -264,6 +269,8 @@ vector<VarDecl> get_quantifiers(value v) {
 
 z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     bool do_true) {
+  assert(false && "not implement with NearlyForall in mind");
+
   z3::context& ctx = sf.ctx;
   vector<VarDecl> quantifiers = get_quantifiers(module->templates[0]);
   vector<size_t> domain_sizes;
@@ -298,21 +305,30 @@ z3::expr assert_true_for_some_qs(
     shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     value candidate) {
   vector<VarDecl> quantifiers = get_quantifiers(module->templates[0]);
-  QuantifierInstantiation qi = get_counterexample(model, candidate);
-  assert(qi.non_null);
-  assert(qi.decls.size() == quantifiers.size());
+
+  vector<QuantifierInstantiation> qis;
+  bool evals_true = get_multiqi_counterexample(model, candidate, qis);
+  assert(!evals_true);
+  assert(qis.size() > 0);
 
   z3::context& ctx = sf.ctx;
   z3::expr_vector vec(ctx);
 
-  vector<vector<object_value>> all_perms = get_quantifier_permutations(
-      quantifiers, qi.variable_values);
+  vector<vector<object_value>> variable_values;
+  for (QuantifierInstantiation& qi : qis) {
+    variable_values.push_back(qi.variable_values);
+  }
+  vector<vector<vector<object_value>>> all_perms = get_multiqi_quantifier_permutations(
+      quantifiers, variable_values);
 
   printf("using %d instantiations\n", (int)all_perms.size());
 
-  for (vector<object_value> const& ovs : all_perms) {
-    z3::expr e = sf.interpret(model, ovs, true);
-    vec.push_back(e);
+  for (vector<vector<object_value>> const& ovs_many : all_perms) {
+    z3::expr_vector one_is_true(ctx);
+    for (vector<object_value> const& ovs : ovs_many) {
+      one_is_true.push_back(sf.interpret(model, ovs, true));
+    }
+    vec.push_back(z3::mk_or(one_is_true));
   }
 
   return z3::mk_and(vec);
@@ -330,7 +346,7 @@ z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model>
 
 z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
   //return is_something(module, sf, model, false);
-  return sf.interpret_not_forall(model);
+  return sf.interpret_not_forall_nearlyforall(model, module->templates[0]);
 }
 
 void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex,

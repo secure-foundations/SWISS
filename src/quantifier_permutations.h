@@ -7,4 +7,8 @@ std::vector<std::vector<unsigned int>> get_quantifier_permutations(
     std::vector<VarDecl> const& quantifiers,
     std::vector<unsigned int> const& ovs);
 
+std::vector<std::vector<std::vector<unsigned int>>> get_multiqi_quantifier_permutations(
+    std::vector<VarDecl> const& quantifiers,
+    std::vector<std::vector<unsigned int>> const& ovs);
+
 #endif

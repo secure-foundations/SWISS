@@ -339,13 +339,46 @@ struct ValueVector {
 };
 #endif
 
+struct VarEncoding {
+  vector<z3::expr> vars;
+};
+
+z3::expr SketchFormula::encodings_not_eq(VarEncoding& enc1, VarEncoding& enc2)
+{
+  assert(enc1.vars.size() == enc2.vars.size());
+  if (enc1.vars.size() <= 1) {
+    return ctx.bool_val(false);
+  } else {
+    /*
+    // not sound
+    z3::expr_vector vec(ctx);
+    for (int i = 0; i < enc1.vars.size(); i++) {
+      vec.push_back(!z3_and(ctx, enc1.vars[i], enc2.vars[i]));
+    }
+    return z3::mk_and(vec);
+    */
+
+    z3::expr_vector vec(ctx);
+    for (int i = 0; i < enc1.vars.size(); i++) {
+      z3::expr_vector enc2_not_i(ctx);
+      for (int j = 0; j < enc2.vars.size(); j++) {
+        if (i != j) {
+          enc2_not_i.push_back(enc2.vars[j]);
+        }
+      }
+      vec.push_back(z3_and(ctx, enc1.vars[i], z3::mk_or(enc2_not_i)));
+    }
+    return z3::mk_or(vec);
+  }
+}
+
 z3::expr SketchFormula::interpret(
     std::shared_ptr<Model> model,
     std::vector<object_value> const& vars,
     bool target_value)
 {
   assert(vars.size() == free_vars.size());
-  vector<vector<z3::expr>> var_exps;
+  vector<VarEncoding> var_exps;
   z3::expr const_true = ctx.bool_val(true);
   z3::expr const_false = ctx.bool_val(false);
   for (int i = 0; i < vars.size(); i++) {
@@ -355,7 +388,9 @@ z3::expr SketchFormula::interpret(
     for (int j = 0; j < dsize; j++) {
       v.push_back(j == vars[i] ? const_true : const_false);
     }
-    var_exps.push_back(v);
+    VarEncoding enc;
+    enc.vars = v;
+    var_exps.push_back(enc);
   }
   ValueVector vv = to_value_vector(root, model, var_exps);
   return vv.is_true;
@@ -367,29 +402,41 @@ z3::expr SketchFormula::interpret(
 #endif
 }
 
+VarEncoding SketchFormula::make_existential_var_encoding(
+    shared_ptr<Model> model,
+    lsort so,
+    string const& vname)
+{
+  vector<z3::expr> v;
+  int dsize = model->get_domain_size(so);
+  for (int j = 0; j < dsize; j++) {
+    z3::expr e = bool_const(name("existential_var_" + vname + "_eq_" + to_string(j)));
+    v.push_back(e);
+  }
+
+  z3::expr_vector vec(ctx);
+  for (int j = 0; j < dsize; j++) {
+    vec.push_back(v[j]);
+    for (int k = j+1; k < dsize; k++) {
+      solver.add(!(z3_and(ctx, v[j], v[k])));
+    }
+  }
+  solver.add(z3::mk_or(vec));
+
+  VarEncoding eve;
+  eve.vars = move(v);
+  return eve;
+}
+
 z3::expr SketchFormula::interpret_not_forall(
     std::shared_ptr<Model> model)
 {
-  vector<vector<z3::expr>> var_exps;
+  vector<VarEncoding> var_exps;
   for (int i = 0; i < free_vars.size(); i++) {
-    vector<z3::expr> v;
-    int dsize = model->get_domain_size(free_vars[i].sort);
-    for (int j = 0; j < dsize; j++) {
-      z3::expr e = bool_const(name("existential_var_" + iden_to_string(free_vars[i].name) +
-          "_eq_" + to_string(j)));
-      v.push_back(e);
-    }
-
-    z3::expr_vector vec(ctx);
-    for (int j = 0; j < dsize; j++) {
-      vec.push_back(v[j]);
-      for (int k = j+1; k < dsize; k++) {
-        solver.add(!(z3_and(ctx, v[j], v[k])));
-      }
-    }
-    solver.add(z3::mk_or(vec));
-
-    var_exps.push_back(v);
+    var_exps.push_back(make_existential_var_encoding(
+        model,
+        free_vars[i].sort,
+        iden_to_string(free_vars[i].name)));
   }
   ValueVector vv = to_value_vector(root, model, var_exps);
 
@@ -398,6 +445,104 @@ z3::expr SketchFormula::interpret_not_forall(
 #else
   return !vv.is_true;
 #endif
+}
+
+template <typename A>
+vector<A> concat_vector(vector<A> const& a, vector<A> const& b) {
+  vector<A> res = a;
+  for (A const& x : b) {
+    res.push_back(x);
+  }
+  return res;
+}
+
+vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
+    shared_ptr<Model> model,
+    int idx, value templ, string const& vname)
+{
+  if (Forall* f = dynamic_cast<Forall*>(templ.get())) {
+    vector<VarEncoding> prefix;
+    for (VarDecl decl : f->decls) {
+      assert(0 <= idx && idx < free_vars.size());
+      assert(sorts_eq(decl.sort, free_vars[idx].sort));
+      assert(decl.name == free_vars[idx].name);
+
+      prefix.push_back(make_existential_var_encoding(
+          model, decl.sort, iden_to_string(decl.name) + "_" + vname));
+
+      idx++;
+    }
+
+    vector<vector<VarEncoding>> suffixes = get_all_var_exps_tree(model, idx, f->body, vname);
+
+    for (int i = 0; i < suffixes.size(); i++) {
+      suffixes[i] = concat_vector(prefix, suffixes[i]);
+    }
+
+    return suffixes;
+  }
+  else if (NearlyForall* f = dynamic_cast<NearlyForall*>(templ.get())) {
+    vector<VarEncoding> prefix1;
+    vector<VarEncoding> prefix2;
+    z3::expr_vector not_all_eq(ctx);
+    for (VarDecl decl : f->decls) {
+      assert(0 <= idx && idx < free_vars.size());
+      assert(sorts_eq(decl.sort, free_vars[idx].sort));
+      assert(decl.name == free_vars[idx].name);
+
+      VarEncoding enc1 =
+          make_existential_var_encoding(model, decl.sort, iden_to_string(decl.name) + "_" + vname + "0");
+      VarEncoding enc2 =
+          make_existential_var_encoding(model, decl.sort, iden_to_string(decl.name) + "_" + vname + "1");
+      prefix1.push_back(enc1);
+      prefix2.push_back(enc2);
+
+      not_all_eq.push_back(encodings_not_eq(enc1, enc2));
+
+      idx++;
+    }
+
+    solver.add(z3::mk_or(not_all_eq));
+
+    vector<vector<VarEncoding>> suffixes1 =
+        get_all_var_exps_tree(model, idx, f->body, vname + "0");
+    vector<vector<VarEncoding>> suffixes2 =
+        get_all_var_exps_tree(model, idx, f->body, vname + "1");
+
+    for (int i = 0; i < suffixes1.size(); i++) {
+      suffixes1[i] = concat_vector(prefix1, suffixes1[i]);
+    }
+    for (int i = 0; i < suffixes2.size(); i++) {
+      suffixes2[i] = concat_vector(prefix2, suffixes2[i]);
+    }
+
+    return concat_vector(suffixes1, suffixes2);
+  }
+  else {
+    assert (idx == free_vars.size());
+    vector<vector<VarEncoding>> res;
+    res.push_back({});
+    return res;
+  }
+}
+
+z3::expr SketchFormula::interpret_not_forall_nearlyforall(
+    std::shared_ptr<Model> model,
+    value templ)
+{
+  vector<vector<VarEncoding>> all_var_exps = get_all_var_exps_tree(model, 0, templ, "path");
+  z3::expr_vector vec(ctx);
+  for (vector<VarEncoding>& var_exps : all_var_exps) {
+    ValueVector vv = to_value_vector(root, model, var_exps);
+#if USE_2_FOR_BOOLS
+    z3::expr e = vv.is_false;
+#else
+    z3::expr e = !vv.is_true;
+#endif
+    vec.push_back(e);
+  }
+
+  return z3::mk_and(vec);
 }
 
 #if USE_2_FOR_BOOLS
@@ -445,7 +590,7 @@ z3::expr SketchFormula::ftree_to_expr(
 ValueVector SketchFormula::to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
-    std::vector<std::vector<z3::expr>> const& var_exprs)
+    std::vector<VarEncoding> const& var_exprs)
 {
   vector<ValueVector> children;
   for (SFNode* child : node->children) {
@@ -670,7 +815,7 @@ ValueVector SketchFormula::to_value_vector(
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             if (i == sort_index) {
-              v_objs[i][j].push_back(var_exprs[nt.index][j]);
+              v_objs[i][j].push_back(var_exprs[nt.index].vars[j]);
             } else {
               v_objs[i][j].push_back(const_false);
             }
@@ -707,7 +852,7 @@ ValueVector SketchFormula::to_value_vector(
 ValueVector SketchFormula::to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
-    std::vector<std::vector<z3::expr>> const& var_exprs)
+    std::vector<VarEncoding> const& var_exprs)
 {
   vector<ValueVector> children;
   for (SFNode* child : node->children) {
@@ -866,7 +1011,7 @@ ValueVector SketchFormula::to_value_vector(
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             if (i == sort_index) {
-              v_objs[i][j].push_back(var_exprs[nt.index][j]);
+              v_objs[i][j].push_back(var_exprs[nt.index].vars[j]);
             } else {
               v_objs[i][j].push_back(const_false);
             }

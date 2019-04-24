@@ -123,6 +123,9 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
   else if (Exists* va = dynamic_cast<Exists*>(templ.get())) {
     return v_exists(va->decls, fill_holes_in_value(va->body, fills, idx));
   }
+  else if (NearlyForall* va = dynamic_cast<NearlyForall*>(templ.get())) {
+    return v_nearlyforall(va->decls, fill_holes_in_value(va->body, fills, idx));
+  }
   else if (Var* va = dynamic_cast<Var*>(templ.get())) {
     return templ;
   }
@@ -170,7 +173,7 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
   }
   else {
     //printf("value2expr got: %s\n", templ->to_string().c_str());
-    assert(false && "value2expr does not support this case");
+    assert(false && "fill_holes_in_value does not support this case");
   }
 }
 

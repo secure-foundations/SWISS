@@ -537,7 +537,7 @@ int main(int argc, char* argv[]) {
   run_id = rand();
 
   int seed = 1234;
-  bool check_inductiveness;
+  bool check_inductiveness = false;
   for (int i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);

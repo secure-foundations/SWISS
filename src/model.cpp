@@ -10,6 +10,7 @@ using namespace json11;
 enum class EvalExprType {
   Forall,
   Exists,
+  NearlyForall,
   Var,
   Const,
   Eq,
@@ -28,6 +29,9 @@ struct EvalExpr {
   int quantifier_domain_size;
   int var_index;
   FunctionInfo const * function_info;
+
+  vector<int> nearlyforall_quantifier_domain_sizes;
+  vector<int> nearlyforall_var_indices;
 };
 
 EvalExpr Model::value_to_eval_expr(
@@ -37,7 +41,7 @@ EvalExpr Model::value_to_eval_expr(
 
   EvalExpr ee;
 
-  if (dynamic_cast<Forall*>(v.get()) || dynamic_cast<Exists*>(v.get())) {
+  if (dynamic_cast<Forall*>(v.get()) || dynamic_cast<Exists*>(v.get()) || dynamic_cast<NearlyForall*>(v.get())) {
     std::vector<VarDecl> const * decls;
     std::shared_ptr<Value> body;
 
@@ -45,6 +49,9 @@ EvalExpr Model::value_to_eval_expr(
       decls = &value->decls;
       body = value->body;
     } else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
+      decls = &value->decls;
+      body = value->body;
+    } else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
       decls = &value->decls;
       body = value->body;
     } else {
@@ -58,14 +65,26 @@ EvalExpr Model::value_to_eval_expr(
 
     ee = value_to_eval_expr(body, new_names); 
 
-    for (int i = decls->size() - 1; i >= 0; i--) {
-      VarDecl decl = (*decls)[i];
+    if (dynamic_cast<NearlyForall*>(v.get())) {
       EvalExpr ee2;
-      ee2.type = dynamic_cast<Forall*>(v.get()) ? EvalExprType::Forall : EvalExprType::Exists;
-      ee2.quantifier_domain_size = get_domain_size(decl.sort.get());
-      ee2.var_index = names.size() + i;
+      ee2.type = EvalExprType::NearlyForall;
+      for (int i = 0; i < decls->size(); i++) {
+        VarDecl decl = (*decls)[i];
+        ee2.nearlyforall_quantifier_domain_sizes.push_back(get_domain_size(decl.sort.get()));
+        ee2.nearlyforall_var_indices.push_back(names.size() + i);
+      }
       ee2.args.push_back(move(ee));
       ee = move(ee2);
+    } else {
+      for (int i = decls->size() - 1; i >= 0; i--) {
+        VarDecl decl = (*decls)[i];
+        EvalExpr ee2;
+        ee2.type = dynamic_cast<Forall*>(v.get()) ? EvalExprType::Forall : EvalExprType::Exists;
+        ee2.quantifier_domain_size = get_domain_size(decl.sort.get());
+        ee2.var_index = names.size() + i;
+        ee2.args.push_back(move(ee));
+        ee = move(ee2);
+      }
     }
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
@@ -136,7 +155,7 @@ EvalExpr Model::value_to_eval_expr(
     }
   }
   else {
-    assert(false && "value2expr does not support this case");
+    assert(false && "value2eval_expr does not support this case");
   }
 
   return ee;
@@ -149,6 +168,11 @@ int max_var(EvalExpr& ee) {
   }
   if (ee.type == EvalExprType::Forall || ee.type == EvalExprType::Exists) {
     res = max(res, ee.var_index);
+  }
+  if (ee.type == EvalExprType::NearlyForall) {
+    for (int idx : ee.nearlyforall_var_indices) {
+      res = max(res, idx);
+    }
   }
   return res;
 }
@@ -179,6 +203,40 @@ object_value eval(EvalExpr const& ee, int* var_values) {
         }
       }
       return 0;
+    }
+
+    case EvalExprType::NearlyForall: {
+      int n = ee.nearlyforall_quantifier_domain_sizes.size();
+      for (int i = 0; i < n; i++) {
+        var_values[ee.nearlyforall_var_indices[i]] = 0;
+      }
+      int bad_count = 0;
+      EvalExpr const& body = ee.args[0];
+      while (true) {
+        if (!eval(body, var_values)) {
+          bad_count++;
+          if (bad_count >= 2) {
+            return 0;
+          }
+        }
+        
+        int i;
+        for (i = 0; i < n; i++) {
+          int idx = ee.nearlyforall_var_indices[i];
+          int sz = ee.nearlyforall_quantifier_domain_sizes[i];
+          var_values[idx]++;
+          if (var_values[idx] == sz) {
+            var_values[idx] = 0;
+          } else {
+            break;
+          }
+        }
+        if (i == n) {
+          break;
+        }
+      }
+
+      return 1;
     }
 
     case EvalExprType::Var:
@@ -278,6 +336,7 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
   int idx = 0;
   for (int i = 0; i < n; i++) {
     Forall* f = dynamic_cast<Forall*>(w.get());
+    assert(f != NULL);
     qi.decls.push_back(f->decls[idx]);
     idx++;
     if (idx == f->decls.size()) {
@@ -302,6 +361,163 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
   //printf("done\n");
 
   return qi;
+}
+
+int get_num_forall_or_nearlyforall_quantifiers_at_top(EvalExpr* ee) {
+  int n = 0;
+  while (true) {
+    if (ee->type == EvalExprType::Forall) {
+      n++;
+      ee = &ee->args[0];
+    } else if (ee->type == EvalExprType::NearlyForall) {
+      n += ee->nearlyforall_var_indices.size();
+      ee = &ee->args[0];
+    } else {
+      break;
+    }
+  }
+  return n;
+}
+
+template <typename A>
+void append_vector(vector<A>& a, vector<A> const& b) {
+  for (A const& x : b) {
+    a.push_back(x);
+  }
+}
+
+bool eval_get_multiqi_counterexample(
+    EvalExpr const& ee,
+    int* var_values,
+    vector<vector<object_value>> res, int n)
+{
+  if (ee.type == EvalExprType::Forall) {
+    int idx = ee.var_index;
+    int q = ee.quantifier_domain_size;
+    EvalExpr const& body = ee.args[0];
+    for (int i = 0; i < q; i++) {
+      var_values[idx] = i;
+      if (!eval_get_multiqi_counterexample(body, var_values, res, n)) {
+        for (vector<object_value>& qi : res) {
+          qi[idx] = i;
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+  else if (ee.type == EvalExprType::NearlyForall) {
+    int n = ee.nearlyforall_quantifier_domain_sizes.size();
+    for (int i = 0; i < n; i++) {
+      var_values[ee.nearlyforall_var_indices[i]] = 0;
+    }
+    int bad_count = 0;
+    EvalExpr const& body = ee.args[0];
+    while (true) {
+      vector<vector<object_value>> r;
+      if (!eval_get_multiqi_counterexample(body, var_values, r, n)) {
+        for (vector<object_value>& qi : res) {
+          for (int i = 0; i < n; i++) {
+            qi[ee.nearlyforall_var_indices[i]] =
+                var_values[ee.nearlyforall_var_indices[i]];
+          }
+        }
+
+        if (bad_count == 0) {
+          res = move(r);
+          bad_count++;
+        } else {
+          append_vector(res, r);
+          return false;
+        }
+      }
+      
+      int i;
+      for (i = 0; i < n; i++) {
+        int idx = ee.nearlyforall_var_indices[i];
+        int sz = ee.nearlyforall_quantifier_domain_sizes[i];
+        var_values[idx]++;
+        if (var_values[idx] == sz) {
+          var_values[idx] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == n) {
+        break;
+      }
+    }
+
+    return true;
+  } else {
+    if (eval(ee, var_values) == 1) {
+      return true;
+    } else {
+      vector<object_value> os;
+      os.resize(n);
+      res.push_back(os);
+      return false;
+    }
+  }
+}
+
+
+bool get_multiqi_counterexample(shared_ptr<Model> model, value v,
+    vector<QuantifierInstantiation>& result) {
+  //printf("v: %s\n", v->to_string().c_str());
+  EvalExpr ee = model->value_to_eval_expr(v, {});
+  int n = get_num_forall_or_nearlyforall_quantifiers_at_top(&ee);
+
+  QuantifierInstantiation qi;
+  qi.formula = v;
+  qi.variable_values.resize(n);
+  qi.model = model;
+  qi.non_null = true;
+
+  value w = v;
+  int idx = 0;
+  for (int i = 0; i < n; i++) {
+    int sz;
+    value bd;
+    if (Forall* f = dynamic_cast<Forall*>(w.get())) {
+      qi.decls.push_back(f->decls[idx]);
+      sz = f->decls.size();
+      bd = f->body;
+    }
+    else if (NearlyForall* nf = dynamic_cast<NearlyForall*>(w.get())) {
+      qi.decls.push_back(nf->decls[idx]);
+      sz = f->decls.size();
+      bd = f->body;
+    }
+    else {
+      assert(false);
+    }
+    idx++;
+    if (idx == sz) {
+      idx = 0;
+      w = bd;
+    }
+  }
+
+  int n_vars = max(max_var(ee), n) + 1;
+  int* var_values = new int[n_vars];
+
+  vector<vector<object_value>> qis;
+  bool ans = eval_get_multiqi_counterexample(ee, var_values, qis, n);
+
+  delete[] var_values;
+
+  result.clear();
+  if (ans) {
+    return true;
+  } else {
+    qi.non_null = true;
+    for (vector<object_value> const& q : qis) {
+      qi.variable_values = q;
+      result.push_back(qi);
+    }
+    return false;
+  }
 }
 
 int get_num_forall_quantifiers_at_top(EvalExpr* ee) {

@@ -156,6 +156,10 @@ struct Z3VarSet {
 QuantifierInstantiation get_counterexample(std::shared_ptr<Model>, value);
 bool eval_qi(QuantifierInstantiation const& qi, value);
 
+bool get_multiqi_counterexample(
+  std::shared_ptr<Model>, value,
+  std::vector<QuantifierInstantiation>& output);
+
 /*
 Z3VarSet add_existential_constraint(std::shared_ptr<ModelEmbedding>, value);
 QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
