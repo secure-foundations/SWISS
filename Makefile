@@ -13,6 +13,7 @@ OBJECTS = $(addprefix bin/,\
 	synth_loop.o \
 	ftree.o \
 	quantifier_permutations.o \
+	top_quantifier_desc.o \
 	lib/json11/json11.o \
 )
 

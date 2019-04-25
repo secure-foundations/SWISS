@@ -3,6 +3,7 @@
 
 #include "logic.h"
 #include "model.h"
+#include "top_quantifier_desc.h"
 
 enum class NTT {
   True,
@@ -55,6 +56,7 @@ public:
   std::vector<lsort> sorts;
   std::vector<VarDecl> functions;
   std::vector<VarDecl> free_vars;
+  TopQuantifierDesc tqd;
   int arity;
   int depth;
   std::vector<NodeType> node_types;
@@ -64,17 +66,14 @@ public:
   SketchFormula(
     z3::context& ctx,
     z3::solver& solver,
-    std::vector<VarDecl> free_vars,
+    TopQuantifierDesc const& tqd,
     std::shared_ptr<Module> module,
     int arity, int depth
   );
 
   z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
       bool target_value);
-  z3::expr interpret_not_forall(std::shared_ptr<Model> model);
-  z3::expr interpret_not_forall_nearlyforall(
-      std::shared_ptr<Model> model,
-      value templ);
+  z3::expr interpret_not(std::shared_ptr<Model> model);
 
   value to_value(z3::model& m);
 
@@ -140,7 +139,7 @@ private:
       std::vector<ValueVector>& children,
       NodeType& nt);
 
-  std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, int idx, value templ, std::string const&);
+  std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, int idx, std::vector<QRange> const&, std::string const&);
   VarEncoding make_existential_var_encoding(std::shared_ptr<Model>, lsort, std::string const&);
   z3::expr encodings_not_eq(VarEncoding&, VarEncoding&);
 };

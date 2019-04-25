@@ -484,8 +484,8 @@ bool get_multiqi_counterexample(shared_ptr<Model> model, value v,
       sz = f->decls.size();
       bd = f->body;
     }
-    else if (NearlyForall* nf = dynamic_cast<NearlyForall*>(w.get())) {
-      qi.decls.push_back(nf->decls[idx]);
+    else if (NearlyForall* f = dynamic_cast<NearlyForall*>(w.get())) {
+      qi.decls.push_back(f->decls[idx]);
       sz = f->decls.size();
       bd = f->body;
     }

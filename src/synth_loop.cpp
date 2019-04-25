@@ -5,13 +5,15 @@
 #include <streambuf>
 
 #include "z3++.h"
+#include "lib/json11/json11.hpp"
+
 #include "model.h"
 #include "sketch.h"
 #include "enumerator.h"
 #include "benchmarking.h"
 #include "bmc.h"
 #include "quantifier_permutations.h"
-#include "lib/json11/json11.hpp"
+#include "top_quantifier_desc.h"
 
 using namespace std;
 using namespace json11;
@@ -247,32 +249,12 @@ Counterexample get_counterexample(
   return cex;
 }
 
-vector<VarDecl> get_quantifiers(value v) {
-  vector<VarDecl> res;
-  while (true) {
-    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
-      for (VarDecl d : f->decls) {
-        res.push_back(d);
-      }
-      v = f->body;
-    } else if (NearlyForall* f = dynamic_cast<NearlyForall*>(v.get())) {
-      for (VarDecl d : f->decls) {
-        res.push_back(d);
-      }
-      v = f->body;
-    } else {
-      break;
-    }
-  }
-  return res;
-}
-
 z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     bool do_true) {
   assert(false && "not implement with NearlyForall in mind");
 
   z3::context& ctx = sf.ctx;
-  vector<VarDecl> quantifiers = get_quantifiers(module->templates[0]);
+  vector<VarDecl> quantifiers = sf.free_vars;
   vector<size_t> domain_sizes;
   for (VarDecl const& decl : quantifiers) {
     domain_sizes.push_back(model->get_domain_size(decl.sort));
@@ -304,8 +286,6 @@ z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<M
 z3::expr assert_true_for_some_qs(
     shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     value candidate) {
-  vector<VarDecl> quantifiers = get_quantifiers(module->templates[0]);
-
   vector<QuantifierInstantiation> qis;
   bool evals_true = get_multiqi_counterexample(model, candidate, qis);
   assert(!evals_true);
@@ -319,7 +299,7 @@ z3::expr assert_true_for_some_qs(
     variable_values.push_back(qi.variable_values);
   }
   vector<vector<vector<object_value>>> all_perms = get_multiqi_quantifier_permutations(
-      quantifiers, variable_values);
+      sf.tqd, variable_values);
 
   printf("using %d instantiations\n", (int)all_perms.size());
 
@@ -346,7 +326,7 @@ z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model>
 
 z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
   //return is_something(module, sf, model, false);
-  return sf.interpret_not_forall_nearlyforall(model, module->templates[0]);
+  return sf.interpret_not(model);
 }
 
 void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex,
@@ -517,12 +497,11 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
   z3::context ctx;
 
   assert(module->templates.size() == 1);
-
-  vector<VarDecl> quants = get_quantifiers(module->templates[0]);
+  TopQuantifierDesc tqd(module->templates[0]);
 
   z3::context ctx_sf;
   z3::solver solver_sf(ctx_sf);
-  SketchFormula sf(ctx_sf, solver_sf, quants, module, arity, depth);
+  SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
