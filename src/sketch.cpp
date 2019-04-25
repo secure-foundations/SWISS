@@ -14,11 +14,13 @@ SketchFormula::SketchFormula(
     TopQuantifierDesc const& tqd,
     shared_ptr<Module> module,
     int arity, int depth)
-  : ctx(ctx), solver(solver), free_vars(tqd.decls()), tqd(tqd), arity(arity), depth(depth),
-      bool_count(0)
+  : ctx(ctx), solver(solver), free_vars(tqd.decls()), tqd(tqd), bool_count(0)
 {
   assert (2 <= arity);
-
+  for (int i = 0; i < depth; i++) {
+    arity_at_depth.push_back(arity);
+  }
+  int max_arity = arity;
   printf("depth = %d, arity = %d\n", depth, arity);
 
   for (string sort_name : module->sorts) {
@@ -30,16 +32,16 @@ SketchFormula::SketchFormula(
 
   lsort bool_sort = s_bool();
 
-  vector<lsort> bool_sorts_of_arity;
-  for (int i = 0; i < arity; i++) {
-    bool_sorts_of_arity.push_back(bool_sort);
+  vector<lsort> bool_sorts_of_max_arity;
+  for (int i = 0; i < max_arity; i++) {
+    bool_sorts_of_max_arity.push_back(bool_sort);
   }
 
   this->node_types = {
     NodeType("true", NTT::True, -1, {}, bool_sort),
     NodeType("false", NTT::False, -1, {}, bool_sort),
-    NodeType("and", NTT::And, -1, bool_sorts_of_arity, bool_sort),
-    NodeType("or", NTT::Or, -1, bool_sorts_of_arity, bool_sort),
+    NodeType("and", NTT::And, -1, bool_sorts_of_max_arity, bool_sort),
+    NodeType("or", NTT::Or, -1, bool_sorts_of_max_arity, bool_sort),
   };
   if (!NEGATE_FUNCS) {
     this->node_types.push_back(NodeType("not", NTT::Not, -1, {bool_sort}, bool_sort));
@@ -165,12 +167,13 @@ z3::expr SketchFormula::expr_is_sort(SFNode* node, lsort s) {
 void SketchFormula::make_sort_constraints(SFNode* node) {
   vector<z3::expr> constraints;
   for (NodeType& nt : node_types) {
-    if (node->is_leaf && nt.domain.size() > 0) {
+    int arity = get_arity(nt, node);
+    if (arity == -1) {
       constraints.push_back(ctx.bool_val(false));
     } else {
       z3::expr_vector vec(ctx);
       vec.push_back(expr_is_sort(node, nt.range));
-      for (int i = 0; i < nt.domain.size(); i++) {
+      for (int i = 0; i < arity; i++) {
         vec.push_back(expr_is_sort(node->children[i], nt.domain[i]));
       }
       constraints.push_back(z3::mk_and(vec));
@@ -202,6 +205,8 @@ value SketchFormula::node_to_value(SFNode* node) {
   }
 
   NodeType const& nt = node_types[j];
+  int arity = get_arity(nt, node);
+  assert(arity >= 0);
   switch (nt.ntt) {
     case NTT::True: {
       return v_true();
@@ -213,7 +218,7 @@ value SketchFormula::node_to_value(SFNode* node) {
     case NTT::Or: {
       assert(!node->is_leaf);
       vector<value> args;
-      for (int i = 0; i < nt.domain.size(); i++) {
+      for (int i = 0; i < arity; i++) {
         args.push_back(node_to_value(node->children[i]));
       }
       return (nt.ntt == NTT::And ? v_and(args) : v_or(args));
@@ -231,8 +236,8 @@ value SketchFormula::node_to_value(SFNode* node) {
     }
     case NTT::Func: {
       vector<value> args;
-      assert(nt.domain.size() <= node->children.size());
-      for (int i = 0; i < nt.domain.size(); i++) {
+      assert(arity <= node->children.size());
+      for (int i = 0; i < arity; i++) {
         args.push_back(node_to_value(node->children[i]));
       }
       value res = v_apply(
@@ -594,8 +599,9 @@ ValueVector SketchFormula::to_value_vector(
   
   for (int nt_i = 0; nt_i < node_types.size(); nt_i++) {
     NodeType& nt = node_types[nt_i];
+    int arity = get_arity(nt, node);
 
-    if (node->is_leaf && nt.domain.size() > 0) {
+    if (arity == -1) {
       v_is_true.push_back(const_false);
       v_is_false.push_back(const_false);
       for (int i = 0; i < sorts.size(); i++) {
@@ -624,7 +630,7 @@ ValueVector SketchFormula::to_value_vector(
       case NTT::Or: {
         z3::expr_vector vec(ctx);
         z3::expr_vector vec_not(ctx);
-        for (int i = 0; i < nt.domain.size(); i++) {
+        for (int i = 0; i < arity; i++) {
           vec.push_back(children[i].is_true);
           vec_not.push_back(children[i].is_false);
         }
@@ -860,8 +866,9 @@ ValueVector SketchFormula::to_value_vector(
   
   for (int nt_i = 0; nt_i < node_types.size(); nt_i++) {
     NodeType& nt = node_types[nt_i];
+    int arity = get_arity(nt, node);
 
-    if (node->is_leaf && nt.domain.size() > 0) {
+    if (arity == -1) {
       v_is_true.push_back(const_false);
       for (int i = 0; i < sorts.size(); i++) {
         for (int j = 0; j < domain_sizes[i]; j++) {
@@ -887,7 +894,7 @@ ValueVector SketchFormula::to_value_vector(
       case NTT::And:
       case NTT::Or: {
         z3::expr_vector vec(ctx);
-        for (int i = 0; i < nt.domain.size(); i++) {
+        for (int i = 0; i < arity; i++) {
           vec.push_back(children[i].is_true);
         }
 
@@ -1163,7 +1170,8 @@ z3::expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
   if (!a->is_leaf) {
     vector<z3::expr> children_lex;
     for (int i = 0; i < node_types.size(); i++) {
-      int arity = node_types[i].domain.size();
+      int arity = get_arity(node_types[i], a);
+      assert (arity == get_arity(node_types[i], b));
       if (i < node_types.size() - 1) {
         children_lex.push_back(z3::implies(b->nt_bools[i], children_lex_le(a, b, arity)));
       } else {
@@ -1181,7 +1189,7 @@ z3::expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
 }
 
 z3::expr SketchFormula::children_lex_le(SFNode* a, SFNode* b, int nchildren) {
-  assert(0 <= nchildren && nchildren <= arity);
+  assert(0 <= nchildren && nchildren <= a->children.size() && nchildren <= b->children.size());
   assert(!a->is_leaf);
   assert(!b->is_leaf);
 
@@ -1207,8 +1215,9 @@ z3::expr SketchFormula::nodes_eq(SFNode* a, SFNode* b) {
 
   vector<z3::expr> children_eq_per_node_type;
   for (int i = 0; i < node_types.size(); i++) {
-    int arity = node_types[i].domain.size();
-    if (arity == 0 || !a->is_leaf) {
+    int arity = get_arity(node_types[i], a);
+    assert(arity == get_arity(node_types[i], b));
+    if (arity != -1) {
       z3::expr_vector children_eq(ctx);
       for (int j = 0; j < arity; j++) {
         children_eq.push_back(nodes_eq(a->children[j], b->children[j]));
@@ -1348,14 +1357,15 @@ void SketchFormula::add_variable_ordering_constraints_for_variables(
     vector<vector<z3::expr>> seen_var_parts;
     seen_var_parts.resize(m - 1);
     for (NodeType& nt : node_types) {
+      int arity = get_arity(nt, node);
       if (nt.ntt == NTT::Var && contains(var_indices, nt.index)) {
         for (int i = 0; i < m-1; i++) {
           seen_var_parts[i].push_back(var_indices[i] == nt.index ? const_true :
               prev == NULL ? const_false : prev_seen_vars[i]);
         }
-      } else if (nt.domain.size() > 0 && !node->is_leaf) {
+      } else if (arity > 0) {
         vector<z3::expr>& child_seen_vars =
-            all_seen_vars.find(node->children[nt.domain.size() - 1])->second;
+            all_seen_vars.find(node->children[arity - 1])->second;
         for (int i = 0; i < m-1; i++) {
           seen_var_parts[i].push_back(child_seen_vars[i]);
         }
@@ -1422,7 +1432,7 @@ z3::expr SketchFormula::bool_const(std::string const& name) {
 }
 
 void SketchFormula::constrain_conj_disj_form() {
-  assert(2 <= depth);
+  assert(2 <= arity_at_depth.size());
 
   constrain_node_as_and(root);
   for (SFNode* child : root->children) {

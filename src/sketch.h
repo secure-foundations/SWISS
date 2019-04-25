@@ -45,6 +45,15 @@ struct SFNode {
   std::string name;
 };
 
+inline int get_arity(NodeType const& nt, SFNode* node) {
+  if (nt.ntt == NTT::And || nt.ntt == NTT::Or) {
+    if (node->is_leaf) return -1;
+    else return node->children.size();
+  } else {
+    return node->children.size() >= nt.domain.size() ? nt.domain.size() : -1;
+  }
+}
+
 struct ValueVector;
 struct VarEncoding;
 
@@ -53,12 +62,13 @@ public:
   z3::context& ctx;
   z3::solver& solver;
 
+  // tree shape
+  std::vector<int> arity_at_depth;
+
   std::vector<lsort> sorts;
   std::vector<VarDecl> functions;
   std::vector<VarDecl> free_vars;
   TopQuantifierDesc tqd;
-  int arity;
-  int depth;
   std::vector<NodeType> node_types;
   std::vector<SFNode> nodes;
   SFNode* root;
