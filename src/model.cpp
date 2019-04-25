@@ -397,6 +397,7 @@ bool eval_get_multiqi_counterexample(
       var_values[idx] = i;
       if (!eval_get_multiqi_counterexample(body, var_values, res, total_len)) {
         for (vector<object_value>& qi : res) {
+          printf("forall setting qi[%d] to %d\n", idx, i);
           qi[idx] = i;
         }
         return false;
@@ -414,8 +415,10 @@ bool eval_get_multiqi_counterexample(
     while (true) {
       vector<vector<object_value>> r;
       if (!eval_get_multiqi_counterexample(body, var_values, r, total_len)) {
-        for (vector<object_value>& qi : res) {
+        for (vector<object_value>& qi : r) {
           for (int i = 0; i < len; i++) {
+            printf("nearlyforall setting qi[%d] to %d\n", 
+                (int)ee.nearlyforall_var_indices[i], (int)var_values[ee.nearlyforall_var_indices[i]]);
             qi[ee.nearlyforall_var_indices[i]] =
                 var_values[ee.nearlyforall_var_indices[i]];
           }
@@ -446,11 +449,16 @@ bool eval_get_multiqi_counterexample(
       }
     }
 
+    res.clear();
     return true;
   } else {
+    printf("var_values:");
+    for (int i = 0; i < total_len; i++) printf(" %d", var_values[i]);
     if (eval(ee, var_values) == 1) {
+      printf("  got true\n");
       return true;
     } else {
+      printf("  got false\n");
       vector<object_value> os;
       os.resize(total_len);
       res.push_back(os);
