@@ -323,7 +323,6 @@ bool eval_get_counterexample(
 }
 
 QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
-  //printf("v: %s\n", v->to_string().c_str());
   EvalExpr ee = model->value_to_eval_expr(v, {});
   int n = get_num_forall_quantifiers_at_top(&ee);
 
@@ -358,7 +357,6 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
   } else {
     qi.non_null = true;
   }
-  //printf("done\n");
 
   return qi;
 }
@@ -389,7 +387,7 @@ void append_vector(vector<A>& a, vector<A> const& b) {
 bool eval_get_multiqi_counterexample(
     EvalExpr const& ee,
     int* var_values,
-    vector<vector<object_value>>& res, int n)
+    vector<vector<object_value>>& res, int total_len)
 {
   if (ee.type == EvalExprType::Forall) {
     int idx = ee.var_index;
@@ -397,7 +395,7 @@ bool eval_get_multiqi_counterexample(
     EvalExpr const& body = ee.args[0];
     for (int i = 0; i < q; i++) {
       var_values[idx] = i;
-      if (!eval_get_multiqi_counterexample(body, var_values, res, n)) {
+      if (!eval_get_multiqi_counterexample(body, var_values, res, total_len)) {
         for (vector<object_value>& qi : res) {
           qi[idx] = i;
         }
@@ -407,17 +405,17 @@ bool eval_get_multiqi_counterexample(
     return true;
   }
   else if (ee.type == EvalExprType::NearlyForall) {
-    int n = ee.nearlyforall_quantifier_domain_sizes.size();
-    for (int i = 0; i < n; i++) {
+    int len = ee.nearlyforall_quantifier_domain_sizes.size();
+    for (int i = 0; i < len; i++) {
       var_values[ee.nearlyforall_var_indices[i]] = 0;
     }
     int bad_count = 0;
     EvalExpr const& body = ee.args[0];
     while (true) {
       vector<vector<object_value>> r;
-      if (!eval_get_multiqi_counterexample(body, var_values, r, n)) {
+      if (!eval_get_multiqi_counterexample(body, var_values, r, total_len)) {
         for (vector<object_value>& qi : res) {
-          for (int i = 0; i < n; i++) {
+          for (int i = 0; i < len; i++) {
             qi[ee.nearlyforall_var_indices[i]] =
                 var_values[ee.nearlyforall_var_indices[i]];
           }
@@ -433,7 +431,7 @@ bool eval_get_multiqi_counterexample(
       }
       
       int i;
-      for (i = 0; i < n; i++) {
+      for (i = 0; i < len; i++) {
         int idx = ee.nearlyforall_var_indices[i];
         int sz = ee.nearlyforall_quantifier_domain_sizes[i];
         var_values[idx]++;
@@ -443,7 +441,7 @@ bool eval_get_multiqi_counterexample(
           break;
         }
       }
-      if (i == n) {
+      if (i == len) {
         break;
       }
     }
@@ -454,7 +452,7 @@ bool eval_get_multiqi_counterexample(
       return true;
     } else {
       vector<object_value> os;
-      os.resize(n);
+      os.resize(total_len);
       res.push_back(os);
       return false;
     }
@@ -464,13 +462,11 @@ bool eval_get_multiqi_counterexample(
 
 bool get_multiqi_counterexample(shared_ptr<Model> model, value v,
     vector<QuantifierInstantiation>& result) {
-  //printf("v: %s\n", v->to_string().c_str());
   EvalExpr ee = model->value_to_eval_expr(v, {});
   int n = get_num_forall_or_nearlyforall_quantifiers_at_top(&ee);
 
   QuantifierInstantiation qi;
   qi.formula = v;
-  qi.variable_values.resize(n);
   qi.model = model;
   qi.non_null = true;
 
@@ -507,12 +503,24 @@ bool get_multiqi_counterexample(shared_ptr<Model> model, value v,
 
   delete[] var_values;
 
+  cout << "get_multiqi_counterexample:" << endl;
+  model->dump();
+  cout << "expr: " << v->to_string() << endl;
+
   result.clear();
   if (ans) {
+    cout << "result: no counterexample found" << endl;
     return true;
   } else {
     qi.non_null = true;
+    cout << "result:" << endl;
     for (vector<object_value> const& q : qis) {
+      cout << "vals:";
+      for (object_value ov : q) {
+        cout << " " << ov;
+      }
+      cout << endl;
+
       qi.variable_values = q;
       result.push_back(qi);
     }
@@ -717,11 +725,6 @@ shared_ptr<Model> Model::extract_model_from_z3(
       } else {
         z3::func_interp finterp = z3model.get_func_interp(fdecl);
 
-        /*
-        printf("name = %s\n", fdecl.name().str().c_str());
-        printf("else value\n");
-        finfo.else_value = get_value(range_sort, finterp.else_value());
-        */
         vector<object_value> args;
         for (int i = 0; i < num_args; i++) {
           args.push_back(0);

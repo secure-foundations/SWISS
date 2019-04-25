@@ -3,6 +3,7 @@
 #include <set>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 
@@ -38,6 +39,7 @@ vector<vector<unsigned int>> get_quantifier_permutations(
     vector<unsigned int> const& ovs)
 {
   vector<QSRange> qranges = tqd.grouped_by_sort();
+  cout << tqd.decls().size() << " ; " << ovs.size() << endl;
   assert(tqd.decls().size() == ovs.size());
 
   vector<vector<unsigned int>> res;
@@ -52,6 +54,8 @@ vector<vector<vector<unsigned int>>> get_multiqi_quantifier_permutations(
   int n = ovs.size();
   assert(n > 0);
   int m = ovs[0].size();
+
+  printf("n= %d, m = %d\n", n, m);
 
   vector<vector<unsigned int>> i_to_t;
   map<vector<unsigned int>, unsigned int> t_to_i;
