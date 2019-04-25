@@ -48,6 +48,11 @@ SketchFormula::SketchFormula(
     this->node_types.push_back(NodeType(
         "eq_" + dynamic_cast<UninterpretedSort*>(s.get())->name,
         NTT::Eq, -1, {s, s}, bool_sort));
+
+    this->node_types.push_back(NodeType(
+        "ne_" + dynamic_cast<UninterpretedSort*>(s.get())->name,
+        NTT::Eq, -1, {s, s}, bool_sort));
+    this->node_types[this->node_types.size() - 1].negated_function = true;
   }
   for (int i = 0; i < module->functions.size(); i++) {
     VarDecl const& decl = module->functions[i];
@@ -219,9 +224,10 @@ value SketchFormula::node_to_value(SFNode* node) {
     }
     case NTT::Eq: {
       assert(!node->is_leaf);
-      return v_eq(
+      value v = v_eq(
         node_to_value(node->children[0]),
         node_to_value(node->children[1]));
+      return nt.negated_function ? v_not(v) : v;
     }
     case NTT::Func: {
       vector<value> args;
@@ -669,8 +675,13 @@ ValueVector SketchFormula::to_value_vector(
               z3::mk_or(vec2)));
         }
 
-        v_is_true.push_back(z3::mk_or(possibilities));
-        v_is_false.push_back(z3::mk_or(possibilities_not));
+        if (nt.negated_function) {
+          v_is_true.push_back(z3::mk_or(possibilities_not));
+          v_is_false.push_back(z3::mk_or(possibilities));
+        } else {
+          v_is_true.push_back(z3::mk_or(possibilities));
+          v_is_false.push_back(z3::mk_or(possibilities_not));
+        }
 
         for (int i = 0; i < sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
@@ -904,6 +915,7 @@ ValueVector SketchFormula::to_value_vector(
       }
 
       case NTT::Eq: {
+        assert(false && "does not implement negated_function");
         int sort_index = get_sort_index(nt.domain[0]);
         z3::expr_vector possibilities(ctx);
         for (int j = 0; j < domain_sizes[sort_index]; j++) {
@@ -1111,7 +1123,7 @@ void SketchFormula::add_lex_constraints() {
     SFNode* node = &nodes[idx];
     if (!node->is_leaf) {
       solver.add(z3::implies(
-        node_is_eq(node),
+        node_is_eq_or_ne(node),
         nodes_le(node->children[0], node->children[1])
       ));
       solver.add(z3::implies(
@@ -1252,7 +1264,7 @@ z3::expr SketchFormula::node_is_false(SFNode* a) { return node_is_ntt(a, NTT::Fa
 z3::expr SketchFormula::node_is_or(SFNode* a) { return node_is_ntt(a, NTT::Or); }
 z3::expr SketchFormula::node_is_and(SFNode* a) { return node_is_ntt(a, NTT::And); }
 
-z3::expr SketchFormula::node_is_eq(SFNode* node) {
+z3::expr SketchFormula::node_is_eq_or_ne(SFNode* node) {
   z3::expr_vector vec(ctx);
   int i = 0;
   for (NodeType& nt : node_types) {

@@ -109,7 +109,7 @@ private:
   z3::expr node_is_false(SFNode* a);
   z3::expr node_is_or(SFNode* a);
   z3::expr node_is_and(SFNode* a);
-  z3::expr node_is_eq(SFNode* a);
+  z3::expr node_is_eq_or_ne(SFNode* a);
   z3::expr node_is_ntt(SFNode* a, NTT ntt);
   z3::expr node_is_var(SFNode* a, int var_index);
   z3::expr nodes_eq(SFNode* a, SFNode* b);

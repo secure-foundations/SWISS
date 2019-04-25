@@ -397,7 +397,6 @@ bool eval_get_multiqi_counterexample(
       var_values[idx] = i;
       if (!eval_get_multiqi_counterexample(body, var_values, res, total_len)) {
         for (vector<object_value>& qi : res) {
-          printf("forall setting qi[%d] to %d\n", idx, i);
           qi[idx] = i;
         }
         return false;
@@ -417,8 +416,6 @@ bool eval_get_multiqi_counterexample(
       if (!eval_get_multiqi_counterexample(body, var_values, r, total_len)) {
         for (vector<object_value>& qi : r) {
           for (int i = 0; i < len; i++) {
-            printf("nearlyforall setting qi[%d] to %d\n", 
-                (int)ee.nearlyforall_var_indices[i], (int)var_values[ee.nearlyforall_var_indices[i]]);
             qi[ee.nearlyforall_var_indices[i]] =
                 var_values[ee.nearlyforall_var_indices[i]];
           }
@@ -452,13 +449,9 @@ bool eval_get_multiqi_counterexample(
     res.clear();
     return true;
   } else {
-    printf("var_values:");
-    for (int i = 0; i < total_len; i++) printf(" %d", var_values[i]);
     if (eval(ee, var_values) == 1) {
-      printf("  got true\n");
       return true;
     } else {
-      printf("  got false\n");
       vector<object_value> os;
       os.resize(total_len);
       res.push_back(os);
@@ -511,23 +504,23 @@ bool get_multiqi_counterexample(shared_ptr<Model> model, value v,
 
   delete[] var_values;
 
-  cout << "get_multiqi_counterexample:" << endl;
-  model->dump();
-  cout << "expr: " << v->to_string() << endl;
+  //cout << "get_multiqi_counterexample:" << endl;
+  //model->dump();
+  //cout << "expr: " << v->to_string() << endl;
 
   result.clear();
   if (ans) {
-    cout << "result: no counterexample found" << endl;
+    //cout << "result: no counterexample found" << endl;
     return true;
   } else {
     qi.non_null = true;
-    cout << "result:" << endl;
+    //cout << "result:" << endl;
     for (vector<object_value> const& q : qis) {
-      cout << "vals:";
-      for (object_value ov : q) {
-        cout << " " << ov;
-      }
-      cout << endl;
+      //cout << "vals:";
+      //for (object_value ov : q) {
+      //  cout << " " << ov;
+      //}
+      //cout << endl;
 
       qi.variable_values = q;
       result.push_back(qi);
