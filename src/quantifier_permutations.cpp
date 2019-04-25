@@ -39,7 +39,6 @@ vector<vector<unsigned int>> get_quantifier_permutations(
     vector<unsigned int> const& ovs)
 {
   vector<QSRange> qranges = tqd.grouped_by_sort();
-  cout << tqd.decls().size() << " ; " << ovs.size() << endl;
   assert(tqd.decls().size() == ovs.size());
 
   vector<vector<unsigned int>> res;
