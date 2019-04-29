@@ -14,6 +14,7 @@ OBJECTS = $(addprefix bin/,\
 	ftree.o \
 	quantifier_permutations.o \
 	top_quantifier_desc.o \
+	sketch_model.o \
 	lib/json11/json11.o \
 )
 

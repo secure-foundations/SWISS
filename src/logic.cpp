@@ -430,6 +430,24 @@ string TemplateHole::to_string() const {
   return "WILD";
 }
 
+lsort bsort = s_bool();
+
+lsort Forall::get_sort() const { return bsort; }
+lsort Exists::get_sort() const { return bsort; }
+lsort Var::get_sort() const { return sort; }
+lsort Const::get_sort() const { return sort; }
+lsort Eq::get_sort() const { return bsort; }
+lsort Not::get_sort() const { return bsort; }
+lsort Implies::get_sort() const { return bsort; }
+lsort Apply::get_sort() const {
+  Const* f = dynamic_cast<Const*>(func.get());
+  assert(f != NULL);
+  return f->sort->get_range_as_function();
+}
+lsort And::get_sort() const { return bsort; }
+lsort Or::get_sort() const { return bsort; }
+lsort TemplateHole::get_sort() const { assert(false); }
+
 value Forall::subst(iden x, value e) const {
   return v_forall(decls, body->subst(x, e)); 
 }

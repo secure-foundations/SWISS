@@ -86,6 +86,7 @@ public:
 
   virtual std::string to_string() const = 0;
   virtual json11::Json to_json() const = 0;
+  virtual std::shared_ptr<Sort> get_sort() const = 0;
   static std::shared_ptr<Value> from_json(json11::Json);
   virtual std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const = 0;
   virtual std::shared_ptr<Value> negate() const = 0;
@@ -120,6 +121,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -144,6 +146,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -168,6 +171,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -192,6 +196,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -216,6 +221,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -240,6 +246,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -262,6 +269,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -286,6 +294,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -310,6 +319,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -332,6 +342,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -354,6 +365,7 @@ public:
 
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
 
@@ -371,6 +383,7 @@ public:
   TemplateHole() { }
   std::string to_string() const override;
   json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
