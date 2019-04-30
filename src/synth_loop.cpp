@@ -552,6 +552,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     value candidate_inner = sf.to_value(model);
     value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
     printf("candidate: %s\n", candidate->to_string().c_str());
+    candidate = candidate->simplify();
+    printf("simplified: %s\n", candidate->to_string().c_str());
 
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));

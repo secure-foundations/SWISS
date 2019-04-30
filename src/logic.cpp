@@ -390,6 +390,7 @@ string Implies::to_string() const {
 }
 
 string And::to_string() const {
+  if (args.size() == 0) return "true";
   string res = "";
   if (args.size() <= 1) res += "AND[";
   for (int i = 0; i < args.size(); i++) {
@@ -403,6 +404,7 @@ string And::to_string() const {
 }
 
 string Or::to_string() const {
+  if (args.size() == 0) return "false";
   string res = "";
   if (args.size() <= 1) res += "OR[";
   for (int i = 0; i < args.size(); i++) {
@@ -569,6 +571,132 @@ value TemplateHole::negate() const {
   return v_not(v_template_hole());
 }
 
+value Forall::simplify() const {
+  return v_forall(decls, body->simplify());
+}
+
+value NearlyForall::simplify() const {
+  return v_nearlyforall(decls, body->simplify());
+}
+
+value Exists::simplify() const {
+  return v_exists(decls, body->simplify());
+}
+
+value Var::simplify() const {
+  return v_var(name, sort);
+}
+
+value Const::simplify() const {
+  return v_const(name, sort);
+}
+
+value Eq::simplify() const {
+  value l = left->simplify();
+  value r = right->simplify();
+  if (values_equal(l, r)) {
+    return v_true();
+  } else {
+    return v_eq(l, r);
+  }
+}
+
+value Not::simplify() const {
+  return val->simplify()->negate();
+}
+
+value Implies::simplify() const {
+  return v_or({v_not(left), right})->simplify();
+}
+
+bool is_const_true(value v) {
+  And* a = dynamic_cast<And*>(v.get());
+  return a != NULL && a->args.size() == 0;
+}
+
+bool is_const_false(value v) {
+  Or* a = dynamic_cast<Or*>(v.get());
+  return a != NULL && a->args.size() == 0;
+}
+
+template <typename T>
+void extend(vector<T> & a, vector<T> const& b) {
+  for (T const& t : b) {
+    a.push_back(t);
+  }
+}
+
+vector<value> remove_redundant(vector<value> const& vs) {
+  vector<value> t;
+  for (value v : vs) {
+    bool redun = false;
+    for (value w : t) {
+      if (values_equal(v, w)) {
+        redun = true;
+        break;
+      }
+    }
+    if (!redun) {
+      t.push_back(v);
+    }
+  }
+  return t;
+}
+
+value And::simplify() const {
+  vector<value> a;
+  for (value v : args) {
+    v = v->simplify();
+    if (And* inner = dynamic_cast<And*>(v.get())) {
+      extend(a, inner->args);
+    }
+    else if (is_const_false(v)) {
+      return v_false();
+    }
+    else {
+      a.push_back(v);
+    }
+  }
+
+  a = remove_redundant(a);
+
+  value res = a.size() == 1 ? a[0] : v_and(a);
+  return res;
+}
+
+value Or::simplify() const {
+  vector<value> a;
+  for (value v : args) {
+    v = v->simplify();
+    if (Or* inner = dynamic_cast<Or*>(v.get())) {
+      extend(a, inner->args);
+    }
+    else if (is_const_true(v)) {
+      return v_true();
+    }
+    else {
+      a.push_back(v);
+    }
+  }
+
+  a = remove_redundant(a);
+
+  value res = a.size() == 1 ? a[0] : v_or(a);
+  return res;
+}
+
+value Apply::simplify() const {
+  vector<value> a;
+  for (value v : args) {
+    a.push_back(v->simplify());
+  }
+  return v_apply(func, a);
+}
+
+value TemplateHole::simplify() const {
+  return v_template_hole();
+}
+
 uint32_t uid = 0;
 uint32_t new_var_id() {
   return (uid++);
@@ -648,13 +776,6 @@ value Or::uniquify_vars(map<iden, iden> const& m) const {
 
 value TemplateHole::uniquify_vars(map<iden, iden> const& m) const {
   return v_template_hole();
-}
-
-template <typename T>
-void extend(vector<T> & a, vector<T> const& b) {
-  for (T const& t : b) {
-    a.push_back(t);
-  }
 }
 
 void sort_decls(vector<VarDecl>& decls) {
@@ -1082,9 +1203,25 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
         break;
       }
     }
-    assert (a_idx != -1);
-    assert (b_idx != -1);
-    return a_idx < b_idx ? -1 : (a_idx == b_idx ? 0 : 1);
+
+    if (a_idx == -1) {
+      if (b_idx == -1) {
+        // free variables: compare by name
+        string a_name = iden_to_string(a->name);
+        string b_name = iden_to_string(b->name);
+        return a_name < b_name ? -1 : (a_name == b_name ? 0 : 1);
+      } else {
+        // free var comes first
+        return -1;
+      }
+    } else {
+      if (b_idx == -1) {
+        return 1;
+      } else {
+        // compare by index
+        return a_idx < b_idx ? -1 : (a_idx == b_idx ? 0 : 1);
+      }
+    }
   }
 
   if (Const* a = dynamic_cast<Const*>(a_.get())) {
@@ -1653,4 +1790,11 @@ bool sorts_eq(lsort s, lsort t) {
   else {
     assert(false);
   }
+}
+
+bool values_equal(value a, value b) {
+  ScopeState ss_a;
+  ScopeState ss_b;
+  int c = cmp_expr(a, b, ss_a, ss_b);
+  return c == 0;
 }

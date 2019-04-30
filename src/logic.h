@@ -90,6 +90,7 @@ public:
   static std::shared_ptr<Value> from_json(json11::Json);
   virtual std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const = 0;
   virtual std::shared_ptr<Value> negate() const = 0;
+  virtual std::shared_ptr<Value> simplify() const = 0;
 
   virtual std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const = 0;
   virtual std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const = 0;
@@ -124,6 +125,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -149,6 +151,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -156,7 +159,7 @@ public:
   std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
   void get_used_vars(std::set<iden>&) const override;
 
-  int kind_id() const override { return 1; }
+  int kind_id() const override { return 2; }
 };
 
 class Exists : public Value {
@@ -174,6 +177,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -181,7 +185,7 @@ public:
   std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
   void get_used_vars(std::set<iden>&) const override;
 
-  int kind_id() const override { return 2; }
+  int kind_id() const override { return 3; }
 };
 
 class Var : public Value {
@@ -199,6 +203,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -224,6 +229,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -249,6 +255,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -272,6 +279,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -297,6 +305,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -322,6 +331,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -345,6 +355,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -368,6 +379,7 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -386,6 +398,8 @@ public:
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
+
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> structurally_normalize_() const override;
@@ -568,5 +582,6 @@ inline lsort s_fun(std::vector<lsort> inputs, lsort output) {
 }
 
 bool sorts_eq(lsort s, lsort t);
+bool values_equal(value a, value b);
 
 #endif
