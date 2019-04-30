@@ -56,6 +56,7 @@ inline int get_arity(NodeType const& nt, SFNode* node) {
 
 struct ValueVector;
 struct VarEncoding;
+class SketchModel;
 
 class SketchFormula {
 public:
@@ -84,12 +85,14 @@ public:
   z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
       bool target_value);
   z3::expr interpret_not(std::shared_ptr<Model> model);
+  z3::expr interpret_not(SketchModel& model);
 
   value to_value(z3::model& m);
 
   int get_bool_count() { return bool_count; }
 
 private:
+
   value node_to_value(SFNode*);
   z3::expr expr_is_sort(SFNode* node, lsort s);
 
@@ -106,6 +109,7 @@ private:
   ValueVector to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
+    SketchModel* sm,
     std::vector<VarEncoding> const& var_exprs);
   z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
   z3::expr new_const(z3::expr e, std::string const& name);
@@ -149,8 +153,9 @@ private:
       std::vector<ValueVector>& children,
       NodeType& nt);
 
-  std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, int idx, std::vector<QRange> const&, std::string const&);
-  VarEncoding make_existential_var_encoding(std::shared_ptr<Model>, lsort, std::string const&);
+  z3::expr interpret_not(std::shared_ptr<Model> model, SketchModel* sm);
+  std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, SketchModel*, int idx, std::vector<QRange> const&, std::string const&);
+  VarEncoding make_existential_var_encoding(std::shared_ptr<Model>, SketchModel*, lsort, std::string const&);
   z3::expr encodings_not_eq(VarEncoding&, VarEncoding&);
 };
 

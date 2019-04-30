@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "sketch_model.h"
+
 using namespace std;
 
 #define USE_2_FOR_BOOLS true
@@ -403,7 +405,7 @@ z3::expr SketchFormula::interpret(
     enc.vars = v;
     var_exps.push_back(enc);
   }
-  ValueVector vv = to_value_vector(root, model, var_exps);
+  ValueVector vv = to_value_vector(root, model, NULL, var_exps);
   return vv.is_true;
 
 #if USE_2_FOR_BOOLS
@@ -415,11 +417,12 @@ z3::expr SketchFormula::interpret(
 
 VarEncoding SketchFormula::make_existential_var_encoding(
     shared_ptr<Model> model,
+    SketchModel* sm,
     lsort so,
     string const& vname)
 {
   vector<z3::expr> v;
-  int dsize = model->get_domain_size(so);
+  int dsize = model ? model->get_domain_size(so) : sm->get_domain_size(so);
   for (int j = 0; j < dsize; j++) {
     z3::expr e = bool_const(name("existential_var_" + vname + "_eq_" + to_string(j)));
     v.push_back(e);
@@ -449,7 +452,7 @@ vector<A> concat_vector(vector<A> const& a, vector<A> const& b) {
 }
 
 vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
-    shared_ptr<Model> model,
+    shared_ptr<Model> model, SketchModel* sm,
     int idx, vector<QRange> const& qranges, string const& vname)
 {
   if (idx == qranges.size()) {
@@ -464,10 +467,10 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
     vector<VarEncoding> prefix;
     for (VarDecl decl : qr.decls) {
       prefix.push_back(make_existential_var_encoding(
-          model, decl.sort, iden_to_string(decl.name) + "_" + vname));
+          model, sm, decl.sort, iden_to_string(decl.name) + "_" + vname));
     }
 
-    vector<vector<VarEncoding>> suffixes = get_all_var_exps_tree(model, idx+1, qranges, vname);
+    vector<vector<VarEncoding>> suffixes = get_all_var_exps_tree(model, sm, idx+1, qranges, vname);
 
     for (int i = 0; i < suffixes.size(); i++) {
       suffixes[i] = concat_vector(prefix, suffixes[i]);
@@ -481,9 +484,9 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
     z3::expr_vector not_all_eq(ctx);
     for (VarDecl decl : qr.decls) {
       VarEncoding enc1 =
-          make_existential_var_encoding(model, decl.sort, iden_to_string(decl.name) + "_" + vname + "0");
+          make_existential_var_encoding(model, sm, decl.sort, iden_to_string(decl.name) + "_" + vname + "0");
       VarEncoding enc2 =
-          make_existential_var_encoding(model, decl.sort, iden_to_string(decl.name) + "_" + vname + "1");
+          make_existential_var_encoding(model, sm, decl.sort, iden_to_string(decl.name) + "_" + vname + "1");
       prefix1.push_back(enc1);
       prefix2.push_back(enc2);
 
@@ -493,9 +496,9 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
     solver.add(z3::mk_or(not_all_eq));
 
     vector<vector<VarEncoding>> suffixes1 =
-        get_all_var_exps_tree(model, idx+1, qranges, vname + "0");
+        get_all_var_exps_tree(model, sm, idx+1, qranges, vname + "0");
     vector<vector<VarEncoding>> suffixes2 =
-        get_all_var_exps_tree(model, idx+1, qranges, vname + "1");
+        get_all_var_exps_tree(model, sm, idx+1, qranges, vname + "1");
 
     for (int i = 0; i < suffixes1.size(); i++) {
       suffixes1[i] = concat_vector(prefix1, suffixes1[i]);
@@ -511,13 +514,24 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
   }
 }
 
-z3::expr SketchFormula::interpret_not(std::shared_ptr<Model> model)
+z3::expr SketchFormula::interpret_not(std::shared_ptr<Model> model) {
+  return interpret_not(model, NULL);
+}
+
+z3::expr SketchFormula::interpret_not(SketchModel& sm) {
+  return interpret_not(NULL, &sm);
+}
+
+z3::expr SketchFormula::interpret_not(shared_ptr<Model> model, SketchModel* sm)
 {
+  assert ((model != nullptr) ^ (sm != NULL));
+
   vector<QRange> qranges = tqd.with_foralls_grouped();
-  vector<vector<VarEncoding>> all_var_exps = get_all_var_exps_tree(model, 0, qranges, "path");
+  vector<vector<VarEncoding>> all_var_exps =
+      get_all_var_exps_tree(model, sm, 0, qranges, "path");
   z3::expr_vector vec(ctx);
   for (vector<VarEncoding>& var_exps : all_var_exps) {
-    ValueVector vv = to_value_vector(root, model, var_exps);
+    ValueVector vv = to_value_vector(root, model, sm, var_exps);
 #if USE_2_FOR_BOOLS
     z3::expr e = vv.is_false;
 #else
@@ -574,11 +588,12 @@ z3::expr SketchFormula::ftree_to_expr(
 ValueVector SketchFormula::to_value_vector(
     SFNode* node,
     std::shared_ptr<Model> model,
+    SketchModel* sm,
     std::vector<VarEncoding> const& var_exprs)
 {
   vector<ValueVector> children;
   for (SFNode* child : node->children) {
-    children.push_back(to_value_vector(child, model, var_exprs));
+    children.push_back(to_value_vector(child, model, sm, var_exprs));
   }
 
   z3::expr const_true = ctx.bool_val(true);
@@ -589,7 +604,7 @@ ValueVector SketchFormula::to_value_vector(
   vector<vector<vector<z3::expr>>> v_objs;
   vector<int> domain_sizes;
   for (int i = 0; i < sorts.size(); i++) {
-    int domain_size = model->get_domain_size(sorts[i]);
+    int domain_size = model ? model->get_domain_size(sorts[i]) : sm->get_domain_size(sorts[i]);
     domain_sizes.push_back(domain_size);
     v_objs.push_back({});
     for (int j = 0; j < domain_size; j++) {
@@ -703,10 +718,26 @@ ValueVector SketchFormula::to_value_vector(
           int range_size = model->get_domain_size(nt.range);
           vector<z3::expr> exprs;
           for (int val = 0; val < range_size; val++) {
-            shared_ptr<FTree> ftree = model->getFunctionFTree(
-                this->functions[nt.index].name, val);
-            z3::expr e = ftree_to_expr(ctx, ftree, children, nt);
-            exprs.push_back(e);
+            if (model != nullptr) {
+              shared_ptr<FTree> ftree = model->getFunctionFTree(
+                  this->functions[nt.index].name, val);
+              z3::expr e = ftree_to_expr(ctx, ftree, children, nt);
+              exprs.push_back(e);
+            } else {
+              assert(sm != NULL);
+              z3::expr_vector possibilities(ctx);
+              auto iter = sm->functions.find(this->functions[nt.index].name);
+              assert (iter != sm->functions.end());
+              for (SketchFunctionEntry& sfe : iter->second.table) {
+                z3::expr_vector vec(ctx);
+                vec.push_back(sfe.res.get(val));
+                for (int i = 0; i < sfe.args.size(); i++) {
+                  vec.push_back(get_vector_value_entry(children[i], nt.domain[i], sfe.args[i]));
+                }
+                possibilities.push_back(z3::mk_and(vec));
+              }
+              exprs.push_back(z3::mk_or(possibilities));
+            }
           }
 
           if (dynamic_cast<BooleanSort*>(nt.range.get())) {
@@ -735,8 +766,8 @@ ValueVector SketchFormula::to_value_vector(
               }
             }
           }
-
         } else {
+          assert(false && "doesn't support sm");
           if (dynamic_cast<BooleanSort*>(nt.range.get())) {
             z3::expr_vector arg_possibilities(ctx);
             z3::expr_vector arg_possibilities_not(ctx);

@@ -613,8 +613,8 @@ shared_ptr<Model> Model::extract_model_from_z3(
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
-  shared_ptr<Model> model = make_shared<Model>();
-  model->module = module;
+  std::unordered_map<std::string, SortInfo> sort_info;
+  std::unordered_map<iden, FunctionInfo> function_info;
 
   z3::model z3model = solver.get_model();
 
@@ -635,7 +635,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
 
     SortInfo sinfo;
     sinfo.domain_size = len;
-    model->sort_info[name] = sinfo;
+    sort_info[name] = sinfo;
   }
 
   auto get_value = [&z3model, &ctx, &universes](
@@ -703,7 +703,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
         if (dynamic_cast<BooleanSort*>(argsort)) {
           sz = 2;
         } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(argsort)) {
-          sz = model->sort_info[usort->name].domain_size;
+          sz = sort_info[usort->name].domain_size;
         } else {
           assert(false && "expected boolean sort or uninterpreted sort");
         }
@@ -714,8 +714,8 @@ shared_ptr<Model> Model::extract_model_from_z3(
       range_sort = decl.sort.get();
     }
 
-    model->function_info.insert(make_pair(name, FunctionInfo()));
-    FunctionInfo& finfo = model->function_info[name];
+    function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& finfo = function_info[name];
 
     if (z3model.has_interp(fdecl)) {
       if (fdecl.is_const()) {
@@ -789,7 +789,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
     }
   }
 
-  return model;
+  return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
 }
 
 void Model::dump_sizes() const {
@@ -1376,8 +1376,8 @@ Json Model::to_json() const {
 }
 
 shared_ptr<Model> Model::from_json(Json j, shared_ptr<Module> module) {
-  shared_ptr<Model> model(new Model());
-  model->module = module;
+  std::unordered_map<std::string, SortInfo> sort_info;
+  std::unordered_map<iden, FunctionInfo> function_info;
 
   Json j_sort_info = j["sorts"];
   Json j_func_info = j["functions"];
@@ -1390,15 +1390,15 @@ shared_ptr<Model> Model::from_json(Json j, shared_ptr<Module> module) {
     SortInfo si;
     si.domain_size = j.int_value();
 
-    model->sort_info.insert(make_pair(p.first, si));
+    sort_info.insert(make_pair(p.first, si));
   }
 
   for (auto p : j_func_info.object_items()) {
     Json j = p.second;
-    model->function_info.insert(make_pair(string_to_iden(p.first), FunctionInfo::from_json(j)));
+    function_info.insert(make_pair(string_to_iden(p.first), FunctionInfo::from_json(j)));
   }
 
-  return model;
+  return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
 }
 
 Json FunctionInfo::to_json() const {

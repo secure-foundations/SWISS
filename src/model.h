@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include "logic.h"
 #include "contexts.h"
 #include "z3++.h"
@@ -112,6 +113,13 @@ public:
   EvalExpr value_to_eval_expr(
     std::shared_ptr<Value> v,
     std::vector<iden> const& names) const;
+
+  Model(
+    std::shared_ptr<Module> module,
+    std::unordered_map<std::string, SortInfo>&& sort_info,
+    std::unordered_map<iden, FunctionInfo>&& function_info) :
+        module(module), sort_info(std::move(sort_info)),
+        function_info(std::move(function_info)) { }
 
 private:
   std::map<std::pair<iden, object_value>, std::shared_ptr<FTree>> ftree_cache;

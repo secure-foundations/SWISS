@@ -433,6 +433,7 @@ string TemplateHole::to_string() const {
 lsort bsort = s_bool();
 
 lsort Forall::get_sort() const { return bsort; }
+lsort NearlyForall::get_sort() const { return bsort; }
 lsort Exists::get_sort() const { return bsort; }
 lsort Var::get_sort() const { return sort; }
 lsort Const::get_sort() const { return sort; }
