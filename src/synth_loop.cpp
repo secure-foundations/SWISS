@@ -635,89 +635,98 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   assert(module->templates.size() == 1);
   TopQuantifierDesc tqd(module->templates[0]);
 
-  z3::context ctx_sf;
-  z3::solver solver_sf(ctx_sf);
-  SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
-  sf.constrain_disj_form();
-
-  SketchModel sm(ctx_sf, solver_sf, module, 3);
-  solver_sf.add(sf.interpret_not(sm));
-
-  int bmc_depth = 4;
-  printf("bmc_depth = %d\n", bmc_depth);
-  BMCContext bmc(ctx, module, bmc_depth);
-
   value cumulative_invariant = v_true();
   if (is_invariant_with_conjectures(module, cumulative_invariant)) {
     printf("already invariant, done\n");
     return;
   }
 
-  int num_iterations = 0;
+  int bmc_depth = 4;
+  printf("bmc_depth = %d\n", bmc_depth);
+  BMCContext bmc(ctx, module, bmc_depth);
+
+  int num_iterations_total = 0;
 
   Benchmarking total_bench;
 
   while (true) {
-    num_iterations++;
+    int num_iterations = 0;
 
-    printf("\n");
+    z3::context ctx_sf;
+    z3::solver solver_sf(ctx_sf);
+    SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+    sf.constrain_disj_form();
 
-    log_smtlib(solver_sf);
-    printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
-    std::cout.flush();
+    SketchModel sm(ctx_sf, solver_sf, module, 3);
+    solver_sf.add(sf.interpret_not(sm));
+    sm.assert_formula(cumulative_invariant);
 
-    //cout << solver << "\n";
-    Benchmarking bench;
-    bench.start("solver (" + to_string(num_iterations) + ")");
-    total_bench.start("total solver time");
-    z3::check_result res = solver_sf.check();
-    bench.end();
-    total_bench.end();
-    bench.dump();
+    while (true) {
+      num_iterations++;
+      num_iterations_total++;
 
-    assert(res == z3::sat || res == z3::unsat);
-    if (res != z3::sat) {
-      printf("unable to synthesize any formula\n");
-      break;
-    }
+      printf("\n");
 
-    z3::model z3model = solver_sf.get_model();
-    value candidate_inner = sf.to_value(z3model);
-    value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
-    printf("candidate: %s\n", candidate->to_string().c_str());
-    candidate = candidate->simplify();
-    printf("simplified: %s\n", candidate->to_string().c_str());
+      log_smtlib(solver_sf);
+      printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
+      std::cout.flush();
 
-    //shared_ptr<Model> synthesized_model = sm.to_model(z3model);
-    //printf("synthesized model:\n");
-    //synthesized_model->dump();
+      //cout << solver << "\n";
+      Benchmarking bench;
+      bench.start("solver (" +
+          to_string(num_iterations_total) + ") (" +
+          to_string(num_iterations) + ")");
+      total_bench.start("total solver time");
+      z3::check_result res = solver_sf.check();
+      bench.end();
+      total_bench.end();
+      bench.dump();
 
-    value new_inv = v_and({cumulative_invariant, candidate});
-
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, nullptr, new_inv);
-
-    cex = simplify_cex_nosafety(module, cex, bmc);
-
-    assert(cex.is_false == nullptr);
-
-    if (cex.none) {
-      cumulative_invariant = new_inv;
-      assert(is_itself_invariant(module, cumulative_invariant));
-
-      printf("\nfound new invariant: %s\n", candidate->to_string().c_str());
-      printf("invariant so far: %s\n", cumulative_invariant->to_string().c_str());
-
-      if (is_invariant_with_conjectures(module, cumulative_invariant)) {
-        printf("invariant implies safety condition, done!\n");
+      assert(res == z3::sat || res == z3::unsat);
+      if (res != z3::sat) {
+        printf("unable to synthesize any formula\n");
         break;
       }
 
-      sm.assert_formula(candidate);
-    } else {
-      cex_stats(cex);
-      add_counterexample(module, sf, cex, candidate);
+      z3::model z3model = solver_sf.get_model();
+      value candidate_inner = sf.to_value(z3model);
+      value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
+      printf("candidate: %s\n", candidate->to_string().c_str());
+      candidate = candidate->simplify();
+      printf("simplified: %s\n", candidate->to_string().c_str());
+
+      //shared_ptr<Model> synthesized_model = sm.to_model(z3model);
+      //printf("synthesized model:\n");
+      //synthesized_model->dump();
+
+      value new_inv = v_and({cumulative_invariant, candidate});
+
+      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+      Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, nullptr, new_inv);
+
+      cex = simplify_cex_nosafety(module, cex, bmc);
+
+      assert(cex.is_false == nullptr);
+
+      if (cex.none) {
+        cumulative_invariant = new_inv;
+
+        printf("\nfound new invariant: %s\n", candidate->to_string().c_str());
+        printf("invariant so far: %s\n", cumulative_invariant->to_string().c_str());
+
+        break;
+      } else {
+        cex_stats(cex);
+        add_counterexample(module, sf, cex, candidate);
+      }
+    }
+
+    assert(is_itself_invariant(module, cumulative_invariant));
+
+    if (is_invariant_with_conjectures(module, cumulative_invariant)) {
+      printf("invariant implies safety condition, done!\n");
+      break;
     }
   }
 
