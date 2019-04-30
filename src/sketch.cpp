@@ -715,7 +715,7 @@ ValueVector SketchFormula::to_value_vector(
 
       case NTT::Func: {
         if (USE_FTREE) {
-          int range_size = model->get_domain_size(nt.range);
+          int range_size = model ? model->get_domain_size(nt.range) : sm->get_domain_size(nt.range);
           vector<z3::expr> exprs;
           for (int val = 0; val < range_size; val++) {
             if (model != nullptr) {
