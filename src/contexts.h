@@ -110,5 +110,7 @@ ActionResult applyAction(
     std::unordered_map<iden, z3::expr> const& consts);
 
 bool is_complete_invariant(std::shared_ptr<Module>, value);
+bool is_itself_invariant(std::shared_ptr<Module>, value);
+bool is_invariant_with_conjectures(std::shared_ptr<Module>, value);
 
 #endif

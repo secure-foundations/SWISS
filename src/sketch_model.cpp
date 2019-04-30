@@ -255,6 +255,10 @@ SketchModel::SketchModel(
 
     functions.insert(make_pair(decl.name, sf));
   }
+
+  for (value axiom : module->axioms) {
+    assert_formula(axiom);
+  }
 }
 
 shared_ptr<Model> SketchModel::to_model(z3::model& m)

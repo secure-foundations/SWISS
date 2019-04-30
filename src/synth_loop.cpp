@@ -9,6 +9,7 @@
 
 #include "model.h"
 #include "sketch.h"
+#include "sketch_model.h"
 #include "enumerator.h"
 #include "benchmarking.h"
 #include "bmc.h"
@@ -97,29 +98,31 @@ Counterexample get_counterexample_simple(
     init_solver.pop();
   }
 
-  z3::solver& conj_solver = conjctx->ctx->solver;
-  conj_solver.push();
-  conj_solver.add(conjctx->e->value2expr(candidate));
-  z3::check_result conj_res = conj_solver.check();
+  if (conjctx != nullptr) {
+    z3::solver& conj_solver = conjctx->ctx->solver;
+    conj_solver.push();
+    conj_solver.add(conjctx->e->value2expr(candidate));
+    z3::check_result conj_res = conj_solver.check();
 
-  if (conj_res == z3::sat) {
-    if (use_minimal || use_minimal_only_for_safety) {
-      cex.is_false = Model::extract_minimal_models_from_z3(
-          conjctx->ctx->ctx,
-          conj_solver, module, {conjctx->e})[0];
+    if (conj_res == z3::sat) {
+      if (use_minimal || use_minimal_only_for_safety) {
+        cex.is_false = Model::extract_minimal_models_from_z3(
+            conjctx->ctx->ctx,
+            conj_solver, module, {conjctx->e})[0];
+      } else {
+        cex.is_false = Model::extract_model_from_z3(
+            conjctx->ctx->ctx,
+            conj_solver, module, *conjctx->e);
+      }
+
+      printf("counterexample type: SAFETY\n");
+      //cex.is_false->dump();
+
+      conj_solver.pop();
+      return cex;
     } else {
-      cex.is_false = Model::extract_model_from_z3(
-          conjctx->ctx->ctx,
-          conj_solver, module, *conjctx->e);
+      conj_solver.pop();
     }
-
-    printf("counterexample type: SAFETY\n");
-    //cex.is_false->dump();
-
-    conj_solver.pop();
-    return cex;
-  } else {
-    conj_solver.pop();
   }
 
   z3::solver& solver = indctx->ctx->solver;
@@ -371,6 +374,24 @@ void cex_stats(Counterexample cex) {
   model->dump_sizes();
 }
 
+Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex,
+    BMCContext& bmc) {
+  if (cex.hypothesis) {
+    if (bmc.is_reachable(cex.conclusion) ||
+        bmc.is_reachable(cex.hypothesis)) {
+      Counterexample res;
+      res.is_true = cex.conclusion;
+      printf("simplifying -> INIT\n");
+      return res;
+    }
+
+    return cex;
+  } else {
+    return cex;
+  }
+}
+
+
 Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     BMCContext& bmc,
     BMCContext& antibmc) {
@@ -605,3 +626,94 @@ void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
   bench.end();
   bench.dump();
 }
+
+void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
+{
+  z3::context ctx;
+
+  assert(module->templates.size() == 1);
+  TopQuantifierDesc tqd(module->templates[0]);
+
+  z3::context ctx_sf;
+  z3::solver solver_sf(ctx_sf);
+  SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+  SketchModel sm(ctx_sf, solver_sf, module, 3);
+  solver_sf.add(sf.interpret_not(sm));
+
+  int bmc_depth = 4;
+  printf("bmc_depth = %d\n", bmc_depth);
+  BMCContext bmc(ctx, module, bmc_depth);
+
+  value cumulative_invariant = v_true();
+  if (is_invariant_with_conjectures(module, cumulative_invariant)) {
+    printf("already invariant, done\n");
+    return;
+  }
+
+  int num_iterations = 0;
+
+  Benchmarking total_bench;
+
+  while (true) {
+    num_iterations++;
+
+    printf("\n");
+
+    log_smtlib(solver_sf);
+    printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
+    std::cout.flush();
+
+    //cout << solver << "\n";
+    Benchmarking bench;
+    bench.start("solver (" + to_string(num_iterations) + ")");
+    total_bench.start("total solver time");
+    z3::check_result res = solver_sf.check();
+    bench.end();
+    total_bench.end();
+    bench.dump();
+
+    assert(res == z3::sat || res == z3::unsat);
+    if (res != z3::sat) {
+      printf("unable to synthesize any formula\n");
+      break;
+    }
+
+    z3::model model = solver_sf.get_model();
+    value candidate_inner = sf.to_value(model);
+    value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
+    printf("candidate: %s\n", candidate->to_string().c_str());
+    candidate = candidate->simplify();
+    printf("simplified: %s\n", candidate->to_string().c_str());
+
+    value new_inv = v_and({cumulative_invariant, candidate});
+
+    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, nullptr, new_inv);
+
+    cex = simplify_cex_nosafety(module, cex, bmc);
+
+    assert(cex.is_false == nullptr);
+
+    if (cex.none) {
+      cumulative_invariant = new_inv;
+      assert(is_itself_invariant(module, cumulative_invariant));
+
+      printf("\nfound new invariant: %s\n", candidate->to_string().c_str());
+      printf("invariant so far: %s\n", cumulative_invariant->to_string().c_str());
+
+      if (is_invariant_with_conjectures(module, cumulative_invariant)) {
+        printf("invariant implies safety condition, done!\n");
+        break;
+      }
+
+      sm.assert_formula(candidate);
+    } else {
+      cex_stats(cex);
+      add_counterexample(module, sf, cex, candidate);
+    }
+  }
+
+  total_bench.dump();
+}
+

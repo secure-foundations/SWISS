@@ -514,3 +514,36 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
 
   return true;
 }
+
+bool is_itself_invariant(shared_ptr<Module> module, value candidate) {
+  z3::context ctx;  
+
+  {
+    InitContext initctx(ctx, module);
+    z3::solver& init_solver = initctx.ctx->solver;
+    init_solver.add(initctx.e->value2expr(v_not(candidate)));
+    z3::check_result init_res = init_solver.check();
+    assert (init_res == z3::sat || init_res == z3::unsat);
+    if (init_res == z3::sat) {
+      return false;
+    }
+  }
+
+  {
+    InductionContext indctx(ctx, module);
+    z3::solver& solver = indctx.ctx->solver;
+    solver.add(indctx.e1->value2expr(candidate));
+    solver.add(indctx.e2->value2expr(v_not(candidate)));
+    z3::check_result res = solver.check();
+    assert (res == z3::sat || res == z3::unsat);
+    if (res == z3::sat) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool is_invariant_with_conjectures(std::shared_ptr<Module> module, value v) {
+  return is_itself_invariant(module, v_and({v, v_and(module->conjectures)}));
+}

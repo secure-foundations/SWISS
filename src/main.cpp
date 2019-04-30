@@ -538,6 +538,7 @@ int main(int argc, char* argv[]) {
 
   int seed = 1234;
   bool check_inductiveness = false;
+  bool incremental = false;
   for (int i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);
@@ -548,6 +549,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--check-inductiveness")) {
       check_inductiveness = true;
+    }
+    else if (argv[i] == string("--incremental")) {
+      incremental = true;
     }
   }
 
@@ -563,6 +567,12 @@ int main(int argc, char* argv[]) {
 
   printf("random seed = %d\n", seed);
   srand(seed);
+
+  if (incremental) {
+    printf("doing incremental\n");
+  } else {
+    printf("doing non-incremental\n");
+  }
 
   try {
     if (!just_enumeration) {
@@ -588,7 +598,11 @@ int main(int argc, char* argv[]) {
       int arity = atoi(argv[1]);
       int depth = atoi(argv[2]);
 
-      synth_loop(module, arity, depth);
+      if (incremental) {
+        synth_loop_incremental(module, arity, depth);
+      } else {
+        synth_loop(module, arity, depth);
+      }
       //synth_loop_from_transcript(module, arity, depth);
 
       /*
