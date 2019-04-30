@@ -158,7 +158,10 @@ z3::expr ModelEmbedding::value2expr(
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
-    assert(iter != vars.end());
+    if (iter == vars.end()) {
+      printf("couldn't find var: %s\n", iden_to_string(value->name).c_str());
+      assert(false);
+    }
     return iter->second;
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {

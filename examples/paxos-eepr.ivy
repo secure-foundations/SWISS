@@ -17,7 +17,7 @@ instantiate total_order(le)
 individual bot : round
 
 relation member(X: node, Y: quorum)
-axiom exists N. member(N, Q) & member(N, R)
+axiom forall Q . forall R . exists N . member(N, Q) & member(N, R)
 
 relation start_round_msg(X: round)
 relation join_ack_msg(X: node, Y: round, Z: round, W: value)
@@ -25,11 +25,11 @@ relation propose_msg(X: round, Y: value)
 relation vote_msg(X: node, Y: round, Z: value)
 relation decision(X: node, Y: round, Z: value)
 
-init ~(start_round_msg(R))
-init ~(join_ack_msg(N, R1, R2, V))
-init ~(propose_msg(R, V))
-init ~(vote_msg(N, R, V))
-init ~(decision(N, R, V))
+init forall R . ~(start_round_msg(R))
+init forall N . forall R1 . forall R2 . forall V . ~(join_ack_msg(N, R1, R2, V))
+init forall R . forall V . ~(propose_msg(R, V))
+init forall N . forall R . forall V . ~(vote_msg(N, R, V))
+init forall N . forall R . forall V . ~(decision(N, R, V))
 
 # ghost state
 

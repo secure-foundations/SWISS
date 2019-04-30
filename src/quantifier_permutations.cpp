@@ -54,8 +54,6 @@ vector<vector<vector<unsigned int>>> get_multiqi_quantifier_permutations(
   assert(n > 0);
   int m = ovs[0].size();
 
-  printf("n= %d, m = %d\n", n, m);
-
   vector<vector<unsigned int>> i_to_t;
   map<vector<unsigned int>, unsigned int> t_to_i;
 

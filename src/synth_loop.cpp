@@ -551,7 +551,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
 
     printf("\n");
 
-    log_smtlib(solver_sf);
+    //log_smtlib(solver_sf);
     printf("number of boolean variables: %d\n", sf.get_bool_count());
     std::cout.flush();
 
@@ -646,6 +646,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   BMCContext bmc(ctx, module, bmc_depth);
 
   int num_iterations_total = 0;
+  vector<value> found_invs;
 
   Benchmarking total_bench;
 
@@ -667,7 +668,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
       printf("\n");
 
-      log_smtlib(solver_sf);
+      //log_smtlib(solver_sf);
       printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
       std::cout.flush();
 
@@ -675,7 +676,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       Benchmarking bench;
       bench.start("solver (" +
           to_string(num_iterations_total) + ") (" +
-          to_string(num_iterations) + ")");
+          to_string(found_invs.size()) + " invariants + " + to_string(num_iterations) + ")");
       total_bench.start("total solver time");
       z3::check_result res = solver_sf.check();
       bench.end();
@@ -711,9 +712,13 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
       if (cex.none) {
         cumulative_invariant = new_inv;
+        found_invs.push_back(candidate);
 
-        printf("\nfound new invariant: %s\n", candidate->to_string().c_str());
-        printf("invariant so far: %s\n", cumulative_invariant->to_string().c_str());
+        printf("\nfound new invariant! all so far:\n");
+        for (value found_inv : found_invs) {
+          printf("    %s\n", found_inv->to_string().c_str());
+        }
+        printf("num found so far: %d\n", (int)found_invs.size());
 
         break;
       } else {

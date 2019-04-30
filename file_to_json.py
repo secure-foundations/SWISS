@@ -32,6 +32,8 @@ def get_json():
 
     axioms = []
     for axiom in im.module.get_axioms():
+      #print axiom
+      #print logic_to_obj(ivy_logic_utils.close_epr(axiom))
       axioms.append(logic_to_obj(ivy_logic_utils.close_epr(axiom)))
 
     conjectures = []
@@ -161,7 +163,7 @@ def logic_to_obj(l):
       return logic_to_obj(l.body)
   if isinstance(l, logic.Exists):
     vars = [logic_to_obj(var) for var in l.variables]
-    if len(vars) > 1 and vars[0][1] != 'FakeOutHackExists':
+    if len(vars) > 0 and vars[0][1] != 'FakeOutHackExists':
       return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
     else:
       return logic_to_obj(l.body)

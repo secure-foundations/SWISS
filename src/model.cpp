@@ -627,11 +627,17 @@ shared_ptr<Model> Model::extract_model_from_z3(
     // The C++ api doesn't seem to have the functionality we need.
     // Go down to the C API.
     Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx, z3model, s);
-    z3::expr_vector univ(ctx, c_univ);
-
-    universes.insert(make_pair(name, univ));
-
-    int len = univ.size();
+    int len;
+    if (c_univ) {
+      z3::expr_vector univ(ctx, c_univ);
+      universes.insert(make_pair(name, univ));
+      len = univ.size();
+    } else {
+      z3::expr_vector univ(ctx);
+      univ.push_back(ctx.constant(::name("whatever").c_str(), s));
+      universes.insert(make_pair(name, univ));
+      len = univ.size();
+    }
 
     SortInfo sinfo;
     sinfo.domain_size = len;
