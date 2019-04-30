@@ -523,6 +523,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
   z3::context ctx_sf;
   z3::solver solver_sf(ctx_sf);
   SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+  sf.constrain_conj_disj_form();
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -637,6 +638,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   z3::context ctx_sf;
   z3::solver solver_sf(ctx_sf);
   SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+  sf.constrain_disj_form();
+
   SketchModel sm(ctx_sf, solver_sf, module, 3);
   solver_sf.add(sf.interpret_not(sm));
 
@@ -685,9 +688,9 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
     candidate = candidate->simplify();
     printf("simplified: %s\n", candidate->to_string().c_str());
 
-    shared_ptr<Model> synthesized_model = sm.to_model(z3model);
-    printf("synthesized model:\n");
-    synthesized_model->dump();
+    //shared_ptr<Model> synthesized_model = sm.to_model(z3model);
+    //printf("synthesized model:\n");
+    //synthesized_model->dump();
 
     value new_inv = v_and({cumulative_invariant, candidate});
 

@@ -82,6 +82,9 @@ public:
     int arity, int depth
   );
 
+  void constrain_conj_disj_form();
+  void constrain_disj_form();
+
   z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
       bool target_value);
   z3::expr interpret_not(std::shared_ptr<Model> model);
@@ -140,9 +143,9 @@ private:
   std::vector<SFNode*> post_order_traversal();
   void post_order_traversal_(SFNode* node, std::vector<SFNode*>& res);
   SFNode* get_node_latest_before_subtree_in_post_order(SFNode* node);
-  void constrain_conj_disj_form();
   void constrain_node_as_and(SFNode* node);
   void constrain_node_as_or(SFNode* node);
+  void constrain_node_as_non_and_or(SFNode* node);
 
   z3::expr bool_const(std::string const& name);
   int bool_count;
