@@ -194,6 +194,14 @@ ValueVars SketchModel::make_value_vars_var(lsort sort, string const& name)
     vv.names.push_back(na);
     vv.exprs.push_back(bool_const(na));
   }
+  for (int i = 0; i < vv.n; i++) {
+    for (int j = i+1; j < vv.n; j++) {
+      z3::expr_vector vec(ctx);
+      vec.push_back(vv.exprs[i]);
+      vec.push_back(vv.exprs[j]);
+      solver.add(!z3::mk_and(vec));
+    }
+  }
   return vv;
 }
 

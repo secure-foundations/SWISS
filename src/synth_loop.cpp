@@ -678,12 +678,16 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       break;
     }
 
-    z3::model model = solver_sf.get_model();
-    value candidate_inner = sf.to_value(model);
+    z3::model z3model = solver_sf.get_model();
+    value candidate_inner = sf.to_value(z3model);
     value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
     printf("candidate: %s\n", candidate->to_string().c_str());
     candidate = candidate->simplify();
     printf("simplified: %s\n", candidate->to_string().c_str());
+
+    shared_ptr<Model> synthesized_model = sm.to_model(z3model);
+    printf("synthesized model:\n");
+    synthesized_model->dump();
 
     value new_inv = v_and({cumulative_invariant, candidate});
 
