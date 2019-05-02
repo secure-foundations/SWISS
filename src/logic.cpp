@@ -571,6 +571,35 @@ value TemplateHole::negate() const {
   return v_not(v_template_hole());
 }
 
+bool Forall::uses_var(iden name) const { return body->uses_var(name); }
+bool Exists::uses_var(iden name) const { return body->uses_var(name); }
+bool NearlyForall::uses_var(iden name) const { return body->uses_var(name); }
+bool Var::uses_var(iden name) const { return this->name == name; }
+bool Const::uses_var(iden name) const { return false; }
+bool Not::uses_var(iden name) const { return val->uses_var(name); }
+bool Eq::uses_var(iden name) const { return left->uses_var(name) || right->uses_var(name); }
+bool Implies::uses_var(iden name) const { return left->uses_var(name) || right->uses_var(name); }
+bool And::uses_var(iden name) const {
+  for (value arg : args) {
+    if (arg->uses_var(name)) return true;
+  }
+  return false;
+}
+bool Or::uses_var(iden name) const {
+  for (value arg : args) {
+    if (arg->uses_var(name)) return true;
+  }
+  return false;
+}
+bool Apply::uses_var(iden name) const {
+  if (func->uses_var(name)) return true;
+  for (value arg : args) {
+    if (arg->uses_var(name)) return true;
+  }
+  return false;
+}
+bool TemplateHole::uses_var(iden name) const { assert(false); }
+
 value Forall::simplify() const {
   return v_forall(decls, body->simplify());
 }

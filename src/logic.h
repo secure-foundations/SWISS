@@ -91,6 +91,7 @@ public:
   virtual std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const = 0;
   virtual std::shared_ptr<Value> negate() const = 0;
   virtual std::shared_ptr<Value> simplify() const = 0;
+  virtual bool uses_var(iden name) const = 0;
 
   virtual std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const = 0;
   virtual std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const = 0;
@@ -126,6 +127,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -152,6 +154,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -178,6 +181,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -204,6 +208,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -230,6 +235,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -256,6 +262,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -280,6 +287,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -306,6 +314,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -332,6 +341,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -356,6 +366,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -380,6 +391,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
@@ -399,6 +411,7 @@ public:
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
 
   std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
   std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
