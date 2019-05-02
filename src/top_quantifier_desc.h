@@ -31,6 +31,8 @@ public:
   std::vector<QRange> with_foralls_ungrouped() const;
 
   std::vector<QSRange> grouped_by_sort() const;
+
+  value with_body(value body) const;
  
 private:
   std::vector<std::pair<QType, std::vector<VarDecl>>> d;

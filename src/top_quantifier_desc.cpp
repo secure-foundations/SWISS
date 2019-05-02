@@ -115,3 +115,20 @@ vector<QSRange> TopQuantifierDesc::grouped_by_sort() const {
 
   return res;
 }
+
+value TopQuantifierDesc::with_body(value body) const {
+  vector<QRange> qrs = with_foralls_grouped();
+  for (int i = qrs.size() - 1; i >= 0; i--) {
+    QRange& qr = qrs[i];
+    if (qr.qtype == QType::Forall) {
+      body = v_forall(qr.decls, body);
+    }
+    else if (qr.qtype == QType::NearlyForall) {
+      body = v_nearlyforall(qr.decls, body);
+    }
+    else {
+      assert(false);
+    }
+  }
+  return body;
+}

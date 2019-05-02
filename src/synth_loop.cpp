@@ -15,6 +15,7 @@
 #include "bmc.h"
 #include "quantifier_permutations.h"
 #include "top_quantifier_desc.h"
+#include "strengthen_invariant.h"
 
 using namespace std;
 using namespace json11;
@@ -761,8 +762,10 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       assert(cex.is_false == nullptr);
 
       if (cex.none) {
-        cumulative_invariant = new_inv;
-        found_invs.push_back(candidate);
+        value simplified_inv = strengthen_invariant(module, cumulative_invariant, candidate)
+            ->simplify()->reduce_quants();
+        cumulative_invariant = v_and({cumulative_invariant, simplified_inv});
+        found_invs.push_back(simplified_inv);
 
         printf("\nfound new invariant! all so far:\n");
         for (value found_inv : found_invs) {
