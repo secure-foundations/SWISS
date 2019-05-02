@@ -419,14 +419,14 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     BMCContext& antibmc) {
   if (cex.hypothesis) {
     if (bmc.is_reachable(cex.conclusion) ||
-        bmc.is_reachable(cex.hypothesis)) {
+        bmc.is_reachable_exact_steps(cex.hypothesis)) {
       Counterexample res;
       res.is_true = cex.conclusion;
       printf("simplifying -> INIT\n");
       return res;
     }
 
-    if (antibmc.is_reachable(cex.conclusion) ||
+    if (antibmc.is_reachable_exact_steps(cex.conclusion) ||
         antibmc.is_reachable(cex.hypothesis)) {
       Counterexample res;
       res.is_false = cex.hypothesis;
@@ -650,6 +650,21 @@ void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
   bench.dump();
 }
 
+vector<pair<Counterexample, value>> filter_unneeded_cexes(
+    vector<pair<Counterexample, value>> const& cexes,
+    value invariant_so_far)
+{
+  vector<pair<Counterexample, value>> res;
+  for (auto p : cexes) {
+    Counterexample cex = p.first;
+    if (cex.is_true ||
+        (cex.hypothesis && cex.hypothesis->eval_predicate(invariant_so_far))) {
+      res.push_back(p);
+    }
+  }
+  return res;
+}
+
 void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
@@ -672,6 +687,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
   Benchmarking total_bench;
 
+  vector<pair<Counterexample, value>> cexes;
+
   while (true) {
     int num_iterations = 0;
 
@@ -683,6 +700,13 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
     SketchModel sm(ctx_sf, solver_sf, module, 3);
     solver_sf.add(sf.interpret_not(sm));
     sm.assert_formula(cumulative_invariant);
+
+    printf("Starting off with %d counterexamples\n", (int)cexes.size());
+    for (auto p : cexes) {
+      Counterexample cex = p.first;
+      value candidate = p.second;
+      add_counterexample(module, sf, cex, candidate);
+    }
 
     while (true) {
       num_iterations++;
@@ -750,6 +774,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       } else {
         cex_stats(cex);
         add_counterexample(module, sf, cex, candidate0);
+        cexes.push_back(make_pair(cex, candidate0));
       }
     }
 
@@ -759,6 +784,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       printf("invariant implies safety condition, done!\n");
       break;
     }
+
+    cexes = filter_unneeded_cexes(cexes, cumulative_invariant);
   }
 
   total_bench.dump();

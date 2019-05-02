@@ -557,6 +557,9 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
 
   shared_ptr<Model> model0 = all_models[0];
 
+  printf("extract_minimal_models_from_z3: initial sizes:\n");
+  model0->dump_sizes();
+
   BackgroundContext& bgctx = *es[0]->ctx;
 
   vector<string> sorts;

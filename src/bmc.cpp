@@ -118,3 +118,7 @@ bool BMCContext::is_reachable(std::shared_ptr<Model> model) {
   }
   return false;
 }
+
+bool BMCContext::is_reachable_exact_steps(std::shared_ptr<Model> model) {
+  return bmcs[bmcs.size() - 1]->is_reachable(model);
+}
