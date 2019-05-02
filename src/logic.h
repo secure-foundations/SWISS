@@ -107,6 +107,7 @@ public:
   }
 
   std::shared_ptr<Value> totally_normalize() const;
+  std::shared_ptr<Value> reduce_quants() const;
 
   virtual int kind_id() const = 0;
 };

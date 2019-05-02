@@ -66,6 +66,8 @@ Counterexample get_counterexample_simple(
     shared_ptr<ConjectureContext> conjctx,
     value candidate)
 {
+  Benchmarking bench;
+
   bool use_minimal = true;
   bool use_minimal_only_for_safety = true;
   bool use_bmc = true;
@@ -76,13 +78,17 @@ Counterexample get_counterexample_simple(
   z3::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
+  bench.start("init-check");
   z3::check_result init_res = init_solver.check();
+  bench.end();
 
   if (init_res == z3::sat) {
     if (use_minimal) {
+      bench.start("init-minimization");
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
           init_solver, module, {initctx->e})[0];
+      bench.end();
     } else {
       cex.is_true = Model::extract_model_from_z3(
           initctx->ctx->ctx,
@@ -93,6 +99,7 @@ Counterexample get_counterexample_simple(
     //cex.is_true->dump();
 
     init_solver.pop();
+    bench.dump();
     return cex;
   } else {
     init_solver.pop();
@@ -102,13 +109,17 @@ Counterexample get_counterexample_simple(
     z3::solver& conj_solver = conjctx->ctx->solver;
     conj_solver.push();
     conj_solver.add(conjctx->e->value2expr(candidate));
+    bench.start("conj-check");
     z3::check_result conj_res = conj_solver.check();
+    bench.end();
 
     if (conj_res == z3::sat) {
       if (use_minimal || use_minimal_only_for_safety) {
+        bench.start("conj-minimization");
         cex.is_false = Model::extract_minimal_models_from_z3(
             conjctx->ctx->ctx,
             conj_solver, module, {conjctx->e})[0];
+        bench.end();
       } else {
         cex.is_false = Model::extract_model_from_z3(
             conjctx->ctx->ctx,
@@ -119,6 +130,7 @@ Counterexample get_counterexample_simple(
       //cex.is_false->dump();
 
       conj_solver.pop();
+      bench.dump();
       return cex;
     } else {
       conj_solver.pop();
@@ -129,12 +141,16 @@ Counterexample get_counterexample_simple(
   solver.push();
   solver.add(indctx->e1->value2expr(candidate));
   solver.add(indctx->e2->value2expr(v_not(candidate)));
+  bench.start("inductivity-check");
   z3::check_result res = solver.check();
+  bench.end();
 
   if (res == z3::sat) {
     if (use_minimal) {
+      bench.start("inductivity-minimization");
       auto ms = Model::extract_minimal_models_from_z3(
           indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2});
+      bench.end();
       cex.hypothesis = ms[0];
       cex.conclusion = ms[1];
     } else {
@@ -147,18 +163,24 @@ Counterexample get_counterexample_simple(
     solver.pop();
 
     if (use_bmc) {
+      bench.start("bmc-attempt-1");
       Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, use_minimal);
+      bench.end();
       if (!bmc_cex.none) {
+        bench.dump();
         return bmc_cex;
       }
     }
 
     printf("counterexample type: INDUCTIVE\n");
 
+    bench.dump();
     return cex;
   }
 
   cex.none = true;
+
+  bench.dump();
   return cex;
 }
 
@@ -691,9 +713,9 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
       z3::model z3model = solver_sf.get_model();
       value candidate_inner = sf.to_value(z3model);
-      value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
-      printf("candidate: %s\n", candidate->to_string().c_str());
-      candidate = candidate->simplify();
+      value candidate0 = fill_holes_in_value(module->templates[0], {candidate_inner});
+      printf("candidate: %s\n", candidate0->to_string().c_str());
+      value candidate = candidate0->simplify()->reduce_quants();
       printf("simplified: %s\n", candidate->to_string().c_str());
 
       //shared_ptr<Model> synthesized_model = sm.to_model(z3model);
@@ -706,7 +728,11 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, nullptr, new_inv);
 
+      Benchmarking bench2;
+      bench2.start("simplification");
       cex = simplify_cex_nosafety(module, cex, bmc);
+      bench2.end();
+      bench2.dump();
 
       assert(cex.is_false == nullptr);
 
@@ -723,7 +749,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
         break;
       } else {
         cex_stats(cex);
-        add_counterexample(module, sf, cex, candidate);
+        add_counterexample(module, sf, cex, candidate0);
       }
     }
 

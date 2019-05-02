@@ -1827,3 +1827,78 @@ bool values_equal(value a, value b) {
   int c = cmp_expr(a, b, ss_a, ss_b);
   return c == 0;
 }
+
+value remove_unneeded_quants(Value const * v) {
+  assert(v != NULL);
+  if (Forall const* value = dynamic_cast<Forall const*>(v)) {
+    vector<VarDecl> decls;
+    for (VarDecl const& decl : value->decls) {
+      if (value->uses_var(decl.name)) {
+        decls.push_back(decl);
+      }
+    }
+    auto b = remove_unneeded_quants(value->body.get());
+    return decls.size() > 0 ? v_forall(decls, b) : b;
+  }
+  else if (Exists const* value = dynamic_cast<Exists const*>(v)) {
+    vector<VarDecl> decls;
+    for (VarDecl const& decl : value->decls) {
+      if (value->uses_var(decl.name)) {
+        decls.push_back(decl);
+      }
+    }
+    auto b = remove_unneeded_quants(value->body.get());
+    return decls.size() > 0 ? v_exists(decls, b) : b;
+  }
+  else if (NearlyForall const* value = dynamic_cast<NearlyForall const*>(v)) {
+    return v_nearlyforall(value->decls, remove_unneeded_quants(value->body.get()));
+  }
+  else if (Var const* value = dynamic_cast<Var const*>(v)) {
+    return v_var(value->name, value->sort);
+  }
+  else if (Const const* value = dynamic_cast<Const const*>(v)) {
+    return v_const(value->name, value->sort);
+  }
+  else if (Eq const* value = dynamic_cast<Eq const*>(v)) {
+    return v_eq(
+        remove_unneeded_quants(value->left.get()),
+        remove_unneeded_quants(value->right.get()));
+  }
+  else if (Not const* value = dynamic_cast<Not const*>(v)) {
+    return v_not(remove_unneeded_quants(value->val.get()));
+  }
+  else if (Implies const* value = dynamic_cast<Implies const*>(v)) {
+    return v_implies(
+        remove_unneeded_quants(value->left.get()),
+        remove_unneeded_quants(value->right.get()));
+  }
+  else if (Apply const* value = dynamic_cast<Apply const*>(v)) {
+    vector<shared_ptr<Value>> args;
+    for (auto a : value->args) {
+      args.push_back(remove_unneeded_quants(a.get()));
+    }
+    return v_apply(value->func, args);
+  }
+  else if (And const* value = dynamic_cast<And const*>(v)) {
+    vector<shared_ptr<Value>> args;
+    for (auto a : value->args) {
+      args.push_back(remove_unneeded_quants(a.get()));
+    }
+    return v_and(args);
+  }
+  else if (Or const* value = dynamic_cast<Or const*>(v)) {
+    vector<shared_ptr<Value>> args;
+    for (auto a : value->args) {
+      args.push_back(remove_unneeded_quants(a.get()));
+    }
+    return v_or(args);
+  }
+  else {
+    //printf("value2expr got: %s\n", v->to_string().c_str());
+    assert(false && "value2expr does not support this case");
+  }
+}
+
+value Value::reduce_quants() const {
+  return remove_unneeded_quants(this);
+}
