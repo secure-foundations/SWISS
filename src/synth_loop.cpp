@@ -334,7 +334,7 @@ z3::expr assert_true_for_some_qs(
   vector<vector<vector<object_value>>> all_perms = get_multiqi_quantifier_permutations(
       sf.tqd, variable_values);
 
-  printf("using %d instantiations\n", (int)all_perms.size());
+  //printf("using %d instantiations\n", (int)all_perms.size());
 
   for (vector<vector<object_value>> const& ovs_many : all_perms) {
     z3::expr_vector one_is_true(ctx);
@@ -727,7 +727,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       std::cout.flush();
 
       //cout << solver << "\n";
-      Benchmarking bench;
+      Benchmarking bench(false /* global */);
       bench.start("solver (" +
           to_string(num_iterations_total) + ") (" +
           to_string(found_invs.size()) + " invariants + " + to_string(num_iterations) + ")");
@@ -781,6 +781,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
           printf("    %s\n", found_inv->to_string().c_str());
         }
         printf("num found so far: %d\n", (int)found_invs.size());
+        benchmarking_dump_totals();
 
         break;
       } else {
@@ -809,5 +810,5 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   printf("total invariants found: %d\n", (int)found_invs.size());
 
   total_bench.dump();
+  benchmarking_dump_totals();
 }
-
