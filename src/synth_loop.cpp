@@ -142,6 +142,16 @@ Counterexample get_counterexample_simple(
     }
   }
 
+  if (use_bmc) {
+    bench.start("bmc-attempt-1");
+    Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, use_minimal);
+    bench.end();
+    if (!bmc_cex.none) {
+      bench.dump();
+      return bmc_cex;
+    }
+  }
+
   z3::solver& solver = indctx->ctx->solver;
   solver.push();
   if (cur_invariant) {
@@ -169,16 +179,6 @@ Counterexample get_counterexample_simple(
     }
 
     solver.pop();
-
-    if (use_bmc) {
-      bench.start("bmc-attempt-1");
-      Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, use_minimal);
-      bench.end();
-      if (!bmc_cex.none) {
-        bench.dump();
-        return bmc_cex;
-      }
-    }
 
     printf("counterexample type: INDUCTIVE\n");
 
