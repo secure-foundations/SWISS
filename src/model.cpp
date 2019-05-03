@@ -601,7 +601,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
         continue;
       }
       new_sizes = sizes;
-      int sz_to_try = (try_hint_sizes && lower_bound_size < hint_sizes[sort_idx] && hint_sizes[sort_idx] < sizes[sort_idx] ? hint_sizes[sort_idx] : (lower_bound_size + sizes[sort_idx]) / 2);
+      int sz_to_try = (hint_sizes.size() > 0 && lower_bound_size < hint_sizes[sort_idx] && hint_sizes[sort_idx] < sizes[sort_idx] ? hint_sizes[sort_idx] : (lower_bound_size + sizes[sort_idx]) / 2);
       new_sizes[sort_idx] = sz_to_try;
     }
 
