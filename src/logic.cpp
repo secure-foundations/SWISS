@@ -1340,6 +1340,12 @@ bool lt_value(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b
   return cmp_expr(a_, b_, ss_a, ss_b) < 0;
 }
 
+bool lt_value(value a_, value b_) {
+  ScopeState ss_a;
+  ScopeState ss_b;
+  return cmp_expr(a_, b_, ss_a, ss_b) < 0;
+}
+
 int cmp_expr_def(value a_, value b_) {
   int a_id = a_->kind_id();
   int b_id = b_->kind_id();

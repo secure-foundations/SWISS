@@ -597,5 +597,14 @@ inline lsort s_fun(std::vector<lsort> inputs, lsort output) {
 
 bool sorts_eq(lsort s, lsort t);
 bool values_equal(value a, value b);
+bool lt_value(value a_, value b_);
+
+struct ComparableValue {
+  value v;
+  ComparableValue(value v) : v(v) { }
+  inline bool operator<(ComparableValue const& other) const {
+    return lt_value(v, other.v);
+  }
+};
 
 #endif

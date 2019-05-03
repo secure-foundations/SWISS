@@ -34,6 +34,8 @@ private:
   ValueVars make_value_vars_const(lsort, size_t);
   ValueVars make_value_vars_var(lsort sort, std::string const& name);
 
+  std::map<std::pair<ComparableValue,size_t>, z3::expr> value_to_expr_map;
+
   std::map<std::string, bool> get_bool_map(z3::model model);
   object_value get_value_from_z3(ValueVars& vv, std::map<std::string, bool> const&);
 
@@ -47,6 +49,8 @@ struct ValueVars {
   lsort sort;
   int n;
   std::vector<z3::expr> exprs;
+
+  int constant_value;
   std::vector<std::string> names;
 
   z3::expr get(size_t i) const;
