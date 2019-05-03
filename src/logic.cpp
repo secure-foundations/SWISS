@@ -1905,6 +1905,104 @@ value remove_unneeded_quants(Value const * v) {
   }
 }
 
+bool vec_subset(vector<VarDecl> const& a, vector<VarDecl> const& b) {
+  for (VarDecl const& decl : a) {
+    for (VarDecl const& decl2 : b) {
+      if (decl.name == decl2.name) {
+        goto found;
+      }
+    }
+    return false;
+    found: {}
+  }
+  return true;
+}
+
+value factor_quants(value v) {
+  value body = v;
+  vector<VarDecl> decls;
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(body.get())) {
+      extend(decls, f->decls);
+      body = f->body;
+    } else {
+      break;
+    }
+  }
+
+  if (decls.size() == 0) return v;
+
+  vector<value> disj;
+  if (Or* o = dynamic_cast<Or*>(body.get())) {
+    disj = o->args;
+  } else {
+    return v;
+  }
+
+  if (disj.size() < 2) {
+    return v;
+  }
+
+  vector<vector<VarDecl>> used;
+  for (value d : disj) {
+    vector<VarDecl> used_decls;
+    for (VarDecl const& decl : decls) {
+      if (d->uses_var(decl.name)) {
+        used_decls.push_back(decl);
+      }
+    }
+    used.push_back(used_decls);
+  }
+
+  int min_i = 0;
+  for (int i = 1; i < used.size(); i++) {
+    if (used[i].size() < used[min_i].size()) min_i = i;
+  }
+
+  vector<VarDecl> first_decls = used[min_i];
+
+  if (first_decls.size() == decls.size()) {
+    return v;
+  }
+
+  vector<VarDecl> second_decls;
+  for (VarDecl const& decl : decls) {
+    bool in_first = false;
+    for (VarDecl const& fd : first_decls) {
+      if (fd.name == decl.name) {
+        in_first = true;
+        break;
+      }
+    }
+    if (!in_first) {
+      second_decls.push_back(decl);
+    }
+  }
+
+  vector<value> first_args;  
+  vector<value> second_args;  
+
+  for (int i = 0; i < disj.size(); i++) {
+    if (vec_subset(used[i], used[min_i])) {
+      first_args.push_back(disj[i]);
+    } else {
+      second_args.push_back(disj[i]);
+    }
+  }
+
+  if (second_args.size() == 0) {
+    assert(first_decls.size() > 0);
+    return v_forall(first_decls, v_or(first_args));
+  } else {
+    assert(second_decls.size() > 0);
+    assert(first_args.size() > 0);
+    value inner = factor_quants(v_forall(second_decls, v_or(second_args)));
+    vector<value> all_args = first_args;
+    all_args.push_back(inner);
+    return first_decls.size() == 0 ? v_or(all_args) : v_forall(first_decls, v_or(all_args));
+  }
+}
+
 value Value::reduce_quants() const {
-  return remove_unneeded_quants(this);
+  return factor_quants(remove_unneeded_quants(this));
 }
