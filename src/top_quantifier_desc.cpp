@@ -132,3 +132,17 @@ value TopQuantifierDesc::with_body(value body) const {
   }
   return body;
 }
+
+int TopQuantifierDesc::weighted_sort_count(std::string sort) const {
+  lsort so = s_uninterp(sort);
+  int count = 0;
+  for (auto p : d) {
+    QType ty = p.first;
+    for (VarDecl const& decl : p.second) {
+      if (sorts_eq(so, decl.sort)) {
+        count += (ty == QType::NearlyForall ? 2 : 1);
+      }
+    }
+  }
+  return count;
+}

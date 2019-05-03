@@ -60,7 +60,7 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v, bool get_
   shared_ptr<Model> ans;
   if (res == z3::sat) {
     if (get_minimal) {
-      ans = Model::extract_minimal_models_from_z3(ctx->ctx, solver, module, {e2})[0];
+      ans = Model::extract_minimal_models_from_z3(ctx->ctx, solver, module, {e2}, /* hint */ v)[0];
     } else {
       ans = Model::extract_model_from_z3(ctx->ctx, solver, module, *e2);
     }

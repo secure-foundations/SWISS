@@ -65,6 +65,7 @@ Counterexample get_counterexample_simple(
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
     shared_ptr<ConjectureContext> conjctx,
+    value cur_invariant,
     value candidate)
 {
   Benchmarking bench;
@@ -88,7 +89,7 @@ Counterexample get_counterexample_simple(
       bench.start("init-minimization");
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
-          init_solver, module, {initctx->e})[0];
+          init_solver, module, {initctx->e}, /* hint */ candidate)[0];
       bench.end();
     } else {
       cex.is_true = Model::extract_model_from_z3(
@@ -109,6 +110,9 @@ Counterexample get_counterexample_simple(
   if (conjctx != nullptr) {
     z3::solver& conj_solver = conjctx->ctx->solver;
     conj_solver.push();
+    if (cur_invariant) {
+      conj_solver.add(conjctx->e->value2expr(cur_invariant));
+    }
     conj_solver.add(conjctx->e->value2expr(candidate));
     bench.start("conj-check");
     z3::check_result conj_res = conj_solver.check();
@@ -119,7 +123,7 @@ Counterexample get_counterexample_simple(
         bench.start("conj-minimization");
         cex.is_false = Model::extract_minimal_models_from_z3(
             conjctx->ctx->ctx,
-            conj_solver, module, {conjctx->e})[0];
+            conj_solver, module, {conjctx->e}, /* hint */ candidate)[0];
         bench.end();
       } else {
         cex.is_false = Model::extract_model_from_z3(
@@ -140,6 +144,9 @@ Counterexample get_counterexample_simple(
 
   z3::solver& solver = indctx->ctx->solver;
   solver.push();
+  if (cur_invariant) {
+    solver.add(indctx->e1->value2expr(cur_invariant));
+  }
   solver.add(indctx->e1->value2expr(candidate));
   solver.add(indctx->e2->value2expr(v_not(candidate)));
   bench.start("inductivity-check");
@@ -150,7 +157,7 @@ Counterexample get_counterexample_simple(
     if (use_minimal) {
       bench.start("inductivity-minimization");
       auto ms = Model::extract_minimal_models_from_z3(
-          indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2});
+          indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
       bench.end();
       cex.hypothesis = ms[0];
       cex.conclusion = ms[1];
@@ -203,7 +210,7 @@ Counterexample get_counterexample(
   if (init_res == z3::sat) {
     cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
-        init_solver, module, {initctx->e})[0];
+        init_solver, module, {initctx->e}, /* hint */ candidate)[0];
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -247,7 +254,7 @@ Counterexample get_counterexample(
   if (res == z3::sat) {
     auto m1_and_m2 = Model::extract_minimal_models_from_z3(
           indctx->ctx->ctx,
-          solver, module, {indctx->e1, indctx->e2});
+          solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
     shared_ptr<Model> m1 = m1_and_m2[0];
     shared_ptr<Model> m2 = m1_and_m2[1];
     solver.pop();
@@ -606,7 +613,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
     //Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
-    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, candidate);
+    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
     cex = simplify_cex(module, cex, bmc, antibmc);
     if (cex.none) {
       // Extra verification:
@@ -751,7 +758,9 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-      Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, nullptr, new_inv);
+      Counterexample cex = get_counterexample_simple(
+                module, bmc, initctx, indctx, nullptr /* conjctx */,
+                cumulative_invariant, candidate);
 
       Benchmarking bench2;
       bench2.start("simplification");

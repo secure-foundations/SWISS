@@ -4,6 +4,8 @@
 #include <map>
 #include <algorithm>
 
+#include "top_quantifier_desc.h"
+
 using namespace std;
 using namespace json11;
 
@@ -546,7 +548,8 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     z3::context& ctx,
     z3::solver& solver,
     shared_ptr<Module> module,
-    vector<shared_ptr<ModelEmbedding>> es)
+    vector<shared_ptr<ModelEmbedding>> es,
+    value hint)
 {
   assert (es.size() > 0);
 
@@ -569,21 +572,46 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     sizes.push_back(model0->get_domain_size(p.first));
   }
 
+  bool try_hint_sizes = false;
+  vector<int> hint_sizes;
+  if (hint) {
+    printf("hint: %s\n", hint->to_string().c_str());
+    TopQuantifierDesc tqd(hint);
+    for (string sort : sorts) {
+      int sz = tqd.weighted_sort_count(sort);
+      hint_sizes.push_back(sz < 1 ? 1 : sz);
+    }
+    for (int i = 0; i < sizes.size(); i++) {
+      hint_sizes[i] = min(sizes[i], hint_sizes[i]);
+    }
+    try_hint_sizes = true;
+  }
+
   int sort_idx = 0;
   while (sort_idx < sorts.size()) {
-    if (sizes[sort_idx] <= 1) {
-      sort_idx++;
-      continue;
+    vector<int> new_sizes;
+
+    if (try_hint_sizes) {
+      new_sizes = hint_sizes;
+      try_hint_sizes = false;
+    } else {
+      if (sizes[sort_idx] <= 1) {
+        sort_idx++;
+        continue;
+      }
+      new_sizes = sizes;
+      new_sizes[sort_idx]--;
     }
 
+    printf("trying sizes: "); for (int k : new_sizes) printf("%d ", k); printf("\n");
+
     solver.push();
-    sizes[sort_idx]--;
 
     for (int i = 0; i < sorts.size(); i++) {
       z3::sort so = bgctx.getUninterpretedSort(sorts[i]);
       z3::expr_vector vec(ctx);
       z3::expr elem = ctx.constant(name("valvar").c_str(), so);
-      for (int j = 0; j < sizes[i]; j++) {
+      for (int j = 0; j < new_sizes[i]; j++) {
         z3::expr c = ctx.constant(name("val").c_str(), so);
         vec.push_back(elem == c);
       }
@@ -599,8 +627,8 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       for (auto e : es) {
         all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
       }
+      sizes = new_sizes;
     } else {
-      sizes[sort_idx]++;
       sort_idx++;
     }
 

@@ -33,6 +33,7 @@ public:
   std::vector<QSRange> grouped_by_sort() const;
 
   value with_body(value body) const;
+  int weighted_sort_count(std::string sort) const;
  
 private:
   std::vector<std::pair<QType, std::vector<VarDecl>>> d;

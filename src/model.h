@@ -71,7 +71,8 @@ public:
       z3::context& ctx,
       z3::solver& solver,
       std::shared_ptr<Module> module,
-      std::vector<std::shared_ptr<ModelEmbedding>> es);
+      std::vector<std::shared_ptr<ModelEmbedding>> es,
+      std::shared_ptr<Value> hint);
 
   static std::shared_ptr<Model> extract_model_from_z3(
       z3::context& ctx,
