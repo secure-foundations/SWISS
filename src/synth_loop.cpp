@@ -733,7 +733,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       assert(res == z3::sat || res == z3::unsat);
       if (res != z3::sat) {
         printf("unable to synthesize any formula\n");
-        break;
+        goto done;
       }
 
       z3::model z3model = solver_sf.get_model();
@@ -790,6 +790,14 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
     cexes = filter_unneeded_cexes(cexes, cumulative_invariant);
   }
+
+  done:
+
+  printf("\nall invariants found::\n");
+  for (value found_inv : found_invs) {
+    printf("    %s\n", found_inv->to_string().c_str());
+  }
+  printf("total invariants found: %d\n", (int)found_invs.size());
 
   total_bench.dump();
 }
