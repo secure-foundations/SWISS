@@ -588,19 +588,21 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
   }
 
   int sort_idx = 0;
+  int lower_bound_size = 0;
   while (sort_idx < sorts.size()) {
     vector<int> new_sizes;
 
     if (try_hint_sizes) {
       new_sizes = hint_sizes;
-      try_hint_sizes = false;
     } else {
-      if (sizes[sort_idx] <= 1) {
+      if (sizes[sort_idx] <= lower_bound_size + 1) {
+        lower_bound_size = 0;
         sort_idx++;
         continue;
       }
       new_sizes = sizes;
-      new_sizes[sort_idx]--;
+      int sz_to_try = (try_hint_sizes && lower_bound_size < hint_sizes[sort_idx] && hint_sizes[sort_idx] < sizes[sort_idx] ? hint_sizes[sort_idx] : (lower_bound_size + sizes[sort_idx]) / 2);
+      new_sizes[sort_idx] = sz_to_try;
     }
 
     printf("trying sizes: "); for (int k : new_sizes) printf("%d ", k); printf("\n");
@@ -628,8 +630,14 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
         all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
       }
       sizes = new_sizes;
+
+      try_hint_sizes = false;
     } else {
-      sort_idx++;
+      if (try_hint_sizes) {
+        try_hint_sizes = false;
+      } else {
+        lower_bound_size = new_sizes[sort_idx];
+      }
     }
 
     solver.pop();
