@@ -284,6 +284,19 @@ SketchModel::SketchModel(
       }
     }
 
+    if (iden_to_string(decl.name) == "le") {
+      for (SketchFunctionEntry& sfe : sf.table) {
+        assert(sfe.args.size() == 2);
+        if (sfe.args[0] <= sfe.args[1]) {
+          solver.add(!sfe.res.get(0));
+          solver.add(sfe.res.get(1));
+        } else {
+          solver.add(sfe.res.get(0));
+          solver.add(!sfe.res.get(1));
+        }
+      }
+    }
+
     functions.insert(make_pair(decl.name, sf));
   }
 
