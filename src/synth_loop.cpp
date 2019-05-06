@@ -698,6 +698,12 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   vector<pair<Counterexample, value>> cexes;
 
   while (true) {
+    Benchmarking per_outer_loop_bench;
+    per_outer_loop_bench.start("time to infer this invariant");
+
+    Benchmarking bench_setup;
+    bench_setup.start("setup");
+
     int num_iterations = 0;
 
     z3::context ctx_sf;
@@ -716,7 +722,13 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       add_counterexample(module, sf, cex, candidate);
     }
 
+    bench_setup.end();
+    bench_setup.dump();
+
     while (true) {
+      Benchmarking per_inner_loop_bench;
+      per_inner_loop_bench.start("iteration");
+
       num_iterations++;
       num_iterations_total++;
 
@@ -743,7 +755,12 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
         goto done;
       }
 
+      Benchmarking bench_get_model;
+      bench_get_model.start("get_model");
       z3::model z3model = solver_sf.get_model();
+      bench_get_model.end();
+      bench_get_model.dump();
+
       value candidate_inner = sf.to_value(z3model);
       value candidate0 = fill_holes_in_value(module->templates[0], {candidate_inner});
       printf("candidate: %s\n", candidate0->to_string().c_str());
@@ -771,8 +788,13 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       assert(cex.is_false == nullptr);
 
       if (cex.none) {
+        Benchmarking bench_strengthen;
+        bench_strengthen.start("strengthen");
         value simplified_inv = strengthen_invariant(module, cumulative_invariant, candidate)
             ->simplify()->reduce_quants();
+        bench_strengthen.end();
+        bench_strengthen.dump();
+
         cumulative_invariant = v_and({cumulative_invariant, simplified_inv});
         found_invs.push_back(simplified_inv);
 
@@ -781,14 +803,27 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
           printf("    %s\n", found_inv->to_string().c_str());
         }
         printf("num found so far: %d\n", (int)found_invs.size());
+
+        per_inner_loop_bench.end();
+        per_inner_loop_bench.dump();
+
         benchmarking_dump_totals();
 
         break;
       } else {
         cex_stats(cex);
+
+        Benchmarking add_cex_bench;
+        add_cex_bench.start("add_counterexample");
         add_counterexample(module, sf, cex, candidate0);
+        add_cex_bench.end();
+        add_cex_bench.dump();
+
         cexes.push_back(make_pair(cex, candidate0));
       }
+
+      per_inner_loop_bench.end();
+      per_inner_loop_bench.dump();
     }
 
     assert(is_itself_invariant(module, cumulative_invariant));
@@ -799,6 +834,11 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
     }
 
     cexes = filter_unneeded_cexes(cexes, cumulative_invariant);
+
+    printf("\n");
+    per_outer_loop_bench.end();
+    per_outer_loop_bench.dump();
+    printf("\n");
   }
 
   done:
@@ -808,7 +848,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
     printf("    %s\n", found_inv->to_string().c_str());
   }
   printf("total invariants found: %d\n", (int)found_invs.size());
-
-  total_bench.dump();
   benchmarking_dump_totals();
+  printf("\n");
+  total_bench.dump();
+  printf("\n");
 }
