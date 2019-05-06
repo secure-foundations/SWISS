@@ -528,6 +528,24 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = parse_module(json_src);
 
+  /*
+  z3::context ctx;
+  BasicContext basic(ctx, module);
+  z3::solver& solver = basic.ctx->solver; 
+  for (int i = 0; i < module->conjectures.size(); i++) {
+    solver.add(basic.e->value2expr(i == 0 ?
+        v_not(module->conjectures[i]) : module->conjectures[i]));
+  }
+  z3::check_result res = solver.check();
+  assert (res == z3::sat || res == z3::unsat);
+  if (res == z3::sat) {
+    printf("nope\n");
+  } else {
+    printf("yep\n");
+  }
+  return 0;
+  */
+
   cout << "conjectures:" << endl;
   for (value v : module->conjectures) {
     cout << v->to_string() << endl;

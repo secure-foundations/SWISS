@@ -419,6 +419,23 @@ void ModelEmbedding::dump() {
 }
 
 /*
+ * BasicContext
+ */
+
+BasicContext::BasicContext(
+    z3::context& z3ctx,
+    std::shared_ptr<Module> module)
+    : ctx(new BackgroundContext(z3ctx, module))
+{
+  this->e = ModelEmbedding::makeEmbedding(ctx, module);
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->e->value2expr(axiom));
+  }
+}
+
+/*
  * InitContext
  */
 
