@@ -16,12 +16,13 @@ OBJECTS = $(addprefix bin/,\
 	top_quantifier_desc.o \
 	sketch_model.o \
 	strengthen_invariant.o \
+	sat_solver.o \
 	lib/json11/json11.o \
 )
 
 DEP_DIR = bin/deps
 
-CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/
 
 all: synthesis
 
