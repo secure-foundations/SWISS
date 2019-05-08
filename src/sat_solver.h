@@ -13,13 +13,16 @@
 struct sat_expr_;
 struct sat_expr {
   std::shared_ptr<sat_expr_> se;
+
+  sat_expr() {}
+  sat_expr(std::shared_ptr<sat_expr_> se) : se(se) { }
 };
 
 class SatSolver {
 public:
   SatSolver() { solver.verbosity = -1; this->got_sat = false; }
 
-  void add(sat_expr, bool negate = false);
+  void add(sat_expr);
   bool is_sat();
   bool get(sat_expr);
 
@@ -39,9 +42,13 @@ sat_expr sat_or(sat_expr, sat_expr);
 sat_expr sat_or(std::vector<sat_expr> const&);
 sat_expr sat_implies(sat_expr, sat_expr);
 sat_expr sat_not(sat_expr);
-sat_expr sat_true();
-sat_expr sat_false();
 sat_expr sat_ite(sat_expr, sat_expr, sat_expr);
+
+extern sat_expr const _sat_true;
+extern sat_expr const _sat_false;
+
+inline sat_expr sat_true() { return _sat_true; }
+inline sat_expr sat_false() { return _sat_false; }
 
 void test_sat();
 
