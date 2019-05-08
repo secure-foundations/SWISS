@@ -17,6 +17,8 @@ struct sat_expr {
 
 class SatSolver {
 public:
+  SatSolver() { solver.verbosity = -1; this->got_sat = false; }
+
   void add(sat_expr, bool negate = false);
   bool is_sat();
   bool get(sat_expr);
@@ -27,6 +29,8 @@ private:
   Glucose::SimpSolver solver;
 
   Glucose::Lit expr_to_lit(sat_expr, bool negate);
+
+  bool got_sat;
 };
 
 sat_expr sat_and(sat_expr, sat_expr);

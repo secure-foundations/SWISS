@@ -145,12 +145,14 @@ Glucose::Lit SatSolver::expr_to_lit(sat_expr se_, bool negate) {
 }
 
 bool SatSolver::get(sat_expr se) {
+  assert(got_sat);
   assert(se.se->ty == se_type::Var);
   return solver.modelValue(se.se->var) == l_True;
 }
 
 bool SatSolver::is_sat() {
-  return solver.solve();
+  got_sat = solver.solve();
+  return got_sat;
 }
 
 void test_sat() {
@@ -185,9 +187,12 @@ void test_sat() {
   solver.add(sat_or(
     sat_and({ a, b, sat_not(c) }),
     sat_and({ a, sat_not(b), sat_not(c) }) ));
+  solver.add(sat_not(a));
   printf("sat: %s\n", solver.is_sat() ? "sat" : "unsat");
+  /*
   printf("%d\n", solver.get(a));
   printf("%d\n", solver.get(b));
   printf("%d\n", solver.get(c));
+  */
   }
 }
