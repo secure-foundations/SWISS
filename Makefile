@@ -25,8 +25,12 @@ CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror
 
 all: synthesis
 
-synthesis: $(OBJECTS)
-	clang++ -g -o synthesis -lz3 $(OBJECTS)
+synthesis: $(OBJECTS) bin/lib_glucose.a
+	clang++ -g -o synthesis -lz3 $(OBJECTS) bin/lib_glucose.a
+
+bin/lib_glucose.a:
+	cd src/lib/glucose-syrup-4.1/simp/ && make libr
+	cp src/lib/glucose-syrup-4.1/simp/lib_release.a bin/lib_glucose.a
 
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
