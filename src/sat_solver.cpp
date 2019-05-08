@@ -73,7 +73,7 @@ sat_expr sat_or(vector<sat_expr> const& args) {
   return se;
 }
 
-sat_expr sat_impl(sat_expr a, sat_expr b) {
+sat_expr sat_implies(sat_expr a, sat_expr b) {
   return sat_or(sat_not(a), b);
 }
 

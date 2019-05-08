@@ -4,6 +4,7 @@
 #include "logic.h"
 #include "model.h"
 #include "top_quantifier_desc.h"
+#include "sat_solver.h"
 
 enum class NTT {
   True,
@@ -37,10 +38,9 @@ struct SFNode {
   std::vector<SFNode*> children;
   SFNode* parent;
   bool is_leaf;
-  std::vector<z3::expr> nt_bools;
-  std::vector<std::string> nt_bool_names;
+  std::vector<sat_expr> nt_bools;
 
-  std::vector<z3::expr> sort_bools;
+  std::vector<sat_expr> sort_bools;
 
   std::string name;
 };
@@ -60,8 +60,7 @@ class SketchModel;
 
 class SketchFormula {
 public:
-  z3::context& ctx;
-  z3::solver& solver;
+  SatSolver& solver;
 
   // tree shape
   std::vector<int> arity_at_depth;
@@ -75,8 +74,7 @@ public:
   SFNode* root;
 
   SketchFormula(
-    z3::context& ctx,
-    z3::solver& solver,
+    SatSolver& solver,
     TopQuantifierDesc const& tqd,
     std::shared_ptr<Module> module,
     int arity, int depth
@@ -85,19 +83,19 @@ public:
   void constrain_conj_disj_form();
   void constrain_disj_form();
 
-  z3::expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
+  sat_expr interpret(std::shared_ptr<Model> model, std::vector<object_value> const&,
       bool target_value);
-  z3::expr interpret_not(std::shared_ptr<Model> model);
-  z3::expr interpret_not(SketchModel& model);
+  sat_expr interpret_not(std::shared_ptr<Model> model);
+  sat_expr interpret_not(SketchModel& model);
 
-  value to_value(z3::model& m);
+  value to_value();
 
   int get_bool_count() { return bool_count; }
 
 private:
 
   value node_to_value(SFNode*);
-  z3::expr expr_is_sort(SFNode* node, lsort s);
+  sat_expr expr_is_sort(SFNode* node, lsort s);
 
   void make_sort_bools(SFNode* node);
   void make_bt_bools(SFNode* node);
@@ -106,7 +104,6 @@ private:
   void add_constraint_for_no_outer_negation();
 
   std::map<std::string, bool> bool_map;
-  void get_bools(z3::model model);
   bool is_true(std::string name);
 
   ValueVector to_value_vector(
@@ -114,28 +111,28 @@ private:
     std::shared_ptr<Model> model,
     SketchModel* sm,
     std::vector<VarEncoding> const& var_exprs);
-  z3::expr case_by_node_type(SFNode*, std::vector<z3::expr> const&);
-  z3::expr new_const(z3::expr e, std::string const& name);
-  z3::expr new_const_impl(z3::expr e, std::string const& name);
-  z3::expr get_vector_value_entry(ValueVector& vv,
+  sat_expr case_by_node_type(SFNode*, std::vector<sat_expr> const&);
+  sat_expr new_const(sat_expr e, std::string const& name);
+  sat_expr new_const_impl(sat_expr e, std::string const& name);
+  sat_expr get_vector_value_entry(ValueVector& vv,
       lsort s, object_value o);
   int get_sort_index(lsort s);
 
-  z3::expr node_is_not(SFNode* a);
-  z3::expr node_is_true(SFNode* a);
-  z3::expr node_is_false(SFNode* a);
-  z3::expr node_is_or(SFNode* a);
-  z3::expr node_is_and(SFNode* a);
-  z3::expr node_is_eq_or_ne(SFNode* a);
-  z3::expr node_is_ntt(SFNode* a, NTT ntt);
-  z3::expr node_is_var(SFNode* a, int var_index);
-  z3::expr nodes_eq(SFNode* a, SFNode* b);
-  z3::expr children_lex_le(SFNode* a, SFNode* b, int nchildren);
-  z3::expr nodes_le(SFNode* a, SFNode* b);
-  z3::expr node_types_eq(SFNode* a, SFNode* b);
-  z3::expr children_ascending(SFNode* node);
-  std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_le_map;
-  std::map<std::pair<SFNode*, SFNode*>, z3::expr> nodes_eq_map;
+  sat_expr node_is_not(SFNode* a);
+  sat_expr node_is_true(SFNode* a);
+  sat_expr node_is_false(SFNode* a);
+  sat_expr node_is_or(SFNode* a);
+  sat_expr node_is_and(SFNode* a);
+  sat_expr node_is_eq_or_ne(SFNode* a);
+  sat_expr node_is_ntt(SFNode* a, NTT ntt);
+  sat_expr node_is_var(SFNode* a, int var_index);
+  sat_expr nodes_eq(SFNode* a, SFNode* b);
+  sat_expr children_lex_le(SFNode* a, SFNode* b, int nchildren);
+  sat_expr nodes_le(SFNode* a, SFNode* b);
+  sat_expr node_types_eq(SFNode* a, SFNode* b);
+  sat_expr children_ascending(SFNode* node);
+  std::map<std::pair<SFNode*, SFNode*>, sat_expr> nodes_le_map;
+  std::map<std::pair<SFNode*, SFNode*>, sat_expr> nodes_eq_map;
   void vv_constraints(ValueVector& vv, SFNode* node);
 
   void add_variable_ordering_constraints();
@@ -147,19 +144,18 @@ private:
   void constrain_node_as_or(SFNode* node);
   void constrain_node_as_non_and_or(SFNode* node);
 
-  z3::expr bool_const(std::string const& name);
+  sat_expr bool_const(std::string const& name);
   int bool_count;
 
-  z3::expr ftree_to_expr(
-      z3::context& ctx,
+  sat_expr ftree_to_expr(
       std::shared_ptr<FTree> ftree,
       std::vector<ValueVector>& children,
       NodeType& nt);
 
-  z3::expr interpret_not(std::shared_ptr<Model> model, SketchModel* sm);
+  sat_expr interpret_not(std::shared_ptr<Model> model, SketchModel* sm);
   std::vector<std::vector<VarEncoding>> get_all_var_exps_tree(std::shared_ptr<Model>, SketchModel*, int idx, std::vector<QRange> const&, std::string const&);
   VarEncoding make_existential_var_encoding(std::shared_ptr<Model>, SketchModel*, lsort, std::string const&);
-  z3::expr encodings_not_eq(VarEncoding&, VarEncoding&);
+  sat_expr encodings_not_eq(VarEncoding&, VarEncoding&);
 };
 
 #endif

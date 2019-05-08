@@ -3,6 +3,7 @@
 
 #include "logic.h"
 #include "model.h"
+#include "sat_solver.h"
 
 struct SketchFunction;
 struct ValueVars;
@@ -10,7 +11,7 @@ struct ValueVars;
 class SketchModel {
 public:
   SketchModel(
-      z3::context& ctx, z3::solver& solver,
+      SatSolver& solver,
       std::shared_ptr<Module>, int n);
   void assert_formula(value);
 
@@ -19,27 +20,25 @@ public:
 
   int get_bool_count() { return bool_count; }
 
-  std::shared_ptr<Model> to_model(z3::model& m);
+  std::shared_ptr<Model> to_model();
 
 private:
-  z3::context& ctx;
-  z3::solver& solver;
+  SatSolver& solver;
   std::shared_ptr<Module> module;
 
   std::map<std::string, size_t> domain_sizes;
   std::map<iden, SketchFunction> functions;
 
-  z3::expr to_z3(value v, size_t res, std::map<iden, ValueVars> const& vars);
-  z3::expr to_z3_forall_exists(size_t res, std::map<iden, ValueVars> const& vars, bool is_forall, std::vector<VarDecl> const& decls, value body);
+  sat_expr to_sat(value v, size_t res, std::map<iden, ValueVars> const& vars);
+  sat_expr to_sat_forall_exists(size_t res, std::map<iden, ValueVars> const& vars, bool is_forall, std::vector<VarDecl> const& decls, value body);
   ValueVars make_value_vars_const(lsort, size_t);
   ValueVars make_value_vars_var(lsort sort, std::string const& name);
 
-  std::map<std::pair<ComparableValue,size_t>, z3::expr> value_to_expr_map;
+  std::map<std::pair<ComparableValue,size_t>, sat_expr> value_to_expr_map;
 
-  std::map<std::string, bool> get_bool_map(z3::model model);
-  object_value get_value_from_z3(ValueVars& vv, std::map<std::string, bool> const&);
+  object_value get_value_from_model(ValueVars& vv);
 
-  z3::expr bool_const(std::string const& name);
+  sat_expr bool_const(std::string const& name);
   int bool_count;
 
   friend class SketchFormula;
@@ -48,12 +47,11 @@ private:
 struct ValueVars {
   lsort sort;
   int n;
-  std::vector<z3::expr> exprs;
+  std::vector<sat_expr> exprs;
 
   int constant_value;
-  std::vector<std::string> names;
 
-  z3::expr get(size_t i) const;
+  sat_expr get(size_t i) const;
 };
 
 struct SketchFunctionEntry {

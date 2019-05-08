@@ -3,10 +3,10 @@
 using namespace std;
 
 void SketchModel::assert_formula(value v) {
-  solver.add(to_z3(v, 1, {}));
+  solver.add(to_sat(v, 1, {}));
 }
 
-z3::expr SketchModel::to_z3(value v, size_t res, std::map<iden, ValueVars> const& vars) {
+sat_expr SketchModel::to_sat(value v, size_t res, std::map<iden, ValueVars> const& vars) {
   value substv = v;
   for (auto p : vars) {
     ValueVars& vv = p.second;
@@ -21,20 +21,20 @@ z3::expr SketchModel::to_z3(value v, size_t res, std::map<iden, ValueVars> const
     return iter->second;
   }
 
-  z3::expr bc = bool_const(name("sme"));
-  z3::expr result = bc; // initialize to whatever, doesn't matter
+  sat_expr bc = bool_const(name("sme"));
+  sat_expr result = bc; // initialize to whatever, doesn't matter
 
   //printf("doing %s\n", substv->to_string().c_str());
 
   assert(v.get() != NULL);
   if (Forall* value = dynamic_cast<Forall*>(v.get())) {
-    result = to_z3_forall_exists(res, vars, true, value->decls, value->body);
+    result = to_sat_forall_exists(res, vars, true, value->decls, value->body);
   }
   else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
-    result = to_z3_forall_exists(res, vars, false, value->decls, value->body);
+    result = to_sat_forall_exists(res, vars, false, value->decls, value->body);
   }
   else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
-    assert(false && "SketchModel::z3 NearlyForall case not implemented");
+    assert(false && "SketchModel::to_sat NearlyForall case not implemented");
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
@@ -47,45 +47,45 @@ z3::expr SketchModel::to_z3(value v, size_t res, std::map<iden, ValueVars> const
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
     int n = get_domain_size(value->left->get_sort());
     if (res == 1) {
-      z3::expr_vector eqs(ctx);
+      vector<sat_expr> eqs;
       for (int i = 0; i < n; i++) {
-        z3::expr_vector sides(ctx);
-        sides.push_back(to_z3(value->left, i, vars));
-        sides.push_back(to_z3(value->right, i, vars));
-        eqs.push_back(z3::mk_and(sides));
+        vector<sat_expr> sides;
+        sides.push_back(to_sat(value->left, i, vars));
+        sides.push_back(to_sat(value->right, i, vars));
+        eqs.push_back(sat_and(sides));
       }
-      result = z3::mk_or(eqs);
+      result = sat_or(eqs);
     } else {
-      z3::expr_vector neqs(ctx);
+      vector<sat_expr> neqs;
       for (int i = 0; i < n; i++) {
-        z3::expr_vector a_and_b(ctx);
-        a_and_b.push_back(to_z3(value->left, i, vars));
-        z3::expr_vector b(ctx);
+        vector<sat_expr> a_and_b;
+        a_and_b.push_back(to_sat(value->left, i, vars));
+        vector<sat_expr> b;
         for (int j = 0; j < n; j++) {
           if (i != j) {
-            b.push_back(to_z3(value->right, j, vars));
+            b.push_back(to_sat(value->right, j, vars));
           }
         }
-        a_and_b.push_back(z3::mk_or(b));
-        neqs.push_back(z3::mk_and(a_and_b));
+        a_and_b.push_back(sat_or(b));
+        neqs.push_back(sat_and(a_and_b));
       }
-      result = z3::mk_or(neqs);
+      result = sat_or(neqs);
     }
   }
   else if (Not* value = dynamic_cast<Not*>(v.get())) {
-    result = to_z3(value->val, res == 1 ? 0 : 1, vars);
+    result = to_sat(value->val, res == 1 ? 0 : 1, vars);
   }
   else if (Implies* value = dynamic_cast<Implies*>(v.get())) {
     if (res == 1) {
-      z3::expr_vector vec(ctx);
-      vec.push_back(to_z3(value->left, 0, vars));
-      vec.push_back(to_z3(value->right, 1, vars));
-      result = z3::mk_or(vec);
+      vector<sat_expr> vec;
+      vec.push_back(to_sat(value->left, 0, vars));
+      vec.push_back(to_sat(value->right, 1, vars));
+      result = sat_or(vec);
     } else {
-      z3::expr_vector vec(ctx);
-      vec.push_back(to_z3(value->left, 1, vars));
-      vec.push_back(to_z3(value->right, 0, vars));
-      result = z3::mk_and(vec);
+      vector<sat_expr> vec;
+      vec.push_back(to_sat(value->left, 1, vars));
+      vec.push_back(to_sat(value->right, 0, vars));
+      result = sat_and(vec);
     }
   }
   else if (Apply* value = dynamic_cast<Apply*>(v.get())) {
@@ -95,42 +95,42 @@ z3::expr SketchModel::to_z3(value v, size_t res, std::map<iden, ValueVars> const
     assert(iter != functions.end());
     SketchFunction const& sf = iter->second;
 
-    z3::expr_vector full_vec(ctx);
+    vector<sat_expr> full_vec;
     for (SketchFunctionEntry const& fe : sf.table) {
-      z3::expr_vector vec(ctx);
+      vector<sat_expr> vec;
       vec.push_back(fe.res.get(res));
       for (int i = 0; i < fe.args.size(); i++) {
-        vec.push_back(to_z3(value->args[i], fe.args[i], vars));
+        vec.push_back(to_sat(value->args[i], fe.args[i], vars));
       }
-      full_vec.push_back(z3::mk_and(vec));
+      full_vec.push_back(sat_and(vec));
     }
-    result = z3::mk_or(full_vec);
+    result = sat_or(full_vec);
   }
   else if (And* value = dynamic_cast<And*>(v.get())) {
-    z3::expr_vector vec(ctx);
+    vector<sat_expr> vec;
     for (shared_ptr<Value> arg : value->args) {
-      vec.push_back(to_z3(arg, res, vars));
+      vec.push_back(to_sat(arg, res, vars));
     }
-    result = res == 1 ? z3::mk_and(vec) : z3::mk_or(vec);
+    result = res == 1 ? sat_and(vec) : sat_or(vec);
   }
   else if (Or* value = dynamic_cast<Or*>(v.get())) {
-    z3::expr_vector vec(ctx);
+    vector<sat_expr> vec;
     for (shared_ptr<Value> arg : value->args) {
-      vec.push_back(to_z3(arg, res, vars));
+      vec.push_back(to_sat(arg, res, vars));
     }
-    result = res == 1 ? z3::mk_or(vec) : z3::mk_and(vec);
+    result = res == 1 ? sat_or(vec) : sat_and(vec);
   }
   else {
     //printf("value2expr got: %s\n", v->to_string().c_str());
-    assert(false && "SketchModel::to_z3 does not support this case");
+    assert(false && "SketchModel::to_sat does not support this case");
   }
 
-  solver.add(z3::implies(bc, result));
+  solver.add(sat_implies(bc, result));
   value_to_expr_map.insert(make_pair(make_pair(cmpval, res), bc));
   return bc;
 }
 
-z3::expr SketchModel::to_z3_forall_exists(
+sat_expr SketchModel::to_sat_forall_exists(
   size_t res,
   map<iden, ValueVars> const& vars,
   bool is_forall,
@@ -147,14 +147,14 @@ z3::expr SketchModel::to_z3_forall_exists(
     domain_sizes.push_back(get_domain_size(decls[i].sort));
   }
 
-  z3::expr_vector vec(ctx);
+  vector<sat_expr> vec;
 
   while (true) {
     map<iden, ValueVars> new_vars = vars;
     for (int i = 0; i < n; i++) {
       new_vars.insert(make_pair(decls[i].name, make_value_vars_const(decls[i].sort, args[i])));
     }
-    vec.push_back(to_z3(body, res, new_vars));
+    vec.push_back(to_sat(body, res, new_vars));
 
     int i;
     for (i = 0; i < n; i++) {
@@ -171,7 +171,7 @@ z3::expr SketchModel::to_z3_forall_exists(
   }
 
   return ((res == 1 && is_forall) || (res == 0 && !is_forall)) ?
-      z3::mk_and(vec) : z3::mk_or(vec);
+      sat_and(vec) : sat_or(vec);
 }
 
 size_t SketchModel::get_domain_size(lsort sort)
@@ -200,7 +200,7 @@ ValueVars SketchModel::make_value_vars_const(lsort sort, size_t val)
   vv.sort = sort;
   vv.n = get_domain_size(sort);
   for (int i = 0; i < vv.n; i++) {
-    vv.exprs.push_back(i == val ? ctx.bool_val(true) : ctx.bool_val(false));
+    vv.exprs.push_back(i == val ? sat_true() : sat_false());
   }
   vv.constant_value = val;
   return vv;
@@ -213,37 +213,35 @@ ValueVars SketchModel::make_value_vars_var(lsort sort, string const& name)
   vv.n = get_domain_size(sort);
   for (int i = 0; i < vv.n; i++) {
     string na = ::name(name + "_eq_" + to_string(i));
-    vv.names.push_back(na);
     vv.exprs.push_back(bool_const(na));
   }
   for (int i = 0; i < vv.n; i++) {
     for (int j = i+1; j < vv.n; j++) {
-      z3::expr_vector vec(ctx);
+      vector<sat_expr> vec;
       vec.push_back(vv.exprs[i]);
       vec.push_back(vv.exprs[j]);
-      solver.add(!z3::mk_and(vec));
+      solver.add(sat_not(sat_and(vec)));
     }
   }
   vv.constant_value = -1;
   return vv;
 }
 
-z3::expr SketchModel::bool_const(std::string const& name) {
+sat_expr SketchModel::bool_const(std::string const& name) {
   bool_count++;
-  return ctx.bool_const(name.c_str());
+  return solver.new_sat_var(name.c_str());
 }
 
-z3::expr ValueVars::get(size_t i) const {
+sat_expr ValueVars::get(size_t i) const {
   assert(i < exprs.size());
   return exprs[i];
 }
 
 SketchModel::SketchModel(
-    z3::context& ctx,
-    z3::solver& solver,
+    SatSolver& solver,
     std::shared_ptr<Module> module,
     int n)
-    : ctx(ctx), solver(solver), module(module), bool_count(0)
+    : solver(solver), module(module), bool_count(0)
 {
   for (string sort_name : module->sorts) {
     domain_sizes.insert(make_pair(sort_name, n));
@@ -288,11 +286,11 @@ SketchModel::SketchModel(
       for (SketchFunctionEntry& sfe : sf.table) {
         assert(sfe.args.size() == 2);
         if (sfe.args[0] <= sfe.args[1]) {
-          solver.add(!sfe.res.get(0));
+          solver.add(sat_not(sfe.res.get(0)));
           solver.add(sfe.res.get(1));
         } else {
           solver.add(sfe.res.get(0));
-          solver.add(!sfe.res.get(1));
+          solver.add(sat_not(sfe.res.get(1)));
         }
       }
     }
@@ -305,10 +303,8 @@ SketchModel::SketchModel(
   }
 }
 
-shared_ptr<Model> SketchModel::to_model(z3::model& m)
+shared_ptr<Model> SketchModel::to_model()
 {
-  map<string, bool> bool_map = get_bool_map(m);
-
   std::unordered_map<std::string, SortInfo> sort_info;
   for (auto p : domain_sizes) {
     SortInfo si;
@@ -337,7 +333,7 @@ shared_ptr<Model> SketchModel::to_model(z3::model& m)
         assert(0 <= sfe.args[i] && sfe.args[i] < ft->children.size());
         ft = ft->children[sfe.args[i]].get();
       }
-      ft->value = get_value_from_z3(sfe.res, bool_map);
+      ft->value = get_value_from_model(sfe.res);
     }
 
     function_info.insert(make_pair(name, move(finfo)));
@@ -346,33 +342,10 @@ shared_ptr<Model> SketchModel::to_model(z3::model& m)
   return shared_ptr<Model>(new Model(this->module, move(sort_info), move(function_info)));
 }
 
-map<string, bool> SketchModel::get_bool_map(z3::model model) {
-  map<string, bool> bool_map;
-  int n = model.num_consts();
-  z3::expr e_true = ctx.bool_val(true);
-  z3::expr e_false = ctx.bool_val(false);
-  for (int i = 0; i < n; i++) {
-    z3::func_decl fd = model.get_const_decl(i);
-    z3::expr res = model.get_const_interp(fd);
-    if (eq(res, e_true)) {
-      bool_map.insert(make_pair(fd.name().str(), true));
-    } else if (eq(res, e_false)) {
-      bool_map.insert(make_pair(fd.name().str(), false));
-    } else {
-      assert(false);
-    }
-  }
-  return bool_map;
-}
-
-object_value SketchModel::get_value_from_z3(
-    ValueVars& vv,
-    map<string, bool> const& bool_map)
+object_value SketchModel::get_value_from_model(ValueVars& vv)
 {
-  assert(vv.names.size() > 0);
-  for (int i = 0; i < vv.names.size(); i++) {
-    auto iter = bool_map.find(vv.names[i]);
-    if (iter != bool_map.end() && iter->second) {
+  for (int i = 0; i < vv.exprs.size(); i++) {
+    if (solver.get(vv.exprs[i])) {
       return i;
     }
   }

@@ -282,22 +282,21 @@ Counterexample get_counterexample(
   return cex;
 }
 
-z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
+sat_expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     bool do_true) {
   assert(false && "not implement with NearlyForall in mind");
 
-  z3::context& ctx = sf.ctx;
   vector<VarDecl> quantifiers = sf.free_vars;
   vector<size_t> domain_sizes;
   for (VarDecl const& decl : quantifiers) {
     domain_sizes.push_back(model->get_domain_size(decl.sort));
   }
-  z3::expr_vector vec(ctx);
+  vector<sat_expr> vec;
   
   vector<object_value> args;
   args.resize(domain_sizes.size());
   while (true) {
-    z3::expr e = sf.interpret(model, args, do_true);
+    sat_expr e = sf.interpret(model, args, do_true);
 
     int i;
     for (i = 0; i < domain_sizes.size(); i++) {
@@ -313,10 +312,10 @@ z3::expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<M
     }
   }
 
-  return do_true ? z3::mk_and(vec) : z3::mk_or(vec);
+  return do_true ? sat_and(vec) : sat_or(vec);
 }
 
-z3::expr assert_true_for_some_qs(
+sat_expr assert_true_for_some_qs(
     shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     value candidate) {
   vector<QuantifierInstantiation> qis;
@@ -324,8 +323,7 @@ z3::expr assert_true_for_some_qs(
   assert(!evals_true);
   assert(qis.size() > 0);
 
-  z3::context& ctx = sf.ctx;
-  z3::expr_vector vec(ctx);
+  vector<sat_expr> vec;
 
   vector<vector<object_value>> variable_values;
   for (QuantifierInstantiation& qi : qis) {
@@ -337,18 +335,18 @@ z3::expr assert_true_for_some_qs(
   //printf("using %d instantiations\n", (int)all_perms.size());
 
   for (vector<vector<object_value>> const& ovs_many : all_perms) {
-    z3::expr_vector one_is_true(ctx);
+    vector<sat_expr> one_is_true;
     for (vector<object_value> const& ovs : ovs_many) {
       one_is_true.push_back(sf.interpret(model, ovs, true));
     }
-    vec.push_back(z3::mk_or(one_is_true));
+    vec.push_back(sat_or(one_is_true));
   }
 
-  return z3::mk_and(vec);
+  return sat_and(vec);
 }
 
 
-z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
+sat_expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     value candidate) {
   if (DO_FORALL_PRUNING) {
     return assert_true_for_some_qs(module, sf, model, candidate);
@@ -357,7 +355,7 @@ z3::expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model>
   }
 }
 
-z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
+sat_expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
   //return is_something(module, sf, model, false);
   return sf.interpret_not(model);
 }
@@ -365,8 +363,6 @@ z3::expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model
 void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex,
       value candidate)
 {
-  z3::context& ctx = sf.ctx;
-
   if (cex.is_true) {
     sf.solver.add(is_true(module, sf, cex.is_true, candidate));
   }
@@ -376,10 +372,10 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   else if (cex.hypothesis && cex.conclusion) {
     //cex.hypothesis->dump();
     //cex.conclusion->dump();
-    z3::expr_vector vec(ctx);
+    vector<sat_expr> vec;
     vec.push_back(is_false(module, sf, cex.hypothesis));
     vec.push_back(is_true(module, sf, cex.conclusion, candidate));
-    sf.solver.add(z3::mk_or(vec));
+    sf.solver.add(sat_or(vec));
   }
   else {
     assert(false);
@@ -526,6 +522,7 @@ Transcript Transcript::from_json(Json j, shared_ptr<Module> module) {
   return t;
 }
 
+/*
 extern int run_id;
 
 void log_smtlib(z3::solver& solver) {
@@ -541,6 +538,7 @@ void log_smtlib(z3::solver& solver) {
 
   cout << "logged smtlib to " << filename << endl;
 }
+*/
 
 void synth_loop(shared_ptr<Module> module, int arity, int depth,
     Transcript* init_transcript)
@@ -550,9 +548,8 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
   assert(module->templates.size() == 1);
   TopQuantifierDesc tqd(module->templates[0]);
 
-  z3::context ctx_sf;
-  z3::solver solver_sf(ctx_sf);
-  SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+  SatSolver ss;
+  SketchFormula sf(ss, tqd, module, arity, depth);
   sf.constrain_conj_disj_form();
 
   int bmc_depth = 4;
@@ -589,19 +586,17 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     Benchmarking bench;
     bench.start("solver (" + to_string(num_iterations) + ")");
     total_bench.start("total solver time");
-    z3::check_result res = solver_sf.check();
+    bool res = ss.is_sat();
     bench.end();
     total_bench.end();
     bench.dump();
 
-    assert(res == z3::sat || res == z3::unsat);
-    if (res != z3::sat) {
+    if (!res) {
       printf("unable to synthesize any formula\n");
       break;
     }
 
-    z3::model model = solver_sf.get_model();
-    value candidate_inner = sf.to_value(model);
+    value candidate_inner = sf.to_value();
     value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
     printf("candidate: %s\n", candidate->to_string().c_str());
     candidate = candidate->simplify();
@@ -706,13 +701,12 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
     int num_iterations = 0;
 
-    z3::context ctx_sf;
-    z3::solver solver_sf(ctx_sf);
-    SketchFormula sf(ctx_sf, solver_sf, tqd, module, arity, depth);
+    SatSolver ss;
+    SketchFormula sf(ss, tqd, module, arity, depth);
     sf.constrain_disj_form();
 
-    SketchModel sm(ctx_sf, solver_sf, module, 3);
-    solver_sf.add(sf.interpret_not(sm));
+    SketchModel sm(ss, module, 3);
+    ss.add(sf.interpret_not(sm));
     sm.assert_formula(cumulative_invariant);
 
     printf("Starting off with %d counterexamples\n", (int)cexes.size());
@@ -744,30 +738,23 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
           to_string(num_iterations_total) + ") (" +
           to_string(found_invs.size()) + " invariants + " + to_string(num_iterations) + ")");
       total_bench.start("total solver time");
-      z3::check_result res = solver_sf.check();
+      bool res = ss.is_sat();
       bench.end();
       total_bench.end();
       bench.dump();
 
-      assert(res == z3::sat || res == z3::unsat);
-      if (res != z3::sat) {
+      if (!res) {
         printf("unable to synthesize any formula\n");
         goto done;
       }
 
-      Benchmarking bench_get_model;
-      bench_get_model.start("get_model");
-      z3::model z3model = solver_sf.get_model();
-      bench_get_model.end();
-      bench_get_model.dump();
-
-      value candidate_inner = sf.to_value(z3model);
+      value candidate_inner = sf.to_value();
       value candidate0 = fill_holes_in_value(module->templates[0], {candidate_inner});
       printf("candidate: %s\n", candidate0->to_string().c_str());
       value candidate = candidate0->simplify()->reduce_quants();
       printf("simplified: %s\n", candidate->to_string().c_str());
 
-      //shared_ptr<Model> synthesized_model = sm.to_model(z3model);
+      //shared_ptr<Model> synthesized_model = sm.to_model();
       //printf("synthesized model:\n");
       //synthesized_model->dump();
 

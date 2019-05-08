@@ -9,7 +9,6 @@
 #include "utils.h"
 #include "progress_bar.h"
 #include "synth_loop.h"
-#include "sat_solver.h"
 
 #include <iostream>
 #include <iterator>
@@ -521,8 +520,6 @@ void try_to_add_invariants(
 int run_id;
 
 int main(int argc, char* argv[]) {
-  test_sat(); return 0;
-
   // FIXME: quick hack to control which enumeration to use
   bool just_enumeration = false;
 

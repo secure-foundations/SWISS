@@ -37,8 +37,11 @@ sat_expr sat_and(sat_expr, sat_expr);
 sat_expr sat_and(std::vector<sat_expr> const&);
 sat_expr sat_or(sat_expr, sat_expr);
 sat_expr sat_or(std::vector<sat_expr> const&);
-sat_expr sat_impl(sat_expr, sat_expr);
+sat_expr sat_implies(sat_expr, sat_expr);
 sat_expr sat_not(sat_expr);
+sat_expr sat_true();
+sat_expr sat_false();
+sat_expr sat_ite(sat_expr, sat_expr, sat_expr);
 
 void test_sat();
 
