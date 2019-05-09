@@ -207,6 +207,11 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
 bool SimpSolver::addClause_(vec<Lit>& ps)
 {
+  for (int i = 0; i < ps.size(); i++) {
+    printf("%s%d ", (ps[i].x % 2 == 1 ? "~" : ""), ps[i].x/2);
+  }
+  printf("\n");
+
 #ifndef NDEBUG
     for (int i = 0; i < ps.size(); i++)
         assert(!isEliminated(var(ps[i])));

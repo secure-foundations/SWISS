@@ -16,6 +16,8 @@ struct sat_expr {
 
   sat_expr() {}
   sat_expr(std::shared_ptr<sat_expr_> se) : se(se) { }
+
+  std::string to_string(int indent = 0) const;
 };
 
 class SatSolver {
@@ -32,6 +34,7 @@ private:
   Glucose::SimpSolver solver;
 
   Glucose::Lit expr_to_lit(sat_expr, bool negate);
+  void add_(sat_expr);
 
   bool got_sat;
 };

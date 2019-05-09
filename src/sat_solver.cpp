@@ -1,5 +1,7 @@
 #include "sat_solver.h"
 
+#include <iostream>
+
 using namespace std;
 
 enum class se_type {
@@ -25,12 +27,17 @@ struct sat_expr_ {
 sat_expr const _sat_true(shared_ptr<sat_expr_>(new sat_expr_(se_type::And)));
 sat_expr const _sat_false(shared_ptr<sat_expr_>(new sat_expr_(se_type::Or)));
 
+vector<pair<string, sat_expr>> names;
+
 sat_expr SatSolver::new_sat_var(std::string const& name) {
   sat_expr se;
   se.se.reset(new sat_expr_(se_type::Var));
   se.se->var_name = name;
   se.se->var = solver.newVar();
   se.se->negated = false;
+
+  printf("idx for %s is %d\n", name.c_str(), (int)se.se->var);
+  names.push_back(make_pair(name, se));
 
   return se;
 }
@@ -47,18 +54,25 @@ sat_expr sat_and(sat_expr a, sat_expr b) {
 }
 
 sat_expr sat_and(vector<sat_expr> const& args) {
-  sat_expr se;
-  se.se.reset(new sat_expr_(se_type::And));
+  vector<sat_expr> new_args;
   for (sat_expr child : args) {
     if (child.se->ty == se_type::And) {
-      extend(se.se->args, child.se->args);
+      extend(new_args, child.se->args);
     } else if (child.se->ty == se_type::Or && child.se->args.size() == 0) {
       return child;
     } else {
-      se.se->args.push_back(child);
+      new_args.push_back(child);
     }
   }
-  return se;
+
+  if (new_args.size() == 1) {
+    return new_args[0];
+  } else {
+    sat_expr se;
+    se.se.reset(new sat_expr_(se_type::And));
+    se.se->args = move(new_args);
+    return se;
+  }
 }
 
 sat_expr sat_or(sat_expr a, sat_expr b) {
@@ -66,25 +80,46 @@ sat_expr sat_or(sat_expr a, sat_expr b) {
 }
 
 sat_expr sat_or(vector<sat_expr> const& args) {
-  sat_expr se;
-  se.se.reset(new sat_expr_(se_type::Or));
+  vector<sat_expr> new_args;
   for (sat_expr child : args) {
     if (child.se->ty == se_type::Or) {
-      extend(se.se->args, child.se->args);
+      extend(new_args, child.se->args);
     } else if (child.se->ty == se_type::And && child.se->args.size() == 0) {
       return child;
     } else {
-      se.se->args.push_back(child);
+      new_args.push_back(child);
     }
   }
-  return se;
+
+  if (new_args.size() == 1) {
+    return new_args[0];
+  } else {
+    sat_expr se;
+    se.se.reset(new sat_expr_(se_type::Or));
+    se.se->args = move(new_args);
+    return se;
+  }
 }
 
 sat_expr sat_implies(sat_expr a, sat_expr b) {
   return sat_or(sat_not(a), b);
 }
 
+bool is_true(sat_expr se) {
+  return se.se->ty == se_type::And && se.se->args.size() == 0;
+}
+
+bool is_false(sat_expr se) {
+  return se.se->ty == se_type::Or && se.se->args.size() == 0;
+}
+
 sat_expr sat_ite(sat_expr a, sat_expr b, sat_expr c) {
+  if (is_true(a)) return b;
+  if (is_false(a)) return c;
+  if (is_true(b)) return sat_or(a, c);
+  if (is_false(b)) return sat_and(sat_not(a), c);
+  if (is_true(c)) return sat_or(sat_not(a), b);
+  if (is_false(c)) return sat_and(a, b);
   return sat_and(sat_or(sat_not(a), b), sat_or(a, c));
 }
 
@@ -124,14 +159,19 @@ sat_expr sat_not(sat_expr se_) {
   }
 }
 
-void SatSolver::add(sat_expr se_) {
+void SatSolver::add(sat_expr se) {
+  cout << se.to_string() << "\n";
+  this->add_(se);
+}
+
+void SatSolver::add_(sat_expr se_) {
   shared_ptr<sat_expr_> se = se_.se;
   if (se->ty == se_type::Var) {
     solver.addClause(Glucose::mkLit(se->var, se->negated));
   }
   else if (se->ty == se_type::And) {
     for (sat_expr child : se->args) {
-      this->add(child);
+      this->add_(child);
     }
   }
   else if (se->ty == se_type::Or) {
@@ -194,11 +234,46 @@ bool SatSolver::get(sat_expr se) {
 }
 
 bool SatSolver::is_sat() {
-  got_sat = solver.solve();
-  return got_sat;
+  this->got_sat = solver.solve();
+  printf("got_sat = %d\n", (int)got_sat);
+
+  for (auto p : names) {
+    cout << p.first << " : " << get(p.second) << endl;
+  }
+  for (int i = 0; i < solver.nVars(); i++) {
+    printf("var %d : %d \n", i, toInt(solver.modelValue(i)));
+  }
+  static bool b = false;
+  if (!b) b = true;
+  else assert(false);
+
+  return this->got_sat;
+}
+
+string sat_expr::to_string(int indent) const {
+  string tabs;
+  for (int i = 0; i < indent; i++) {
+    tabs = tabs + " ";
+  }
+
+  if (se->ty == se_type::Var) {
+    return tabs + (se->negated ? "!" : "") + se->var_name;
+  }
+  else if (se->ty == se_type::And || se->ty == se_type::Or) {
+    string s = tabs + (se->ty == se_type::And ? "(and" : "(or") + "\n";
+    for (sat_expr child : se->args) {
+      s += child.to_string(indent + 2) + "\n";
+    }
+    s += tabs + ")";
+    return s;
+  }
+  else {
+    assert(false);
+  }
 }
 
 void test_sat() {
+/*
   {
   SatSolver solver;
   sat_expr a = solver.new_sat_var("a");
@@ -209,6 +284,7 @@ void test_sat() {
   printf("%d\n", solver.get(b));
   printf("%d\n", solver.get(c));
   }
+  */
 
   {
   SatSolver solver;
@@ -221,6 +297,7 @@ void test_sat() {
   printf("%d\n", solver.get(b));
   printf("%d\n", solver.get(c));
   }
+  return;
 
   {
   SatSolver solver;
@@ -237,5 +314,17 @@ void test_sat() {
   printf("%d\n", solver.get(b));
   printf("%d\n", solver.get(c));
   */
+  }
+
+  {
+  SatSolver solver;
+  sat_expr a = solver.new_sat_var("a");
+  sat_expr b = solver.new_sat_var("b");
+  sat_expr c = solver.new_sat_var("c");
+  sat_expr d = solver.new_sat_var("d");
+  solver.add(a);
+  solver.add(b);
+  solver.add(sat_or(sat_not(a), sat_and(sat_not(b), sat_or(c, d))));
+  printf("sat: %s\n", solver.is_sat() ? "sat" : "unsat");
   }
 }
