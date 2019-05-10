@@ -36,7 +36,7 @@ sat_expr SatSolver::new_sat_var(std::string const& name) {
   se.se->var = solver.newVar();
   se.se->negated = false;
 
-  printf("idx for %s is %d\n", name.c_str(), (int)se.se->var);
+  //printf("idx for %s is %d\n", name.c_str(), (int)se.se->var);
   names.push_back(make_pair(name, se));
 
   return se;
@@ -160,7 +160,7 @@ sat_expr sat_not(sat_expr se_) {
 }
 
 void SatSolver::add(sat_expr se) {
-  cout << se.to_string() << "\n";
+  //cout << se.to_string() << "\n";
   this->add_(se);
 }
 
@@ -235,8 +235,9 @@ bool SatSolver::get(sat_expr se) {
 
 bool SatSolver::is_sat() {
   this->got_sat = solver.solve();
-  printf("got_sat = %d\n", (int)got_sat);
 
+  /*
+  printf("got_sat = %d\n", (int)got_sat);
   for (auto p : names) {
     cout << p.first << " : " << get(p.second) << endl;
   }
@@ -246,6 +247,7 @@ bool SatSolver::is_sat() {
   static bool b = false;
   if (!b) b = true;
   else assert(false);
+  */
 
   return this->got_sat;
 }

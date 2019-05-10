@@ -20,18 +20,23 @@ OBJECTS = $(addprefix bin/,\
 	lib/json11/json11.o \
 )
 
+LIBS = lib_glucose_debug.a
+
 DEP_DIR = bin/deps
 
 CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/
 
 all: synthesis
 
-synthesis: $(OBJECTS) bin/lib_glucose.a
-	clang++ -g -o synthesis -lz3 $(OBJECTS) bin/lib_glucose.a
+synthesis: $(OBJECTS) $(LIBS)
+	clang++ -g -o synthesis -lz3 $(OBJECTS) $(LIBS)
 
-bin/lib_glucose.a:
+bin/lib_glucose_release.a:
 	cd src/lib/glucose-syrup/simp/ && make libr
-	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose.a
+	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose_release.a
+bin/lib_glucose_debug.a:
+	cd src/lib/glucose-syrup/simp/ && make libd
+	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose_debug.a
 
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)

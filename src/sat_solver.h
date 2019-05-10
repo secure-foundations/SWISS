@@ -31,7 +31,7 @@ public:
   sat_expr new_sat_var(std::string const& name);
 
 private:
-  Glucose::SimpSolver solver;
+  Glucose::Solver solver;
 
   Glucose::Lit expr_to_lit(sat_expr, bool negate);
   void add_(sat_expr);
