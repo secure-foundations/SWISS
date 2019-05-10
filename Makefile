@@ -36,7 +36,7 @@ bin/lib_glucose_release.a:
 	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose_release.a
 bin/lib_glucose_debug.a:
 	cd src/lib/glucose-syrup/simp/ && make libd
-	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose_debug.a
+	cp src/lib/glucose-syrup/simp/lib_debug.a bin/lib_glucose_debug.a
 
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
