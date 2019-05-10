@@ -6,7 +6,6 @@
 
 using namespace std;
 
-#define USE_2_FOR_BOOLS true
 #define NEGATE_FUNCS true
 #define USE_FTREE true
 
@@ -285,7 +284,6 @@ sat_expr exactly_one(vector<sat_expr> const& bools) {
   return sat_and(vec);
 }
 
-#if USE_2_FOR_BOOLS
 struct ValueVector {
   sat_expr is_true;
   sat_expr is_false;
@@ -296,16 +294,6 @@ struct ValueVector {
     is_false(is_false)
     { }
 };
-#else
-struct ValueVector {
-  sat_expr is_true;
-  vector<vector<sat_expr>> is_obj;
-
-  ValueVector(sat_expr is_true) :
-    is_true(is_true)
-    { }
-};
-#endif
 
 struct VarEncoding {
   vector<sat_expr> vars;
@@ -363,11 +351,7 @@ sat_expr SketchFormula::interpret(
   ValueVector vv = to_value_vector(root, model, NULL, var_exps);
   return vv.is_true;
 
-#if USE_2_FOR_BOOLS
   return target_value ? vv.is_true : vv.is_false;
-#else
-  return target_value ? vv.is_true : !vv.is_true;
-#endif
 }
 
 VarEncoding SketchFormula::make_existential_var_encoding(
@@ -487,18 +471,12 @@ sat_expr SketchFormula::interpret_not(shared_ptr<Model> model, SketchModel* sm)
   vector<sat_expr> vec;
   for (vector<VarEncoding>& var_exps : all_var_exps) {
     ValueVector vv = to_value_vector(root, model, sm, var_exps);
-#if USE_2_FOR_BOOLS
     sat_expr e = vv.is_false;
-#else
-    sat_expr e = !vv.is_true;
-#endif
     vec.push_back(e);
   }
 
   return sat_and(vec);
 }
-
-#if USE_2_FOR_BOOLS
 
 sat_expr SketchFormula::ftree_to_expr(
     shared_ptr<FTree> ft,
@@ -821,215 +799,6 @@ ValueVector SketchFormula::to_value_vector(
 
   return vv;
 }
-
-#else
-
-ValueVector SketchFormula::to_value_vector(
-    SFNode* node,
-    std::shared_ptr<Model> model,
-    std::vector<VarEncoding> const& var_exprs)
-{
-  vector<ValueVector> children;
-  for (SFNode* child : node->children) {
-    children.push_back(to_value_vector(child, model, var_exprs));
-  }
-
-  sat_expr const_true = sat_true();
-  sat_expr const_false = sat_false();
-
-  vector<sat_expr> v_is_true;
-  vector<vector<vector<sat_expr>>> v_objs;
-  vector<int> domain_sizes;
-  for (int i = 0; i < sorts.size(); i++) {
-    int domain_size = model->get_domain_size(sorts[i]);
-    domain_sizes.push_back(domain_size);
-    v_objs.push_back({});
-    for (int j = 0; j < domain_size; j++) {
-      v_objs[v_objs.size() - 1].push_back({});
-    }
-  }
-  
-  for (int nt_i = 0; nt_i < node_types.size(); nt_i++) {
-    NodeType& nt = node_types[nt_i];
-    int arity = get_arity(nt, node);
-
-    if (arity == -1) {
-      v_is_true.push_back(const_false);
-      for (int i = 0; i < sorts.size(); i++) {
-        for (int j = 0; j < domain_sizes[i]; j++) {
-          v_objs[i][j].push_back(const_false);
-        }
-      }
-      continue;
-    }
-
-    switch (nt.ntt) {
-      case NTT::True:
-      case NTT::False: {
-        v_is_true.push_back(nt.ntt == NTT::True ? const_true : const_false);
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
-        }
-        
-        break;
-      }
-
-      case NTT::And:
-      case NTT::Or: {
-        vector<sat_expr> vec;
-        for (int i = 0; i < arity; i++) {
-          vec.push_back(children[i].is_true);
-        }
-
-        v_is_true.push_back(nt.ntt == NTT::And ? sat_and(vec) : sat_or(vec));
-        
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
-        }
-
-        break;
-      }
-
-      case NTT::Not: {
-        v_is_true.push_back(!children[0].is_true);
-        
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
-        }
-
-        break;
-      }
-
-      case NTT::Eq: {
-        assert(false && "does not implement negated_function");
-        int sort_index = get_sort_index(nt.domain[0]);
-        vector<sat_expr> possibilities;
-        for (int j = 0; j < domain_sizes[sort_index]; j++) {
-            possibilities.push_back(sat_and(
-                children[0].is_obj[sort_index][j], children[1].is_obj[sort_index][j]));
-        }
-
-        v_is_true.push_back(sat_or(possibilities));
-
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            v_objs[i][j].push_back(const_false);
-          }
-        }
-
-        break;
-      }
-
-      case NTT::Func: {
-        if (dynamic_cast<BooleanSort*>(nt.range.get())) {
-          vector<sat_expr> arg_possibilities;
-          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-            if (e.res == (nt.negated_function ? 0 : 1)) {
-              vector<sat_expr> arg_conjuncts;
-              assert(e.args.size() == nt.domain.size());
-              for (int i = 0; i < e.args.size(); i++) {
-                arg_conjuncts.push_back(get_vector_value_entry(
-                  children[i], nt.domain[i], e.args[i]));
-              }
-              arg_possibilities.push_back(sat_and(arg_conjuncts));
-            }
-          }
-
-          v_is_true.push_back(sat_or(arg_possibilities));
-
-          for (int i = 0; i < sorts.size(); i++) {
-            for (int j = 0; j < domain_sizes[i]; j++) {
-              v_objs[i][j].push_back(const_false);
-            }
-          }
-        } else {
-          int sort_index = get_sort_index(nt.range);
-          int dsize = domain_sizes[sort_index];
-          vector<vector<sat_expr>> arg_possibilities;
-          for (int i = 0; i < dsize; i++) {
-            arg_possibilities.push_back(vector<sat_expr>());
-          }
-
-          for (FunctionEntry const& e : model->getFunctionEntries(this->functions[nt.index].name)) {
-            vector<sat_expr> arg_conjuncts;
-            assert(e.args.size() == nt.domain.size());
-            for (int i = 0; i < e.args.size(); i++) {
-              arg_conjuncts.push_back(get_vector_value_entry(
-                children[i], nt.domain[i], e.args[i]));
-            }
-            arg_possibilities[e.res].push_back(sat_and(arg_conjuncts));
-          }
-
-          v_is_true.push_back(const_false); 
-
-          for (int i = 0; i < sorts.size(); i++) {
-            for (int j = 0; j < domain_sizes[i]; j++) {
-              v_objs[i][j].push_back(i == sort_index ?
-                  sat_or(arg_possibilities[j]) : const_false);
-            }
-          }
-        }
-
-        break;
-      }
-
-      case NTT::Var: {
-        int sort_index = get_sort_index(nt.range);
-
-        assert(nt.index < var_exprs.size());
-
-        v_is_true.push_back(const_false);
-        for (int i = 0; i < sorts.size(); i++) {
-          for (int j = 0; j < domain_sizes[i]; j++) {
-            if (i == sort_index) {
-              v_objs[i][j].push_back(var_exprs[nt.index].vars[j]);
-            } else {
-              v_objs[i][j].push_back(const_false);
-            }
-          }
-        }
-
-        break;
-      }
-
-      default:
-        assert(false);
-
-    }
-  }
-
-  ValueVector vv(new_const(case_by_node_type(node, v_is_true),
-      node->name + "_is_true"));
-  for (int i = 0; i < sorts.size(); i++) {
-    vv.is_obj.push_back({});
-    for (int j = 0; j < domain_sizes[i]; j++) {
-      vv.is_obj[i].push_back(new_const(case_by_node_type(node, v_objs[i][j]),
-        node->name + "_is_" + dynamic_cast<UninterpretedSort*>(sorts[i].get())->name + "_" + to_string(j)
-      ));
-    }
-  }
-
-  //vv_constraints(vv, node);
-
-  return vv;
-}
-
-void SketchFormula::vv_constraints(ValueVector& vv, SFNode* node) {
-  for (int i = 0; i < sorts.size(); i++) {
-    for (int j = 0; j < vv.is_obj[i].size(); j++) {
-      solver.add(sat_implies(vv.is_obj[i][j], node->sort_bools[i]));
-    }
-    solver.add(sat_implies(node->sort_bools[i],
-        exactly_one(vv.is_obj[i])));
-  }
-}
-#endif
 
 sat_expr SketchFormula::case_by_node_type(SFNode* node, std::vector<sat_expr> const& args)
 {
