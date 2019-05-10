@@ -20,7 +20,7 @@ OBJECTS = $(addprefix bin/,\
 	lib/json11/json11.o \
 )
 
-LIBS = lib_glucose_debug.a
+LIBS = bin/lib_glucose_debug.a
 
 DEP_DIR = bin/deps
 
