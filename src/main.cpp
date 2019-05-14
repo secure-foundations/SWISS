@@ -578,7 +578,7 @@ int main(int argc, char* argv[]) {
 
   if (check_inductiveness) {
     printf("just checking inductiveness...\n");
-    if (is_complete_invariant(module, v_and(module->conjectures))) {
+    if (is_itself_invariant(module, module->conjectures)) {
       printf("yes\n");
     } else{
       printf("no\n");

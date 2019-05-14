@@ -119,6 +119,8 @@ ActionResult applyAction(
 
 bool is_complete_invariant(std::shared_ptr<Module>, value);
 bool is_itself_invariant(std::shared_ptr<Module>, value);
+bool is_itself_invariant(std::shared_ptr<Module>, std::vector<value>);
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, value);
+bool is_invariant_with_conjectures(std::shared_ptr<Module>, std::vector<value>);
 
 #endif

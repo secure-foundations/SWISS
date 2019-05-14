@@ -567,3 +567,49 @@ bool is_itself_invariant(shared_ptr<Module> module, value candidate) {
 bool is_invariant_with_conjectures(std::shared_ptr<Module> module, value v) {
   return is_itself_invariant(module, v_and({v, v_and(module->conjectures)}));
 }
+
+bool is_invariant_with_conjectures(std::shared_ptr<Module> module, vector<value> v) {
+  for (value c : module->conjectures) {
+    v.push_back(c);
+  }
+  return is_itself_invariant(module, v);
+}
+
+bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
+  //printf("is_itself_invariant\n");
+
+  z3::context ctx;  
+
+  value full = v_and(candidates);
+
+  for (value candidate : candidates) {
+    //printf("%s\n", candidate->to_string().c_str());
+
+    {
+      InitContext initctx(ctx, module);
+      z3::solver& init_solver = initctx.ctx->solver;
+      init_solver.add(initctx.e->value2expr(v_not(candidate)));
+      //printf("checking init condition...\n");
+      z3::check_result init_res = init_solver.check();
+      assert (init_res == z3::sat || init_res == z3::unsat);
+      if (init_res == z3::sat) {
+        return false;
+      }
+    }
+
+    {
+      InductionContext indctx(ctx, module);
+      z3::solver& solver = indctx.ctx->solver;
+      solver.add(indctx.e1->value2expr(full));
+      solver.add(indctx.e2->value2expr(v_not(candidate)));
+      //printf("checking invariant condition...\n");
+      z3::check_result res = solver.check();
+      assert (res == z3::sat || res == z3::unsat);
+      if (res == z3::sat) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}

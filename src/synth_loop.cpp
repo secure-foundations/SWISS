@@ -675,8 +675,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   assert(module->templates.size() == 1);
   TopQuantifierDesc tqd(module->templates[0]);
 
-  value cumulative_invariant = v_true();
-  if (is_invariant_with_conjectures(module, cumulative_invariant)) {
+  vector<value> found_invs;
+  if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
     return;
   }
@@ -686,7 +686,6 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
   BMCContext bmc(ctx, module, bmc_depth);
 
   int num_iterations_total = 0;
-  vector<value> found_invs;
 
   Benchmarking total_bench;
 
@@ -707,7 +706,9 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
     SketchModel sm(ss, module, 3);
     ss.add(sf.interpret_not(sm));
-    sm.assert_formula(cumulative_invariant);
+    for (value v : found_invs) {
+      sm.assert_formula(v);
+    }
 
     printf("Starting off with %d counterexamples\n", (int)cexes.size());
     for (auto p : cexes) {
@@ -758,13 +759,11 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       //printf("synthesized model:\n");
       //synthesized_model->dump();
 
-      value new_inv = v_and({cumulative_invariant, candidate});
-
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
                 module, bmc, initctx, indctx, nullptr /* conjctx */,
-                cumulative_invariant, candidate);
+                v_and(found_invs), candidate);
 
       Benchmarking bench2;
       bench2.start("simplification");
@@ -777,12 +776,11 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       if (cex.none) {
         Benchmarking bench_strengthen;
         bench_strengthen.start("strengthen");
-        value simplified_inv = strengthen_invariant(module, cumulative_invariant, candidate)
+        value simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
             ->simplify()->reduce_quants();
         bench_strengthen.end();
         bench_strengthen.dump();
 
-        cumulative_invariant = v_and({cumulative_invariant, simplified_inv});
         found_invs.push_back(simplified_inv);
 
         printf("\nfound new invariant! all so far:\n");
@@ -813,14 +811,14 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       per_inner_loop_bench.dump();
     }
 
-    assert(is_itself_invariant(module, cumulative_invariant));
+    assert(is_itself_invariant(module, found_invs));
 
-    if (is_invariant_with_conjectures(module, cumulative_invariant)) {
+    if (is_invariant_with_conjectures(module, found_invs)) {
       printf("invariant implies safety condition, done!\n");
       break;
     }
 
-    cexes = filter_unneeded_cexes(cexes, cumulative_invariant);
+    cexes = filter_unneeded_cexes(cexes, v_and(found_invs));
 
     printf("\n");
     per_outer_loop_bench.end();
