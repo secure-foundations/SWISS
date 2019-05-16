@@ -1,0 +1,131 @@
+./run.sh examples/leader-election.ivy 3 5
+
+Z3 version 4.8.4 - 64 bit
+
+8fd92ffe2d84499b85b1fa4c57b72d255dd23180
+
+diff --git a/src/synth_loop.cpp b/src/synth_loop.cpp
+index 2ce944b..715fbe0 100644
+--- a/src/synth_loop.cpp
++++ b/src/synth_loop.cpp
+@@ -44,7 +44,6 @@ Counterexample get_bmc_counterexample(
+ 
+ Counterexample get_counterexample(
+     shared_ptr<Module> module,
+-    BMCContext& bmc,
+     shared_ptr<InitContext> initctx,
+     shared_ptr<InductionContext> indctx,
+     shared_ptr<ConjectureContext> conjctx,
+@@ -59,9 +58,9 @@ Counterexample get_counterexample(
+   z3::check_result init_res = init_solver.check();
+ 
+   if (init_res == z3::sat) {
+-    cex.is_true = Model::extract_minimal_models_from_z3(
++    cex.is_true = Model::extract_model_from_z3(
+         initctx->ctx->ctx,
+-        init_solver, module, {initctx->e})[0];
++        init_solver, module, *initctx->e);
+ 
+     printf("counterexample type: INIT\n");
+     //cex.is_true->dump();
+@@ -72,7 +71,6 @@ Counterexample get_counterexample(
+     init_solver.pop();
+   }
+ 
+-  /*
+   z3::solver& conj_solver = conjctx->ctx->solver;
+   conj_solver.push();
+   conj_solver.add(conjctx->e->value2expr(candidate));
+@@ -91,10 +89,9 @@ Counterexample get_counterexample(
+   } else {
+     conj_solver.pop();
+   }
+-  */
+ 
+   value full_conj = v_and(module->conjectures);
+-  value full_candidate = v_and({candidate, full_conj});
++  value full_candidate = candidate; //v_and({candidate, full_conj});
+ 
+   z3::solver& solver = indctx->ctx->solver;
+   solver.push();
+@@ -103,17 +100,23 @@ Counterexample get_counterexample(
+   z3::check_result res = solver.check();
+ 
+   if (res == z3::sat) {
+-    auto m1_and_m2 = Model::extract_minimal_models_from_z3(
+-          indctx->ctx->ctx,
+-          solver, module, {indctx->e1, indctx->e2});
+-    shared_ptr<Model> m1 = m1_and_m2[0];
+-    shared_ptr<Model> m2 = m1_and_m2[1];
++    //auto m1_and_m2 = Model::extract_minimal_models_from_z3(
++          //indctx->ctx->ctx,
++          //solver, module, {indctx->e1, indctx->e2});
++    //shared_ptr<Model> m1 = m1_and_m2[0];
++    //shared_ptr<Model> m2 = m1_and_m2[1];
++    shared_ptr<Model> m1 = Model::extract_model_from_z3(
++		indctx->ctx->ctx,
++	        solver, module, *indctx->e1);
++    shared_ptr<Model> m2 = Model::extract_model_from_z3(
++		indctx->ctx->ctx,
++	        solver, module, *indctx->e2);
+     solver.pop();
+ 
+-    if (!m2->eval_predicate(full_conj)) {
+-      printf("counterexample type: SAFETY\n");
+-      cex.is_false = m1;
+-    } else {
++    //if (!m2->eval_predicate(full_conj)) {
++      //printf("counterexample type: SAFETY\n");
++      //cex.is_false = m1;
++    //} else {
+       /*
+       Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+       if (!bmc_cex.none) {
+@@ -124,7 +127,7 @@ Counterexample get_counterexample(
+       printf("counterexample type: INDUCTIVE\n");
+       cex.hypothesis = m1;
+       cex.conclusion = m2;
+-    }
++    //}
+ 
+     return cex;
+   }
+@@ -242,9 +245,11 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
+ 
+   SketchFormula sf(ctx, solver, quants, module, arity, depth);
+ 
++  /*
+   int bmc_depth = 4;
+   printf("bmc_depth = %d\n", bmc_depth);
+   BMCContext bmc(ctx, module, bmc_depth);
++  */
+ 
+   while (true) {
+     printf("\n");
+@@ -273,7 +278,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth)
+     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
+     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
+ 
+-    Counterexample cex = get_counterexample(module, bmc, initctx, indctx, conjctx, candidate);
++    Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+     //cex = simplify_cex(module, cex);
+     if (cex.none) {
+       printf("found invariant: %s\n", candidate->to_string().c_str());
+
+depth = 5, arity = 3
+
+solver : 838 ms
+candidate: forall A . (forall B . (forall C . (AND[])))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 4600 ms
+candidate: forall A . (forall B . (forall C . (OR[])))
+counterexample type: INIT
+Model sizes: node: 1, id: 1
+
+solver : 1067 ms
+candidate: forall A . (forall B . (forall C . ((A) = (C))))
+counterexample type: INIT
+Model sizes: node: 2, id: 3
+

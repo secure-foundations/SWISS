@@ -1,0 +1,21 @@
+./run.sh examples/leader-election.ivy 3 5
+
+Z3 version 4.8.4 - 64 bit
+
+388ea8638710faa495459f952b94e638f02126db
+
+
+depth = 5, arity = 3
+solver : 843 ms
+candidate: forall A . (forall B . (forall C . (AND[])))
+counterexample type: SAFETY
+solver : 4557 ms
+candidate: forall A . (forall B . (forall C . (OR[])))
+counterexample type: INIT
+solver : 1044 ms
+candidate: forall A . (forall B . (forall C . ((A) = (C))))
+counterexample type: INIT
+solver : 1509 ms
+candidate: forall A . (forall B . (forall C . (~(leader(B)))))
+counterexample type: INDUCTIVE
+solver : 2859 ms

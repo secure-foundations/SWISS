@@ -1,0 +1,266 @@
+./run.sh examples/decentralized-lock-simple.ivy 3 4 --random
+
+Z3 version 4.8.4 - 64 bit
+
+3c48148c2d22ed9f69d3c9e127ca86e1f1c3fbee
+
+
+random seed = 1555126640
+depth = 4, arity = 3
+bmc_depth = 4
+
+number of boolean variables: 2908
+solver (1) : 69 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (AND[])))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+number of boolean variables: 3400
+solver (2) : 312 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+using 1 instantiations
+
+number of boolean variables: 3763
+solver (3) : 37 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (~(has_lock(C)))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+using 1 instantiations
+
+number of boolean variables: 4126
+solver (4) : 159 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((A) = (C))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+using 3 instantiations
+
+number of boolean variables: 5578
+solver (5) : 48 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((A) = (B)) | (~(has_lock(C))) | (~(has_lock(C))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+using 3 instantiations
+
+number of boolean variables: 7030
+solver (6) : 33 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((A) = (B)) | (~(has_lock(A))) | (~(has_lock(B))))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+number of boolean variables: 7645
+solver (7) : 246 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((A) = (C)) | (~(has_lock(A))) | (~(has_lock(C)))) & (~(msg(A, B, epoch(A)))) & (~(msg(A, B, E)))) | ((OR[]) | (OR[]) | (OR[])) | (~(le(E, E))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 2
+using 2 instantiations
+
+number of boolean variables: 8613
+solver (8) : 27 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((A) = (C)) | (~(has_lock(A))) | (~(has_lock(C)))) & (~(msg(A, B, epoch(A)))) & (~(msg(A, B, F)))) | ((OR[]) | (OR[]) | (OR[])) | (~(le(F, E))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 2
+using 1 instantiations
+
+number of boolean variables: 9097
+solver (9) : 504 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | (OR[]) | ((OR[]) | (((A) = (B)) | ((A) = (C)) | (~(has_lock(A)))) | (~(le(F, F)))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+using 3 instantiations
+
+number of boolean variables: 10549
+solver (10) : 317 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((OR[]) | ((OR[]) | (OR[]) | (OR[])) | (~(has_lock(C)))) & ((OR[]) | (le(F, E)) | (~(msg(C, C, F)))) & (((E) = (F)) | ((E) = (F)) | ((E) = (F)))) | ((A) = (C)) | (~(has_lock(A))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+using 6 instantiations
+
+number of boolean variables: 14179
+solver (11) : 64 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((OR[]) | ((OR[]) | (OR[]) | (OR[])) | (~(has_lock(C)))) & ((OR[]) | (le(F, E)) | (~(msg(C, C, F)))) & (((E) = (F)) | ((E) = (F)) | ((F) = (F)))) | ((A) = (C)) | (~(has_lock(A))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 6 instantiations
+
+number of boolean variables: 18535
+solver (12) : 75 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((OR[]) | ((OR[]) | (OR[]) | (OR[])) | (~(has_lock(C)))) & ((OR[]) | (le(F, E)) | (~(msg(C, C, E)))) & (((E) = (F)) | ((E) = (F)) | ((F) = (F)))) | ((A) = (C)) | (~(has_lock(A))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 6 instantiations
+
+number of boolean variables: 22891
+solver (13) : 98 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((OR[]) & (OR[]) & (OR[])) | ((OR[]) | (OR[]) | (OR[])) | (~(has_lock(C)))) & (((OR[]) & (OR[]) & (OR[])) | (~(le(F, E))) | (~(msg(C, B, F)))) & (~(msg(A, A, F)))) | ((A) = (C)) | (~(has_lock(A))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 24706
+solver (14) : 70 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((~(has_lock(C))) & (~(has_lock(C))) & (~(msg(A, A, F)))) | ((A) = (C)) | (~(has_lock(A))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 26521
+solver (15) : 1333 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((AND[]) & (AND[]) & (((A) = (C)) & ((A) = (C)) & (~(msg(C, B, F))))) | (~(has_lock(A))) | (~(has_lock(C))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 2
+using 1 instantiations
+
+number of boolean variables: 27005
+solver (16) : 2794 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((B) = (C)) | (~(has_lock(B))) | (~(has_lock(C)))) | (msg(A, B, epoch(C))) | (msg(A, B, F))) & ((le(E, F)) | (~(le(F, E))) | (~(msg(B, A, F)))) & ((F) = (F)))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+number of boolean variables: 27497
+solver (17) : 1173 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((AND[]) | ((~(has_lock(B))) & (~(msg(C, B, F))) & (~(msg(C, B, F)))) | ((~(msg(A, A, E))) & (~(msg(A, A, E))) & (~(msg(A, A, F))))) & (((A) = (B)) | (~(msg(C, C, epoch(A)))) | (~(msg(C, C, epoch(B))))) & (((B) = (C)) | (~(has_lock(B))) | (~(has_lock(C)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, time: 2
+using 6 instantiations
+
+number of boolean variables: 31853
+solver (18) : 422 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (((A) = (C)) & ((E) = (F)) & (has_lock(A))) | ((OR[]) | (~(has_lock(C))) | (~(le(E, F))))) | ((OR[]) | (~(le(epoch(A), epoch(B)))) | (~(le(F, F)))) | ((~(has_lock(A))) | (~(has_lock(A))) | (~(has_lock(A)))))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 2
+using 2 instantiations
+
+number of boolean variables: 32821
+solver (19) : 894 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & ((C) = (C)) & (has_lock(B))) & ((AND[]) & (~(has_lock(A))) & (~(msg(B, A, E)))) & ((AND[]) | (AND[]) | (AND[]))) | (((OR[]) | (OR[]) | ((A) = (B))) & (((B) = (C)) | (~(has_lock(B))) | (~(has_lock(C)))) & (le(F, F))) | (~(has_lock(B))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 3 instantiations
+
+number of boolean variables: 34999
+solver (20) : 2426 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (~(has_lock(C))) & (~(msg(B, B, F)))) | ((OR[]) & ((OR[]) | (OR[]) | (OR[])) & ((C) = (C))) | ((OR[]) | ((A) = (C)) | (~(has_lock(B))))) | (~(has_lock(A))) | (~(le(F, epoch(C)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 36814
+solver (21) : 133 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (~(has_lock(C))) & (~(msg(B, B, F)))) | ((OR[]) & ((OR[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((A) = (B)) | ((A) = (C)) | (~(has_lock(A))))) | (~(has_lock(A))) | (~(le(F, E))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 3 instantiations
+
+number of boolean variables: 38992
+solver (22) : 91 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (~(has_lock(C))) & (~(msg(B, B, F)))) | ((OR[]) & ((OR[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((A) = (B)) | ((A) = (C)) | (~(has_lock(A))))) | (~(has_lock(A))) | (~(le(epoch(A), E))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 6 instantiations
+
+number of boolean variables: 43348
+solver (23) : 117 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (~(has_lock(C))) & (~(msg(B, B, F)))) | ((OR[]) & ((OR[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((A) = (B)) | ((A) = (C)) | (~(has_lock(A))))) | (~(has_lock(A))) | (~(le(epoch(A), F))))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+number of boolean variables: 43963
+solver (24) : 1425 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((A) = (B)) & (le(E, F)) & (le(F, F))) | (((A) = (C)) & ((A) = (C)) & ((E) = (E))) | ((has_lock(C)) & (le(F, E)) & (~(has_lock(A))))) | ((~(has_lock(B))) | (~(le(epoch(A), E))) | (~(le(epoch(A), F)))) | (~(le(F, E))))))))
+counterexample type: INIT
+Model sizes: node: 3, time: 1
+using 6 instantiations
+
+number of boolean variables: 47593
+solver (25) : 5243 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((A) = (B)) & (le(E, F)) & (le(F, epoch(A)))) | ((has_lock(C)) & (le(E, F)) & (~(le(F, E)))) | ((~(has_lock(A))) | (~(has_lock(B))) | (~(le(E, F)))))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 2
+using 1 instantiations
+
+number of boolean variables: 48077
+solver (26) : 6620 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (has_lock(C)) & (~(msg(C, B, F)))) & ((~(le(F, E))) & (~(le(F, E))) & (~(le(F, E)))) & (le(F, F))) | ((~(has_lock(C))) & (~(has_lock(C))) & (~(le(E, E)))) | (((AND[]) & ((A) = (C)) & (le(F, E))) | ((~(has_lock(A))) | (~(has_lock(C))) | (~(le(E, F)))) | (~(le(F, F)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 2
+using 2 instantiations
+
+number of boolean variables: 49045
+solver (27) : 17216 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (OR[]) | (OR[])) | (((~(has_lock(C))) & (~(msg(A, C, F))) & (~(msg(B, C, F)))) | ((A) = (C)) | (~(has_lock(A)))) | (~(le(epoch(A), F))))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, time: 2
+using 6 instantiations
+
+number of boolean variables: 53290
+solver (28) : 151 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (OR[]) | (OR[])) | (((~(has_lock(C))) & (~(msg(A, C, F))) & (~(msg(B, C, E)))) | ((A) = (C)) | (~(has_lock(A)))) | (~(le(epoch(A), epoch(C)))))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 55720
+solver (29) : 15943 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((OR[]) | (OR[]) | (OR[])) | (msg(C, A, E)) | (~(le(E, E)))) & (le(F, F)) & (~(msg(C, A, F)))) | (((le(E, E)) | (~(le(E, F))) | (~(le(E, F)))) & ((le(F, E)) | (~(le(E, F))) | (~(le(F, F)))) & (~(has_lock(A)))) | ((((A) = (B)) | ((A) = (B)) | (~(has_lock(B)))) | (~(le(epoch(C), E))) | (~(le(F, F)))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+using 6 instantiations
+
+number of boolean variables: 59350
+solver (30) : 17984 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | ((((A) = (B)) & ((F) = (F)) & (le(F, F))) | (~(has_lock(A))) | (~(le(epoch(A), F)))) | (((has_lock(A)) & (~(has_lock(B))) & (~(msg(C, B, E)))) | (~(le(epoch(A), epoch(A)))) | (~(le(F, E)))))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 61780
+solver (31) : 5263 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((B) = (C)) | (~(has_lock(B))) | (~(le(E, F)))) & (le(F, epoch(A))) & (le(F, F))) | ((OR[]) | (((A) = (B)) & (has_lock(C)) & (~(le(F, E)))) | (((B) = (C)) & ((C) = (C)) & ((C) = (C)))) | (~(has_lock(C))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 63595
+solver (32) : 59182 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | (((has_lock(A)) & (~(has_lock(C))) & (~(msg(A, C, E)))) & ((OR[]) | (OR[]) | (le(F, F))) & (((E) = (F)) | ((E) = (F)) | (~(msg(C, C, F))))) | ((((A) = (C)) | (~(le(E, E))) | (~(le(E, E)))) | (~(has_lock(A))) | (~(le(epoch(A), F)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+using 6 instantiations
+
+number of boolean variables: 67951
+solver (33) : 19659 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((((A) = (B)) | (~(has_lock(A))) | (~(has_lock(B)))) & ((msg(C, B, F)) | (~(msg(A, C, E))) | (~(msg(B, C, F)))) & (le(epoch(C), epoch(C)))) & ((OR[]) | (OR[]) | ((le(E, F)) | (~(msg(C, C, E))) | (~(msg(C, C, F))))) & (le(F, F)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+using 3 instantiations
+
+number of boolean variables: 69766
+solver (34) : 53768 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((OR[]) | ((OR[]) | (OR[]) | (OR[])) | ((A) = (B))) & (((AND[]) | (AND[]) | (AND[])) | ((AND[]) | (AND[]) | (AND[])) | (msg(A, B, F))) & ((msg(B, C, E)) | (~(has_lock(B))) | (~(msg(C, C, E))))) | (((msg(C, C, E)) & (msg(C, C, E)) & (~(msg(A, B, F)))) | (~(has_lock(A))) | (~(le(epoch(C), epoch(A))))) | (((~(has_lock(B))) & (~(msg(A, C, E))) & (~(msg(C, C, F)))) | (~(has_lock(A))) | (~(le(epoch(A), epoch(C))))))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 2
+
+number of boolean variables: 70381
+solver (35) : 45744 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((le(E, F)) & (msg(B, B, F)) & (~(msg(A, C, F)))) | ((~(has_lock(C))) & (~(msg(A, B, E))) & (~(msg(A, B, E)))) | ((A) = (C))) | (~(has_lock(A))) | (~(le(epoch(A), F))))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+number of boolean variables: 70873
+solver (36) : 39323 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((AND[]) & ((OR[]) | ((A) = (B)) | (has_lock(C))) & ((OR[]) | (~(le(F, E))) | (~(le(F, F))))) | ((AND[]) & (((A) = (C)) | (~(has_lock(A))) | (~(has_lock(C)))) & (((E) = (F)) | (~(msg(B, A, F))) | (~(msg(B, C, F))))) | ((OR[]) & ((A) = (B)) & (~(has_lock(A)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+using 6 instantiations
+
+number of boolean variables: 74503
+solver (37) : 805627 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((AND[]) & (AND[]) & (AND[])) & ((AND[]) & (AND[]) & (((B) = (C)) | (~(msg(B, C, E))) | (~(msg(C, B, E))))) & (((has_lock(B)) & (msg(B, A, E)) & (~(msg(C, C, E)))) | ((~(has_lock(B))) & (~(msg(C, A, E))) & (~(msg(C, A, E)))) | (((B) = (C)) | (msg(C, A, F)) | (~(has_lock(C))))))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+number of boolean variables: 74995

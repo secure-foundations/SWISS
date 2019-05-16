@@ -1,0 +1,47 @@
+./run.sh examples/decentralized-lock.ivy 3 4
+
+Z3 version 4.8.4 - 64 bit
+
+e535edd1aca8fbb51b192c1e5f491f5c37248b57
+
+
+depth = 4, arity = 3
+bmc_depth = 4
+
+solver (1) : 69 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (AND[])))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+solver (2) : 464 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, time: 6
+
+solver (3) : 488 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (~(has_lock(B)))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 6
+
+solver (4) : 750 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((AND[]) & (AND[]) & ((A) = (B)))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 6
+
+solver (5) : 3438 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((A) = (B)) | (~(has_lock(B))) | (~(le(F, E))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 6
+
+solver (6) : 15426 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((A) = (B)) | (~(has_lock(A))) | (~(has_lock(B))))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+solver (7) : 22588 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | (((~(has_lock(C))) & (~(msg(B, A, F))) & (~(msg(B, A, F)))) | (~(has_lock(B))) | (~(le(E, F)))) | ((B) = (C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 4, time: 10
+
+solver (8) : 403840 ms

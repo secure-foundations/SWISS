@@ -1,0 +1,58 @@
+./run.sh examples/decentralized-lock-simple.ivy 4 4
+
+Z3 version 4.8.4 - 64 bit
+
+6a7678927d1532d5149efdeff427ca6547513a19
+
+
+random seed = 1234
+depth = 4, arity = 4
+bmc_depth = 4
+
+solver (1) : 239 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+
+solver (2) : 664 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (AND[])))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+solver (3) : 959 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (~(has_lock(B)))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+
+solver (4) : 60 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((B) = (C))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+
+solver (5) : 1274 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | ((A) = (C)) | (~(has_lock(C))) | (~(le(F, F))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+
+solver (6) : 316 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((~(has_lock(A))) | (~(has_lock(C))) | (~(le(E, E))) | (~(le(E, F)))) & (has_lock(B)) & (~(msg(B, B, E))) & (~(msg(B, B, E)))) | ((A) = (C)) | (~(has_lock(B))) | (~(le(F, F))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 4, time: 3
+
+solver (7) : 15174 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((~(has_lock(A))) | (~(has_lock(C))) | (~(le(E, E))) | (~(le(E, E)))) & (has_lock(B)) & (~(msg(A, B, E))) & (~(msg(A, B, E)))) | ((A) = (B)) | (~(has_lock(B))) | (~(has_lock(B))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 4, time: 4
+
+solver (8) : 2076934 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((~(has_lock(A))) | (~(has_lock(C))) | (~(le(E, E))) | (~(le(E, E)))) & (has_lock(B)) & (~(msg(A, B, epoch(A)))) & (~(msg(B, A, E)))) | ((A) = (B)) | (~(has_lock(B))) | (~(has_lock(B))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 5, time: 5
+
+solver (9) : 157125 ms
+terminate called after throwing an instance of 'z3::exception'
+./run.sh: line 5:  5000 Aborted                 ./synthesis "$@" < ./src.json
+
+real	185m8.814s
+user	184m37.708s
+sys	0m11.272s

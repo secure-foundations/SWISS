@@ -1,0 +1,249 @@
+./run.sh examples/leader-election.ivy 3 4 --random
+
+Z3 version 4.8.4 - 64 bit
+
+3d205bec899b5e39beafe42836755f824d6e18f0
+
+diff --git a/src/synth_loop.cpp b/src/synth_loop.cpp
+index 3733ca5..7818979 100644
+--- a/src/synth_loop.cpp
++++ b/src/synth_loop.cpp
+@@ -535,7 +535,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
+ 
+     printf("\n");
+ 
+-    log_smtlib(solver_sf);
++    //log_smtlib(solver_sf);
+     printf("number of boolean variables: %d\n", sf.get_bool_count());
+     std::cout.flush();
+ 
+
+random seed = 1555557719
+depth = 4, arity = 3
+bmc_depth = 4
+
+number of boolean variables: 2908
+solver (1) : 72 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (AND[])) & ((AND[]) | (OR[]) | (OR[])) & ((OR[]) | (OR[]) | (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+number of boolean variables: 3271
+solver (2) : 230 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (AND[])) & ((AND[]) | (AND[]) | (AND[])) & ((AND[]) | (AND[]) | (AND[])))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 3882
+solver (3) : 68 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((AND[]) & (AND[]) & (OR[])) | ((B) = (C))) & ((OR[]) | ((AND[]) & (AND[]) & (~(leader(B)))) | ((B) = (C))) & (((AND[]) & (leader(C)) & (~(leader(A)))) | (((A) = (C)) & ((C) = (C)) & (~(leader(A)))) | (pnd(nid(C), C))))))
+counterexample type: INIT
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 5697
+solver (4) : 63 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (OR[]) | (OR[])) & ((OR[]) | ((C) = (C)) | ((C) = (C))) & (((~(leader(A))) & (~(leader(C))) & (~(leader(C)))) | (btw(A, B, C)) | (pnd(nid(C), C))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 6308
+solver (5) : 30 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (OR[]) | (OR[])) & ((OR[]) | (~(leader(C))) | (~(leader(C)))) & (((~(leader(A))) & (~(leader(C))) & (~(leader(C)))) | (btw(A, B, C)) | (pnd(nid(C), C))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+number of boolean variables: 6671
+solver (6) : 48 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((nid(B)) = (nid(B))) | (leader(C))) & ((OR[]) | (~(leader(C))) | (~(pnd(nid(C), C)))) & ((((A) = (A)) & (~(leader(C))) & (~(leader(C)))) | (((B) = (C)) & (leader(C)) & (leader(C))) | (pnd(nid(C), C))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+number of boolean variables: 7034
+solver (7) : 145 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | ((A) = (C))) & (((nid(A)) = (nid(B))) | (~(leader(B))) | (~(le(nid(C), nid(C))))) & ((le(nid(B), nid(C))) | (~(leader(C))) | (~(le(nid(B), nid(B))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 8849
+solver (8) : 37 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | ((A) = (C))) & (((nid(A)) = (nid(B))) | (~(leader(A))) | (~(le(nid(C), nid(B))))) & ((le(nid(B), nid(C))) | (~(leader(C))) | (~(le(nid(B), nid(B))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 10664
+solver (9) : 325 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((leader(C)) & (leader(C)) & (leader(C))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(A))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(C))) | (~(pnd(nid(B), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 12479
+solver (10) : 40 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((leader(C)) & (leader(C)) & (leader(C))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(A))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(C))) | (~(pnd(nid(B), B)))))))
+counterexample type: INDUCTIVE
+simplifying -> INIT
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 14294
+solver (11) : 38 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((leader(C)) & (leader(C)) & (leader(C))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(A))) | (~(leader(C)))) & ((((A) = (C)) | (btw(B, A, A)) | (btw(C, C, A))) | (~(leader(C))) | (~(pnd(nid(A), A)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 14905
+solver (12) : 2120 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((A) = (C)) | (~(leader(A))) | (~(leader(C))))) & (((C) = (C)) | (btw(A, B, C)) | (btw(C, C, C))) & ((leader(C)) | (leader(C)) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+number of boolean variables: 15268
+solver (13) : 2418 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((A) = (C)) | (~(leader(A))) | (~(leader(C))))) & ((OR[]) | (OR[]) | ((leader(C)) | (~(leader(C))) | (~(leader(C))))) & ((leader(B)) | (le(nid(B), nid(C))) | (~(le(nid(A), nid(C))))))))
+counterexample type: INIT
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 17083
+solver (14) : 819 ms
+candidate: forall A . (forall B . (forall C . ((((AND[]) & (AND[]) & ((A) = (B))) | (~(pnd(nid(A), A))) | (~(pnd(nid(B), B)))) & (((AND[]) & (OR[]) & (btw(C, B, B))) | ((~(leader(B))) & (~(leader(B))) & (~(leader(B)))) | ((OR[]) | (OR[]) | (leader(B)))) & (((~(leader(C))) & (~(leader(C))) & (~(leader(C)))) | ((OR[]) | (OR[]) | (OR[])) | (((B) = (C)) | (btw(C, B, C)) | (~(leader(B))))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 17694
+solver (15) : 3259 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (~(le(nid(C), nid(C))))) & ((OR[]) | ((~(leader(A))) | (~(leader(B))) | (~(leader(B)))) | ((A) = (B))) & ((((B) = (C)) | (leader(C)) | (leader(C))) | (~(le(nid(C), nid(A)))) | (~(pnd(nid(C), A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 19509
+solver (16) : 53 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (~(le(nid(C), nid(C))))) & ((OR[]) | ((~(leader(A))) | (~(leader(B))) | (~(leader(B)))) | ((A) = (B))) & ((((B) = (C)) | (leader(C)) | (leader(C))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(C), A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 21324
+solver (17) : 59 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (~(le(nid(C), nid(C))))) & ((OR[]) | ((~(leader(A))) | (~(leader(B))) | (~(leader(B)))) | ((A) = (B))) & ((((B) = (C)) | (btw(B, A, B)) | (leader(C))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 23139
+solver (18) : 4451 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | ((C) = (C))) & (((OR[]) & (leader(C)) & (~(leader(C)))) | (le(nid(C), nid(B))) | (~(leader(B)))) & ((((B) = (C)) & (~(leader(C))) & (~(leader(C)))) | ((leader(A)) & (leader(A)) & (leader(A))) | (~(pnd(nid(A), A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 24954
+solver (19) : 1577 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (le(nid(A), nid(C))) | (~(pnd(nid(C), C)))) & (((B) = (C)) | (~(leader(B))) | (~(leader(C)))) & ((btw(C, C, C)) | (~(btw(A, B, C))) | (~(btw(C, A, C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 25565
+solver (20) : 2201 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (~(btw(A, C, C)))) & (((A) = (B)) | (le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & ((btw(B, B, B)) | (le(nid(B), nid(C))) | (~(leader(C)))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+number of boolean variables: 31503
+solver (21) : 133 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (~(btw(A, C, C)))) & ((btw(B, C, A)) | (le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & ((btw(B, C, B)) | (le(nid(B), nid(C))) | (~(leader(C)))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+using 3 instantiations
+
+number of boolean variables: 34900
+solver (22) : 16684 ms
+candidate: forall A . (forall B . (forall C . (((((A) = (A)) & ((A) = (A)) & (~(leader(C)))) | (leader(B)) | (~(le(nid(C), nid(B))))) & ((((B) = (B)) & (~(leader(A))) & (~(leader(A)))) | (le(nid(C), nid(B))) | (~(leader(B)))) & ((le(nid(A), nid(C))) | (~(pnd(nid(B), B))) | (~(pnd(nid(C), C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 35756
+solver (23) : 1969 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (le(nid(C), nid(B))) | (~(pnd(nid(A), B)))) & ((OR[]) | (~(btw(A, C, C))) | (~(pnd(nid(C), C)))) & ((btw(B, B, B)) | (le(nid(A), nid(B))) | (~(leader(B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 37571
+solver (24) : 129 ms
+candidate: forall A . (forall B . (forall C . (((((A) = (C)) & (~(leader(A))) & (~(leader(A)))) | (le(nid(C), nid(B))) | (~(pnd(nid(A), B)))) & ((btw(A, A, B)) | (~(btw(A, C, C))) | (~(pnd(nid(C), C)))) & ((btw(B, B, B)) | (le(nid(A), nid(B))) | (~(leader(B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+number of boolean variables: 42653
+solver (25) : 183882 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (((A) = (C)) & (leader(C)) & (leader(C))) | ((OR[]) | (~(leader(A))) | (~(leader(C))))) & ((pnd(nid(C), B)) | (~(leader(C))) | (~(pnd(nid(B), B)))) & ((pnd(nid(C), B)) | (~(pnd(nid(B), A))) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 44468
+solver (26) : 93 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (((A) = (C)) & (leader(C)) & (leader(C))) | ((OR[]) | (~(leader(A))) | (~(leader(C))))) & ((pnd(nid(B), C)) | (~(leader(C))) | (~(pnd(nid(B), B)))) & ((pnd(nid(C), A)) | (~(pnd(nid(B), A))) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+number of boolean variables: 49550
+solver (27) : 69498 ms
+candidate: forall A . (forall B . (forall C . ((((nid(B)) = (nid(C))) | (~(le(nid(B), nid(C)))) | (~(pnd(nid(B), B)))) & ((btw(A, C, C)) | (le(nid(C), nid(B))) | (~(leader(B)))) & ((~(btw(A, C, B))) | (~(pnd(nid(A), B))) | (~(pnd(nid(A), B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+number of boolean variables: 54632
+solver (28) : 55332 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (le(nid(C), nid(A))) | (~(leader(A)))) & ((((A) = (C)) | ((B) = (C)) | ((B) = (C))) | (~(leader(B))) | (~(pnd(nid(C), C)))) & ((((A) = (C)) | (btw(B, B, A)) | (btw(C, B, A))) | (~(pnd(nid(B), A))) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+number of boolean variables: 56447
+solver (29) : 89 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (le(nid(C), nid(A))) | (~(leader(A)))) & ((((A) = (C)) | ((B) = (C)) | ((B) = (C))) | (~(leader(B))) | (~(pnd(nid(C), C)))) & ((((A) = (C)) | ((B) = (C)) | (btw(C, B, A))) | (~(pnd(nid(B), A))) | (~(pnd(nid(C), C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 57058
+solver (30) : 6678 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(B), nid(C))) | (~(leader(C))) | (~(leader(C)))) & ((pnd(nid(C), B)) | (~(le(nid(C), nid(B)))) | (~(pnd(nid(C), C)))) & ((~(btw(C, A, B))) | (~(le(nid(A), nid(B)))) | (~(pnd(nid(A), C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 57669
+solver (31) : 12380 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((B) = (C)) | (~(leader(B))) | (~(leader(C))))) & ((OR[]) | (le(nid(B), nid(C))) | (~(leader(C)))) & ((le(nid(B), nid(C))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(C), A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+number of boolean variables: 62751
+solver (32) : 87004 ms
+candidate: forall A . (forall B . (forall C . ((((~(btw(A, B, C))) & (~(leader(B))) & (~(leader(C)))) | ((OR[]) | (OR[]) | ((AND[]) | (AND[]) | (AND[]))) | ((OR[]) | (OR[]) | (btw(C, A, A)))) & ((((A) = (B)) | ((B) = (C)) | (btw(A, C, B))) | (~(le(nid(A), nid(B)))) | (~(pnd(nid(A), C)))) & ((((B) = (C)) | (~(leader(A))) | (~(leader(B)))) | ((btw(A, B, C)) | (btw(B, A, B)) | (btw(C, B, B))) | (~(le(nid(A), nid(C))))))))
+found invariant: forall A . (forall B . (forall C . ((((~(btw(A, B, C))) & (~(leader(B))) & (~(leader(C)))) | ((OR[]) | (OR[]) | ((AND[]) | (AND[]) | (AND[]))) | ((OR[]) | (OR[]) | (btw(C, A, A)))) & ((((A) = (B)) | ((B) = (C)) | (btw(A, C, B))) | (~(le(nid(A), nid(B)))) | (~(pnd(nid(A), C)))) & ((((B) = (C)) | (~(leader(A))) | (~(leader(B)))) | ((btw(A, B, C)) | (btw(B, A, B)) | (btw(C, B, B))) | (~(le(nid(A), nid(C))))))))
+total solver time : 451924 ms
+
+real	7m40.571s
+user	7m40.439s
+sys	0m0.124s

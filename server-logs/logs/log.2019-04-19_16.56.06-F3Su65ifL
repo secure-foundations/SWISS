@@ -1,0 +1,237 @@
+./run.sh examples/leader-election.ivy 3 4 --seed 48591067
+
+Z3 version 4.8.4 - 64 bit
+
+a93319ce93b9ffd7b3efb9b54144296a86c52385
+
+
+random seed = 48591067
+depth = 4, arity = 3
+bmc_depth = 4
+
+logged smtlib to ./logs/smtlib/log.1248046720.1.z3
+number of boolean variables: 2908
+solver (1) : 73 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (AND[])) & ((AND[]) | (OR[]) | (OR[])) & ((OR[]) | (OR[]) | (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.2.z3
+number of boolean variables: 3392
+solver (2) : 235 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (OR[])) & ((AND[]) | (AND[]) | (OR[])) & ((AND[]) | (AND[]) | ((OR[]) | (OR[]) | (OR[]))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 2
+
+logged smtlib to ./logs/smtlib/log.1248046720.3.z3
+number of boolean variables: 4124
+solver (3) : 82 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((nid(A)) = (nid(A))) | ((nid(B)) = (nid(C)))) & ((OR[]) | (~(leader(B))) | (~(pnd(nid(B), A)))) & (((OR[]) | (OR[]) | ((A) = (B))) | ((OR[]) | (OR[]) | ((A) = (B))) | ((OR[]) | (OR[]) | (btw(C, A, B)))))))
+counterexample type: INIT
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.4.z3
+number of boolean variables: 6302
+solver (4) : 53 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((nid(A)) = (nid(A))) | ((nid(B)) = (nid(C)))) & ((OR[]) | (~(leader(C))) | (~(pnd(nid(B), B)))) & (((OR[]) | (~(leader(A))) | (~(leader(C)))) | ((OR[]) | (~(leader(C))) | (~(leader(C)))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.5.z3
+number of boolean variables: 6786
+solver (5) : 31 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (OR[]) | (OR[])) & ((AND[]) | (OR[]) | (OR[])) & ((OR[]) | (((B) = (C)) | (~(leader(C))) | (~(leader(C)))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.6.z3
+number of boolean variables: 8964
+solver (6) : 40 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (OR[]) | (OR[])) & ((AND[]) | (OR[]) | (OR[])) & ((OR[]) | (((B) = (C)) | (~(leader(C))) | (~(leader(C)))) | (~(leader(A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.7.z3
+number of boolean variables: 11142
+solver (7) : 207 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) | (AND[]) | (OR[])) & ((AND[]) | (AND[]) | (OR[])) & ((OR[]) | (((A) = (C)) | (btw(C, C, C)) | (~(leader(C)))) | (~(leader(A)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+logged smtlib to ./logs/smtlib/log.1248046720.8.z3
+number of boolean variables: 11874
+solver (8) : 451 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((A) = (B)) | (~(leader(A))) | (~(leader(B))))) & (((OR[]) | (OR[]) | (OR[])) | ((B) = (C)) | (~(pnd(nid(C), A)))) & (((OR[]) | (OR[]) | (OR[])) | (le(nid(A), nid(C))) | (le(nid(B), nid(A)))))))
+counterexample type: INIT
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.9.z3
+number of boolean variables: 17682
+solver (9) : 88 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((A) = (B)) | (~(leader(A))) | (~(leader(B))))) & (((OR[]) | (OR[]) | (OR[])) | ((B) = (C)) | (~(pnd(nid(C), A)))) & (((OR[]) | (OR[]) | (OR[])) | (le(nid(A), nid(B))) | (le(nid(B), nid(A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.10.z3
+number of boolean variables: 19860
+solver (10) : 72 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | (OR[]) | (((A) = (B)) | (~(leader(A))) | (~(leader(B))))) & ((OR[]) | (OR[]) | (~(pnd(nid(C), C)))) & ((OR[]) | (~(pnd(nid(A), B))) | (~(pnd(nid(B), A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.11.z3
+number of boolean variables: 20344
+solver (11) : 530 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((OR[]) | ((A) = (C)) | ((B) = (C))) | ((OR[]) | (~(leader(A))) | (~(leader(C))))) & (((AND[]) & ((AND[]) & (AND[]) & (AND[])) & (~(leader(C)))) | ((AND[]) & ((AND[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((B) = (C)) & ((C) = (C)) & (~(btw(C, A, C))))) & ((((C) = (C)) & (btw(C, C, C)) & (leader(C))) | (~(leader(C))) | (~(pnd(nid(C), B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, id: 1
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.12.z3
+number of boolean variables: 20828
+solver (12) : 36 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((OR[]) | ((A) = (C)) | ((B) = (C))) | ((OR[]) | (~(leader(A))) | (~(leader(C))))) & (((AND[]) & ((AND[]) & (AND[]) & (AND[])) & (~(leader(C)))) | ((AND[]) & ((AND[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((B) = (C)) & ((C) = (C)) & (~(btw(C, A, C))))) & ((((B) = (C)) & (leader(B)) & (leader(C))) | (~(leader(C))) | (~(pnd(nid(C), B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.13.z3
+number of boolean variables: 23006
+solver (13) : 61 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((OR[]) | ((A) = (C)) | ((B) = (C))) | ((OR[]) | (~(leader(A))) | (~(leader(C))))) & (((AND[]) & ((AND[]) & (AND[]) & (AND[])) & (~(leader(C)))) | ((AND[]) & ((AND[]) | (OR[]) | (OR[])) & ((C) = (C))) | (((B) = (C)) & ((C) = (C)) & (~(btw(C, A, C))))) & ((((B) = (C)) & (leader(B)) & (leader(C))) | (~(leader(C))) | (~(pnd(nid(C), C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+logged smtlib to ./logs/smtlib/log.1248046720.14.z3
+number of boolean variables: 23738
+solver (14) : 852 ms
+candidate: forall A . (forall B . (forall C . ((((nid(C)) = (nid(C))) | (~(le(nid(A), nid(B)))) | (~(le(nid(A), nid(C))))) & ((leader(B)) | (~(leader(A))) | (~(pnd(nid(C), A)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.15.z3
+number of boolean variables: 25916
+solver (15) : 90 ms
+candidate: forall A . (forall B . (forall C . ((((nid(C)) = (nid(C))) | (~(le(nid(A), nid(B)))) | (~(le(nid(A), nid(C))))) & ((leader(B)) | (~(leader(A))) | (~(pnd(nid(A), A)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+logged smtlib to ./logs/smtlib/log.1248046720.16.z3
+number of boolean variables: 26648
+solver (16) : 78 ms
+candidate: forall A . (forall B . (forall C . ((((nid(C)) = (nid(C))) | (~(le(nid(A), nid(B)))) | (~(le(nid(A), nid(C))))) & ((leader(B)) | (le(nid(C), nid(B))) | (~(pnd(nid(A), A)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.17.z3
+number of boolean variables: 28826
+solver (17) : 62 ms
+candidate: forall A . (forall B . (forall C . ((((nid(C)) = (nid(C))) | (~(le(nid(A), nid(B)))) | (~(le(nid(A), nid(C))))) & ((leader(B)) | (le(nid(C), nid(B))) | (~(pnd(nid(B), A)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.18.z3
+number of boolean variables: 31004
+solver (18) : 75 ms
+candidate: forall A . (forall B . (forall C . ((((nid(C)) = (nid(C))) | (~(le(nid(A), nid(B)))) | (~(le(nid(A), nid(C))))) & ((leader(B)) | (le(nid(C), nid(B))) | (~(pnd(nid(A), B)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.19.z3
+number of boolean variables: 33182
+solver (19) : 3202 ms
+candidate: forall A . (forall B . (forall C . (((leader(A)) | (~(leader(B))) | (~(pnd(nid(C), C)))) & ((le(nid(A), nid(C))) | (le(nid(A), nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+counterexample type: INDUCTIVE
+simplifying -> INIT
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.20.z3
+number of boolean variables: 35360
+solver (20) : 166 ms
+candidate: forall A . (forall B . (forall C . ((((nid(A)) = (nid(C))) | (~(leader(C))) | (~(le(nid(C), nid(A))))) & (((nid(B)) = (nid(C))) | (~(btw(C, A, C))) | (~(le(nid(B), nid(C))))) & (((nid(B)) = (nid(C))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(B), B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.21.z3
+number of boolean variables: 37538
+solver (21) : 101 ms
+candidate: forall A . (forall B . (forall C . ((((nid(A)) = (nid(C))) | (~(leader(C))) | (~(le(nid(C), nid(A))))) & (((nid(B)) = (nid(C))) | (~(btw(B, A, A))) | (~(le(nid(B), nid(C))))) & ((le(nid(C), nid(B))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(B), B)))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.22.z3
+number of boolean variables: 44323
+solver (22) : 270 ms
+candidate: forall A . (forall B . (forall C . ((((leader(C)) | (~(btw(C, B, A))) | (~(btw(C, B, A)))) | (~(pnd(nid(A), B))) | (~(pnd(nid(A), B)))) & (((nid(B)) = (nid(C))) | (~(leader(B))) | (~(le(nid(B), nid(C))))) & ((le(nid(C), nid(B))) | (~(le(nid(A), nid(C)))) | (~(pnd(nid(B), B)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.23.z3
+number of boolean variables: 50131
+solver (23) : 576 ms
+candidate: forall A . (forall B . (forall C . ((((leader(C)) | (leader(C)) | (leader(C))) | ((~(btw(B, A, B))) | (~(btw(B, A, B))) | (~(btw(C, B, B)))) | (btw(B, B, B))) & ((btw(B, C, A)) | (le(nid(C), nid(B))) | (~(leader(B)))) & ((le(nid(A), nid(B))) | (~(pnd(nid(C), B))) | (~(pnd(nid(C), C)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, id: 2
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.24.z3
+number of boolean variables: 52309
+solver (24) : 309 ms
+candidate: forall A . (forall B . (forall C . (((((OR[]) | (OR[]) | (OR[])) | (btw(B, C, C)) | (~(btw(B, A, C)))) | (((B) = (C)) | ((B) = (C)) | ((C) = (C))) | (leader(B))) & ((btw(A, C, A)) | (le(nid(C), nid(B))) | (~(leader(B)))) & ((le(nid(C), nid(B))) | (~(le(nid(C), nid(A)))) | (~(pnd(nid(B), B)))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.25.z3
+number of boolean variables: 56190
+solver (25) : 12003 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(A), nid(B))) | (~(le(nid(A), nid(B)))) | (~(le(nid(B), nid(C))))) & ((le(nid(A), nid(B))) | (~(le(nid(C), nid(B)))) | (~(pnd(nid(C), B)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(leader(A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.26.z3
+number of boolean variables: 61998
+solver (26) : 160 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(A), nid(B))) | (~(le(nid(A), nid(B)))) | (~(le(nid(B), nid(C))))) & ((le(nid(A), nid(B))) | (~(le(nid(C), nid(B)))) | (~(pnd(nid(C), C)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(leader(A)))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+using 3 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.27.z3
+number of boolean variables: 65879
+solver (27) : 260 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(A), nid(B))) | (~(le(nid(A), nid(B)))) | (~(le(nid(B), nid(C))))) & ((le(nid(A), nid(B))) | (~(le(nid(C), nid(B)))) | (~(pnd(nid(B), C)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(leader(A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, id: 3
+using 6 instantiations
+
+logged smtlib to ./logs/smtlib/log.1248046720.28.z3
+number of boolean variables: 71687
+solver (28) : 4043 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(B), nid(C))) | (~(btw(B, A, C))) | (~(pnd(nid(C), A)))) & ((le(nid(B), nid(C))) | (~(pnd(nid(C), C))) | (~(pnd(nid(C), C)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(le(nid(B), nid(C))))))))
+found invariant: forall A . (forall B . (forall C . (((le(nid(B), nid(C))) | (~(btw(B, A, C))) | (~(pnd(nid(C), A)))) & ((le(nid(B), nid(C))) | (~(pnd(nid(C), C))) | (~(pnd(nid(C), C)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(le(nid(B), nid(C))))))))
+total solver time : 24206 ms
+
+real	4m2.731s
+user	4m1.764s
+sys	0m0.964s

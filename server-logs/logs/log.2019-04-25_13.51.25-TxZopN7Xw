@@ -1,0 +1,342 @@
+./run.sh examples/decentralized-lock-simple-uniq.ivy 3 4 --seed 66991426
+
+Z3 version 4.8.4 - 64 bit
+
+4d624d52ee13721de5aab2b31dd394061a7de5aa
+
+
+conjectures:
+forall Y, X . (~((((X) ~= (Y)) & (has_lock(X))) & (has_lock(Y))))
+random seed = 66991426
+depth = 4, arity = 3
+bmc_depth = 4
+
+logged smtlib to ./logs/smtlib/log.601550750.1.z3
+number of boolean variables: 2908
+solver (1) : 248 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (AND[]) | (AND[])) & (((AND[]) | (AND[]) | (AND[])) | ((AND[]) | (AND[]) | (AND[])) | ((AND[]) | (AND[]) | (AND[]))) & (((AND[]) | (AND[]) | (AND[])) | ((epoch(Src)) ~= (epoch(Src))) | (has_lock(Nearly_1_A)))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+logged smtlib to ./logs/smtlib/log.601550750.2.z3
+number of boolean variables: 4128
+solver (2) : 1101 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (OR[]) | (OR[])) & ((OR[]) | (OR[]) | (OR[])) & ((OR[]) | (OR[]) | (OR[]))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.3.z3
+number of boolean variables: 5338
+solver (3) : 344 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (~(has_lock(Src))) | (~(has_lock(Src)))) & (((OR[]) & (OR[]) & (OR[])) | ((OR[]) & ((OR[]) & (OR[]) & (OR[])) & (has_lock(Src))) | (~(has_lock(Nearly_1_A)))) & (((OR[]) & (OR[]) & (~(msg(Src, Nearly_1_A, Nearly_1_T)))) | ((OR[]) | ((OR[]) & (OR[]) & (OR[])) | (~(has_lock(Src)))) | (~(has_lock(Src))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.4.z3
+number of boolean variables: 6548
+solver (4) : 564 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | ((AND[]) | (AND[]) | (AND[])) | (has_lock(Src))) & ((OR[]) | (OR[]) | (((Nearly_1_A) = (Nearly_1_A)) & ((Nearly_1_A) = (Src)) & ((Src) = (Src)))) & ((OR[]) | ((AND[]) & (AND[]) & (AND[])) | ((AND[]) & (AND[]) & (AND[])))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.5.z3
+number of boolean variables: 7758
+solver (5) : 159 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (OR[]) | ((AND[]) & (AND[]) & (AND[]))) & ((AND[]) | (OR[]) | (((Nearly_1_A) = (Nearly_1_A)) & ((Nearly_1_A) = (Src)) & ((Src) = (Src)))) & ((OR[]) | (OR[]) | ((AND[]) & (~(has_lock(Nearly_1_A))) & (~(has_lock(Nearly_1_A)))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.6.z3
+number of boolean variables: 8968
+solver (6) : 187 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (OR[]) | ((AND[]) & (AND[]) & (AND[]))) & ((AND[]) | (OR[]) | (((Nearly_1_A) = (Nearly_1_A)) & ((Nearly_1_A) = (Src)) & ((Src) = (Src)))) & (((AND[]) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | ((OR[]) & (OR[]) & (OR[])) | ((~(has_lock(Nearly_1_A))) & (~(has_lock(Src))) & (~(has_lock(Src)))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.7.z3
+number of boolean variables: 10178
+solver (7) : 118 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (OR[]) | ((AND[]) & (AND[]) & (AND[]))) & ((AND[]) | (OR[]) | (((Nearly_1_A) = (Nearly_1_A)) & ((Nearly_1_A) = (Src)) & ((Src) = (Src)))) & (((AND[]) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | ((OR[]) & (OR[]) & (OR[])) | ((~(has_lock(Src))) & (~(has_lock(Src))) & (~(has_lock(Src)))))))
+counterexample type: INIT
+Model sizes: node: 3, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.8.z3
+number of boolean variables: 11630
+solver (8) : 734 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . ((((AND[]) & ((Src) = (Src)) & (~(has_lock(Nearly_1_A)))) | ((Nearly_1_A) = (Src)) | ((Nearly_1_T) ~= (Nearly_1_T))) & (((AND[]) & (has_lock(Src)) & (has_lock(Src))) | (~(has_lock(Src))) | (~(le(epoch(Nearly_1_A), Nearly_1_T)))) & (((AND[]) & (~(has_lock(Nearly_1_A))) & (~(msg(Src, Src, Nearly_1_T)))) | (((Nearly_1_A) = (Nearly_1_A)) & ((Nearly_1_A) = (Src)) & (~(msg(Src, Src, Nearly_1_T)))) | ((~(has_lock(Src))) & (~(has_lock(Src))) & (~(has_lock(Src)))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.9.z3
+number of boolean variables: 13082
+solver (9) : 991 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (OR[]) | (~(has_lock(Src)))) & ((AND[]) | ((Nearly_1_A) = (Src)) | ((Src) = (Src))) & ((OR[]) | (((Nearly_1_A) = (Src)) | ((Nearly_1_A) = (Src)) | (~(has_lock(Nearly_1_A)))) | (~(has_lock(Src))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.10.z3
+number of boolean variables: 14546
+solver (10) : 257 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (OR[]) | (~(has_lock(Src)))) & ((AND[]) | ((Nearly_1_A) = (Src)) | ((Src) = (Src))) & ((OR[]) | (((Nearly_1_A) = (Src)) | ((Nearly_1_A) = (Src)) | (~(has_lock(Nearly_1_A)))) | (~(le(epoch(Src), Nearly_1_T))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.11.z3
+number of boolean variables: 15998
+solver (11) : 2940 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (OR[]) | (((Nearly_1_A) = (Src)) | (~(has_lock(Nearly_1_A))) | (~(has_lock(Src))))) & ((OR[]) | (OR[]) | ((~(le(Nearly_1_T, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T))))) & ((OR[]) | (OR[]) | ((~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.12.z3
+number of boolean variables: 17450
+solver (12) : 194 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (OR[]) | (((Nearly_1_A) = (Src)) | (~(has_lock(Nearly_1_A))) | (~(has_lock(Src))))) & ((OR[]) | (OR[]) | ((~(le(Nearly_1_T, Nearly_1_T))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))))) & ((OR[]) | (OR[]) | ((~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.13.z3
+number of boolean variables: 18902
+solver (13) : 183 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (OR[]) | (((Nearly_1_A) = (Src)) | (~(has_lock(Nearly_1_A))) | (~(has_lock(Src))))) & ((OR[]) | (OR[]) | ((~(has_lock(Src))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))))) & ((OR[]) | (OR[]) | ((~(has_lock(Src))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.14.z3
+number of boolean variables: 20354
+solver (14) : 1441 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((AND[]) | ((AND[]) & (AND[]) & (AND[])) | ((Nearly_1_A) ~= (Src))) | ((OR[]) | (OR[]) | (OR[]))) & ((((AND[]) | (OR[]) | (OR[])) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((AND[]) | (OR[]) | (OR[])) & (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Nearly_1_A, Nearly_1_T)))) | (((Nearly_1_A) = (Src)) & (~(has_lock(Nearly_1_A))) & (~(has_lock(Src))))) & (((has_lock(Nearly_1_A)) & (has_lock(Nearly_1_A)) & (~(has_lock(Src)))) | ((epoch(Src)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.15.z3
+number of boolean variables: 22048
+solver (15) : 247 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((AND[]) | ((AND[]) & (AND[]) & (AND[])) | ((Nearly_1_A) ~= (Src))) | ((OR[]) | (OR[]) | (OR[]))) & ((((AND[]) | (OR[]) | (OR[])) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((AND[]) | (OR[]) | (OR[])) & (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Src, Nearly_1_T)))) | (((Nearly_1_A) = (Src)) & (~(has_lock(Nearly_1_A))) & (~(has_lock(Src))))) & (((has_lock(Nearly_1_A)) & (has_lock(Nearly_1_A)) & (~(has_lock(Src)))) | ((epoch(Src)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.16.z3
+number of boolean variables: 23500
+solver (16) : 253 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((AND[]) | ((AND[]) & (AND[]) & (AND[])) | ((Nearly_1_A) ~= (Src))) | ((OR[]) | (OR[]) | (OR[]))) & ((((AND[]) | (OR[]) | (OR[])) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((AND[]) | (OR[]) | (OR[])) & (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Src, Nearly_1_T)))) | (((Nearly_1_A) = (Nearly_1_A)) & (~(has_lock(Nearly_1_A))) & (~(has_lock(Src))))) & (((has_lock(Nearly_1_A)) & (has_lock(Nearly_1_A)) & (~(has_lock(Src)))) | ((epoch(Src)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.17.z3
+number of boolean variables: 24952
+solver (17) : 199 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((AND[]) | ((AND[]) & (AND[]) & (AND[])) | ((Nearly_1_A) ~= (Src))) | ((OR[]) | (OR[]) | (OR[]))) & ((((AND[]) | (OR[]) | (OR[])) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((AND[]) | (OR[]) | (OR[])) & (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Src, Nearly_1_T)))) | (((Nearly_1_A) = (Nearly_1_A)) & (~(has_lock(Nearly_1_A))) & (~(msg(Src, Nearly_1_A, Nearly_1_T))))) & (((has_lock(Nearly_1_A)) & (has_lock(Nearly_1_A)) & (~(has_lock(Src)))) | ((epoch(Src)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.18.z3
+number of boolean variables: 26646
+solver (18) : 262 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((AND[]) | ((AND[]) & (AND[]) & (AND[])) | ((Nearly_1_A) ~= (Src))) | ((OR[]) | (OR[]) | (OR[]))) & ((((AND[]) | (OR[]) | (OR[])) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((AND[]) | (OR[]) | (OR[])) & (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Src, Nearly_1_T)))) | (((Nearly_1_A) = (Nearly_1_A)) & (~(msg(Src, Nearly_1_A, Nearly_1_T))) & (~(msg(Src, Nearly_1_A, Nearly_1_T))))) & (((has_lock(Nearly_1_A)) & (has_lock(Nearly_1_A)) & (~(has_lock(Src)))) | ((epoch(Src)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.19.z3
+number of boolean variables: 28110
+solver (19) : 5653 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))) | (~(msg(Src, Src, Nearly_1_T))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.20.z3
+number of boolean variables: 29562
+solver (20) : 305 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))) | (~(msg(Src, Src, Nearly_1_T))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.21.z3
+number of boolean variables: 31256
+solver (21) : 353 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src)))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.22.z3
+number of boolean variables: 32708
+solver (22) : 332 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src)))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.23.z3
+number of boolean variables: 34402
+solver (23) : 335 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src)))) | (~(msg(Nearly_1_A, Src, epoch(Nearly_1_A)))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.24.z3
+number of boolean variables: 36096
+solver (24) : 582 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((((Nearly_1_A) = (Src)) | (msg(Src, Src, Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src)))) | (~(msg(Nearly_1_A, Src, epoch(Nearly_1_A)))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.25.z3
+number of boolean variables: 37548
+solver (25) : 371 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((((Nearly_1_A) = (Src)) | (msg(Src, Src, Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) | (~(le(epoch(Src), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T)))) & ((~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Src)))) | (~(msg(Nearly_1_A, Src, epoch(Nearly_1_A)))))))
+counterexample type: INIT
+Model sizes: node: 3, time: 2
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.26.z3
+number of boolean variables: 39242
+solver (26) : 1083 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((((Nearly_1_T) = (Nearly_1_T)) | (msg(Src, Src, Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) | ((~(has_lock(Src))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T)))) | (~(le(epoch(Nearly_1_A), epoch(Nearly_1_A))))) & (((Nearly_1_A) ~= (Nearly_1_A)) | (msg(Nearly_1_A, Nearly_1_A, epoch(Nearly_1_A))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T)))) & (((Nearly_1_A) ~= (Src)) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.27.z3
+number of boolean variables: 40452
+solver (27) : 5765 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | (OR[]) | (le(Nearly_1_T, Nearly_1_T))) & ((OR[]) | ((Nearly_1_A) = (Src)) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T)))) & ((OR[]) | ((epoch(Nearly_1_A)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 2, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.28.z3
+number of boolean variables: 42146
+solver (28) : 985 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((((AND[]) & (AND[]) & (AND[])) & (has_lock(Src)) & (msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))) | ((epoch(Nearly_1_A)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) & ((le(epoch(Src), Nearly_1_T)) | (le(Nearly_1_T, Nearly_1_T)) | (~(msg(Nearly_1_A, Src, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Nearly_1_A))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+logged smtlib to ./logs/smtlib/log.601550750.29.z3
+number of boolean variables: 43366
+solver (29) : 278 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((((AND[]) & (AND[]) & (AND[])) & (has_lock(Src)) & (msg(Src, Src, Nearly_1_T))) | ((epoch(Nearly_1_A)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) & ((le(epoch(Src), Nearly_1_T)) | (le(Nearly_1_T, Nearly_1_T)) | (~(msg(Nearly_1_A, Src, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Nearly_1_A))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T))))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+logged smtlib to ./logs/smtlib/log.601550750.30.z3
+number of boolean variables: 44586
+solver (30) : 288 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((OR[]) | ((epoch(Nearly_1_A)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) & ((le(epoch(Src), Nearly_1_T)) | (le(Nearly_1_T, Nearly_1_T)) | (~(msg(Nearly_1_A, Src, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Nearly_1_A))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Src, Src, Nearly_1_T))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.31.z3
+number of boolean variables: 46050
+solver (31) : 12822 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src)) & ((Nearly_1_A) = (Src))) | (((Src) ~= (Src)) & ((Src) ~= (Src)) & (has_lock(Src)))) & (((Nearly_1_A) = (Src)) | ((epoch(Nearly_1_A)) ~= (Nearly_1_T)) | (~(has_lock(Nearly_1_A)))) & (((epoch(Nearly_1_A)) = (Nearly_1_T)) | (has_lock(Nearly_1_A)) | (~(msg(Src, Nearly_1_A, Nearly_1_T))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.32.z3
+number of boolean variables: 47514
+solver (32) : 6799 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Src), Nearly_1_T))) | (~(msg(Nearly_1_A, Src, epoch(Nearly_1_A))))) & ((~(has_lock(Src))) | (~(le(epoch(Src), Nearly_1_T))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 1, time: 3
+n= 2, m = 3
+3 ; 3
+using 1 instantiations
+
+logged smtlib to ./logs/smtlib/log.601550750.33.z3
+number of boolean variables: 48966
+solver (33) : 314 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A))))) & ((~(has_lock(Src))) | (~(le(epoch(Src), Nearly_1_T))) | (~(msg(Nearly_1_A, Nearly_1_A, Nearly_1_T)))) & ((~(has_lock(Src))) | (~(le(epoch(Src), Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.34.z3
+number of boolean variables: 50430
+solver (34) : 691 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((le(epoch(Src), epoch(Nearly_1_A))) | (~(msg(Src, Nearly_1_A, epoch(Src)))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Src))) | (~(msg(Nearly_1_A, Src, Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+logged smtlib to ./logs/smtlib/log.601550750.35.z3
+number of boolean variables: 51894
+solver (35) : 190 ms
+candidate: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (~(msg(Src, Nearly_1_A, epoch(Src)))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Nearly_1_A))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))))))
+found invariant: nearlyforall Nearly_1_A, Nearly_1_T . (forall Src . (((AND[]) | (~(msg(Src, Nearly_1_A, epoch(Src)))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((le(Nearly_1_T, epoch(Nearly_1_A))) | (~(msg(Src, Nearly_1_A, Nearly_1_T))) | (~(msg(Src, Nearly_1_A, Nearly_1_T)))) & ((~(has_lock(Nearly_1_A))) | (~(le(epoch(Nearly_1_A), Nearly_1_T))) | (~(le(Nearly_1_T, epoch(Nearly_1_A)))))))
+total solver time : 47568 ms
+
+real	6m23.241s
+user	6m20.264s
+sys	0m2.828s

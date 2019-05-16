@@ -1,0 +1,68 @@
+./run.sh examples/leader-election.ivy 3 5
+
+Z3 version 4.8.4 - 64 bit
+
+7520662e7fcc2a7066c2bddba83e9421fd5a0320
+
+diff --git a/src/synth_loop.cpp b/src/synth_loop.cpp
+index 7b6ff69..dc79446 100644
+--- a/src/synth_loop.cpp
++++ b/src/synth_loop.cpp
+@@ -113,10 +113,12 @@ Counterexample get_counterexample(
+       printf("counterexample type: SAFETY\n");
+       cex.is_false = m1;
+     } else {
++	    	/*
+       Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+       if (!bmc_cex.none) {
+         return bmc_cex;
+       }
++      */
+ 
+       printf("counterexample type: INDUCTIVE\n");
+       cex.hypothesis = m1;
+
+depth = 5, arity = 3
+bmc_depth = 4
+
+solver : 575 ms
+candidate: forall A . (forall B . (forall C . (AND[])))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 3948 ms
+candidate: forall A . (forall B . (forall C . (OR[])))
+counterexample type: INIT
+Model sizes: node: 1, id: 1
+
+solver : 156 ms
+candidate: forall A . (forall B . (forall C . ((AND[]) & (~(leader(B))) & (~(pnd(nid(A), C))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 4, id: 5
+
+solver : 4743 ms
+candidate: forall A . (forall B . (forall C . ((AND[]) & (~(leader(A))) & (~(pnd(nid(A), A))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, id: 2
+
+solver : 4322 ms
+candidate: forall A . (forall B . (forall C . ((B) = (C))))
+counterexample type: INIT
+Model sizes: node: 2, id: 3
+
+solver : 7005 ms
+candidate: forall A . (forall B . (forall C . (~(leader(C)))))
+counterexample type: INDUCTIVE
+Model sizes: node: 1, id: 2
+
+solver : 9365 ms
+candidate: forall A . (forall B . (forall C . ((~(le(nid(C), nid(B)))) | (~(pnd(nid(C), B))) | ((B) = (C)))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 16408 ms
+candidate: forall A . (forall B . (forall C . ((OR[]) | (~(leader(B))) | (leader(A)))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 4
+
+solver : 32133 ms

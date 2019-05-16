@@ -1,0 +1,42 @@
+./run.sh examples/leader-election.ivy 3 4 --random
+
+Z3 version 4.8.4 - 64 bit
+
+02debafd2d2988d08caa322841b47575bf0ea4b7
+
+diff --git a/src/main.cpp b/src/main.cpp
+index e1dd7e9..faab94f 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -536,7 +536,7 @@ int main(int argc, char* argv[]) {
+   printf("random seed = %d\n", seed);
+   srand(seed);
+ 
+-  try {
++  //try {
+     if (!just_enumeration) {
+       assert(module->templates.size() == 1);
+       /*
+@@ -586,8 +586,8 @@ int main(int argc, char* argv[]) {
+       std::cout << "end" << std::endl;
+     }
+ 
+-  } catch (z3::exception exc) {
+-    printf("got z3 exception: %s\n", exc.msg());
+-    throw;
+-  }
++  //} catch (z3::exception exc) {
++  //  printf("got z3 exception: %s\n", exc.msg());
++  //  throw;
++  //}
+ }
+
+random seed = 1555010854
+depth = 4, arity = 3
+bmc_depth = 4
+
+solver (1) : 77 ms
+candidate: forall A . (forall B . (forall C . (AND[])))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 2
+

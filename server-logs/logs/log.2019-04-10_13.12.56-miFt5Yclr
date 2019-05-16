@@ -1,0 +1,62 @@
+./run.sh examples/decentralized-lock-simple.ivy 3 4
+
+Z3 version 4.8.4 - 64 bit
+
+6a7678927d1532d5149efdeff427ca6547513a19
+
+
+random seed = 1234
+depth = 4, arity = 3
+bmc_depth = 4
+
+solver (1) : 69 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (AND[])))))
+counterexample type: SAFETY
+Model sizes: node: 2, time: 1
+
+solver (2) : 463 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (OR[])))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+
+solver (3) : 37 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((OR[]) | ((OR[]) | (OR[]) | (OR[])) | (((OR[]) & (le(F, F)) & (msg(B, C, F))) | ((~(has_lock(B))) | (~(le(E, F))) | (~(le(E, F)))) | ((~(le(F, F))) | (~(le(F, F))) | (~(le(F, F))))))))))
+counterexample type: INIT
+Model sizes: node: 1, time: 1
+
+solver (4) : 158 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((B) = (C))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+
+solver (5) : 451 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (((B) = (C)) & ((B) = (C)) & (~(msg(C, C, E)))) | (~(le(F, F)))) | (~(has_lock(C))) | (~(has_lock(C))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 1
+
+solver (6) : 57 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (((B) = (C)) & ((B) = (C)) & (~(msg(C, C, E)))) | (~(le(F, F)))) | (~(has_lock(B))) | (~(has_lock(C))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 3, time: 4
+
+solver (7) : 4332 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . ((((AND[]) & (AND[]) & ((B) = (C))) | (((B) = (C)) & ((B) = (C)) & (~(msg(C, C, F)))) | (~(le(F, F)))) | (~(has_lock(B))) | (~(has_lock(C))))))))
+counterexample type: INDUCTIVE
+simplifying -> SAFETY
+Model sizes: node: 2, time: 2
+
+solver (8) : 92298 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((AND[]) & ((E) = (F)) & (~(has_lock(A)))) | ((((A) = (B)) | (~(le(E, F))) | (~(le(F, F)))) | ((A) = (B)) | (~(has_lock(B)))) | (~(le(epoch(B), E))))))))
+counterexample type: INIT
+Model sizes: node: 2, time: 2
+
+solver (9) : 37280 ms
+candidate: forall A . (forall B . (forall C . (forall E . (forall F . (((OR[]) | (((B) = (C)) & (~(has_lock(A))) & (~(msg(A, A, E)))) | (~(le(F, E)))) | ((OR[]) | (~(le(E, E))) | (~(le(F, E)))) | (((A) = (B)) | (~(has_lock(B))) | (~(has_lock(C)))))))))
+counterexample type: INIT (after some steps)
+Model sizes: node: 6, time: 7
+
+./run.sh: line 5:  4958 Killed                  ./synthesis "$@" < ./src.json
+
+real	606m53.314s
+user	604m59.808s
+sys	0m12.908s

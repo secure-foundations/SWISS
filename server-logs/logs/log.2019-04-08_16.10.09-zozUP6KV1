@@ -1,0 +1,157 @@
+./run.sh examples/leader-election.ivy 3 5
+
+Z3 version 4.8.4 - 64 bit
+
+8fd92ffe2d84499b85b1fa4c57b72d255dd23180
+
+diff --git a/src/synth_loop.cpp b/src/synth_loop.cpp
+index 2ce944b..e9602ec 100644
+--- a/src/synth_loop.cpp
++++ b/src/synth_loop.cpp
+@@ -72,7 +72,6 @@ Counterexample get_counterexample(
+     init_solver.pop();
+   }
+ 
+-  /*
+   z3::solver& conj_solver = conjctx->ctx->solver;
+   conj_solver.push();
+   conj_solver.add(conjctx->e->value2expr(candidate));
+@@ -91,10 +90,9 @@ Counterexample get_counterexample(
+   } else {
+     conj_solver.pop();
+   }
+-  */
+ 
+   value full_conj = v_and(module->conjectures);
+-  value full_candidate = v_and({candidate, full_conj});
++  value full_candidate = candidate; //v_and({candidate, full_conj});
+ 
+   z3::solver& solver = indctx->ctx->solver;
+   solver.push();
+@@ -103,17 +101,23 @@ Counterexample get_counterexample(
+   z3::check_result res = solver.check();
+ 
+   if (res == z3::sat) {
+-    auto m1_and_m2 = Model::extract_minimal_models_from_z3(
+-          indctx->ctx->ctx,
+-          solver, module, {indctx->e1, indctx->e2});
+-    shared_ptr<Model> m1 = m1_and_m2[0];
+-    shared_ptr<Model> m2 = m1_and_m2[1];
++    //auto m1_and_m2 = Model::extract_minimal_models_from_z3(
++          //indctx->ctx->ctx,
++          //solver, module, {indctx->e1, indctx->e2});
++    //shared_ptr<Model> m1 = m1_and_m2[0];
++    //shared_ptr<Model> m2 = m1_and_m2[1];
++    shared_ptr<Model> m1 = Model::extract_model_from_z3(
++		indctx->ctx->ctx,
++	        solver, module, *indctx->e1);
++    shared_ptr<Model> m2 = Model::extract_model_from_z3(
++		indctx->ctx->ctx,
++	        solver, module, *indctx->e2);
+     solver.pop();
+ 
+-    if (!m2->eval_predicate(full_conj)) {
+-      printf("counterexample type: SAFETY\n");
+-      cex.is_false = m1;
+-    } else {
++    //if (!m2->eval_predicate(full_conj)) {
++      //printf("counterexample type: SAFETY\n");
++      //cex.is_false = m1;
++    //} else {
+       /*
+       Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate);
+       if (!bmc_cex.none) {
+@@ -124,7 +128,7 @@ Counterexample get_counterexample(
+       printf("counterexample type: INDUCTIVE\n");
+       cex.hypothesis = m1;
+       cex.conclusion = m2;
+-    }
++    //}
+ 
+     return cex;
+   }
+
+depth = 5, arity = 3
+bmc_depth = 4
+
+solver : 748 ms
+candidate: forall A . (forall B . (forall C . (AND[])))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 4629 ms
+candidate: forall A . (forall B . (forall C . (OR[])))
+counterexample type: INIT
+Model sizes: node: 1, id: 1
+
+solver : 420 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) & (AND[]) & (AND[])) & (((AND[]) & (AND[]) & (AND[])) & ((AND[]) & (AND[]) & (AND[])) & ((A) = (C))) & (~(leader(B))))))
+counterexample type: INIT
+Model sizes: node: 2, id: 2
+
+solver : 1092 ms
+candidate: forall A . (forall B . (forall C . ((AND[]) & (~(leader(B))) & (~(leader(B))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 1, id: 2
+
+solver : 335 ms
+candidate: forall A . (forall B . (forall C . ((((B) ~= (C)) | (~(leader(C))) | (~(le(nid(C), nid(C))))) | (le(nid(C), nid(A))) | (le(nid(C), nid(A))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, id: 2
+
+solver : 1226 ms
+candidate: forall A . (forall B . (forall C . (((~(leader(C))) & (le(nid(C), nid(C))) & (le(nid(C), nid(C)))) | ((le(nid(B), nid(A))) & (le(nid(C), nid(B))) & (le(nid(C), nid(C)))) | ((~(le(nid(B), nid(C)))) | (pnd(nid(B), A)) | (pnd(nid(B), B))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 513 ms
+candidate: forall A . (forall B . (forall C . (((~(leader(C))) & (le(nid(C), nid(C))) & (le(nid(C), nid(C)))) | ((le(nid(B), nid(A))) & (le(nid(C), nid(B))) & (le(nid(C), nid(C)))) | ((~(le(nid(B), nid(C)))) | (pnd(nid(B), A)) | (pnd(nid(B), C))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 341 ms
+candidate: forall A . (forall B . (forall C . (((~(leader(C))) & (le(nid(C), nid(C))) & (le(nid(C), nid(C)))) | ((le(nid(B), nid(A))) & (le(nid(C), nid(B))) & (le(nid(C), nid(C)))) | ((~(le(nid(B), nid(C)))) | (pnd(nid(B), A)) | (pnd(nid(B), A))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 6053 ms
+candidate: forall A . (forall B . (forall C . (((OR[]) | ((B) ~= (B)) | (pnd(nid(C), C))) | ((~(leader(A))) | (btw(B, A, A)) | (btw(C, A, B))) | (le(nid(C), nid(A))))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 3209 ms
+candidate: forall A . (forall B . (forall C . ((~(leader(B))) | (btw(A, A, B)) | (le(nid(C), nid(B))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+
+solver : 5837 ms
+candidate: forall A . (forall B . (forall C . (((~(leader(C))) & (le(nid(A), nid(B))) & (le(nid(C), nid(A)))) | ((le(nid(B), nid(B))) & (le(nid(B), nid(C))) & (le(nid(C), nid(C)))) | ((B) = (C)))))
+counterexample type: INIT
+Model sizes: node: 3, id: 3
+
+solver : 5711 ms
+candidate: forall A . (forall B . (forall C . ((~(leader(B))) | ((B) = (C)) | (pnd(nid(A), C)))))
+counterexample type: SAFETY
+Model sizes: node: 2, id: 3
+
+solver : 5113 ms
+candidate: forall A . (forall B . (forall C . ((~(leader(A))) | (~(leader(C))) | (le(nid(A), nid(C))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, id: 2
+
+solver : 1057 ms
+candidate: forall A . (forall B . (forall C . ((~(leader(B))) & (~(pnd(nid(B), A))) & (le(nid(C), nid(C))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 2, id: 3
+
+solver : 821 ms
+candidate: forall A . (forall B . (forall C . ((~(leader(B))) & (~(pnd(nid(B), B))) & (le(nid(C), nid(C))))))
+counterexample type: INDUCTIVE
+Model sizes: node: 3, id: 3
+
+solver : 33126 ms
+candidate: forall A . (forall B . (forall C . (((AND[]) & ((btw(B, A, B)) | (btw(B, A, B)) | (btw(C, B, A))) & (~(pnd(nid(A), A)))) | ((AND[]) & (~(leader(B))) & (le(nid(B), nid(A)))) | ((AND[]) & (le(nid(B), nid(B))) & (le(nid(C), nid(B)))))))
+counterexample type: INIT
+Model sizes: node: 3, id: 3
+
+solver : 24417 ms

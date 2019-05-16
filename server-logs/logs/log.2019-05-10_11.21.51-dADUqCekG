@@ -1,0 +1,547 @@
+./run.sh examples/leader-election.ivy 3 4 --seed 60030006
+
+Z3 version 4.8.4 - 64 bit
+
+3352398f3de31cf44727c17cedcee78a5cae43bf
+
+diff --git a/Makefile b/Makefile
+index 7900c8d..f600013 100644
+--- a/Makefile
++++ b/Makefile
+@@ -20,7 +20,7 @@ OBJECTS = $(addprefix bin/,\
+ 	lib/json11/json11.o \
+ )
+ 
+-LIBS = bin/lib_glucose_debug.a
++LIBS = bin/lib_glucose_release.a
+ 
+ DEP_DIR = bin/deps
+ 
+
+conjectures:
+forall N, M . (~(((leader(N)) & (leader(M))) & ((N) ~= (M))))
+random seed = 60030006
+doing non-incremental
+depth = 4, arity = 3
+bmc_depth = 4
+
+number of boolean variables: 3150
+solver (1) : 1 ms
+candidate: forall A . (forall B . (forall C . (((false) | (false) | (false)) & ((false) | (false) | (false)) & ((false) | (false) | (false)))))
+simplified: forall A . (forall B . (forall C . (false)))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 1, id: 1
+hint: forall A . (forall B . (forall C . (false)))
+trying sizes: 1 1 
+counterexample type: INIT
+init-minimization : 0 ms
+init-check : 0 ms
+Model sizes: node: 1, id: 1
+
+number of boolean variables: 3634
+solver (2) : 1 ms
+candidate: forall A . (forall B . (forall C . (((true) | (false) | (false)) & ((true) | (false) | (false)) & ((true) | (false) | (false)))))
+simplified: forall A . (forall B . (forall C . (true)))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . (true)))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: SAFETY
+conj-minimization : 8 ms
+init-check : 0 ms
+conj-check : 3 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 4366
+solver (3) : 17 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(A))) & (~(leader(A)))) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((true) & (true) & (true)) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((false) & (false) & (false)) | ((false) | ((true) & (true) & (true)) | ((true) | (true) | (true))) | ((false) | (false) | (false))))))
+simplified: forall A . (forall B . (forall C . (~(leader(A)))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 1, id: 2
+hint: forall A . (forall B . (forall C . (~(leader(A)))))
+trying sizes: 1 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 7 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 1, id: 1
+
+number of boolean variables: 4850
+solver (4) : 1 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (true) & ((A) = (B))) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((true) & (true) & (true)) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((false) & (false) & (false)) | ((false) | ((true) & (true) & (true)) | ((true) | (true) | (true))) | ((false) | (false) | (false))))))
+simplified: forall A . (forall B . (forall C . ((A) = (B))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . ((A) = (B))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INIT
+init-minimization : 9 ms
+init-check : 3 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 7028
+solver (5) : 4 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (true) & ((A) = (C))) | ((~(leader(C))) & (~(leader(C))) & (~(leader(C)))) | ((~(leader(C))) & (~(leader(C))) & (~(leader(C))))) & (((true) & (true) & (true)) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((false) & (false) & (false)) | ((false) | ((true) & (true) & (true)) | ((true) | (true) | (true))) | ((false) | ((C) = (C)) | (~(leader(C))))))))
+simplified: forall A . (forall B . (forall C . (((A) = (C)) | (~(leader(C))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . (((A) = (C)) | (~(leader(C))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 29 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 9206
+solver (6) : 3 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (true) & ((A) = (C))) | ((~(leader(B))) & (~(leader(B))) & (~(leader(B)))) | ((~(leader(C))) & (~(leader(C))) & (~(leader(C))))) & (((true) & (true) & (true)) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((false) & (false) & (false)) | ((false) | ((true) & (true) & (true)) | ((true) | (true) | (true))) | ((false) | ((C) = (C)) | (~(leader(C))))))))
+simplified: forall A . (forall B . (forall C . (((A) = (C)) | (~(leader(B))) | (~(leader(C))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 2
+hint: forall A . (forall B . (forall C . (((A) = (C)) | (~(leader(B))) | (~(leader(C))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 30 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 11384
+solver (7) : 5 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (true) & ((A) = (B))) | ((~(leader(B))) & (~(leader(B))) & (~(leader(B)))) | (~(leader(A)))) & (((true) & (true) & (true)) | ((false) & (false) & (false)) | ((false) & (false) & (false))) & (((false) & (false) & (false)) | ((false) | ((true) & (true) & (true)) | ((true) | (true) | (true))) | (((A) = (A)) | ((C) = (C)) | (~(leader(C))))))))
+simplified: forall A . (forall B . (forall C . (((A) = (B)) | (~(leader(B))) | (~(leader(A))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . (((A) = (B)) | (~(leader(B))) | (~(leader(A))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INDUCTIVE
+inductivity-check : 5 ms
+inductivity-minimization : 12 ms
+bmc-attempt-1 : 11 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 12116
+solver (8) : 121 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(B))) & (~(leader(B)))) | ((true) & ((A) = (B)) & (leader(B))) | ((true) & ((true) | (false) | (false)) & (~(leader(A))))) & ((((A) = (C)) & ((C) = (C)) & ((C) = (C))) | ((true) | (false) | (false)) | ((A) = (B))) & ((~(leader(A))) | (~(leader(A))) | (~(pnd(nid(B), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & ((~(leader(A))) | (~(pnd(nid(B), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 1, id: 1
+hint: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & ((~(leader(A))) | (~(pnd(nid(B), C)))))))
+trying sizes: 1 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 7 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 1, id: 1
+
+number of boolean variables: 12600
+solver (9) : 8 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(B))) & (~(leader(B)))) | ((true) & ((A) = (B)) & (leader(B))) | ((true) & ((true) | (false) | (false)) & (~(leader(A))))) & ((((A) = (C)) & ((C) = (C)) & ((C) = (C))) | ((true) | (false) | (false)) | ((A) = (B))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 2
+hint: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), C)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 106 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 14778
+solver (10) : 8 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(B))) & (~(leader(B)))) | ((true) & ((A) = (B)) & (leader(B))) | ((true) & ((true) | (false) | (false)) & (~(leader(A))))) & ((((A) = (C)) & ((C) = (C)) & ((C) = (C))) | ((true) | (false) | (false)) | ((A) = (B))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), A)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), A)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 2
+hint: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(B), A)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 86 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 16956
+solver (11) : 9 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(B))) & (~(leader(B)))) | ((true) & ((A) = (B)) & (leader(B))) | ((true) & ((true) | (false) | (false)) & (~(leader(A))))) & ((((A) = (C)) & ((C) = (C)) & ((C) = (C))) | ((true) | (false) | (false)) | ((A) = (B))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(A), A)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(A), A)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 4, id: 5
+hint: forall A . (forall B . (forall C . (((~(leader(B))) | (((A) = (B)) & (leader(B))) | (~(leader(A)))) & (((A) = (C)) | (~(leader(A))) | (~(pnd(nid(A), A)))))))
+trying sizes: 1 3 
+trying sizes: 1 4 
+trying sizes: 3 4 
+trying sizes: 2 4 
+trying sizes: 2 3 
+trying sizes: 2 1 
+trying sizes: 2 2 
+counterexample type: INDUCTIVE
+inductivity-check : 27 ms
+inductivity-minimization : 65 ms
+bmc-attempt-1 : 22 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 17688
+solver (12) : 680 ms
+candidate: forall A . (forall B . (forall C . (((false) | (false) | (((A) = (B)) | (~(leader(A))) | (~(leader(B))))) & ((((B) ~= (C)) & (~(leader(B))) & (~(leader(C)))) | ((true) | (false) | ((C) = (C))) | ((nid(B)) = (nid(C)))) & (((B) ~= (B)) | (leader(A)) | (~(pnd(nid(A), A)))))))
+simplified: forall A . (forall B . (forall C . ((((A) = (B)) | (~(leader(A))) | (~(leader(B)))) & ((leader(A)) | (~(pnd(nid(A), A)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 1, id: 2
+hint: forall A . (forall B . (forall C . ((((A) = (B)) | (~(leader(A))) | (~(leader(B)))) & ((leader(A)) | (~(pnd(nid(A), A)))))))
+trying sizes: 1 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 5 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 1, id: 1
+
+number of boolean variables: 18172
+solver (13) : 311 ms
+candidate: forall A . (forall B . (forall C . (((false) | (le(nid(C), nid(B))) | (~(pnd(nid(B), B)))) & ((false) | (false) | ((true) & (true) & ((A) = (A)))) & ((((A) = (C)) & ((A) = (A)) & ((A) = (A))) | (((A) = (C)) & ((A) = (C)) & ((A) = (C))) | ((~(leader(A))) | (~(leader(C))) | (~(leader(C))))))))
+simplified: forall A . (forall B . (forall C . (((le(nid(C), nid(B))) | (~(pnd(nid(B), B)))) & (((A) = (C)) | (~(leader(A))) | (~(leader(C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 4
+hint: forall A . (forall B . (forall C . (((le(nid(C), nid(B))) | (~(pnd(nid(B), B)))) & (((A) = (C)) | (~(leader(A))) | (~(leader(C)))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 2 1 
+trying sizes: 2 2 
+counterexample type: INDUCTIVE
+inductivity-check : 13 ms
+inductivity-minimization : 57 ms
+bmc-attempt-1 : 78 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 18904
+solver (14) : 203 ms
+candidate: forall A . (forall B . (forall C . (((((true) & (true) & (true)) & (leader(A)) & (~(leader(C)))) | (((B) = (C)) & ((B) = (B)) & ((B) = (C))) | ((false) | ((true) | (false) | (false)) | (~(leader(A))))) & (((false) | ((B) = (C)) | ((C) ~= (C))) | (btw(B, B, C)) | (~(pnd(nid(A), A)))) & (((B) = (C)) | (le(nid(C), nid(B))) | (~(leader(B)))))))
+simplified: forall A . (forall B . (forall C . ((((B) = (C)) | (btw(B, B, C)) | (~(pnd(nid(A), A)))) & (((B) = (C)) | (le(nid(C), nid(B))) | (~(leader(B)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . ((((B) = (C)) | (btw(B, B, C)) | (~(pnd(nid(A), A)))) & (((B) = (C)) | (le(nid(C), nid(B))) | (~(leader(B)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 40 ms
+init-check : 0 ms
+conj-check : 2 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 21082
+solver (15) : 26 ms
+candidate: forall A . (forall B . (forall C . (((true) | (((A) = (C)) & ((B) = (B)) & ((B) = (C))) | ((false) | ((true) | (false) | (false)) | (~(leader(A))))) & ((false) | (le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+simplified: forall A . (forall B . (forall C . (((le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 5, id: 5
+hint: forall A . (forall B . (forall C . (((le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+trying sizes: 1 3 
+trying sizes: 1 5 
+trying sizes: 3 5 
+trying sizes: 2 5 
+trying sizes: 3 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INDUCTIVE
+inductivity-check : 21 ms
+inductivity-minimization : 111 ms
+bmc-attempt-1 : 93 ms
+init-check : 0 ms
+conj-check : 2 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 27867
+solver (16) : 24 ms
+candidate: forall A . (forall B . (forall C . (((false) | ((true) & ((C) = (C)) & (~(btw(B, A, C)))) | ((false) & ((true) | (false) | (false)) & (~(leader(A))))) & ((false) | (le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+simplified: forall A . (forall B . (forall C . ((~(btw(B, A, C))) & ((le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 3
+hint: forall A . (forall B . (forall C . ((~(btw(B, A, C))) & ((le(nid(B), nid(A))) | (~(pnd(nid(A), A)))) & (((A) ~= (B)) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INIT
+init-minimization : 21 ms
+init-check : 8 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 33675
+solver (17) : 124 ms
+candidate: forall A . (forall B . (forall C . ((((true) & ((true) & (true) & (true)) & (~(leader(C)))) | ((true) & (true) & (~(leader(A)))) | ((false) | ((A) = (C)) | (~(leader(C))))) & (((true) | ((true) & (true) & (true)) | ((true) & (true) & (true))) | ((false) | ((A) = (A)) | ((A) ~= (C))) | ((false) | ((A) = (B)) | (leader(A)))) & (((false) | (false) | (~(leader(B)))) | (leader(A)) | (~(pnd(nid(A), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(A), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(A), C)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 131 ms
+init-check : 0 ms
+conj-check : 1 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 35853
+solver (18) : 23 ms
+candidate: forall A . (forall B . (forall C . ((((true) & ((true) & (true) & (true)) & (~(leader(C)))) | ((true) & (true) & (~(leader(A)))) | ((false) | ((A) = (C)) | (~(leader(C))))) & (((true) | ((true) & (true) & (true)) | ((true) & (true) & (true))) | ((false) | ((A) = (A)) | ((A) ~= (C))) | ((false) | ((A) = (B)) | (leader(A)))) & (((false) | (false) | (~(leader(B)))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 4
+hint: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 2 1 
+trying sizes: 2 2 
+counterexample type: INDUCTIVE
+inductivity-check : 13 ms
+inductivity-minimization : 43 ms
+bmc-attempt-1 : 41 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 36585
+solver (19) : 36 ms
+candidate: forall A . (forall B . (forall C . ((((true) & ((true) & (true) & (true)) & (~(leader(C)))) | ((true) & (true) & (~(leader(A)))) | ((false) | ((A) = (C)) | (~(leader(B))))) & (((false) | (false) | (false)) | (le(nid(C), nid(A))) | (~(leader(A)))) & (((false) | (false) | (~(leader(B)))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C)) | (~(leader(B)))) & ((le(nid(C), nid(A))) | (~(leader(A)))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 4
+hint: forall A . (forall B . (forall C . (((~(leader(C))) | (~(leader(A))) | ((A) = (C)) | (~(leader(B)))) & ((le(nid(C), nid(A))) | (~(leader(A)))) & ((~(leader(B))) | (leader(A)) | (~(pnd(nid(C), C)))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 2 1 
+trying sizes: 2 2 
+counterexample type: INDUCTIVE
+inductivity-check : 14 ms
+inductivity-minimization : 43 ms
+bmc-attempt-1 : 116 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> INIT
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 38763
+solver (20) : 309 ms
+candidate: forall A . (forall B . (forall C . (((true) | (true) | (~(le(nid(C), nid(C))))) & ((leader(B)) | (~(leader(C))) | (~(pnd(nid(B), B)))) & ((le(nid(A), nid(C))) | (le(nid(A), nid(C))) | (~(leader(C)))))))
+simplified: forall A . (forall B . (forall C . (((leader(B)) | (~(leader(C))) | (~(pnd(nid(B), B)))) & ((le(nid(A), nid(C))) | (~(leader(C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 3
+hint: forall A . (forall B . (forall C . (((leader(B)) | (~(leader(C))) | (~(pnd(nid(B), B)))) & ((le(nid(A), nid(C))) | (~(leader(C)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 2 
+trying sizes: 2 1 
+counterexample type: INDUCTIVE
+inductivity-check : 5 ms
+inductivity-minimization : 17 ms
+bmc-attempt-1 : 95 ms
+init-check : 0 ms
+conj-check : 0 ms
+simplifying -> SAFETY
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 39495
+solver (21) : 7592 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(leader(B))) & (~(leader(B)))) | (le(nid(A), nid(B))) | (le(nid(A), nid(B)))) & ((((A) = (B)) & ((A) = (B)) & ((A) = (A))) | (((C) = (C)) & ((A) ~= (B)) & ((A) ~= (C))) | ((nid(B)) = (nid(B)))) & ((((A) ~= (A)) | ((A) ~= (A)) | (btw(A, C, B))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))))))
+simplified: forall A . (forall B . (forall C . (((~(leader(B))) | (le(nid(A), nid(B)))) & ((btw(A, C, B)) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 4, id: 4
+hint: forall A . (forall B . (forall C . (((~(leader(B))) | (le(nid(A), nid(B)))) & ((btw(A, C, B)) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))))))
+trying sizes: 1 3 
+trying sizes: 1 4 
+trying sizes: 2 4 
+trying sizes: 3 4 
+trying sizes: 3 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INDUCTIVE
+inductivity-check : 14 ms
+inductivity-minimization : 83 ms
+bmc-attempt-1 : 132 ms
+init-check : 0 ms
+conj-check : 2 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 43376
+solver (22) : 605 ms
+candidate: forall A . (forall B . (forall C . (((false) | ((false) | ((A) ~= (C)) | (leader(B))) | (le(nid(B), nid(C)))) & (((false) | (~(leader(A))) | (~(leader(C)))) | ((false) | ((false) & (false) & (false)) | ((false) | (false) | (false))) | ((false) | ((A) = (C)) | ((A) = (C)))) & ((((true) & (true) & (false)) | ((false) & (false) & (false)) | (~(leader(C)))) | ((nid(B)) = (nid(C))) | (~(pnd(nid(B), B)))))))
+simplified: forall A . (forall B . (forall C . ((((A) ~= (C)) | (leader(B)) | (le(nid(B), nid(C)))) & ((~(leader(A))) | (~(leader(C))) | ((A) = (C))) & ((~(leader(C))) | ((nid(B)) = (nid(C))) | (~(pnd(nid(B), B)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 2
+hint: forall A . (forall B . (forall C . ((((A) ~= (C)) | (leader(B)) | (le(nid(B), nid(C)))) & ((~(leader(A))) | (~(leader(C))) | ((A) = (C))) & ((~(leader(C))) | ((nid(B)) = (nid(C))) | (~(pnd(nid(B), B)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 1 
+counterexample type: INIT
+init-minimization : 4 ms
+init-check : 2 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 45554
+solver (23) : 1958 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (true) & ((A) = (B))) | (((A) = (A)) & ((A) = (A)) & (~(leader(A)))) | (((B) = (B)) & ((C) = (C)) & (~(leader(B))))) & ((((A) ~= (B)) & ((A) ~= (B)) & (~(leader(A)))) | ((nid(A)) = (nid(C))) | (~(pnd(nid(C), C)))) & (((nid(C)) ~= (nid(C))) | (le(nid(C), nid(A))) | (~(leader(A)))))))
+simplified: forall A . (forall B . (forall C . ((((A) = (B)) | (~(leader(A))) | (~(leader(B)))) & ((((A) ~= (B)) & (~(leader(A)))) | ((nid(A)) = (nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(C), nid(A))) | (~(leader(A)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 2, id: 2
+hint: forall A . (forall B . (forall C . ((((A) = (B)) | (~(leader(A))) | (~(leader(B)))) & ((((A) ~= (B)) & (~(leader(A)))) | ((nid(A)) = (nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(C), nid(A))) | (~(leader(A)))))))
+trying sizes: 1 2 
+trying sizes: 1 2 
+trying sizes: 2 1 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 20 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 47732
+solver (24) : 1561 ms
+candidate: forall A . (forall B . (forall C . (((false) | (le(nid(A), nid(B))) | (~(pnd(nid(B), B)))) & ((false) | (((false) & (false) & (false)) | ((A) = (C)) | (~(leader(A)))) | (~(le(nid(A), nid(C))))) & (((nid(C)) ~= (nid(C))) | (~(btw(C, B, A))) | (~(pnd(nid(B), C)))))))
+simplified: forall A . (forall B . (forall C . (((le(nid(A), nid(B))) | (~(pnd(nid(B), B)))) & (((A) = (C)) | (~(leader(A))) | (~(le(nid(A), nid(C))))) & ((~(btw(C, B, A))) | (~(pnd(nid(B), C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 5, id: 6
+hint: forall A . (forall B . (forall C . (((le(nid(A), nid(B))) | (~(pnd(nid(B), B)))) & (((A) = (C)) | (~(leader(A))) | (~(le(nid(A), nid(C))))) & ((~(btw(C, B, A))) | (~(pnd(nid(B), C)))))))
+trying sizes: 1 3 
+trying sizes: 1 5 
+trying sizes: 3 5 
+trying sizes: 2 5 
+trying sizes: 3 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 169 ms
+init-check : 0 ms
+conj-check : 2 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 53540
+c
+c Try to adapt solver strategies
+c 
+c Nothing extreme in this problem, continue with glucose default strategies.
+c
+solver (25) : 2788 ms
+candidate: forall A . (forall B . (forall C . ((((true) & ((C) = (C)) & (~(btw(B, C, C)))) | (((A) = (C)) | ((A) = (C)) | ((A) = (C))) | ((nid(A)) ~= (nid(C)))) & (((true) & ((A) ~= (B)) & (~(leader(B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(A), nid(C))) | (~(leader(C))) | (~(leader(C)))))))
+simplified: forall A . (forall B . (forall C . (((~(btw(B, C, C))) | ((A) = (C)) | ((nid(A)) ~= (nid(C)))) & ((((A) ~= (B)) & (~(leader(B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(A), nid(C))) | (~(leader(C)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 5, id: 5
+hint: forall A . (forall B . (forall C . (((~(btw(B, C, C))) | ((A) = (C)) | ((nid(A)) ~= (nid(C)))) & ((((A) ~= (B)) & (~(leader(B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), C)))) & ((le(nid(A), nid(C))) | (~(leader(C)))))))
+trying sizes: 1 3 
+trying sizes: 1 5 
+trying sizes: 3 5 
+trying sizes: 2 5 
+trying sizes: 3 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INDUCTIVE
+inductivity-check : 57 ms
+inductivity-minimization : 111 ms
+bmc-attempt-1 : 62 ms
+init-check : 0 ms
+conj-check : 3 ms
+simplifying -> SAFETY
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 54517
+solver (26) : 7566 ms
+candidate: forall A . (forall B . (forall C . (((le(nid(C), nid(B))) | (pnd(nid(C), A)) | (~(pnd(nid(A), A)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(le(nid(B), nid(B))))) & ((~(btw(C, A, B))) | (~(le(nid(B), nid(C)))) | (~(le(nid(C), nid(A))))))))
+simplified: forall A . (forall B . (forall C . (((le(nid(C), nid(B))) | (pnd(nid(C), A)) | (~(pnd(nid(A), A)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(le(nid(B), nid(B))))) & ((~(btw(C, A, B))) | (~(le(nid(B), nid(C)))) | (~(le(nid(C), nid(A))))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 3
+hint: forall A . (forall B . (forall C . (((le(nid(C), nid(B))) | (pnd(nid(C), A)) | (~(pnd(nid(A), A)))) & ((le(nid(C), nid(A))) | (~(leader(A))) | (~(le(nid(B), nid(B))))) & ((~(btw(C, A, B))) | (~(le(nid(B), nid(C)))) | (~(le(nid(C), nid(A))))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INIT
+init-minimization : 22 ms
+init-check : 5 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 60325
+solver (27) : 14189 ms
+candidate: forall A . (forall B . (forall C . (((((true) | (false) | (false)) & ((true) | (true) | (true)) & ((A) = (A))) | (((false) | (false) | (false)) & ((false) | (false) | (false)) & (~(btw(B, B, B)))) | (le(nid(A), nid(C)))) & (((leader(C)) & (leader(C)) & (leader(C))) | (le(nid(B), nid(A))) | (~(pnd(nid(A), C)))) & (((btw(A, B, C)) | (~(leader(B))) | (~(leader(C)))) | ((nid(A)) = (nid(B))) | (~(le(nid(C), nid(A))))))))
+simplified: forall A . (forall B . (forall C . (((leader(C)) | (le(nid(B), nid(A))) | (~(pnd(nid(A), C)))) & ((btw(A, B, C)) | (~(leader(B))) | (~(leader(C))) | ((nid(A)) = (nid(B))) | (~(le(nid(C), nid(A))))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 4
+hint: forall A . (forall B . (forall C . (((leader(C)) | (le(nid(B), nid(A))) | (~(pnd(nid(A), C)))) & ((btw(A, B, C)) | (~(leader(B))) | (~(leader(C))) | ((nid(A)) = (nid(B))) | (~(le(nid(C), nid(A))))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 2 1 
+trying sizes: 2 2 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 34 ms
+init-check : 0 ms
+conj-check : 1 ms
+Model sizes: node: 2, id: 2
+
+number of boolean variables: 62503
+solver (28) : 8686 ms
+candidate: forall A . (forall B . (forall C . ((((true) & ((A) = (B)) & ((B) ~= (C))) | (le(nid(A), nid(C))) | (~(pnd(nid(C), B)))) & (((true) & (leader(A)) & (~(leader(B)))) | (((true) & (true) & (false)) | ((B) = (C)) | (~(leader(C)))) | (((true) & (true) & (false)) | ((true) & (true) & (false)) | ((A) = (B)))) & ((((A) = (A)) & (~(btw(A, B, C))) & (~(leader(A)))) | (btw(B, C, A)) | (le(nid(C), nid(A)))))))
+simplified: forall A . (forall B . (forall C . (((((A) = (B)) & ((B) ~= (C))) | (le(nid(A), nid(C))) | (~(pnd(nid(C), B)))) & (((leader(A)) & (~(leader(B)))) | ((B) = (C)) | (~(leader(C))) | ((A) = (B))) & (((~(btw(A, B, C))) & (~(leader(A)))) | (btw(B, C, A)) | (le(nid(C), nid(A)))))))
+extract_minimal_models_from_z3: initial sizes:
+Model sizes: node: 3, id: 3
+hint: forall A . (forall B . (forall C . (((((A) = (B)) & ((B) ~= (C))) | (le(nid(A), nid(C))) | (~(pnd(nid(C), B)))) & (((leader(A)) & (~(leader(B)))) | ((B) = (C)) | (~(leader(C))) | ((A) = (B))) & (((~(btw(A, B, C))) & (~(leader(A)))) | (btw(B, C, A)) | (le(nid(C), nid(A)))))))
+trying sizes: 1 3 
+trying sizes: 1 3 
+trying sizes: 2 3 
+trying sizes: 3 1 
+trying sizes: 3 2 
+counterexample type: INIT (after some steps)
+bmc-attempt-1 : 39 ms
+init-check : 0 ms
+conj-check : 0 ms
+Model sizes: node: 3, id: 3
+
+number of boolean variables: 68311
+solver (29) : 1835 ms
+candidate: forall A . (forall B . (forall C . ((((true) & (~(btw(B, C, B))) & (~(btw(B, A, A)))) | (((true) & (true) & (true)) & ((false) & (false) & (false)) & (~(leader(A)))) | (le(nid(B), nid(A)))) & (((true) & ((A) ~= (B)) & (~(leader(C)))) | ((A) = (B)) | (le(nid(B), nid(C)))) & (((true) & ((A) ~= (C)) & (~(btw(A, C, B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), A)))))))
+simplified: forall A . (forall B . (forall C . ((((~(btw(B, C, B))) & (~(btw(B, A, A)))) | (le(nid(B), nid(A)))) & ((((A) ~= (B)) & (~(leader(C)))) | ((A) = (B)) | (le(nid(B), nid(C)))) & ((((A) ~= (C)) & (~(btw(A, C, B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), A)))))))
+inductivity-check : 9 ms
+bmc-attempt-1 : 112 ms
+init-check : 0 ms
+conj-check : 2 ms
+found invariant: forall A . (forall B . (forall C . ((((~(btw(B, C, B))) & (~(btw(B, A, A)))) | (le(nid(B), nid(A)))) & ((((A) ~= (B)) & (~(leader(C)))) | ((A) = (B)) | (le(nid(B), nid(C)))) & ((((A) ~= (C)) & (~(btw(A, C, B)))) | (le(nid(B), nid(C))) | (~(pnd(nid(C), A)))))))
+total solver time : 48694 ms
+
+real	0m53.775s
+user	0m53.658s
+sys	0m0.116s
