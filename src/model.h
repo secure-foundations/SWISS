@@ -97,6 +97,7 @@ public:
       bool exact, bool negate);
 
   std::vector<FunctionEntry> getFunctionEntries(iden name);
+  object_value func_eval(iden name, std::vector<object_value> const& args);
 
   // return a FTree which computes whether f(...) = res
   std::shared_ptr<FTree> getFunctionFTree(iden name, object_value res);
@@ -125,6 +126,8 @@ public:
 private:
   std::map<std::pair<iden, object_value>, std::shared_ptr<FTree>> ftree_cache;
   std::shared_ptr<FTree> constructFunctionFTree(iden name, object_value res);
+
+  friend bool are_models_isomorphic(std::shared_ptr<Model>, std::shared_ptr<Model>);
 };
 
 std::shared_ptr<Model> transition_model(

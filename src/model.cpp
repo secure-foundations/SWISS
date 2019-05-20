@@ -1332,6 +1332,23 @@ vector<size_t> Model::get_domain_sizes_for_function(iden name) const {
   return domain_sizes;
 }
 
+object_value Model::func_eval(iden name, std::vector<object_value> const& args)
+{
+  FunctionInfo const& finfo = get_function_info(name);
+  FunctionTable* ftable = finfo.table.get();
+  for (int i = 0; i < args.size(); i++) {
+    if (ftable == NULL) break;
+    assert (args[i] < ftable->children.size());
+    ftable = ftable->children[args[i]].get();
+  }
+  if (ftable != NULL) {
+    assert (ftable->children.size() == 0);
+    return ftable->value;
+  } else {
+    return finfo.else_value;
+  }
+}
+
 std::vector<FunctionEntry> Model::getFunctionEntries(iden name)
 {
   vector<FunctionEntry> entries;
