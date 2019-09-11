@@ -1,5 +1,7 @@
 #lang ivy1.3
 
+# This file is modified from the learning.ivy example in the ivy repo.
+
 ################################################################################
 #
 # Module describing an acyclic partial function. The function is built by
@@ -14,31 +16,36 @@
 #
 ################################################################################
 
-module inverse_forest(carrier) = {
+type packet
+type host
 
-    relation dom(X:carrier)            # domain of the function
-    relation tc(X:carrier,Y:carrier)   # transitive closure of the function
+# module inverse_forest(carrier) = {
 
-    axiom tc(X,X)                          # Reflexivity
-    axiom tc(X, Y) & tc(Y, Z) -> tc(X, Z)  # transitivity
-    axiom tc(X, Y) & tc(Y, X) -> X = Y     # anti-symmetry
-    axiom tc(X, Y) & tc(X, Z) -> (tc(Y, Z) | tc(Z, Y)) # linearity
+relation dom(H:host,X:host)            # domain of the function
+relation tc(H:host,X:host,Y:host)   # transitive closure of the function
 
-    init ~dom(X) & (tc(X,Y) <-> X = Y)     #initially empty
+axiom tc(H,X,X)                          # Reflexivity
+axiom tc(H,X, Y) & tc(H,Y, Z) -> tc(H,X, Z)  # transitivity
+axiom tc(H,X, Y) & tc(H,Y, X) -> X = Y     # anti-symmetry
+axiom tc(H,X, Y) & tc(H,X, Z) -> (tc(H,Y, Z) | tc(H,Z, Y)) # linearity
 
-    action set(x:carrier,y:carrier) = {
-       assert ~tc(y,x);                # can't create a cycle
-       assert ~dom(x);                 # can't remove links
-       dom(x) := true;              
-       tc(X, Y) := tc(X, Y) | tc(X, x) &  tc(y, Y)
-    }
+init ~dom(H,X)
+init (tc(H,X,Y) -> X = Y)     #initially empty
+init (X = Y -> tc(H,X,Y))     #initially empty
 
-    action get(x:carrier) returns (y:carrier) = {
-       assert dom(x);
-       assume tc(x,y) & ~(tc(x,X) & tc(X,y) & X ~= x & X ~= y)
-    }
+#action set(h:host,x:host,y:host) = {
+#   assert ~tc(H,y,x);                # can't create a cycle
+#   assert ~dom(h,x);                 # can't remove links
+#   dom(h,x) := true;              
+#   tc(h,X, Y) := tc(h,X, Y) | tc(h,X, x) &  tc(h,y, Y)
+#}
 
-}
+#action get(h:host,x:host) returns (y:host) = {
+#   assert dom(h,x);
+#   assume tc(h,x,y) & ~(tc(h,x,X) & tc(h,X,y) & X ~= x & X ~= y)
+#}
+
+# }
 
 ################################################################################
 #
@@ -46,14 +53,11 @@ module inverse_forest(carrier) = {
 #
 ################################################################################
 
-type packet
-type host
 
 relation pending(P:packet, S:host, T:host) 
 individual src(P:packet) : host
 individual dst(P:packet) : host
 relation link(S:host, T:host)
-instantiate route(H:host) : inverse_forest(host)
 
 axiom ~link(X, X)                          # no self-loops
 axiom ~link(X, Y) | link(Y, X)             # symmetric
@@ -74,51 +78,60 @@ init ~pending(P,S,T)
 action receive = {
   local p0:packet, sw0:host, sw1:host, sw2:host, s0:host, t0:host {
 
-       ########################################
-       # The action's guard. 
+    ########################################
+    # The action's guard. 
 
-       t0 := dst(p0);
-       s0 := src(p0);
-       assume pending(p0, sw0, sw1) | s0 = sw1 & sw0 = sw1;
+    assume t0 = dst(p0);
+    assume s0 = src(p0);
+    assume pending(p0, sw0, sw1) | s0 = sw1 & sw0 = sw1;
 
-       ########################################
-       # Abstract the number of times that the same packet recieved
+    ########################################
+    # Abstract the number of times that the same packet recieved
 
-       if (pending(p0,sw0, sw1)) {
-           pending(p0, sw0, sw1) := *
-       };
-  
-       ########################################
-       # learn: if no route from receiving switch back to source...
-       if (~route(s0).dom(sw1) & sw0 ~= sw1 & s0 ~= sw1) {
-           call route(s0).set(sw1,sw0)   # create new route
-       };
-   
-       ########################################
-       # forward the packet if dest is not self
-       if t0 ~= sw1 {
+    if (pending(p0,sw0, sw1)) {
+        pending(p0, sw0, sw1) := *
+    };
 
-           if ~route(t0).dom(sw1) {                            # if no route to dest...
- 	       pending(p0, sw1, Y) := link(sw1, Y) & Y ~= sw0  # flood
-           }
+    ########################################
+    # learn: if no route from receiving switch back to source...
+    if (~dom(s0,sw1) & sw0 ~= sw1 & s0 ~= sw1) {
+        #assert ~tc(sw0,sw1);              # (1) can't create a cycle
+        #assert ~dom(sw1);                 # (2) can't remove links
+        dom(s0,sw1) := true;              
+        tc(s0,X, Y) := tc(s0,X, Y) | tc(s0,X, sw1) &  tc(s0,sw0, Y)
+    };
 
-           else {
-	       sw2 := route(t0).get(sw1);                      # get the out-going link
-	       pending(p0, sw1, sw2) := true                   # route the packet there
-	   }
-       }
+    ########################################
+    # forward the packet if dest is not self
+    if t0 ~= sw1 {
+
+      if ~dom(t0,sw1) {                            # if no route to dest...
+        pending(p0, sw1, Y) := link(sw1, Y) & Y ~= sw0  # flood
+      }
+      else {
+        #assert dom(sw1);                 # (3)
+        assume tc(t0,sw1,sw2) & ~(tc(t0,sw1,X) & tc(t0,X,sw2) & X ~= sw1 & X ~= sw2);
+
+        pending(p0, sw1, sw2) := true                   # route the packet there
+      }
+    }
   }
 }
 
-export receive
- 
-conjecture ~(route(S).dom(V0) & ~route(S).tc(V0, S))
-conjecture ~route(V0).dom(V0)
-conjecture ~(pending(P, V0, V1) & dst(P) = V0)
-conjecture ~(pending(P, V0, V1) & ~route(src(P)).dom(V0) & V0 ~= src(P))
-conjecture ~(route(S).tc(V0, V1) & ~V0 = V1 & ~route(S).dom(V0))
-conjecture ~(route(S).tc(V0, V1) & ~V0 = V1 & S ~= V1 & ~route(S).dom(V1)) # TODO: needed?
-conjecture ~(~V0 = S & route(S).tc(S, V0))
+#conjecture ~(dom(S,V0) & ~tc(S, V0, S))
+#conjecture ~dom(V0,V0)
+#conjecture ~(pending(P, V0, V1) & dst(P) = V0)
+#conjecture ~(pending(P, V0, V1) & ~dom(src(P),V0) & V0 ~= src(P))
+#conjecture ~(tc(S, V0, V1) & ~V0 = V1 & ~dom(S, V0))
+#conjecture ~(tc(S, V0, V1) & ~V0 = V1 & S ~= V1 & ~dom(S, V1)) # TODO: needed?
+#conjecture ~(~V0 = S & tc(S, S, V0))
 
-#conjecture ~(pending(P, V0, V1) & src(P,S) & ~route(S).dom(V0))
+# SAFETY CONDITION
+# This corresponds to commented assert (1) above
+conjecture ((pending(P0, SW0, SW1) | S0 = SW1 & SW0 = SW1) & (~dom(S0,SW1) & SW0 ~= SW1 & S0 ~= SW1)) -> ~tc(S0,SW0,SW1)
 
+#conjecture ~(pending(P, V0, V1) & src(P) = V1)
+
+#conjecture ~(pending(P, V0, V1) & src(P)=S & ~dom(S,V0))
+
+template forall A:host . forall B:host . forall C:host . forall P:packet . WILD

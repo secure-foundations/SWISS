@@ -106,11 +106,21 @@ def action_to_obj(l):
       "assume",
       logic_to_obj(ivy_logic_utils.close_epr(l.args[0])),
     ]
+  elif isinstance(l, ivy_actions.AssumeAction):
+    return [
+      "assert",
+      logic_to_obj(ivy_logic_utils.close_epr(l.args[0])),
+    ]
   elif isinstance(l, ivy_actions.AssignAction):
     return [
       "assign",
       logic_to_obj(l.args[0]),
       logic_to_obj(l.args[1]),
+    ]
+  elif isinstance(l, ivy_actions.HavocAction):
+    return [
+      "havoc",
+      logic_to_obj(l.args[0]),
     ]
   elif isinstance(l, ivy_actions.IfAction):
     if len(l.args) >= 3:
@@ -187,7 +197,8 @@ def logic_to_obj(l):
   elif isinstance(l, logic.Or):
     return ["or", [logic_to_obj(o) for o in l]]
   else:
-    print 'cant do', type(l)
+    print l
+    print 'logic_to_obj cant do', type(l)
     assert False
 
 def sort_to_obj(s):
@@ -198,7 +209,7 @@ def sort_to_obj(s):
   elif isinstance(s, logic.FunctionSort):
     return ["functionSort", [sort_to_obj(t) for t in s.domain], sort_to_obj(s.range)]
   else:
-    print 'cant do', type(s)
+    print 'sort_to_obj cant do', type(s)
     assert False
 
 def fmla_to_obj(fmla):

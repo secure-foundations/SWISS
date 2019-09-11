@@ -478,6 +478,16 @@ public:
     : left(left), right(right) { }
 };
 
+class Havoc : public Action {
+public:
+  std::shared_ptr<Value> left;
+
+  Havoc(
+    std::shared_ptr<Value> left)
+    : left(left) { }
+};
+
+
 class IfElse : public Action {
 public:
   std::shared_ptr<Value> condition;

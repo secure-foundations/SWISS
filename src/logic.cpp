@@ -209,6 +209,10 @@ shared_ptr<Action> json2action(Json j) {
     assert(j.array_items().size() == 3);
     return shared_ptr<Action>(new Assign(json2value(j[1]), json2value(j[2])));
   }
+  else if (type == "havoc") {
+    assert(j.array_items().size() == 2);
+    return shared_ptr<Action>(new Havoc(json2value(j[1])));
+  }
   else if (type == "if") {
     assert(j.array_items().size() == 3);
     return shared_ptr<Action>(new If(json2value(j[1]), json2action(j[2])));

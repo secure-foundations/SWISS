@@ -85,7 +85,10 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
 
 z3::func_decl ModelEmbedding::getFunc(iden name) const {
   auto iter = mapping.find(name);
-  assert(iter != mapping.end());
+  if (iter == mapping.end()) {
+    cout << "couldn't find function " << iden_to_string(name) << endl;
+    assert(false);
+  }
   return iter->second;
 }
 
@@ -401,6 +404,54 @@ ActionResult applyAction(
           z3::mk_and(all_eq_parts),
           e->value2expr(action->right, consts, vars),
           orig_func(qvars));
+    z3::expr outer = qvars.size() == 0 ? inner : z3::forall(qvars, inner);
+
+    ActionResult ar(shared_ptr<ModelEmbedding>(new_e), outer);
+
+    return ar;
+  }
+  else if (Havoc* action = dynamic_cast<Havoc*>(a.get())) {
+    Value* left = action->left.get();
+    Apply* apply = dynamic_cast<Apply*>(left);
+    //assert(apply != NULL);
+
+    Const* func_const = dynamic_cast<Const*>(apply != NULL ? apply->func.get() : left);
+    assert(func_const != NULL);
+    func_decl orig_func = e->getFunc(func_const->name);
+
+    z3::sort_vector domain(ctx->ctx);
+    for (int i = 0; i < orig_func.arity(); i++) {
+      domain.push_back(orig_func.domain(i));
+    }
+    string new_name = name(func_const->name);
+    func_decl new_func = ctx->ctx.function(new_name.c_str(),
+        domain, orig_func.range());
+
+    z3::expr_vector qvars(ctx->ctx);
+    z3::expr_vector all_eq_parts(ctx->ctx);
+    unordered_map<iden, z3::expr> vars;
+    for (int i = 0; i < orig_func.arity(); i++) {
+      assert(apply != NULL);
+      shared_ptr<Value> arg = apply->args[i];
+      if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
+        expr qvar = ctx->ctx.constant(name(arg_var->name).c_str(), ctx->getSort(arg_var->sort));
+        qvars.push_back(qvar);
+        vars.insert(make_pair(arg_var->name, qvar));
+      } else {
+        expr qvar = ctx->ctx.constant(name("arg").c_str(), domain[i]);
+        qvars.push_back(qvar);
+        all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
+      }
+    }
+
+    unordered_map<iden, z3::func_decl> new_mapping = e->mapping;
+    new_mapping.erase(func_const->name);
+    new_mapping.insert(make_pair(func_const->name, new_func));
+    ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
+
+    z3::expr inner = z3::implies(
+          !z3::mk_and(all_eq_parts),
+          new_func(qvars) == orig_func(qvars));
     z3::expr outer = qvars.size() == 0 ? inner : z3::forall(qvars, inner);
 
     ActionResult ar(shared_ptr<ModelEmbedding>(new_e), outer);
