@@ -595,7 +595,7 @@ int main(int argc, char* argv[]) {
 
   try {
     if (!just_enumeration) {
-      assert(module->templates.size() == 1);
+      //assert(module->templates.size() == 1);
       /*
       vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
           module->templates[0]);

@@ -543,6 +543,8 @@ void log_smtlib(z3::solver& solver) {
 void synth_loop(shared_ptr<Module> module, int arity, int depth,
     Transcript* init_transcript)
 {
+  assert(module->templates.size() == 1);
+
   z3::context ctx;
 
   assert(module->templates.size() == 1);
@@ -672,8 +674,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 {
   z3::context ctx;
 
-  assert(module->templates.size() == 1);
-  TopQuantifierDesc tqd(module->templates[0]);
+  assert(module->templates.size() >= 1);
 
   vector<value> found_invs;
   if (is_invariant_with_conjectures(module, v_true())) {
@@ -691,6 +692,8 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
   vector<pair<Counterexample, value>> cexes;
 
+  int template_idx = 0;
+
   while (true) {
     Benchmarking per_outer_loop_bench;
     per_outer_loop_bench.start("time to infer this invariant");
@@ -701,6 +704,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
     int num_iterations = 0;
 
     SatSolver ss;
+    TopQuantifierDesc tqd(module->templates[template_idx]);
     SketchFormula sf(ss, tqd, module, arity, depth);
     sf.constrain_disj_form();
 
@@ -745,12 +749,17 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       bench.dump();
 
       if (!res) {
-        printf("unable to synthesize any formula\n");
-        goto done;
+        template_idx++;
+        if (template_idx == module->templates.size()) {
+          printf("unable to synthesize any formula\n");
+          goto done;
+        } else {
+          printf("done with this template, new template_idx = %d\n", template_idx);
+        }
       }
 
       value candidate_inner = sf.to_value();
-      value candidate0 = fill_holes_in_value(module->templates[0], {candidate_inner});
+      value candidate0 = fill_holes_in_value(module->templates[template_idx], {candidate_inner});
       printf("candidate: %s\n", candidate0->to_string().c_str());
       value candidate = candidate0->simplify()->reduce_quants();
       printf("simplified: %s\n", candidate->to_string().c_str());
