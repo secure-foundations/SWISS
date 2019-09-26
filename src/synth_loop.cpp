@@ -755,6 +755,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
           goto done;
         } else {
           printf("done with this template, new template_idx = %d\n", template_idx);
+          break;
         }
       }
 
