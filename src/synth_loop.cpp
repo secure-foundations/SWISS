@@ -750,6 +750,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
       if (!res) {
         template_idx++;
+        cexes = {};
         if (template_idx == module->templates.size()) {
           printf("unable to synthesize any formula\n");
           goto done;
