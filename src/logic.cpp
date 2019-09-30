@@ -1283,8 +1283,8 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     Implies* b = dynamic_cast<Implies*>(b_.get());
     assert(b != NULL);
 
-    if (int c = cmp_expr(a->left, a->right, ss_a, ss_b)) return c;
-    return cmp_expr(a->left, a->right, ss_a, ss_b);
+    if (int c = cmp_expr(a->left, b->left, ss_a, ss_b)) return c;
+    return cmp_expr(a->right, b->right, ss_a, ss_b);
   }
 
   if (Apply* a = dynamic_cast<Apply*>(a_.get())) {
