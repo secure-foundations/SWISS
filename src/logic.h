@@ -89,6 +89,8 @@ public:
   virtual std::shared_ptr<Sort> get_sort() const = 0;
   static std::shared_ptr<Value> from_json(json11::Json);
   virtual std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const = 0;
+  virtual std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const = 0;
+  virtual std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const = 0;
   virtual std::shared_ptr<Value> negate() const = 0;
   virtual std::shared_ptr<Value> simplify() const = 0;
   virtual bool uses_var(iden name) const = 0;
@@ -126,6 +128,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -153,6 +157,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -180,6 +186,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -207,6 +215,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -234,6 +244,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -261,6 +273,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -286,6 +300,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -313,6 +329,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -340,6 +358,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -365,6 +385,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -390,6 +412,39 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
+  std::shared_ptr<Value> negate() const override;
+  std::shared_ptr<Value> simplify() const override;
+  bool uses_var(iden name) const override;
+
+  std::shared_ptr<Value> uniquify_vars(std::map<iden, iden> const&) const override;
+  std::shared_ptr<Value> indexify_vars(std::map<iden, iden> const&) const override;
+  std::shared_ptr<Value> structurally_normalize_() const override;
+  std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
+  void get_used_vars(std::set<iden>&) const override;
+
+  int kind_id() const override { return 10; }
+};
+
+class IfThenElse : public Value {
+public:
+  std::shared_ptr<Value> cond;
+  std::shared_ptr<Value> then_value;
+  std::shared_ptr<Value> else_value;
+
+  IfThenElse(
+    std::shared_ptr<Value> cond,
+    std::shared_ptr<Value> then_value,
+    std::shared_ptr<Value> else_value)
+    : cond(cond), then_value(then_value), else_value(else_value) { }
+
+  std::string to_string() const override;
+  json11::Json to_json() const override;
+  std::shared_ptr<Sort> get_sort() const override;
+  std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -410,6 +465,8 @@ public:
   json11::Json to_json() const override;
   std::shared_ptr<Sort> get_sort() const override;
   std::shared_ptr<Value> subst(iden x, std::shared_ptr<Value> e) const override;
+  std::shared_ptr<Value> replace_const_with_var(std::set<iden> const& s) const override;
+  std::shared_ptr<Value> subst_fun(iden func, std::vector<VarDecl> const& decls, std::shared_ptr<Value> body) const override;
   std::shared_ptr<Value> negate() const override;
   std::shared_ptr<Value> simplify() const override;
   bool uses_var(iden name) const override;
@@ -591,6 +648,10 @@ inline value v_or(std::vector<value> const& args) {
   if (args.size() == 1) return args[0];
   return std::shared_ptr<Value>(new Or(args));
 }
+inline value v_if_then_else(value cond, value then_value, value else_value)
+{
+  return std::shared_ptr<Value>(new IfThenElse(cond, then_value, else_value));
+}
 inline value v_template_hole() {
   return std::shared_ptr<Value>(new TemplateHole());
 }
@@ -616,5 +677,7 @@ struct ComparableValue {
     return lt_value(v, other.v);
   }
 };
+
+VarDecl freshVarDecl(lsort sort);
 
 #endif

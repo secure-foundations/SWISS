@@ -213,6 +213,13 @@ z3::expr ModelEmbedding::value2expr(
     }
     return mk_or(args);
   }
+  else if (IfThenElse* value = dynamic_cast<IfThenElse*>(v.get())) {
+    return z3::ite(
+        value2expr(value->cond, consts, vars),
+        value2expr(value->then_value, consts, vars),
+        value2expr(value->else_value, consts, vars)
+      );
+  }
   else {
     //printf("value2expr got: %s\n", v->to_string().c_str());
     assert(false && "value2expr does not support this case");

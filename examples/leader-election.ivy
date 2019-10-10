@@ -54,13 +54,15 @@ export receive
 
 # safety property
 conjecture ~(leader(N) & leader(M) & N ~= M)
-#conjecture ~(leader(N) & leader(M))
 
 # other invariants
 #conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & le(nid(N), nid(M)))
 #conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & le(nid(N), nid(M)))
 #conjecture ~(btw(N,M,O) & pnd(nid(M),N) & le(nid(M), nid(O)))
 #conjecture ~(le(nid(Q), nid(P)) & pnd(nid(Q),N) & btw(N,Q,P))
+
+# if this this conjecutre is C, then `C and wpr(C)` is inductive:
+#conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & le(nid(N), nid(M))) & ~(btw(N,M,O) & pnd(nid(M),N) & le(nid(M), nid(O)))
 
 
 #conjecture ~(~le(nid(P), nid(Q)) & pnd(nid(Q),N) & ~pnd(nid(Q),P) & ~btw(N,P,Q))

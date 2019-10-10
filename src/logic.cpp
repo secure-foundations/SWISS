@@ -291,6 +291,10 @@ Json Implies::to_json() const {
   return Json(vector<Json>{Json("implies"), left->to_json(), right->to_json()});
 }
 
+Json IfThenElse::to_json() const {
+  return Json(vector<Json>{Json("ite"), cond->to_json(), then_value->to_json(), else_value->to_json()});
+}
+
 Json Eq::to_json() const {
   return Json(vector<Json>{Json("eq"), left->to_json(), right->to_json()});
 }
@@ -421,6 +425,10 @@ string Or::to_string() const {
   return res;
 }
 
+string IfThenElse::to_string() const {
+  return cond->to_string() + " ? " + then_value->to_string() + " : " + else_value->to_string();
+}
+
 string Apply::to_string() const {
   string res = func->to_string() + "(";
   for (int i = 0; i < args.size(); i++) {
@@ -443,6 +451,7 @@ lsort NearlyForall::get_sort() const { return bsort; }
 lsort Exists::get_sort() const { return bsort; }
 lsort Var::get_sort() const { return sort; }
 lsort Const::get_sort() const { return sort; }
+lsort IfThenElse::get_sort() const { return then_value->get_sort(); }
 lsort Eq::get_sort() const { return bsort; }
 lsort Not::get_sort() const { return bsort; }
 lsort Implies::get_sort() const { return bsort; }
@@ -491,6 +500,10 @@ value Implies::subst(iden x, value e) const {
   return v_implies(left->subst(x, e), right->subst(x, e));
 }
 
+value IfThenElse::subst(iden x, value e) const {
+  return v_if_then_else(cond->subst(x, e), then_value->subst(x, e), else_value->subst(x, e));
+}
+
 value Apply::subst(iden x, value e) const {
   vector<value> new_args;
   for (value const& arg : args) {
@@ -518,6 +531,92 @@ value Or::subst(iden x, value e) const {
 value TemplateHole::subst(iden x, value e) const {
   return v_template_hole();
 }
+
+value Forall::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_forall(decls, body->subst_fun(func, d, e)); 
+}
+
+value NearlyForall::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_nearlyforall(decls, body->subst_fun(func, d, e)); 
+}
+
+value Exists::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_exists(decls, body->subst_fun(func, d, e)); 
+}
+
+value Var::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_var(name, sort);
+}
+
+value Const::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  assert(name != func && "not sure if this will happen");
+  return v_const(name, sort);
+}
+
+value Eq::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_eq(
+    left->subst_fun(func, d, e),
+    right->subst_fun(func, d, e));
+}
+
+value Not::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_not(
+    val->subst_fun(func, d, e));
+}
+
+value Implies::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_implies(
+    left->subst_fun(func, d, e),
+    right->subst_fun(func, d, e));
+}
+
+value Apply::subst_fun(iden f, vector<VarDecl> const& d, value e) const {
+  vector<value> new_args;
+  for (value v : args) {
+    new_args.push_back(v->subst_fun(f, d, e));
+  }
+
+  Const* c = dynamic_cast<Const*>(func.get());
+  assert (c != NULL);
+  if (c->name == f) {
+    value res = e;
+    assert (d.size() == args.size());
+    for (int i = 0; i < d.size(); i++) {
+      res = res->subst(d[i].name, args[i]);
+    }
+    return res;
+  } else {
+    return v_apply(func, new_args);
+  }
+}
+
+value And::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  vector<value> new_args;
+  for (value v : args) {
+    new_args.push_back(v->subst_fun(func, d, e));
+  }
+  return v_and(new_args);
+}
+
+value Or::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  vector<value> new_args;
+  for (value v : args) {
+    new_args.push_back(v->subst_fun(func, d, e));
+  }
+  return v_or(new_args);
+}
+
+value IfThenElse::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  return v_if_then_else(
+    cond->subst_fun(func, d, e),
+    then_value->subst_fun(func, d, e),
+    else_value->subst_fun(func, d, e));
+}
+
+value TemplateHole::subst_fun(iden func, vector<VarDecl> const& d, value e) const {
+  assert(false);
+}
+
 
 value Forall::negate() const {
   return v_exists(decls, body->negate());
@@ -549,6 +648,10 @@ value Not::negate() const {
 
 value Implies::negate() const {
   return v_and({left, right->negate()});
+}
+
+value IfThenElse::negate() const {
+  return v_if_then_else(cond, then_value->negate(), else_value->negate());
 }
 
 value Apply::negate() const {
@@ -583,6 +686,7 @@ bool Const::uses_var(iden name) const { return false; }
 bool Not::uses_var(iden name) const { return val->uses_var(name); }
 bool Eq::uses_var(iden name) const { return left->uses_var(name) || right->uses_var(name); }
 bool Implies::uses_var(iden name) const { return left->uses_var(name) || right->uses_var(name); }
+bool IfThenElse::uses_var(iden name) const { return cond->uses_var(name) || then_value->uses_var(name) || else_value->uses_var(name); }
 bool And::uses_var(iden name) const {
   for (value arg : args) {
     if (arg->uses_var(name)) return true;
@@ -640,6 +744,10 @@ value Not::simplify() const {
 
 value Implies::simplify() const {
   return v_or({v_not(left), right})->simplify();
+}
+
+value IfThenElse::simplify() const {
+  assert(false && "not impl");
 }
 
 bool is_const_true(value v) {
@@ -781,6 +889,10 @@ value Not::uniquify_vars(map<iden, iden> const& m) const {
 
 value Implies::uniquify_vars(map<iden, iden> const& m) const {
   return v_implies(left->uniquify_vars(m), right->uniquify_vars(m));
+}
+
+value IfThenElse::uniquify_vars(map<iden, iden> const& m) const {
+  return v_if_then_else(cond->uniquify_vars(m), then_value->uniquify_vars(m), else_value->uniquify_vars(m));
 }
 
 value Apply::uniquify_vars(map<iden, iden> const& m) const {
@@ -956,6 +1068,10 @@ value Or::structurally_normalize_() const {
   return structurally_normalize_and_or_or(this);
 }
 
+value IfThenElse::structurally_normalize_() const {
+  assert(false && "unimplemented");
+}
+
 value TemplateHole::structurally_normalize_() const {
   return v_template_hole();
 }
@@ -1126,6 +1242,10 @@ value Var::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used
 
 value Const::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
   return v_const(name, sort);
+}
+
+value IfThenElse::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
+  assert(false);
 }
 
 value Eq::normalize_symmetries(ScopeState const& ss, set<iden> const& vars_used) const {
@@ -1680,6 +1800,10 @@ value Or::indexify_vars(map<iden, iden> const& m) const {
   return v_or(move(new_args));
 }
 
+value IfThenElse::indexify_vars(map<iden, iden> const& m) const {
+  return v_if_then_else(cond->indexify_vars(m), then_value->indexify_vars(m), else_value->indexify_vars(m));
+}
+
 value TemplateHole::indexify_vars(map<iden, iden> const& m) const {
   return v_template_hole();
 }
@@ -1725,6 +1849,12 @@ void Or::get_used_vars(set<iden>& s) const {
     arg->get_used_vars(s);
   }
 }
+void IfThenElse::get_used_vars(set<iden>& s) const {
+  cond->get_used_vars(s);
+  then_value->get_used_vars(s);
+  else_value->get_used_vars(s);
+}
+
 void TemplateHole::get_used_vars(set<iden>& s) const {
 }
 
@@ -2009,4 +2139,81 @@ value factor_quants(value v) {
 
 value Value::reduce_quants() const {
   return factor_quants(remove_unneeded_quants(this));
+}
+
+int freshVarDeclCounter = 0;
+
+VarDecl freshVarDecl(lsort sort) {
+  string name = "_freshVarDecl_" + to_string(freshVarDeclCounter);
+  freshVarDeclCounter++;
+  return VarDecl(string_to_iden(name), sort);
+}
+
+value Forall::replace_const_with_var(set<iden> const& x) const {
+  return v_forall(decls, body->replace_const_with_var(x)); 
+}
+
+value NearlyForall::replace_const_with_var(set<iden> const& x) const {
+  return v_nearlyforall(decls, body->replace_const_with_var(x)); 
+}
+
+value Exists::replace_const_with_var(set<iden> const& x) const {
+  return v_exists(decls, body->replace_const_with_var(x)); 
+}
+
+value Var::replace_const_with_var(set<iden> const& x) const {
+  return v_var(name, sort);
+}
+
+value Const::replace_const_with_var(set<iden> const& x) const {
+  auto it = x.find(name);
+  if (it == x.end()) {
+    return v_const(name, sort);
+  } else {
+    return v_var(name, sort);
+  }
+}
+
+value Eq::replace_const_with_var(set<iden> const& x) const {
+  return v_eq(left->replace_const_with_var(x), right->replace_const_with_var(x));
+}
+
+value Not::replace_const_with_var(set<iden> const& x) const {
+  return v_not(this->val->replace_const_with_var(x));
+}
+
+value Implies::replace_const_with_var(set<iden> const& x) const {
+  return v_implies(left->replace_const_with_var(x), right->replace_const_with_var(x));
+}
+
+value IfThenElse::replace_const_with_var(set<iden> const& x) const {
+  return v_if_then_else(cond->replace_const_with_var(x), then_value->replace_const_with_var(x), else_value->replace_const_with_var(x));
+}
+
+value Apply::replace_const_with_var(set<iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_const_with_var(x));
+  }
+  return v_apply(func->replace_const_with_var(x), move(new_args));
+}
+
+value And::replace_const_with_var(set<iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_const_with_var(x));
+  }
+  return v_and(move(new_args));
+}
+
+value Or::replace_const_with_var(set<iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_const_with_var(x));
+  }
+  return v_or(move(new_args));
+}
+
+value TemplateHole::replace_const_with_var(set<iden> const& x) const {
+  return v_template_hole();
 }

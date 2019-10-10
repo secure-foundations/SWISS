@@ -18,6 +18,7 @@ OBJECTS = $(addprefix bin/,\
 	strengthen_invariant.o \
 	sat_solver.o \
 	model_isomorphisms.o \
+	wpr.o \
 	lib/json11/json11.o \
 )
 

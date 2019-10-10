@@ -10,6 +10,7 @@
 #include "progress_bar.h"
 #include "synth_loop.h"
 #include "sat_solver.h"
+#include "wpr.h"
 
 #include <iostream>
 #include <iterator>
@@ -518,6 +519,21 @@ void try_to_add_invariants(
   return;
 }
 
+void print_wpr(shared_ptr<Module> module, int count)
+{
+  shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
+  value conj = v_and(module->conjectures);
+  cout << "conjecture: " << conj->to_string() << endl;
+  value w = wpr(conj, action);
+  cout << "wpr: " << w->to_string() << endl;
+
+  if (is_itself_invariant(module, {conj, w})) {
+    printf("yes\n");
+  } else{
+    printf("no\n");
+  }
+}
+
 int run_id;
 
 int main(int argc, char* argv[]) {
@@ -558,6 +574,8 @@ int main(int argc, char* argv[]) {
   int seed = 1234;
   bool check_inductiveness = false;
   bool incremental = false;
+  bool wpr = false;
+  int wpr_index = 0;
   for (int i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);
@@ -565,6 +583,13 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--seed")) {
       assert(i + 1 < argc);
       seed = atoi(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--wpr")) {
+      assert(i + 1 < argc);
+      wpr_index = atoi(argv[i+1]);
+      wpr = true;
+      i++;
     }
     else if (argv[i] == string("--check-inductiveness")) {
       check_inductiveness = true;
@@ -572,6 +597,11 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--incremental")) {
       incremental = true;
     }
+  }
+
+  if (wpr) {
+    print_wpr(module, wpr_index);
+    return 0;
   }
 
   if (check_inductiveness) {
