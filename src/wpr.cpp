@@ -7,12 +7,15 @@ using namespace std;
 value wpr(value v, shared_ptr<Action> a)
 {
   if (LocalAction* action = dynamic_cast<LocalAction*>(a.get())) {
-    set<iden> newLocals;
+    map<iden, iden> newLocals;
+    vector<VarDecl> forallDecls;
     for (auto arg : action->args) {
-      newLocals.insert(arg.name);
+      VarDecl d = freshVarDecl(arg.sort);
+      newLocals.insert(make_pair(arg.name, d.name));
+      forallDecls.push_back(d);
     }
 
-    return v_forall(action->args, wpr(v, action->body)->replace_const_with_var(newLocals));
+    return v_forall(forallDecls, wpr(v, action->body)->replace_const_with_var(newLocals));
   }
   else if (SequenceAction* action = dynamic_cast<SequenceAction*>(a.get())) {
     for (int i = action->actions.size() - 1; i >= 0; i--) {

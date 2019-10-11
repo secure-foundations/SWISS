@@ -746,10 +746,6 @@ value Implies::simplify() const {
   return v_or({v_not(left), right})->simplify();
 }
 
-value IfThenElse::simplify() const {
-  assert(false && "not impl");
-}
-
 bool is_const_true(value v) {
   And* a = dynamic_cast<And*>(v.get());
   return a != NULL && a->args.size() == 0;
@@ -824,6 +820,43 @@ value Or::simplify() const {
 
   value res = a.size() == 1 ? a[0] : v_or(a);
   return res;
+}
+
+value IfThenElse::simplify() const {
+  value c = cond->simplify();
+  value a = then_value->simplify();
+  value b = else_value->simplify();
+
+  if (is_const_true(c)) return a;
+  if (is_const_false(c)) return b;
+
+  if (is_const_true(a)) {
+    if (is_const_true(b)) {
+      return v_true();
+    } else if (is_const_false(b)) {
+      return c;
+    } else {
+      return v_or({c, b});
+    }
+  }
+  else if (is_const_false(a)) {
+    if (is_const_true(b)) {
+      return c->negate();
+    } else if (is_const_false(b)) {
+      return v_false();
+    } else {
+      return v_and({c->negate(), b});
+    }
+  }
+  else {
+    if (is_const_true(b)) {
+      return v_or({c->negate(), a});
+    } else if (is_const_false(b)) {
+      return v_and({c, a});
+    } else {
+      return v_if_then_else(c, a, b);
+    }
+  }
 }
 
 value Apply::simplify() const {
@@ -2149,48 +2182,48 @@ VarDecl freshVarDecl(lsort sort) {
   return VarDecl(string_to_iden(name), sort);
 }
 
-value Forall::replace_const_with_var(set<iden> const& x) const {
+value Forall::replace_const_with_var(map<iden, iden> const& x) const {
   return v_forall(decls, body->replace_const_with_var(x)); 
 }
 
-value NearlyForall::replace_const_with_var(set<iden> const& x) const {
+value NearlyForall::replace_const_with_var(map<iden, iden> const& x) const {
   return v_nearlyforall(decls, body->replace_const_with_var(x)); 
 }
 
-value Exists::replace_const_with_var(set<iden> const& x) const {
+value Exists::replace_const_with_var(map<iden, iden> const& x) const {
   return v_exists(decls, body->replace_const_with_var(x)); 
 }
 
-value Var::replace_const_with_var(set<iden> const& x) const {
+value Var::replace_const_with_var(map<iden, iden> const& x) const {
   return v_var(name, sort);
 }
 
-value Const::replace_const_with_var(set<iden> const& x) const {
+value Const::replace_const_with_var(map<iden, iden> const& x) const {
   auto it = x.find(name);
-  if (it == x.end()) {
-    return v_const(name, sort);
+  if (it != x.end()) {
+    return v_var(it->second, sort);
   } else {
-    return v_var(name, sort);
+    return v_const(name, sort);
   }
 }
 
-value Eq::replace_const_with_var(set<iden> const& x) const {
+value Eq::replace_const_with_var(map<iden, iden> const& x) const {
   return v_eq(left->replace_const_with_var(x), right->replace_const_with_var(x));
 }
 
-value Not::replace_const_with_var(set<iden> const& x) const {
+value Not::replace_const_with_var(map<iden, iden> const& x) const {
   return v_not(this->val->replace_const_with_var(x));
 }
 
-value Implies::replace_const_with_var(set<iden> const& x) const {
+value Implies::replace_const_with_var(map<iden, iden> const& x) const {
   return v_implies(left->replace_const_with_var(x), right->replace_const_with_var(x));
 }
 
-value IfThenElse::replace_const_with_var(set<iden> const& x) const {
+value IfThenElse::replace_const_with_var(map<iden, iden> const& x) const {
   return v_if_then_else(cond->replace_const_with_var(x), then_value->replace_const_with_var(x), else_value->replace_const_with_var(x));
 }
 
-value Apply::replace_const_with_var(set<iden> const& x) const {
+value Apply::replace_const_with_var(map<iden, iden> const& x) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->replace_const_with_var(x));
@@ -2198,7 +2231,7 @@ value Apply::replace_const_with_var(set<iden> const& x) const {
   return v_apply(func->replace_const_with_var(x), move(new_args));
 }
 
-value And::replace_const_with_var(set<iden> const& x) const {
+value And::replace_const_with_var(map<iden, iden> const& x) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->replace_const_with_var(x));
@@ -2206,7 +2239,7 @@ value And::replace_const_with_var(set<iden> const& x) const {
   return v_and(move(new_args));
 }
 
-value Or::replace_const_with_var(set<iden> const& x) const {
+value Or::replace_const_with_var(map<iden, iden> const& x) const {
   vector<value> new_args;
   for (value const& arg : args) {
     new_args.push_back(arg->replace_const_with_var(x));
@@ -2214,6 +2247,6 @@ value Or::replace_const_with_var(set<iden> const& x) const {
   return v_or(move(new_args));
 }
 
-value TemplateHole::replace_const_with_var(set<iden> const& x) const {
+value TemplateHole::replace_const_with_var(map<iden, iden> const& x) const {
   return v_template_hole();
 }

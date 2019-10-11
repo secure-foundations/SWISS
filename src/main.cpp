@@ -524,10 +524,19 @@ void print_wpr(shared_ptr<Module> module, int count)
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
   value conj = v_and(module->conjectures);
   cout << "conjecture: " << conj->to_string() << endl;
-  value w = wpr(conj, action);
+
+  vector<value> all_conjs;
+
+  value w = conj;
+  all_conjs.push_back(w);
+  for (int i = 0; i < count; i++) {
+    w = wpr(w, action)->simplify();
+    all_conjs.push_back(w);
+  }
+
   cout << "wpr: " << w->to_string() << endl;
 
-  if (is_itself_invariant(module, {conj, w})) {
+  if (is_itself_invariant(module, all_conjs)) {
     printf("yes\n");
   } else{
     printf("no\n");

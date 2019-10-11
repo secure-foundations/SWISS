@@ -20,7 +20,8 @@ enum class EvalExprType {
   Implies,
   Apply,
   And,
-  Or
+  Or,
+  IfThenElse
 };
 
 struct EvalExpr {
@@ -156,6 +157,12 @@ EvalExpr Model::value_to_eval_expr(
       ee.args.push_back(value_to_eval_expr(arg, names));
     }
   }
+  else if (IfThenElse* value = dynamic_cast<IfThenElse*>(v.get())) {
+    ee.type = EvalExprType::IfThenElse;
+    ee.args.push_back(value_to_eval_expr(value->cond, names));
+    ee.args.push_back(value_to_eval_expr(value->then_value, names));
+    ee.args.push_back(value_to_eval_expr(value->else_value, names));
+  }
   else {
     assert(false && "value2eval_expr does not support this case");
   }
@@ -284,6 +291,13 @@ object_value eval(EvalExpr const& ee, int* var_values) {
         }
       }
       return 0;
+
+    case EvalExprType::IfThenElse:
+      if (eval(ee.args[0], var_values)) {
+        return eval(ee.args[1], var_values);
+      } else {
+        return eval(ee.args[2], var_values);
+      }
   }
 }
 
