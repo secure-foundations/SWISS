@@ -674,12 +674,12 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
         m1->dump();
         m2->dump();*/
 
-        /*auto m = Model::extract_minimal_models_from_z3(
+        auto m = Model::extract_minimal_models_from_z3(
             indctx.ctx->ctx,
             solver, module, {indctx.e1, indctx.e2}, nullptr);
         m[0]->dump();
         m[1]->dump();
-        cout << "hey " << m[0]->eval_predicate(candidates[2]) << endl;*/
+        cout << "hey " << m[0]->eval_predicate(candidates[2]) << endl;
 
         return false;
       }
