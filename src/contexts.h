@@ -67,6 +67,14 @@ public:
   InductionContext(z3::context& ctx, std::shared_ptr<Module> module);
 };
 
+class ChainContext {
+public:
+  std::shared_ptr<BackgroundContext> ctx;
+  std::vector<std::shared_ptr<ModelEmbedding>> es;
+
+  ChainContext(z3::context& ctx, std::shared_ptr<Module> module, int numTransitions);
+};
+
 class BasicContext {
 public:
   std::shared_ptr<BackgroundContext> ctx;
@@ -118,8 +126,14 @@ ActionResult applyAction(
     std::unordered_map<iden, z3::expr> const& consts);
 
 bool is_complete_invariant(std::shared_ptr<Module>, value);
+
 bool is_itself_invariant(std::shared_ptr<Module>, value);
 bool is_itself_invariant(std::shared_ptr<Module>, std::vector<value>);
+
+// Check if wpr^n(value) is inductive (no init check)
+// Here, wpr includes the 'empty action'.
+bool is_wpr_itself_inductive(std::shared_ptr<Module>, value, int wprIter);
+
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, value);
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, std::vector<value>);
 

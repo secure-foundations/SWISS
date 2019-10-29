@@ -536,7 +536,8 @@ void print_wpr(shared_ptr<Module> module, int count)
 
   cout << "wpr: " << w->to_string() << endl;
 
-  if (is_itself_invariant(module, all_conjs)) {
+  //if (is_itself_invariant(module, all_conjs)) {
+  if (is_wpr_itself_inductive(module, conj, count)) {
     printf("yes\n");
   } else{
     printf("no\n");

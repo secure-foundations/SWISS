@@ -1,5 +1,6 @@
 #include "contexts.h"
 #include "model.h"
+#include "wpr.h"
 
 #include <cstdlib>
 
@@ -250,6 +251,36 @@ InductionContext::InductionContext(
     ctx->solver.add(this->e1->value2expr(axiom, {}));
   }
 }
+
+/*
+ * ChainContext
+ */
+
+ChainContext::ChainContext(
+    z3::context& z3ctx,
+    std::shared_ptr<Module> module,
+    int numTransitions)
+    : ctx(new BackgroundContext(z3ctx, module))
+{
+  this->es.resize(numTransitions + 1);
+  this->es[0] = ModelEmbedding::makeEmbedding(ctx, module);
+
+  shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
+
+  for (int i = 0; i < numTransitions; i++) {
+    ActionResult res = applyAction(this->es[i], action, {});
+    this->es[i+1] = res.e;
+
+    // Add the relation between the two states
+    ctx->solver.add(res.constraint);
+  }
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->es[0]->value2expr(axiom, {}));
+  }
+}
+
 
 ActionResult do_if_else(
     shared_ptr<ModelEmbedding> e,
@@ -683,6 +714,34 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
 
         return false;
       }
+    }
+  }
+
+  return true;
+}
+
+bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wprIter) {
+  z3::context ctx;
+
+  shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
+
+  value wpr_candidate = candidate;
+  for (int j = 0; j < wprIter; j++) {
+    wpr_candidate = wpr(wpr_candidate, action)->simplify();
+  }
+
+  for (int i = 1; i <= wprIter + 1; i++) {
+    cout << "is_wpr_itself_inductive: " << i << endl;
+
+    ChainContext chainctx(ctx, module, i);
+    z3::solver& solver = chainctx.ctx->solver;
+
+    solver.add(chainctx.es[0]->value2expr(wpr_candidate));
+    solver.add(chainctx.es[i]->value2expr(v_not(candidate)));
+    z3::check_result res = solver.check();
+    assert (res == z3::sat || res == z3::unsat);
+    if (res == z3::sat) {
+      return false;
     }
   }
 
