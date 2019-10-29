@@ -19,6 +19,7 @@ OBJECTS = $(addprefix bin/,\
 	sat_solver.o \
 	model_isomorphisms.o \
 	wpr.o \
+	filter.o \
 	lib/json11/json11.o \
 )
 

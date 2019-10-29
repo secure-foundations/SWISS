@@ -16,6 +16,7 @@
 #include "quantifier_permutations.h"
 #include "top_quantifier_desc.h"
 #include "strengthen_invariant.h"
+#include "filter.h"
 
 using namespace std;
 using namespace json11;
@@ -676,6 +677,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
   assert(module->templates.size() >= 1);
 
+  vector<value> all_found_invs;
   vector<value> found_invs;
   if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
@@ -793,12 +795,19 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
         bench_strengthen.dump();
 
         found_invs.push_back(simplified_inv);
+        all_found_invs.push_back(simplified_inv);
 
         printf("\nfound new invariant! all so far:\n");
         for (value found_inv : found_invs) {
           printf("    %s\n", found_inv->to_string().c_str());
         }
-        printf("num found so far: %d\n", (int)found_invs.size());
+        found_invs = filter_redundant_formulas(module, found_invs);
+        printf("\nfiltered:\n");
+        for (value found_inv : found_invs) {
+          printf("    %s\n", found_inv->to_string().c_str());
+        }
+        printf("num found so far:   %d\n", (int)found_invs.size());
+        printf("TODAL found so far: %d\n", (int)all_found_invs.size());
 
         per_inner_loop_bench.end();
         per_inner_loop_bench.dump();
