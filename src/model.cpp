@@ -589,7 +589,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
   bool try_hint_sizes = false;
   vector<int> hint_sizes;
   if (hint) {
-    printf("hint: %s\n", hint->to_string().c_str());
+    //printf("hint: %s\n", hint->to_string().c_str());
     TopQuantifierDesc tqd(hint);
     for (string sort : sorts) {
       int sz = tqd.weighted_sort_count(sort);
@@ -619,7 +619,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       new_sizes[sort_idx] = sz_to_try;
     }
 
-    printf("trying sizes: "); for (int k : new_sizes) printf("%d ", k); printf("\n");
+    //printf("trying sizes: "); for (int k : new_sizes) printf("%d ", k); printf("\n");
 
     solver.push();
 
