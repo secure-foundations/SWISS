@@ -680,4 +680,6 @@ struct ComparableValue {
 
 VarDecl freshVarDecl(lsort sort);
 
+std::vector<value> aggressively_split_into_conjuncts(value);
+
 #endif

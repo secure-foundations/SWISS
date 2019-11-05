@@ -2250,3 +2250,118 @@ value Or::replace_const_with_var(map<iden, iden> const& x) const {
 value TemplateHole::replace_const_with_var(map<iden, iden> const& x) const {
   return v_template_hole();
 }
+
+template <typename A>
+vector<A> concat_vector(vector<A> const& a, vector<A> const& b) {
+  vector<A> res = a;
+  for (A const& x : b) {
+    res.push_back(x);
+  }
+  return res;
+}
+
+template <typename A>
+void append_vector(vector<A>& a, vector<A> const& b) {
+  for (A const& x : b) {
+    a.push_back(x);
+  }
+}
+
+
+vector<value> aggressively_split_into_conjuncts(value v)
+{
+  assert(v.get() != NULL);
+  if (Forall* val = dynamic_cast<Forall*>(v.get())) {
+    vector<value> vs = aggressively_split_into_conjuncts(val->body);
+    vector<value> res;
+    for (int i = 0; i < vs.size(); i++) {
+      res.push_back(v_forall(val->decls, vs[i]));
+    }
+    return res;
+  }
+  else if (Exists* val = dynamic_cast<Exists*>(v.get())) {
+    return {v};
+  }
+  else if (NearlyForall* val = dynamic_cast<NearlyForall*>(v.get())) {
+    return {v};
+  }
+  else if (Var* val = dynamic_cast<Var*>(v.get())) {
+    return {v};
+  }
+  else if (Const* val = dynamic_cast<Const*>(v.get())) {
+    return {v};
+  }
+  else if (Eq* val = dynamic_cast<Eq*>(v.get())) {
+    return {v};
+  }
+  else if (Not* val = dynamic_cast<Not*>(v.get())) {
+    value w = val->val->negate();
+    vector<value> res;
+    if (dynamic_cast<Not*>(w.get())) {
+      res = {w};
+    } else {
+      res = aggressively_split_into_conjuncts(w);
+    }
+    return res;
+  }
+  else if (Implies* val = dynamic_cast<Implies*>(v.get())) {
+    return aggressively_split_into_conjuncts(v_or({v_not(val->left), val->right}));
+  }
+  else if (Apply* val = dynamic_cast<Apply*>(v.get())) {
+    return {v};
+  }
+  else if (And* val = dynamic_cast<And*>(v.get())) {
+    vector<value> res;
+    for (value c : val->args) {
+      append_vector(res, aggressively_split_into_conjuncts(c));
+    }
+    return res;
+  }
+  else if (Or* val = dynamic_cast<Or*>(v.get())) {
+    vector<vector<value>> a;
+    vector<int> inds;
+    for (value c : val->args) {
+      a.push_back(aggressively_split_into_conjuncts(c));
+      inds.push_back(0);
+
+      if (a[a.size() - 1].size() == 0) {
+        return {};
+      }
+    }
+    vector<value> res;
+    while (true) {
+      vector<value> ors;
+      for (int i = 0; i < inds.size(); i++) {
+        ors.push_back(a[i][inds[i]]);
+      }
+      res.push_back(v_or(ors));
+
+      int i;
+      for (i = 0; i < inds.size(); i++) {
+        inds[i]++;
+        if (inds[i] == a[i].size()) {
+          inds[i] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == inds.size()) {
+        break;
+      }
+    }
+    cout << "v: " << v->to_string() << endl;
+    for (value r : res) {
+      cout << "res: " << r->to_string() << endl;
+    }
+    return res;
+  }
+  else if (IfThenElse* val = dynamic_cast<IfThenElse*>(v.get())) {
+    return concat_vector(
+      aggressively_split_into_conjuncts(v_implies(val->cond, val->then_value)),
+      aggressively_split_into_conjuncts(v_implies(v_not(val->cond), val->else_value))
+    );
+  }
+  else {
+    assert(false && "aggressively_split_into_conjuncts does not support this case");
+  }
+}

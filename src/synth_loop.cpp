@@ -17,30 +17,10 @@
 #include "top_quantifier_desc.h"
 #include "strengthen_invariant.h"
 #include "filter.h"
+#include "synth_enumerator.h"
 
 using namespace std;
 using namespace json11;
-
-#define DO_FORALL_PRUNING true
-
-struct Counterexample {
-  // is_true
-  shared_ptr<Model> is_true;
-
-  // not (is_false)
-  shared_ptr<Model> is_false;
-
-  // hypothesis ==> conclusion
-  shared_ptr<Model> hypothesis;
-  shared_ptr<Model> conclusion;
-
-  bool none;
-
-  Counterexample() : none(false) { }
-
-  Json to_json() const;
-  static Counterexample from_json(Json, shared_ptr<Module>);
-};
 
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
@@ -283,105 +263,6 @@ Counterexample get_counterexample(
   return cex;
 }
 
-sat_expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
-    bool do_true) {
-  assert(false && "not implement with NearlyForall in mind");
-
-  vector<VarDecl> quantifiers = sf.free_vars;
-  vector<size_t> domain_sizes;
-  for (VarDecl const& decl : quantifiers) {
-    domain_sizes.push_back(model->get_domain_size(decl.sort));
-  }
-  vector<sat_expr> vec;
-  
-  vector<object_value> args;
-  args.resize(domain_sizes.size());
-  while (true) {
-    sat_expr e = sf.interpret(model, args, do_true);
-
-    int i;
-    for (i = 0; i < domain_sizes.size(); i++) {
-      args[i]++;
-      if (args[i] == domain_sizes[i]) {
-        args[i] = 0;
-      } else {
-        break;
-      }
-    }
-    if (i == domain_sizes.size()) {
-      break;
-    }
-  }
-
-  return do_true ? sat_and(vec) : sat_or(vec);
-}
-
-sat_expr assert_true_for_some_qs(
-    shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
-    value candidate) {
-  vector<QuantifierInstantiation> qis;
-  bool evals_true = get_multiqi_counterexample(model, candidate, qis);
-  assert(!evals_true);
-  assert(qis.size() > 0);
-
-  vector<sat_expr> vec;
-
-  vector<vector<object_value>> variable_values;
-  for (QuantifierInstantiation& qi : qis) {
-    variable_values.push_back(qi.variable_values);
-  }
-  vector<vector<vector<object_value>>> all_perms = get_multiqi_quantifier_permutations(
-      sf.tqd, variable_values);
-
-  //printf("using %d instantiations\n", (int)all_perms.size());
-
-  for (vector<vector<object_value>> const& ovs_many : all_perms) {
-    vector<sat_expr> one_is_true;
-    for (vector<object_value> const& ovs : ovs_many) {
-      one_is_true.push_back(sf.interpret(model, ovs, true));
-    }
-    vec.push_back(sat_or(one_is_true));
-  }
-
-  return sat_and(vec);
-}
-
-
-sat_expr is_true(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
-    value candidate) {
-  if (DO_FORALL_PRUNING) {
-    return assert_true_for_some_qs(module, sf, model, candidate);
-  } else {
-    return is_something(module, sf, model, true);
-  }
-}
-
-sat_expr is_false(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model) {
-  //return is_something(module, sf, model, false);
-  return sf.interpret_not(model);
-}
-
-void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexample cex,
-      value candidate)
-{
-  if (cex.is_true) {
-    sf.solver.add(is_true(module, sf, cex.is_true, candidate));
-  }
-  else if (cex.is_false) {
-    sf.solver.add(is_false(module, sf, cex.is_false));
-  }
-  else if (cex.hypothesis && cex.conclusion) {
-    //cex.hypothesis->dump();
-    //cex.conclusion->dump();
-    vector<sat_expr> vec;
-    vec.push_back(is_false(module, sf, cex.hypothesis));
-    vec.push_back(is_true(module, sf, cex.conclusion, candidate));
-    sf.solver.add(sat_or(vec));
-  }
-  else {
-    assert(false);
-  }
-}
 
 void cex_stats(Counterexample cex) {
   shared_ptr<Model> model;
@@ -541,19 +422,11 @@ void log_smtlib(z3::solver& solver) {
 }
 */
 
-void synth_loop(shared_ptr<Module> module, int arity, int depth,
-    Transcript* init_transcript)
+void synth_loop(shared_ptr<Module> module, Options const& options)
 {
   assert(module->templates.size() == 1);
 
   z3::context ctx;
-
-  assert(module->templates.size() == 1);
-  TopQuantifierDesc tqd(module->templates[0]);
-
-  SatSolver ss;
-  SketchFormula sf(ss, tqd, module, arity, depth);
-  sf.constrain_conj_disj_form();
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -562,7 +435,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
 
   int num_iterations = 0;
 
-  if (init_transcript) {
+  /*if (init_transcript) {
     printf("using init_transcript with %d entries\n", (int)init_transcript->entries.size());
     for (auto p : init_transcript->entries) {
       Counterexample cex = p.first;
@@ -570,11 +443,13 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
       add_counterexample(module, sf, cex, candidate);
     }
     printf("done\n");
-  }
+  }*/
 
   Benchmarking total_bench;
   Transcript transcript;
 
+  shared_ptr<CandidateSolver> cs
+      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, false));
 
   while (true) {
     num_iterations++;
@@ -582,28 +457,14 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     printf("\n");
 
     //log_smtlib(solver_sf);
-    printf("number of boolean variables: %d\n", sf.get_bool_count());
+    //printf("number of boolean variables: %d\n", sf.get_bool_count());
     std::cout.flush();
 
-    //cout << solver << "\n";
-    Benchmarking bench;
-    bench.start("solver (" + to_string(num_iterations) + ")");
-    total_bench.start("total solver time");
-    bool res = ss.is_sat();
-    bench.end();
-    total_bench.end();
-    bench.dump();
-
-    if (!res) {
+    value candidate = cs->getNext();
+    if (!candidate) {
       printf("unable to synthesize any formula\n");
       break;
     }
-
-    value candidate_inner = sf.to_value();
-    value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
-    printf("candidate: %s\n", candidate->to_string().c_str());
-    candidate = candidate->simplify();
-    printf("simplified: %s\n", candidate->to_string().c_str());
 
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
@@ -625,7 +486,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
     }
 
     cex_stats(cex);
-    add_counterexample(module, sf, cex, candidate);
+    cs->addCounterexample(cex, candidate);
     transcript.entries.push_back(make_pair(cex, candidate));
   }
 
@@ -633,7 +494,7 @@ void synth_loop(shared_ptr<Module> module, int arity, int depth,
   total_bench.dump();
 }
 
-void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
+/*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
 {
   string filename = "../../ms";
   ifstream t(filename);
@@ -654,24 +515,9 @@ void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
 
   bench.end();
   bench.dump();
-}
+}*/
 
-vector<pair<Counterexample, value>> filter_unneeded_cexes(
-    vector<pair<Counterexample, value>> const& cexes,
-    value invariant_so_far)
-{
-  vector<pair<Counterexample, value>> res;
-  for (auto p : cexes) {
-    Counterexample cex = p.first;
-    if (cex.is_true ||
-        (cex.hypothesis && cex.hypothesis->eval_predicate(invariant_so_far))) {
-      res.push_back(p);
-    }
-  }
-  return res;
-}
-
-void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
+void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 {
   z3::context ctx;
 
@@ -692,39 +538,14 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
   Benchmarking total_bench;
 
-  vector<pair<Counterexample, value>> cexes;
-
-  int template_idx = 0;
+  shared_ptr<CandidateSolver> cs
+      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, true));
 
   while (true) {
     Benchmarking per_outer_loop_bench;
     per_outer_loop_bench.start("time to infer this invariant");
 
-    Benchmarking bench_setup;
-    bench_setup.start("setup");
-
     int num_iterations = 0;
-
-    SatSolver ss;
-    TopQuantifierDesc tqd(module->templates[template_idx]);
-    SketchFormula sf(ss, tqd, module, arity, depth);
-    sf.constrain_disj_form();
-
-    SketchModel sm(ss, module, 3);
-    ss.add(sf.interpret_not(sm));
-    for (value v : found_invs) {
-      sm.assert_formula(v);
-    }
-
-    printf("Starting off with %d counterexamples\n", (int)cexes.size());
-    for (auto p : cexes) {
-      Counterexample cex = p.first;
-      value candidate = p.second;
-      add_counterexample(module, sf, cex, candidate);
-    }
-
-    bench_setup.end();
-    bench_setup.dump();
 
     while (true) {
       Benchmarking per_inner_loop_bench;
@@ -736,41 +557,17 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       printf("\n");
 
       //log_smtlib(solver_sf);
-      printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
+      //printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
       std::cout.flush();
 
-      //cout << solver << "\n";
-      Benchmarking bench(false /* global */);
-      bench.start("solver (" +
-          to_string(num_iterations_total) + ") (" +
-          to_string(found_invs.size()) + " invariants + " + to_string(num_iterations) + ")");
-      total_bench.start("total solver time");
-      bool res = ss.is_sat();
-      bench.end();
-      total_bench.end();
-      bench.dump();
+      value candidate0 = cs->getNext();
 
-      if (!res) {
-        template_idx++;
-        cexes = {};
-        if (template_idx == module->templates.size()) {
-          printf("unable to synthesize any formula\n");
-          goto done;
-        } else {
-          printf("done with this template, new template_idx = %d\n", template_idx);
-          break;
-        }
+      if (!candidate0) {
+        printf("unable to synthesize any formula\n");
+        goto done;
       }
 
-      value candidate_inner = sf.to_value();
-      value candidate0 = fill_holes_in_value(module->templates[template_idx], {candidate_inner});
-      printf("candidate: %s\n", candidate0->to_string().c_str());
-      value candidate = candidate0->simplify()->reduce_quants();
-      printf("simplified: %s\n", candidate->to_string().c_str());
-
-      //shared_ptr<Model> synthesized_model = sm.to_model();
-      //printf("synthesized model:\n");
-      //synthesized_model->dump();
+      value candidate = cs->getNext()->reduce_quants();
 
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
@@ -794,6 +591,7 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
         bench_strengthen.end();
         bench_strengthen.dump();
 
+        cs->addExistingInvariant(simplified_inv);
         found_invs.push_back(simplified_inv);
         all_found_invs.push_back(simplified_inv);
 
@@ -820,11 +618,9 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
 
         Benchmarking add_cex_bench;
         add_cex_bench.start("add_counterexample");
-        add_counterexample(module, sf, cex, candidate0);
+        cs->addCounterexample(cex, candidate0);
         add_cex_bench.end();
         add_cex_bench.dump();
-
-        cexes.push_back(make_pair(cex, candidate0));
       }
 
       per_inner_loop_bench.end();
@@ -837,8 +633,6 @@ void synth_loop_incremental(shared_ptr<Module> module, int arity, int depth)
       printf("invariant implies safety condition, done!\n");
       break;
     }
-
-    cexes = filter_unneeded_cexes(cexes, v_and(found_invs));
 
     printf("\n");
     per_outer_loop_bench.end();

@@ -20,6 +20,7 @@ OBJECTS = $(addprefix bin/,\
 	model_isomorphisms.o \
 	wpr.o \
 	filter.o \
+	synth_enumerator.o \
 	lib/json11/json11.o \
 )
 

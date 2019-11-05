@@ -534,10 +534,18 @@ void print_wpr(shared_ptr<Module> module, int count)
     all_conjs.push_back(w);
   }
 
+  cout << "list:" << endl;
+  for (value conj : all_conjs) {
+    for (value part : aggressively_split_into_conjuncts(conj)) {
+      cout << part->to_string() << endl;
+    }
+  }
+  cout << endl;
+
   cout << "wpr: " << w->to_string() << endl;
 
-  //if (is_itself_invariant(module, all_conjs)) {
-  if (is_wpr_itself_inductive(module, conj, count)) {
+  if (is_itself_invariant(module, all_conjs)) {
+  //if (is_wpr_itself_inductive(module, conj, count)) {
     printf("yes\n");
   } else{
     printf("no\n");
@@ -654,13 +662,14 @@ int main(int argc, char* argv[]) {
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       //guided_incremental(module, initctx, indctx, conjctx, invctx);
       assert(argc >= 3);
-      int arity = atoi(argv[1]);
-      int depth = atoi(argv[2]);
+      Options options;
+      options.arity = atoi(argv[1]);
+      options.depth = atoi(argv[2]);
 
       if (incremental) {
-        synth_loop_incremental(module, arity, depth);
+        synth_loop_incremental(module, options);
       } else {
-        synth_loop(module, arity, depth);
+        synth_loop(module, options);
       }
       //synth_loop_from_transcript(module, arity, depth);
 
