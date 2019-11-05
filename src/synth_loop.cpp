@@ -466,6 +466,8 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
       break;
     }
 
+    cout << "candidate: " << candidate->to_string() << endl;
+
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
@@ -485,7 +487,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
       break;
     }
 
-    cex_stats(cex);
+    //cex_stats(cex);
     cs->addCounterexample(cex, candidate);
     transcript.entries.push_back(make_pair(cex, candidate));
   }

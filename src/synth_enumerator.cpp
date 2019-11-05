@@ -127,22 +127,13 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
 
 CandidateSolver::CandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
   : module(module)
+  , shape(shape)
+  , options(options)
+  , ensure_nonredundant(ensure_nonredundant)
   , tqd(module->templates[0])
   , sf(ss, tqd, module, options.arity, options.depth)
-  , ensure_nonredundant(ensure_nonredundant)
 {
-  switch (shape) {
-    case Shape::SHAPE_DISJ:
-      sf.constrain_disj_form();
-      break;
-    case Shape::SHAPE_CONJ_DISJ:
-      sf.constrain_conj_disj_form();
-      break;
-    default:
-      assert(false);
-  }
-
-  add_model_gen_constraints();
+  init_constraints();
 }
 
 value CandidateSolver::getNext()
@@ -177,8 +168,9 @@ void CandidateSolver::addExistingInvariant(value inv)
   // re-initialize the SatSolver
   ss.~SatSolver();
   new (&ss) SatSolver();
-
-  add_model_gen_constraints();
+  sf.~SketchFormula();
+  new (&sf) SketchFormula(ss, tqd, module, options.arity, options.depth);
+  init_constraints();
 
   printf("Starting off with %d counterexamples\n", (int)cexes.size());
   for (auto p : cexes) {
@@ -188,8 +180,19 @@ void CandidateSolver::addExistingInvariant(value inv)
   }
 }
 
-void CandidateSolver::add_model_gen_constraints()
+void CandidateSolver::init_constraints()
 {
+  switch (shape) {
+    case Shape::SHAPE_DISJ:
+      sf.constrain_disj_form();
+      break;
+    case Shape::SHAPE_CONJ_DISJ:
+      sf.constrain_conj_disj_form();
+      break;
+    default:
+      assert(false);
+  }
+
   if (ensure_nonredundant) {
     SketchModel sm(ss, module, 3);
     ss.add(sf.interpret_not(sm));

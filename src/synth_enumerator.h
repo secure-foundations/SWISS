@@ -49,12 +49,15 @@ private:
   std::vector<value> existingInvariants;
 
   std::shared_ptr<Module> module;
+  Shape shape;
+  Options options;
+  bool ensure_nonredundant;
+
   TopQuantifierDesc tqd;
   SatSolver ss;
   SketchFormula sf;
 
-  bool ensure_nonredundant;
-  void add_model_gen_constraints();
+  void init_constraints();
 };
 
 #endif

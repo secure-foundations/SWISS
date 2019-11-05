@@ -696,14 +696,14 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
       z3::check_result res = solver.check();
       assert (res == z3::sat || res == z3::unsat);
       if (res == z3::sat) {
-        cout << "hey" << endl;
+        //cout << "hey" << endl;
 
         shared_ptr<Model> m1 = Model::extract_model_from_z3(
             indctx.ctx->ctx, solver, module, *indctx.e1);
         shared_ptr<Model> m2 = Model::extract_model_from_z3(
             indctx.ctx->ctx, solver, module, *indctx.e2);
-        m1->dump();
-        m2->dump();
+        //m1->dump();
+        //m2->dump();
 
         /*auto m = Model::extract_minimal_models_from_z3(
             indctx.ctx->ctx,
