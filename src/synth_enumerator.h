@@ -9,8 +9,11 @@
 struct Options {
   int arity;
   int depth;
+};
 
-  bool ensure_nonredundant;
+enum class Shape {
+  SHAPE_DISJ,
+  SHAPE_CONJ_DISJ
 };
 
 struct Counterexample {
@@ -34,7 +37,8 @@ struct Counterexample {
 
 class CandidateSolver {
 public:
-  CandidateSolver(std::shared_ptr<Module>, Options const&, bool ensure_nonredundant);
+  CandidateSolver(std::shared_ptr<Module>, Options const&,
+      bool ensure_nonredundant, Shape shape);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);

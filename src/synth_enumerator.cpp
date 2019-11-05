@@ -125,13 +125,23 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
   return res;
 }
 
-CandidateSolver::CandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant)
+CandidateSolver::CandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
   : module(module)
   , tqd(module->templates[0])
   , sf(ss, tqd, module, options.arity, options.depth)
   , ensure_nonredundant(ensure_nonredundant)
 {
-  sf.constrain_conj_disj_form();
+  switch (shape) {
+    case Shape::SHAPE_DISJ:
+      sf.constrain_disj_form();
+      break;
+    case Shape::SHAPE_CONJ_DISJ:
+      sf.constrain_conj_disj_form();
+      break;
+    default:
+      assert(false);
+  }
+
   add_model_gen_constraints();
 }
 

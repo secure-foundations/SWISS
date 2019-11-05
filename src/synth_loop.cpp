@@ -449,7 +449,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
   Transcript transcript;
 
   shared_ptr<CandidateSolver> cs
-      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, false));
+      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, false, Shape::SHAPE_CONJ_DISJ));
 
   while (true) {
     num_iterations++;
@@ -539,7 +539,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   Benchmarking total_bench;
 
   shared_ptr<CandidateSolver> cs
-      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, true));
+      = shared_ptr<CandidateSolver>(new CandidateSolver(module, options, true, Shape::SHAPE_DISJ));
 
   while (true) {
     Benchmarking per_outer_loop_bench;
