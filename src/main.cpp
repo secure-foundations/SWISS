@@ -596,6 +596,7 @@ int main(int argc, char* argv[]) {
   options.disj_arity = -1;
   options.enum_sat = false;
   options.enum_naive = false;
+  options.impl_shape = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -648,6 +649,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--enum-naive")) {
       options.enum_naive = true;
+    }
+    else if (argv[i] == string("--impl-shape")) {
+      options.impl_shape = true;
     }
   }
 

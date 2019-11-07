@@ -17,6 +17,7 @@ struct Options {
   // Naive solving
   int disj_arity;
   int conj_arity;
+  bool impl_shape;
 };
 
 enum class Shape {

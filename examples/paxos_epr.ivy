@@ -162,4 +162,6 @@ conjecture (
 #conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
 #conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
 
-template (forall A:node . forall B:node . forall C:value . forall D:value . forall Q:quorum . forall R1:round . forall R2:round . WILD)
+#template (forall A:node . forall B:node . forall C:value . forall D:value . forall Q:quorum . forall R1:round . forall R2:round . WILD)
+
+template (forall C:value . forall D:value . forall Q:quorum . forall R1:round . forall R2:round . exists A:node . WILD)
