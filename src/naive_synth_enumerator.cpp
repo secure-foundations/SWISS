@@ -55,11 +55,11 @@ value NaiveCandidateSolver::getNext()
 
     bool failed = false;
     for (int i = 0; i < cexes.size(); i++) {
-      bool first_bool = false;
+      bool first_bool = true;
       bool second_bool = true;
       for (int k = 0; k < cur_indices.size(); k++) {
         int j = cur_indices[k];
-        first_bool = first_bool || cached_evals[i][j].first;
+        first_bool = first_bool && cached_evals[i][j].first;
         second_bool = second_bool && cached_evals[i][j].second;
       }
 
@@ -80,7 +80,7 @@ value NaiveCandidateSolver::getNext()
       }
       value v = v_and(conjuncts);
 
-      cout << v->to_string() << endl;
+      //cout << v->to_string() << endl;
       return v;
     }
   }
@@ -117,7 +117,7 @@ void NaiveCandidateSolver::increment()
       cur_indices[i] = i;
     }
   }
-  if (t % 5000000 == 0) {
+  if (t % 50000 == 0) {
     dump_cur_indices();
   }
 }
