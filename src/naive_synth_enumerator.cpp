@@ -117,7 +117,7 @@ void NaiveCandidateSolver::increment()
       cur_indices[i] = i;
     }
   }
-  if (t % 50000 == 0) {
+  if (t % 5000000 == 0) {
     dump_cur_indices();
   }
 }
