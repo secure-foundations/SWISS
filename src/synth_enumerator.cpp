@@ -125,7 +125,7 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
   return res;
 }
 
-CandidateSolver::CandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
+SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
   : module(module)
   , shape(shape)
   , options(options)
@@ -136,7 +136,7 @@ CandidateSolver::CandidateSolver(shared_ptr<Module> module, Options const& optio
   init_constraints();
 }
 
-value CandidateSolver::getNext()
+value SatCandidateSolver::getNext()
 {
   //Benchmarking bench;
   //bench.start("solver (" + to_string(num_iterations) + ")");
@@ -154,13 +154,13 @@ value CandidateSolver::getNext()
   return candidate;
 }
 
-void CandidateSolver::addCounterexample(Counterexample cex, value candidate)
+void SatCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
   cexes.push_back(make_pair(cex, candidate));
   add_counterexample(module, sf, cex, candidate);
 }
 
-void CandidateSolver::addExistingInvariant(value inv)
+void SatCandidateSolver::addExistingInvariant(value inv)
 {
   existingInvariants.push_back(inv);
   cexes = filter_unneeded_cexes(cexes, v_and(existingInvariants));
@@ -180,7 +180,7 @@ void CandidateSolver::addExistingInvariant(value inv)
   }
 }
 
-void CandidateSolver::init_constraints()
+void SatCandidateSolver::init_constraints()
 {
   switch (shape) {
     case Shape::SHAPE_DISJ:

@@ -589,6 +589,12 @@ int main(int argc, char* argv[]) {
   srand((int)time(NULL));
   run_id = rand();
 
+  Options options;
+  options.arity = -1;
+  options.depth = -1;
+  options.conj_arity = -1;
+  options.disj_arity = -1;
+
   int seed = 1234;
   bool check_inductiveness = false;
   bool incremental = false;
@@ -614,6 +620,26 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--incremental")) {
       incremental = true;
+    }
+    else if (argv[i] == string("--arity")) {
+      assert(i + 1 < argc);
+      options.arity = atoi(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--depth")) {
+      assert(i + 1 < argc);
+      options.depth = atoi(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--conj-arity")) {
+      assert(i + 1 < argc);
+      options.conj_arity = atoi(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--disj-arity")) {
+      assert(i + 1 < argc);
+      options.disj_arity = atoi(argv[i+1]);
+      i++;
     }
   }
 
@@ -662,9 +688,6 @@ int main(int argc, char* argv[]) {
       //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
       //guided_incremental(module, initctx, indctx, conjctx, invctx);
       assert(argc >= 3);
-      Options options;
-      options.arity = atoi(argv[1]);
-      options.depth = atoi(argv[2]);
 
       if (incremental) {
         synth_loop_incremental(module, options);

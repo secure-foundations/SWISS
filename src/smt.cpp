@@ -302,7 +302,7 @@ void SMT::breakOccurrences(std::string name, std::string a, std::string b, std::
 		o1.push_back(_variables[_nodes[i].getChildren()[2].getId()-1] == _z3_ctx->int_val(_name2production[c]));
 
 		expr ctr = implies(_variables[i] == _z3_ctx->int_val(_name2production[name]), not(mk_and(o1)));
-		std::cout << "ctr= " << ctr << std::endl;
+		//std::cout << "ctr= " << ctr << std::endl;
 		_z3_solver->add(ctr);
 	}
 }

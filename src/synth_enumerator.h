@@ -7,8 +7,13 @@
 #include "sketch.h"
 
 struct Options {
+  // SAT solving
   int arity;
   int depth;
+
+  // Naive solving
+  int disj_arity;
+  int conj_arity;
 };
 
 enum class Shape {
@@ -37,7 +42,14 @@ struct Counterexample {
 
 class CandidateSolver {
 public:
-  CandidateSolver(std::shared_ptr<Module>, Options const&,
+  virtual value getNext() = 0;
+  virtual void addCounterexample(Counterexample cex, value candidate) = 0;
+  virtual void addExistingInvariant(value inv) = 0;
+};
+
+class SatCandidateSolver : public CandidateSolver {
+public:
+  SatCandidateSolver(std::shared_ptr<Module>, Options const&,
       bool ensure_nonredundant, Shape shape);
 
   value getNext();
@@ -58,6 +70,29 @@ private:
   SketchFormula sf;
 
   void init_constraints();
+};
+
+class NaiveCandidateSolver : public CandidateSolver {
+public:
+  NaiveCandidateSolver(std::shared_ptr<Module>, Options const&,
+      bool ensure_nonredundant, Shape shape);
+
+  value getNext();
+  void addCounterexample(Counterexample cex, value candidate);
+  void addExistingInvariant(value inv);
+
+//private:
+  std::shared_ptr<Module> module;
+  Shape shape;
+  Options options;
+  bool ensure_nonredundant;
+
+  std::vector<value> values;
+  std::vector<Counterexample> cexes;
+  std::vector<int> cur_indices;
+
+  void increment();
+  void dump_cur_indices();
 };
 
 #endif
