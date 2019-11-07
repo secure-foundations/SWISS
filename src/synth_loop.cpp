@@ -475,10 +475,11 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     Counterexample cex;
     if (options.with_conjs) {
       cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+      cex = simplify_cex_nosafety(module, cex, bmc);
     } else {
       cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
+      cex = simplify_cex(module, cex, bmc, antibmc);
     }
-    cex = simplify_cex(module, cex, bmc, antibmc);
     if (cex.none) {
       // Extra verification:
       if (is_complete_invariant(module, candidate)) {
