@@ -472,8 +472,12 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
     //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-    //Counterexample cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
-    Counterexample cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
+    Counterexample cex;
+    if (options.with_conjs) {
+      cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+    } else {
+      cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
+    }
     cex = simplify_cex(module, cex, bmc, antibmc);
     if (cex.none) {
       // Extra verification:

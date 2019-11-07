@@ -10,6 +10,8 @@ struct Options {
   bool enum_sat;
   bool enum_naive;
 
+  bool with_conjs;
+
   // SAT solving
   int arity;
   int depth;

@@ -597,6 +597,7 @@ int main(int argc, char* argv[]) {
   options.enum_sat = false;
   options.enum_naive = false;
   options.impl_shape = false;
+  options.with_conjs = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -652,6 +653,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--impl-shape")) {
       options.impl_shape = true;
+    }
+    else if (argv[i] == string("--with-conjs")) {
+      options.with_conjs = true;
     }
   }
 
