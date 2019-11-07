@@ -17,26 +17,22 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   assert (options.disj_arity >= 1);
   assert (module->templates.size() == 1);
 
-  for (int i = 1; i <= options.disj_arity; i++) {
-    vector<value> level = enumerate_for_template(module, module->templates[0], i);
-    for (value v : level) {
-      values.push_back(v);
-    }
-  }
+  values = enumerate_for_template(module, module->templates[0], options.disj_arity);
   for (int i = 0; i < values.size(); i++) {
     values[i] = values[i]->simplify();
   }
 
   cout << "Using " << values.size() << " values that are a disjunction of at most " << options.disj_arity << " terms." << endl;
 
-  /*for (value v : level1) {
+  /*for (value v : values) {
     cout << v->to_string() << endl;
-  }*/
+  }
+  assert(false);*/
 
   cur_indices = {};
 }
 
-bool passes_cex(value v, Counterexample const& cex)
+/*bool passes_cex(value v, Counterexample const& cex)
 {
   if (cex.is_true) {
     return cex.is_true->eval_predicate(v);
@@ -48,7 +44,7 @@ bool passes_cex(value v, Counterexample const& cex)
     return !cex.hypothesis->eval_predicate(v)
          || cex.conclusion->eval_predicate(v);
   }
-}
+}*/
 
 value NaiveCandidateSolver::getNext()
 {
@@ -57,15 +53,17 @@ value NaiveCandidateSolver::getNext()
       return nullptr;
     }
 
-    vector<value> conjuncts;
-    for (int i = 0; i < cur_indices.size(); i++) {
-      conjuncts.push_back(values[cur_indices[i]]);
-    }
-    value v = v_and(conjuncts);
-
     bool failed = false;
     for (int i = 0; i < cexes.size(); i++) {
-      if (!passes_cex(v, cexes[i])) {
+      bool first_bool = false;
+      bool second_bool = true;
+      for (int k = 0; k < cur_indices.size(); k++) {
+        int j = cur_indices[k];
+        first_bool = first_bool || cached_evals[i][j].first;
+        second_bool = second_bool && cached_evals[i][j].second;
+      }
+
+      if (first_bool && !second_bool) {
         failed = true;
         break;
       }
@@ -75,6 +73,14 @@ value NaiveCandidateSolver::getNext()
 
     if (!failed) {
       dump_cur_indices();
+
+      vector<value> conjuncts;
+      for (int i = 0; i < cur_indices.size(); i++) {
+        conjuncts.push_back(values[cur_indices[i]]);
+      }
+      value v = v_and(conjuncts);
+
+      cout << v->to_string() << endl;
       return v;
     }
   }
@@ -82,11 +88,18 @@ value NaiveCandidateSolver::getNext()
 
 void NaiveCandidateSolver::dump_cur_indices()
 {
-  cout << cur_indices.
+  cout << "cur_indices:";
+  for (int i : cur_indices) {
+    cout << " " << i;
+  }
+  cout << " / " << values.size() << endl;
 }
+
+int t = 0;
 
 void NaiveCandidateSolver::increment()
 {
+  t++;
   int j;
   for (j = cur_indices.size() - 1; j >= 0; j--) {
     if (cur_indices[j] != values.size() - cur_indices.size() + j) {
@@ -104,12 +117,37 @@ void NaiveCandidateSolver::increment()
       cur_indices[i] = i;
     }
   }
+  if (t % 5000000 == 0) {
+    dump_cur_indices();
+  }
 }
 
 void NaiveCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
   assert (!cex.none);
+  assert (cex.is_true || cex.is_false || (cex.hypothesis && cex.conclusion));
   cexes.push_back(cex);
+
+  int i = cexes.size() - 1;
+
+  cached_evals.push_back({});
+  cached_evals[i].resize(values.size());
+
+  for (int j = 0; j < values.size(); j++) {
+    if (cex.is_true) {
+      cached_evals[i][j].first = true;
+      // TODO if it's false, we never have to look at values[j] again.
+      cached_evals[i][j].second = cex.is_true->eval_predicate(values[j]);
+    }
+    else if (cex.is_false) {
+      cached_evals[i][j].first = cex.is_false->eval_predicate(values[j]);
+      cached_evals[i][j].second = false;
+    }
+    else {
+      cached_evals[i][j].first = cex.hypothesis->eval_predicate(values[j]);
+      cached_evals[i][j].second = cex.conclusion->eval_predicate(values[j]);
+    }
+  }
 }
 
 void NaiveCandidateSolver::addExistingInvariant(value inv)

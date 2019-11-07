@@ -91,6 +91,8 @@ public:
   std::vector<Counterexample> cexes;
   std::vector<int> cur_indices;
 
+  std::vector<std::vector<std::pair<bool, bool>>> cached_evals;
+
   void increment();
   void dump_cur_indices();
 };
