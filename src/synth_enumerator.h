@@ -42,6 +42,8 @@ struct Counterexample {
 
 class CandidateSolver {
 public:
+  virtual ~CandidateSolver() {}
+
   virtual value getNext() = 0;
   virtual void addCounterexample(Counterexample cex, value candidate) = 0;
   virtual void addExistingInvariant(value inv) = 0;
