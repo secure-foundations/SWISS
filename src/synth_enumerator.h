@@ -7,6 +7,9 @@
 #include "sketch.h"
 
 struct Options {
+  bool enum_sat;
+  bool enum_naive;
+
   // SAT solving
   int arity;
   int depth;
@@ -49,54 +52,25 @@ public:
   virtual void addExistingInvariant(value inv) = 0;
 };
 
-class SatCandidateSolver : public CandidateSolver {
-public:
-  SatCandidateSolver(std::shared_ptr<Module>, Options const&,
+std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
+    std::shared_ptr<Module> module, Options const& options,
       bool ensure_nonredundant, Shape shape);
 
-  value getNext();
-  void addCounterexample(Counterexample cex, value candidate);
-  void addExistingInvariant(value inv);
-
-private:
-  std::vector<std::pair<Counterexample, value>> cexes;
-  std::vector<value> existingInvariants;
-
-  std::shared_ptr<Module> module;
-  Shape shape;
-  Options options;
-  bool ensure_nonredundant;
-
-  TopQuantifierDesc tqd;
-  SatSolver ss;
-  SketchFormula sf;
-
-  void init_constraints();
-};
-
-class NaiveCandidateSolver : public CandidateSolver {
-public:
-  NaiveCandidateSolver(std::shared_ptr<Module>, Options const&,
+std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
+    std::shared_ptr<Module> module, Options const& options,
       bool ensure_nonredundant, Shape shape);
 
-  value getNext();
-  void addCounterexample(Counterexample cex, value candidate);
-  void addExistingInvariant(value inv);
+inline std::shared_ptr<CandidateSolver> make_candidate_solver(
+    std::shared_ptr<Module> module, Options const& options,
+      bool ensure_nonredundant, Shape shape)
+{
+  assert (options.enum_sat ^ options.enum_naive);
 
-//private:
-  std::shared_ptr<Module> module;
-  Shape shape;
-  Options options;
-  bool ensure_nonredundant;
-
-  std::vector<value> values;
-  std::vector<Counterexample> cexes;
-  std::vector<int> cur_indices;
-
-  std::vector<std::vector<std::pair<bool, bool>>> cached_evals;
-
-  void increment();
-  void dump_cur_indices();
-};
+  if (options.enum_sat) {
+    return make_sat_candidate_solver(module, options, ensure_nonredundant, shape);
+  } else {
+    return make_naive_candidate_solver(module, options, ensure_nonredundant, shape);
+  }
+}
 
 #endif

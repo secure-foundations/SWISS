@@ -6,6 +6,38 @@
 
 using namespace std;
 
+class NaiveCandidateSolver : public CandidateSolver {
+public:
+  NaiveCandidateSolver(std::shared_ptr<Module>, Options const&,
+      bool ensure_nonredundant, Shape shape);
+
+  value getNext();
+  void addCounterexample(Counterexample cex, value candidate);
+  void addExistingInvariant(value inv);
+
+//private:
+  std::shared_ptr<Module> module;
+  Shape shape;
+  Options options;
+  bool ensure_nonredundant;
+
+  std::vector<value> values;
+  std::vector<Counterexample> cexes;
+  std::vector<int> cur_indices;
+
+  std::vector<std::vector<std::pair<bool, bool>>> cached_evals;
+
+  void increment();
+  void dump_cur_indices();
+};
+
+std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
+    std::shared_ptr<Module> module, Options const& options,
+      bool ensure_nonredundant, Shape shape)
+{
+  return shared_ptr<CandidateSolver>(new NaiveCandidateSolver(module, options, ensure_nonredundant, shape));
+}
+
 NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
   : module(module)
   , shape(shape)

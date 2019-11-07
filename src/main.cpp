@@ -594,6 +594,8 @@ int main(int argc, char* argv[]) {
   options.depth = -1;
   options.conj_arity = -1;
   options.disj_arity = -1;
+  options.enum_sat = false;
+  options.enum_naive = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -640,6 +642,12 @@ int main(int argc, char* argv[]) {
       assert(i + 1 < argc);
       options.disj_arity = atoi(argv[i+1]);
       i++;
+    }
+    else if (argv[i] == string("--enum-sat")) {
+      options.enum_sat = true;
+    }
+    else if (argv[i] == string("--enum-naive")) {
+      options.enum_naive = true;
     }
   }
 

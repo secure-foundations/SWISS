@@ -9,6 +9,38 @@
 
 using namespace std;
 
+class SatCandidateSolver : public CandidateSolver {
+public:
+  SatCandidateSolver(std::shared_ptr<Module>, Options const&,
+      bool ensure_nonredundant, Shape shape);
+
+  value getNext();
+  void addCounterexample(Counterexample cex, value candidate);
+  void addExistingInvariant(value inv);
+
+private:
+  std::vector<std::pair<Counterexample, value>> cexes;
+  std::vector<value> existingInvariants;
+
+  std::shared_ptr<Module> module;
+  Shape shape;
+  Options options;
+  bool ensure_nonredundant;
+
+  TopQuantifierDesc tqd;
+  SatSolver ss;
+  SketchFormula sf;
+
+  void init_constraints();
+};
+
+std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
+    std::shared_ptr<Module> module, Options const& options,
+      bool ensure_nonredundant, Shape shape)
+{
+  return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, options, ensure_nonredundant, shape));
+}
+
 sat_expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
     bool do_true) {
   assert(false && "not implement with NearlyForall in mind");
