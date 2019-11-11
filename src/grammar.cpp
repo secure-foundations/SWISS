@@ -65,7 +65,7 @@ Grammar createGrammarFromModule(shared_ptr<Module> module, vector<GrammarVar> va
 
   // variables
   for (GrammarVar v : vars) {
-    functions.push_back(Function(v.name, {empty_type}, Type(v.type)));
+    functions.push_back(Function("__var." + v.name, {empty_type}, Type(v.type)));
   }
 
   // and
