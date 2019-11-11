@@ -534,13 +534,13 @@ void print_wpr(shared_ptr<Module> module, int count)
     all_conjs.push_back(w);
   }
 
-  cout << "list:" << endl;
+  /*cout << "list:" << endl;
   for (value conj : all_conjs) {
     for (value part : aggressively_split_into_conjuncts(conj)) {
       cout << part->to_string() << endl;
     }
   }
-  cout << endl;
+  cout << endl;*/
 
   cout << "wpr: " << w->to_string() << endl;
 

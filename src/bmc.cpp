@@ -85,6 +85,21 @@ bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
   return res == z3::sat;
 }
 
+bool FixedBMCContext::is_reachable_returning_false_if_unknown(shared_ptr<Model> model) {
+  z3::solver& solver = ctx->solver;
+  solver.push();
+  if (!from_safety) {
+    model->assert_model_is(this->e2);
+  } else {
+    model->assert_model_is(this->e1);
+  }
+
+  z3::check_result res = solver.check();
+  assert(res == z3::sat || res == z3::unsat || res == z3::unknown);
+  solver.pop();
+  return res == z3::sat;
+}
+
 BMCContext::BMCContext(z3::context& ctx, shared_ptr<Module> module, int k, bool from_safety) {
   for (int i = 1; i <= k; i++) {
     bmcs.push_back(shared_ptr<FixedBMCContext>(new FixedBMCContext(ctx, module, i, from_safety)));
@@ -119,6 +134,19 @@ bool BMCContext::is_reachable(std::shared_ptr<Model> model) {
   return false;
 }
 
+bool BMCContext::is_reachable_returning_false_if_unknown(std::shared_ptr<Model> model) {
+  for (auto bmc : bmcs) {
+    if (bmc->is_reachable_returning_false_if_unknown(model)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool BMCContext::is_reachable_exact_steps(std::shared_ptr<Model> model) {
   return bmcs[bmcs.size() - 1]->is_reachable(model);
+}
+
+bool BMCContext::is_reachable_exact_steps_returning_false_if_unknown(std::shared_ptr<Model> model) {
+  return bmcs[bmcs.size() - 1]->is_reachable_returning_false_if_unknown(model);
 }

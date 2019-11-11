@@ -285,8 +285,8 @@ void cex_stats(Counterexample cex) {
 Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex,
     BMCContext& bmc) {
   if (cex.hypothesis) {
-    if (bmc.is_reachable(cex.conclusion) ||
-        bmc.is_reachable(cex.hypothesis)) {
+    if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
+        bmc.is_reachable_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
       res.is_true = cex.conclusion;
       printf("simplifying -> INIT\n");
@@ -304,16 +304,16 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     BMCContext& bmc,
     BMCContext& antibmc) {
   if (cex.hypothesis) {
-    if (bmc.is_reachable(cex.conclusion) ||
-        bmc.is_reachable_exact_steps(cex.hypothesis)) {
+    if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
+        bmc.is_reachable_exact_steps_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
       res.is_true = cex.conclusion;
       printf("simplifying -> INIT\n");
       return res;
     }
 
-    if (antibmc.is_reachable_exact_steps(cex.conclusion) ||
-        antibmc.is_reachable(cex.hypothesis)) {
+    if (antibmc.is_reachable_exact_steps_returning_false_if_unknown(cex.conclusion) ||
+        antibmc.is_reachable_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
       res.is_false = cex.hypothesis;
       printf("simplifying -> SAFETY\n");
@@ -427,11 +427,14 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
   assert(module->templates.size() == 1);
 
   z3::context ctx;
+  z3::context bmcctx;
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
-  BMCContext bmc(ctx, module, bmc_depth);
-  BMCContext antibmc(ctx, module, bmc_depth, true);
+  BMCContext bmc(bmcctx, module, bmc_depth);
+  BMCContext antibmc(bmcctx, module, bmc_depth, true);
+
+  z3_set_timeout(bmcctx, 15000); // 15 seconds
 
   int num_iterations = 0;
 

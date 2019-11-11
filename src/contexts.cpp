@@ -747,3 +747,7 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
 
   return true;
 }
+
+void z3_set_timeout(z3::context& ctx, int ms) {
+  ctx.set("timeout", ms);
+}

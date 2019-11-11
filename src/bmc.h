@@ -18,6 +18,7 @@ public:
   bool is_exactly_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal);
   bool is_reachable(std::shared_ptr<Model> model);
+  bool is_reachable_returning_false_if_unknown(std::shared_ptr<Model> model);
 };
 
 // Bounded model checking for <= k steps.
@@ -29,7 +30,9 @@ public:
   bool is_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal = false);
   bool is_reachable(std::shared_ptr<Model> model);
+  bool is_reachable_returning_false_if_unknown(std::shared_ptr<Model> model);
   bool is_reachable_exact_steps(std::shared_ptr<Model> model);
+  bool is_reachable_exact_steps_returning_false_if_unknown(std::shared_ptr<Model> model);
 };
 
 

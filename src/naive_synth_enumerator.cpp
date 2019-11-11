@@ -49,7 +49,9 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   , tqd(module->templates[0])
 {
   assert (!ensure_nonredundant);
-  assert (options.conj_arity >= 1);
+  if (!options.impl_shape) {
+    assert (options.conj_arity >= 1);
+  }
   assert (options.disj_arity >= 1);
   assert (module->templates.size() == 1);
 
@@ -115,8 +117,6 @@ value NaiveCandidateSolver::fuse_as_impl(value a, value b) {
 value NaiveCandidateSolver::getNext()
 {
   if (options.impl_shape) {
-    assert (options.conj_arity == 1);
-
     while (true) {
       if (cur_indices.size() < 2) {
         increment();
