@@ -1,9 +1,11 @@
 #include "enumerator.h"
 
+#include <set>
+#include <algorithm>
+
 #include "logic.h"
 #include "grammar.h"
 #include "smt.h"
-#include <set>
 
 using namespace std;
 
@@ -291,10 +293,7 @@ struct NormalizeState {
         break;
       }
     }
-    if (idx == -1) {
-      names.push_back(name);
-      idx = names.size() - 1;
-    }
+    assert (idx != -1);
     return idx;
   }
 };
@@ -355,20 +354,27 @@ value normalize(value v, NormalizeState& ns) {
   }
 }
 
-vector<value> remove_equiv(vector<value> const& values) {
+/*vector<value> remove_equiv(value templ, vector<value> const& values) {
+  NormalizeState ns_base;
+
   vector<value> result;
   set<string> seen;
   for (value v : values) {
-    NormalizeState ns;
+    NormalizeState ns = ns_base;
     value norm = normalize(v, ns);
     string s = norm->to_string();
+
+    cout << v->to_string() << endl;
+    cout << s << endl;
+    cout << endl;
+
     if (seen.find(s) == seen.end()) {
       seen.insert(s);
       result.push_back(v);
     }
   }
   return result;
-}
+}*/
 
 // This one is more thorough (cuts by about 3x) but also slower,
 // so we still do the first one to save time.
@@ -389,6 +395,12 @@ vector<value> remove_equiv2(vector<value> const& values) {
   return result;
 }
 
+void sort_values(vector<value>& values) {
+  std::sort(values.begin(), values.end(), [](value a, value b) {
+    return lt_value(a, b);
+  });
+}
+
 vector<value> enumerate_for_template(
     shared_ptr<Module> module,
     value templ, int k)
@@ -405,15 +417,33 @@ vector<value> enumerate_for_template(
     while (solver.solve()) {
       fills.push_back(solver.solutionToValue());
     }
-    fills = remove_equiv(enum_conjuncts(filter_boring(fills), k));
-    for (int i = 0; i < fills.size(); i++) {
-      fills[i] = v_not(fills[i]);
+
+    sort_values(fills);
+
+    //for (value v : fills) {
+    //  cout << v->to_string() << endl;
+    //}
+
+    //cout << "fills len " << fills.size() << endl;
+
+    vector<value> f1 = filter_boring(fills);
+    vector<value> f2 = enum_conjuncts(f1, k);
+    vector<value> f3 = f2; //remove_equiv(templ, f2);
+
+    //cout << "f1 len " << f1.size() << endl;
+    //cout << "f2 len " << f2.size() << endl;
+    //cout << "f3 len " << f3.size() << endl;
+
+    for (int i = 0; i < f3.size(); i++) {
+      f3[i] = v_not(f3[i]);
     }
-    all_hole_fills.push_back(move(fills));
+    all_hole_fills.push_back(move(f3));
   }
 
   vector<value> res = fill_holes(templ, all_hole_fills);
   res = remove_equiv2(res);
+
+  //cout << "res len " << res.size() << endl;
   return res;
 }
 

@@ -62,10 +62,10 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
 
   cout << "Using " << values.size() << " values that are a disjunction of at most " << options.disj_arity << " terms." << endl;
 
-  /*for (value v : values) {
-    cout << v->to_string() << endl;
-  }
-  assert(false);*/
+  //for (value v : values) {
+  //  cout << v->to_string() << endl;
+  //}
+  //assert(false);
 
   cur_indices = {};
 }
