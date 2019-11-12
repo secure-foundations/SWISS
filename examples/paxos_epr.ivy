@@ -157,6 +157,7 @@ conjecture ~vote(N,none,V)
 # Properties of choosable and proposal
 #conjecture forall R1:round, R2:round, V1:value, V2:value, Q:quorum. ~le(R2,R1) & proposal(R2,V2) & V1 ~= V2 ->
 #    exists N:node. member(N,Q) & left_rnd(N,R1) & ~vote(N,R1,V1)
+conjecture forall C, D, Q: quorum, R1, R2 . (exists A . (((decision(A, R1, C)) | (proposal(R2, C))) -> ((proposal(none, D)) | (decision(A, R1, D)) | (one_b(A, R2)))))
 
 # properties of one_b, left_rnd
 conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)

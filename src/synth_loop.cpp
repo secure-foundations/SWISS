@@ -183,15 +183,20 @@ Counterexample get_counterexample(
   Counterexample cex;
   cex.none = false;
 
+  cout << "starting init check ..." << endl; cout.flush();
+
   z3::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
   z3::check_result init_res = init_solver.check();
 
   if (init_res == z3::sat) {
+
+    cout << "got SAT, starting minimize..." << endl; cout.flush();
     cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
         init_solver, module, {initctx->e}, /* hint */ candidate)[0];
+    cout << "done minimize..." << endl; cout.flush();
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -223,6 +228,8 @@ Counterexample get_counterexample(
   }
   */
 
+  cout << "starting inductive check ..." << endl; cout.flush();
+
   value full_conj = v_and(module->conjectures);
   value full_candidate = v_and({candidate, full_conj});
 
@@ -233,9 +240,11 @@ Counterexample get_counterexample(
   z3::check_result res = solver.check();
 
   if (res == z3::sat) {
+    cout << "got SAT, starting minimize" << endl; cout.flush();
     auto m1_and_m2 = Model::extract_minimal_models_from_z3(
           indctx->ctx->ctx,
           solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+    cout << "done minimize" << endl; cout.flush();
     shared_ptr<Model> m1 = m1_and_m2[0];
     shared_ptr<Model> m2 = m1_and_m2[1];
     solver.pop();
@@ -256,8 +265,12 @@ Counterexample get_counterexample(
       cex.conclusion = m2;
     }
 
+    cout << "done evaluating" << endl; cout.flush();
+
     return cex;
   }
+
+  cout << "returning no counterexample" << endl; cout.flush();
 
   cex.none = true;
   return cex;
@@ -477,8 +490,14 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     Counterexample cex;
     if (options.with_conjs) {
+      cout << "getting counterexample ..." << endl;
+      cout.flush();
       cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+      cout << "counterexample obtained" << endl;
+      cout.flush();
       cex = simplify_cex_nosafety(module, cex, bmc);
+      cout << "simplify_cex done" << endl;
+      cout.flush();
     } else {
       cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
       cex = simplify_cex(module, cex, bmc, antibmc);

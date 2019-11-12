@@ -574,8 +574,8 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
 
   shared_ptr<Model> model0 = all_models[0];
 
-  //printf("extract_minimal_models_from_z3: initial sizes:\n");
-  //model0->dump_sizes();
+  cout << "extract_minimal_models_from_z3: initial sizes:\n"; cout.flush();
+  model0->dump_sizes();
 
   BackgroundContext& bgctx = *es[0]->ctx;
 
@@ -619,7 +619,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       new_sizes[sort_idx] = sz_to_try;
     }
 
-    //printf("trying sizes: "); for (int k : new_sizes) printf("%d ", k); printf("\n");
+    cout << "trying sizes: "; for (int k : new_sizes) cout << k << " "; cout << endl; cout.flush();
 
     solver.push();
 
@@ -852,17 +852,18 @@ shared_ptr<Model> Model::extract_model_from_z3(
 }
 
 void Model::dump_sizes() const {
-  printf("Model sizes: ");
+  cout << "Model sizes: ";
   bool start = true;
   for (string sort : module->sorts) {
     int domain_size = (int) get_domain_size(sort);
     if (!start) {
-      printf(", ");
+      cout << ", ";
     }
-    printf("%s: %d", sort.c_str(), domain_size);
+    cout << sort << ": " << domain_size;
     start = false;
   }
-  printf("\n");
+  cout << endl;
+  cout.flush();
 }
 
 void Model::dump() const {
