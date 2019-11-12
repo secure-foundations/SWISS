@@ -455,7 +455,7 @@ public:
   std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
   void get_used_vars(std::set<iden>&) const override;
 
-  int kind_id() const override { return 10; }
+  int kind_id() const override { return 11; }
 };
 
 class TemplateHole : public Value {
@@ -476,7 +476,7 @@ public:
   std::shared_ptr<Value> structurally_normalize_() const override;
   std::shared_ptr<Value> normalize_symmetries(ScopeState const& ss, std::set<iden> const& vars_used) const override;
   void get_used_vars(std::set<iden>&) const override;
-  int kind_id() const override { return 11; }
+  int kind_id() const override { return 12; }
 };
 
 /* Action */

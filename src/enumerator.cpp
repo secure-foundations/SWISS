@@ -380,15 +380,22 @@ value normalize(value v, NormalizeState& ns) {
 // so we still do the first one to save time.
 vector<value> remove_equiv2(vector<value> const& values) {
   vector<value> result;
-  set<string> seen;
+  set<ComparableValue> seen;
   int i = 0;
   for (value v : values) {
     i++;
     //if (i % 1000 == 0) printf("i = %d\n", i);
     value norm = v->totally_normalize();
-    string s = norm->to_string();
-    if (seen.find(s) == seen.end()) {
-      seen.insert(s);
+    //string s = norm->to_string();
+
+    //cout << v->to_string() << endl;
+    //cout << s << endl;
+    //cout << endl;
+
+    ComparableValue cv(norm);
+
+    if (seen.find(cv) == seen.end()) {
+      seen.insert(cv);
       result.push_back(v);
     }
   }
