@@ -48,7 +48,6 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   , ensure_nonredundant(ensure_nonredundant)
   , tqd(module->templates[0])
 {
-  assert (!ensure_nonredundant);
   if (!options.impl_shape) {
     assert (options.conj_arity >= 1);
   }
@@ -253,5 +252,4 @@ void NaiveCandidateSolver::addCounterexample(Counterexample cex, value candidate
 
 void NaiveCandidateSolver::addExistingInvariant(value inv)
 {
-  assert(false);
 }
