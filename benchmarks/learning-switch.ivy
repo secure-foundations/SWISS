@@ -134,6 +134,6 @@ conjecture ((pending(P0, SW0, SW1) | S0 = SW1 & SW0 = SW1) & (~dom(S0,SW1) & SW0
 
 #conjecture ~(pending(P, V0, V1) & src(P)=S & ~dom(S,V0))
 
-template forall A:host . forall P:packet . WILD
-template forall A:host . forall B:host . forall P:packet . WILD
+#template forall A:host . forall P:packet . WILD
+#template forall A:host . forall B:host . forall P:packet . WILD
 template forall A:host . forall B:host . forall C:host . forall P:packet . WILD

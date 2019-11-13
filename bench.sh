@@ -11,6 +11,12 @@ if [ "$1" = "naive-paxos-missing1" ]; then
 fi
 
 
+if [ "$1" = "naive-inc-learning-switch" ]; then
+  echo_and_run ./save.sh benchmarks/learning-switch.ivy --incremental --enum-naive --conj-arity 1 --disj-arity 3
+fi
+
+
+
 
 if [ "$1" = "sat-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --enum-sat --arity 3 --depth 4
@@ -24,5 +30,5 @@ fi
 
 if [ "$1" = "sat-inc-learning-switch" ]; then
   echo_and_run ./save.sh benchmarks/learning-switch.ivy --incremental --enum-sat --arity 3 --depth 3
-fi
 
+fi

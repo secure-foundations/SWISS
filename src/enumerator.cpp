@@ -83,13 +83,26 @@ vector<HoleInfo> getHoleInfo(value v) {
 }
 
 void add_constraints(shared_ptr<Module> module, SMT& solver) {
-  solver.createBinaryAssociativeConstraints("=.node"); // a = b <-> b = a
-  solver.createBinaryAssociativeConstraints("~=.node"); // a ~= b <- b ~= a
-  solver.createAllDiffConstraints("=.node"); // does not allow forall. x: x = x
-  solver.createAllDiffConstraints("~=.node"); // does not allow forall. x: x ~= x
+  for (string so : module->sorts) {
+    string eq = "=." + so;
+    string neq = "~=." + so;
+    solver.createBinaryAssociativeConstraints(eq); // a = b <-> b = a
+    solver.createBinaryAssociativeConstraints(neq); // a ~= b <- b ~= a
+    solver.createAllDiffConstraints(eq); // does not allow forall. x: x = x
+    solver.createAllDiffConstraints(neq); // does not allow forall. x: x ~= x
+  }
 
-  solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-  solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
+  bool has_le = false;
+  for (VarDecl decl : module->functions) {
+    if (iden_to_string(decl.name) == "le") {
+      has_le = true;
+    }
+  }
+
+  if (has_le) {
+    solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
+    solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
+  }
 
   bool has_btw = false;
   for (VarDecl decl : module->functions) {
