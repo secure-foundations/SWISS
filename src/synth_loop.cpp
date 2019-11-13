@@ -566,12 +566,13 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       std::cout.flush();
 
       value candidate0 = cs->getNext();
-      cout << "candidate: " << candidate0->to_string() << endl;
 
       if (!candidate0) {
         printf("unable to synthesize any formula\n");
         goto done;
       }
+
+      cout << "candidate: " << candidate0->to_string() << endl;
 
       value candidate = cs->getNext()->reduce_quants();
 
