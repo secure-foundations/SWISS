@@ -181,7 +181,7 @@ Counterexample get_counterexample(
   Counterexample cex;
   cex.none = false;
 
-  cout << "starting init check ..." << endl; cout.flush();
+  //cout << "starting init check ..." << endl; cout.flush();
 
   auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
 
@@ -191,11 +191,11 @@ Counterexample get_counterexample(
   z3::check_result init_res = init_solver.check();
 
   if (init_res == z3::sat) {
-    cout << "got SAT, starting minimize..." << endl; cout.flush();
+    //cout << "got SAT, starting minimize..." << endl; cout.flush();
     cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
         init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-    cout << "done minimize..." << endl; cout.flush();
+    //cout << "done minimize..." << endl; cout.flush();
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
@@ -206,7 +206,7 @@ Counterexample get_counterexample(
   value full_candidate = v_and({candidate, full_conj});
 
   for (int i = 0; i <= module->conjectures.size(); i++) {
-    cout << "starting inductive check " << i << endl; cout.flush();
+    //cout << "starting inductive check " << i << endl; cout.flush();
 
     for (int j = 0; j < module->actions.size(); j++) {
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
@@ -221,11 +221,11 @@ Counterexample get_counterexample(
       z3::check_result res = solver.check();
 
       if (res == z3::sat) {
-        cout << "got SAT, starting minimize" << endl; cout.flush();
+        //cout << "got SAT, starting minimize" << endl; cout.flush();
         auto m1_and_m2 = Model::extract_minimal_models_from_z3(
               indctx->ctx->ctx,
               solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        cout << "done minimize" << endl; cout.flush();
+        //cout << "done minimize" << endl; cout.flush();
         shared_ptr<Model> m1 = m1_and_m2[0];
         shared_ptr<Model> m2 = m1_and_m2[1];
 
@@ -238,14 +238,14 @@ Counterexample get_counterexample(
           cex.is_false = m1;
         }
 
-        cout << "done evaluating" << endl; cout.flush();
+        //cout << "done evaluating" << endl; cout.flush();
 
         return cex;
       }
     }
   }
 
-  cout << "returning no counterexample" << endl; cout.flush();
+  //cout << "returning no counterexample" << endl; cout.flush();
 
   cex.none = true;
   return cex;
@@ -448,6 +448,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     //log_smtlib(solver_sf);
     //printf("number of boolean variables: %d\n", sf.get_bool_count());
+    cout << "num iterations " << num_iterations << endl;
     std::cout.flush();
 
     value candidate = cs->getNext();
@@ -465,13 +466,13 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     Counterexample cex;
     if (options.with_conjs) {
-      cout << "getting counterexample ..." << endl;
+      //cout << "getting counterexample ..." << endl;
       cout.flush();
       cex = get_counterexample(module, ctx, candidate);
-      cout << "counterexample obtained" << endl;
+      //cout << "counterexample obtained" << endl;
       cout.flush();
       cex = simplify_cex_nosafety(module, cex, bmc);
-      cout << "simplify_cex done" << endl;
+      //cout << "simplify_cex done" << endl;
       cout.flush();
     } else {
       cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
@@ -556,6 +557,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       num_iterations++;
       num_iterations_total++;
 
+      cout << "num_iterations_total = " << num_iterations_total << endl;
+
       printf("\n");
 
       //log_smtlib(solver_sf);
@@ -563,6 +566,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       std::cout.flush();
 
       value candidate0 = cs->getNext();
+      cout << "candidate: " << candidate0->to_string() << endl;
 
       if (!candidate0) {
         printf("unable to synthesize any formula\n");
@@ -586,12 +590,17 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       assert(cex.is_false == nullptr);
 
       if (cex.none) {
-        Benchmarking bench_strengthen;
-        bench_strengthen.start("strengthen");
-        value simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
-            ->simplify()->reduce_quants();
-        bench_strengthen.end();
-        bench_strengthen.dump();
+        value simplified_inv;
+        if (options.enum_sat) {
+          Benchmarking bench_strengthen;
+          bench_strengthen.start("strengthen");
+          value simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
+              ->simplify()->reduce_quants();
+          bench_strengthen.end();
+          bench_strengthen.dump();
+        } else {
+          simplified_inv = candidate;
+        }
 
         cs->addExistingInvariant(simplified_inv);
         found_invs.push_back(simplified_inv);
@@ -601,12 +610,14 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
         for (value found_inv : found_invs) {
           printf("    %s\n", found_inv->to_string().c_str());
         }
-        found_invs = filter_redundant_formulas(module, found_invs);
-        printf("\nfiltered:\n");
-        for (value found_inv : found_invs) {
-          printf("    %s\n", found_inv->to_string().c_str());
+        if (options.filter_redundant) {
+          found_invs = filter_redundant_formulas(module, found_invs);
+          printf("\nfiltered:\n");
+          for (value found_inv : found_invs) {
+            printf("    %s\n", found_inv->to_string().c_str());
+          }
+          printf("num found so far:   %d\n", (int)found_invs.size());
         }
-        printf("num found so far:   %d\n", (int)found_invs.size());
         printf("TODAL found so far: %d\n", (int)all_found_invs.size());
 
         per_inner_loop_bench.end();

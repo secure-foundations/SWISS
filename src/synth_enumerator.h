@@ -12,6 +12,8 @@ struct Options {
 
   bool with_conjs;
 
+  bool filter_redundant;
+
   // SAT solving
   int arity;
   int depth;

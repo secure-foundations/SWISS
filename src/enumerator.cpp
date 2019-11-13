@@ -494,3 +494,5 @@ vector<value> enumerate_fills_for_template(
   vector<value> res = fill_holes(templ, all_hole_fills);
   return res;
 }
+
+
