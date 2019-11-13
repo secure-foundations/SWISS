@@ -191,7 +191,7 @@ void enumerate_next_level(
   }
 }
 
-void guided_incremental(
+/*void guided_incremental(
     shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
@@ -296,15 +296,13 @@ void guided_incremental(
           continue;
         }
 
-        /*
-        shared_ptr<Model> violation_model = bmc.get_k_invariance_violation(invariant);
-        if (violation_model) {
-          models.push_back(violation_model);
-          QuantifierInstantiation qi = get_counterexample(violation_model, invariant);
-          enumerate_next_level(fills, next_level, invariant, qi);
-          continue;
-        }
-        */
+        //shared_ptr<Model> violation_model = bmc.get_k_invariance_violation(invariant);
+        //if (violation_model) {
+        //  models.push_back(violation_model);
+        //  QuantifierInstantiation qi = get_counterexample(violation_model, invariant);
+        //  enumerate_next_level(fills, next_level, invariant, qi);
+        //  continue;
+        //}
 
         shared_ptr<Model> model1;
         shared_ptr<Model> model2;
@@ -335,7 +333,7 @@ void guided_incremental(
     }
   }
   bench.dump();
-}
+}*/
     
 
 void try_to_add_invariants(
@@ -557,9 +555,6 @@ int run_id;
 int main(int argc, char* argv[]) {
   //test_sat(); return 0;
 
-  // FIXME: quick hack to control which enumeration to use
-  bool just_enumeration = false;
-
   std::istreambuf_iterator<char> begin(std::cin), end;
   std::string json_src(begin, end);
 
@@ -684,59 +679,25 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    if (!just_enumeration) {
-      //assert(module->templates.size() == 1);
-      /*
-      vector<shared_ptr<Value>> candidates = enumerate_for_template(module,
-          module->templates[0]);
-      for (auto can : candidates) {
-        printf("%s\n", can->to_string().c_str());
-      }
-      */
+    z3::context ctx;
 
-      z3::context ctx;
+    //auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+    //auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+    //auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
+    //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
 
-      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-      auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
-      auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
+    //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
+    //guided_incremental(module, initctx, indctx, conjctx, invctx);
+    assert(argc >= 3);
 
-      //try_to_add_invariants(module, initctx, indctx, conjctx, invctx, candidates);
-      //guided_incremental(module, initctx, indctx, conjctx, invctx);
-      assert(argc >= 3);
-
-      if (incremental) {
-        synth_loop_incremental(module, options);
-      } else {
-        synth_loop(module, options);
-      }
-      //synth_loop_from_transcript(module, arity, depth);
-
-      /*
-      z3::solver solver = z3::solver(ctx);
-      SketchFormula sf(ctx, solver, {}, module, 2, 2);
-      z3::check_result res = solver.check();
-      assert (res == z3::sat);
-      z3::model model = solver.get_model();
-      value v = sf.to_value(model);
-      printf("value = %s\n", v->to_string().c_str());
-      */
-
-      return 0;
+    if (incremental) {
+      synth_loop_incremental(module, options);
     } else {
-      assert(module->templates.size() == 1);
-      vector<value> candidates = enumerate_for_template(module,
-          module->templates[0]);
-
-      int program = 1;
-      for (value v : candidates) {
-        std::cout << "#program= " << program << std::endl;
-        program++;
-        std::cout << v->to_string() << std::endl;
-      }
-      std::cout << "end" << std::endl;
+      synth_loop(module, options);
     }
+    //synth_loop_from_transcript(module, arity, depth);
 
+    return 0;
   } catch (z3::exception exc) {
     printf("got z3 exception: %s\n", exc.msg());
     throw;

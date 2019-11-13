@@ -24,6 +24,8 @@ public:
   TopQuantifierDesc tqd;
 
   std::vector<value> values;
+  std::vector<value> unfiltered;
+
   std::vector<Counterexample> cexes;
   std::vector<int> cur_indices;
 
@@ -54,19 +56,31 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   assert (options.disj_arity >= 1);
   assert (module->templates.size() == 1);
 
-  values = enumerate_for_template(module, module->templates[0], options.disj_arity);
+  auto p = enumerate_for_template(module, module->templates[0], options.disj_arity);
+  values = p.first;
+  unfiltered = p.second;
   for (int i = 0; i < values.size(); i++) {
     values[i] = values[i]->simplify();
   }
+  for (int i = 0; i < unfiltered.size(); i++) {
+    unfiltered[i] = unfiltered[i]->simplify();
+  }
 
   cout << "Using " << values.size() << " values that are a disjunction of at most " << options.disj_arity << " terms." << endl;
+  if (options.impl_shape) {
+    cout << "Using " << unfiltered.size() << " for the second term." << endl;
+  }
 
   //for (value v : values) {
   //  cout << v->to_string() << endl;
   //}
   //assert(false);
 
-  cur_indices = {};
+  if (options.impl_shape) {
+    cur_indices = {0, 0};
+  } else {
+    cur_indices = {};
+  }
 }
 
 bool passes_cex(value v, Counterexample const& cex)
@@ -124,7 +138,7 @@ value NaiveCandidateSolver::getNext()
         break;
       }
 
-      value v = fuse_as_impl(values[cur_indices[0]], values[cur_indices[1]]);
+      value v = fuse_as_impl(values[cur_indices[0]], unfiltered[cur_indices[1]]);
       //cout << "trying " << v->to_string() << endl;
 
       bool failed = false;
@@ -198,21 +212,34 @@ int t = 0;
 void NaiveCandidateSolver::increment()
 {
   t++;
-  int j;
-  for (j = cur_indices.size() - 1; j >= 0; j--) {
-    if (cur_indices[j] != values.size() - cur_indices.size() + j) {
-      cur_indices[j]++;
-      for (int k = j+1; k < cur_indices.size(); k++) {
-        cur_indices[k] = cur_indices[k-1] + 1;
+
+  if (options.impl_shape) {
+    assert(cur_indices.size() == 2);
+    cur_indices[1]++;
+    if (cur_indices[1] == unfiltered.size()) {
+      cur_indices[0]++;    
+      cur_indices[1] = 0;
+      if (cur_indices[0] == values.size()) {
+        cur_indices = {0,0,0};
       }
-      break;
     }
-  }
-  if (j == -1) {
-    cur_indices.push_back(0);
-    assert (cur_indices.size() <= values.size());
-    for (int i = 0; i < cur_indices.size(); i++) {
-      cur_indices[i] = i;
+  } else {
+    int j;
+    for (j = cur_indices.size() - 1; j >= 0; j--) {
+      if (cur_indices[j] != values.size() - cur_indices.size() + j) {
+        cur_indices[j]++;
+        for (int k = j+1; k < cur_indices.size(); k++) {
+          cur_indices[k] = cur_indices[k-1] + 1;
+        }
+        break;
+      }
+    }
+    if (j == -1) {
+      cur_indices.push_back(0);
+      assert (cur_indices.size() <= values.size());
+      for (int i = 0; i < cur_indices.size(); i++) {
+        cur_indices[i] = i;
+      }
     }
   }
   if (t % 5000000 == 0) {

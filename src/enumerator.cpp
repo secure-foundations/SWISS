@@ -421,7 +421,7 @@ void sort_values(vector<value>& values) {
   });
 }
 
-vector<value> enumerate_for_template(
+pair<vector<value>, vector<value>> enumerate_for_template(
     shared_ptr<Module> module,
     value templ, int k)
 {
@@ -461,14 +461,14 @@ vector<value> enumerate_for_template(
   }
 
   vector<value> res = fill_holes(templ, all_hole_fills);
-  res = remove_equiv2(res);
+  vector<value> final = remove_equiv2(res);
 
   //cout << "res len " << res.size() << endl;
-  return res;
+  return make_pair(final, res);
 }
 
 // XXX this doesn't make any sense
-vector<value> enumerate_fills_for_template(
+/*vector<value> enumerate_fills_for_template(
     shared_ptr<Module> module,
     value templ)
 {
@@ -493,6 +493,6 @@ vector<value> enumerate_fills_for_template(
 
   vector<value> res = fill_holes(templ, all_hole_fills);
   return res;
-}
+}*/
 
 
