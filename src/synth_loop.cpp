@@ -175,15 +175,15 @@ Counterexample get_counterexample_simple(
 
 Counterexample get_counterexample(
     shared_ptr<Module> module,
-    shared_ptr<InitContext> initctx,
-    shared_ptr<InductionContext> indctx,
-    shared_ptr<ConjectureContext> conjctx,
+    z3::context& ctx,
     value candidate)
 {
   Counterexample cex;
   cex.none = false;
 
   cout << "starting init check ..." << endl; cout.flush();
+
+  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
 
   z3::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
@@ -199,52 +199,49 @@ Counterexample get_counterexample(
 
     printf("counterexample type: INIT\n");
     //cex.is_true->dump();
-
-    init_solver.pop();
     return cex;
-  } else {
-    init_solver.pop();
   }
 
   value full_conj = v_and(module->conjectures);
   value full_candidate = v_and({candidate, full_conj});
 
-  z3::solver& solver = indctx->ctx->solver;
-  solver.add(indctx->e1->value2expr(full_candidate));
-
   for (int i = 0; i <= module->conjectures.size(); i++) {
-    cout << "starting inductive check " << i << " ..." << endl; cout.flush();
+    cout << "starting inductive check " << i << endl; cout.flush();
 
-    bool testing_candidate = (i == module->conjectures.size());
+    for (int j = 0; j < module->actions.size(); j++) {
+      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
 
-    solver.push();
-    solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));
-    z3::check_result res = solver.check();
+      z3::solver& solver = indctx->ctx->solver;
+      solver.add(indctx->e1->value2expr(full_candidate));
 
-    if (res == z3::sat) {
-      cout << "got SAT, starting minimize" << endl; cout.flush();
-      auto m1_and_m2 = Model::extract_minimal_models_from_z3(
-            indctx->ctx->ctx,
-            solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-      cout << "done minimize" << endl; cout.flush();
-      shared_ptr<Model> m1 = m1_and_m2[0];
-      shared_ptr<Model> m2 = m1_and_m2[1];
-      solver.pop();
+      bool testing_candidate = (i == module->conjectures.size());
 
-      if (testing_candidate) {
-        printf("counterexample type: INDUCTIVE\n");
-        cex.hypothesis = m1;
-        cex.conclusion = m2;
-      } else {
-        printf("counterexample type: SAFETY\n");
-        cex.is_false = m1;
+      solver.push();
+      solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));
+      z3::check_result res = solver.check();
+
+      if (res == z3::sat) {
+        cout << "got SAT, starting minimize" << endl; cout.flush();
+        auto m1_and_m2 = Model::extract_minimal_models_from_z3(
+              indctx->ctx->ctx,
+              solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+        cout << "done minimize" << endl; cout.flush();
+        shared_ptr<Model> m1 = m1_and_m2[0];
+        shared_ptr<Model> m2 = m1_and_m2[1];
+
+        if (testing_candidate) {
+          printf("counterexample type: INDUCTIVE\n");
+          cex.hypothesis = m1;
+          cex.conclusion = m2;
+        } else {
+          printf("counterexample type: SAFETY\n");
+          cex.is_false = m1;
+        }
+
+        cout << "done evaluating" << endl; cout.flush();
+
+        return cex;
       }
-
-      cout << "done evaluating" << endl; cout.flush();
-
-      return cex;
-    } else {
-      solver.pop();
     }
   }
 
@@ -470,7 +467,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     if (options.with_conjs) {
       cout << "getting counterexample ..." << endl;
       cout.flush();
-      cex = get_counterexample(module, initctx, indctx, conjctx, candidate);
+      cex = get_counterexample(module, ctx, candidate);
       cout << "counterexample obtained" << endl;
       cout.flush();
       cex = simplify_cex_nosafety(module, cex, bmc);

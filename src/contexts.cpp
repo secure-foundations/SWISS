@@ -234,12 +234,17 @@ z3::expr ModelEmbedding::value2expr(
 
 InductionContext::InductionContext(
     z3::context& z3ctx,
-    std::shared_ptr<Module> module)
-    : ctx(new BackgroundContext(z3ctx, module))
+    std::shared_ptr<Module> module,
+    int action_idx)
+    : ctx(new BackgroundContext(z3ctx, module)), action_idx(action_idx)
 {
+  assert(-1 <= action_idx < module->actions.size());
+
   this->e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
-  shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
+  shared_ptr<Action> action = action_idx == -1
+      ? shared_ptr<Action>(new ChoiceAction(module->actions))
+      : module->actions[action_idx];
   ActionResult res = applyAction(this->e1, action, {});
   this->e2 = res.e;
 
@@ -687,8 +692,8 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
       }
     }
 
-    {
-      InductionContext indctx(ctx, module);
+    for (int i = 0; i < module->actions.size(); i++) {
+      InductionContext indctx(ctx, module, i);
       z3::solver& solver = indctx.ctx->solver;
       solver.add(indctx.e1->value2expr(full));
       solver.add(indctx.e2->value2expr(v_not(candidate)));
@@ -698,10 +703,10 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
       if (res == z3::sat) {
         //cout << "hey" << endl;
 
-        shared_ptr<Model> m1 = Model::extract_model_from_z3(
-            indctx.ctx->ctx, solver, module, *indctx.e1);
-        shared_ptr<Model> m2 = Model::extract_model_from_z3(
-            indctx.ctx->ctx, solver, module, *indctx.e2);
+        //shared_ptr<Model> m1 = Model::extract_model_from_z3(
+        //    indctx.ctx->ctx, solver, module, *indctx.e1);
+        //shared_ptr<Model> m2 = Model::extract_model_from_z3(
+        //    indctx.ctx->ctx, solver, module, *indctx.e2);
         //m1->dump();
         //m2->dump();
 

@@ -63,8 +63,10 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e1;
   std::shared_ptr<ModelEmbedding> e2;
+  int action_idx;
 
-  InductionContext(z3::context& ctx, std::shared_ptr<Module> module);
+  InductionContext(z3::context& ctx, std::shared_ptr<Module> module,
+      int action_idx = -1);
 };
 
 class ChainContext {
