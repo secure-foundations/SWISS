@@ -652,6 +652,10 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
     }
+    else {
+      cout << "unreocgnized argument " << argv[i] << endl;
+      return 1;
+    }
   }
 
   if (wpr) {

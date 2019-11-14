@@ -392,6 +392,22 @@ Transcript Transcript::from_json(Json j, shared_ptr<Module> module) {
   return t;
 }
 
+vector<pair<Counterexample, value>> filter_unneeded_cexes(
+    vector<pair<Counterexample, value>> const& cexes,
+    value invariant_so_far)
+{
+  vector<pair<Counterexample, value>> res;
+  for (auto p : cexes) {
+    Counterexample cex = p.first;
+    if (cex.is_true ||
+        (cex.hypothesis && cex.hypothesis->eval_predicate(invariant_so_far))) {
+      res.push_back(p);
+    }
+  }
+  return res;
+}
+
+
 /*
 extern int run_id;
 
@@ -542,9 +558,17 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
   Benchmarking total_bench;
 
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
+  std::vector<std::pair<Counterexample, value>> cexes;
 
   while (true) {
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
+    for (value inv : found_invs) {
+      cs->addExistingInvariant(inv);
+    }
+    for (auto& p : cexes) {
+      cs->addCounterexample(p.first, p.second);
+    }
+
     Benchmarking per_outer_loop_bench;
     per_outer_loop_bench.start("time to infer this invariant");
 
@@ -603,9 +627,10 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
           simplified_inv = candidate;
         }
 
-        cs->addExistingInvariant(simplified_inv);
         found_invs.push_back(simplified_inv);
         all_found_invs.push_back(simplified_inv);
+
+        cexes = filter_unneeded_cexes(cexes, v_and(found_invs));
 
         printf("\nfound new invariant! all so far:\n");
         for (value found_inv : found_invs) {
@@ -633,6 +658,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
         Benchmarking add_cex_bench;
         add_cex_bench.start("add_counterexample");
         cs->addCounterexample(cex, candidate0);
+        cexes.push_back(make_pair(cex, candidate0));
         add_cex_bench.end();
         add_cex_bench.dump();
       }

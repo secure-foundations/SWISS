@@ -11,21 +11,22 @@ using namespace std;
 
 class SatCandidateSolver : public CandidateSolver {
 public:
-  SatCandidateSolver(std::shared_ptr<Module>, Options const&,
+  SatCandidateSolver(shared_ptr<Module>, Options const&,
       bool ensure_nonredundant, Shape shape);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
 
-private:
-  std::vector<std::pair<Counterexample, value>> cexes;
-  std::vector<value> existingInvariants;
+//private:
+  vector<value> existingInvariants;
 
-  std::shared_ptr<Module> module;
+  shared_ptr<Module> module;
   Shape shape;
   Options options;
   bool ensure_nonredundant;
+
+  shared_ptr<SketchModel> sm;
 
   TopQuantifierDesc tqd;
   SatSolver ss;
@@ -34,8 +35,8 @@ private:
   void init_constraints();
 };
 
-std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
-    std::shared_ptr<Module> module, Options const& options,
+shared_ptr<CandidateSolver> make_sat_candidate_solver(
+    shared_ptr<Module> module, Options const& options,
       bool ensure_nonredundant, Shape shape)
 {
   return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, options, ensure_nonredundant, shape));
@@ -142,21 +143,6 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   }
 }
 
-vector<pair<Counterexample, value>> filter_unneeded_cexes(
-    vector<pair<Counterexample, value>> const& cexes,
-    value invariant_so_far)
-{
-  vector<pair<Counterexample, value>> res;
-  for (auto p : cexes) {
-    Counterexample cex = p.first;
-    if (cex.is_true ||
-        (cex.hypothesis && cex.hypothesis->eval_predicate(invariant_so_far))) {
-      res.push_back(p);
-    }
-  }
-  return res;
-}
-
 SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
   : module(module)
   , shape(shape)
@@ -166,6 +152,10 @@ SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, Options const&
   , sf(ss, tqd, module, options.arity, options.depth)
 {
   init_constraints();
+  if (ensure_nonredundant) {
+    sm = shared_ptr<SketchModel>(new SketchModel(ss, module, 3));
+    ss.add(sf.interpret_not(*sm));
+  }
 }
 
 value SatCandidateSolver::getNext()
@@ -188,28 +178,16 @@ value SatCandidateSolver::getNext()
 
 void SatCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
-  cexes.push_back(make_pair(cex, candidate));
   add_counterexample(module, sf, cex, candidate);
 }
 
 void SatCandidateSolver::addExistingInvariant(value inv)
 {
+  assert(ensure_nonredundant);
   existingInvariants.push_back(inv);
-  cexes = filter_unneeded_cexes(cexes, v_and(existingInvariants));
 
-  // re-initialize the SatSolver
-  ss.~SatSolver();
-  new (&ss) SatSolver();
-  sf.~SketchFormula();
-  new (&sf) SketchFormula(ss, tqd, module, options.arity, options.depth);
-  init_constraints();
-
-  printf("Starting off with %d counterexamples\n", (int)cexes.size());
-  for (auto p : cexes) {
-    Counterexample cex = p.first;
-    value candidate = p.second;
-    add_counterexample(module, sf, cex, candidate);
-  }
+  assert (sm != nullptr);
+  sm->assert_formula(inv);
 }
 
 void SatCandidateSolver::init_constraints()
@@ -223,13 +201,5 @@ void SatCandidateSolver::init_constraints()
       break;
     default:
       assert(false);
-  }
-
-  if (ensure_nonredundant) {
-    SketchModel sm(ss, module, 3);
-    ss.add(sf.interpret_not(sm));
-    for (value v : existingInvariants) {
-      sm.assert_formula(v);
-    }
   }
 }
