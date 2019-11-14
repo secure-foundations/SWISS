@@ -137,4 +137,4 @@ conjecture (
     decision(N2,R2,V2)
 ) -> V1 = V2
 
-template (forall C:value . forall D:value . forall Q:quorum . forall R1:round . forall R2:round . exists A:node . WILD)
+template (forall A:node . forall B:node . forall C:value . forall D:value . forall Q:quorum . forall R1:round . forall R2:round . WILD)
