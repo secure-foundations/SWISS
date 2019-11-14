@@ -238,7 +238,7 @@ InductionContext::InductionContext(
     int action_idx)
     : ctx(new BackgroundContext(z3ctx, module)), action_idx(action_idx)
 {
-  assert(-1 <= action_idx < module->actions.size());
+  assert(-1 <= action_idx && action_idx < (int)module->actions.size());
 
   this->e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
