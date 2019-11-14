@@ -3,7 +3,6 @@
 using namespace std;
 
 void SketchModel::assert_formula(value v) {
-  cout << v->to_string() << endl;
   solver.add(to_sat(v, 1, {}));
 }
 
