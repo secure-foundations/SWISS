@@ -595,7 +595,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
         if (options.enum_sat) {
           Benchmarking bench_strengthen;
           bench_strengthen.start("strengthen");
-          value simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
+          simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
               ->simplify()->reduce_quants();
           bench_strengthen.end();
           bench_strengthen.dump();
