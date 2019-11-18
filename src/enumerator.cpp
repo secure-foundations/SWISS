@@ -99,12 +99,12 @@ void add_constraints(shared_ptr<Module> module, SMT& solver) {
     }
   }
 
-  if (has_le) {
-    solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-    solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
-  }
+  //if (has_le) {
+  //  solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
+  //  solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
+  //}
 
-  bool has_btw = false;
+ bool has_btw = false;
   for (VarDecl decl : module->functions) {
     if (iden_to_string(decl.name) == "btw") {
       has_btw = true;
@@ -281,6 +281,9 @@ bool is_boring(value v, bool pos) {
     }
     return false;
     */
+  } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
+    return (iden_to_string(dynamic_cast<Const*>(ap->func.get())->name) == "le" &&
+      ap->args[0]->to_string() == ap->args[1]->to_string());
   } else {
     return false;
   }
