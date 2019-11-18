@@ -234,19 +234,42 @@ vector<value> fill_holes(value templ, vector<vector<value>> const& fills) {
   return result;
 }
 
+bool are_negations1(value a, value b) {
+  if (Not* n = dynamic_cast<Not*>(a.get())) {
+    return values_equal(n->val, b);
+  } else {
+    return false;
+  }
+}
+
+bool are_negations(value a, value b) {
+  return are_negations1(a,b) || are_negations1(b,a);
+}
+
 void enum_conjuncts_(
     vector<value> const& pieces, int k,
-    int idx, vector<value> acc, vector<value>& result) {
+    int idx, vector<value> acc, vector<value>& result)
+{
   if (acc.size() == k) {
     result.push_back(v_and(acc));
     return;
   }
-  
+
   for (int i = idx + 1; i < pieces.size(); i++) {
     if (i == idx+1) acc.push_back(pieces[i]);
     else acc[acc.size() - 1] = pieces[i];
 
-    enum_conjuncts_(pieces, k, i, acc, result);
+    bool skip = false;
+    for (int j = 0; j < acc.size() - 1; j++) {
+      if (are_negations(acc[j], pieces[i])) {
+        skip = true;
+        break;
+      }
+    }
+
+    if (!skip) {
+      enum_conjuncts_(pieces, k, i, acc, result);
+    }
   }
 }
 
