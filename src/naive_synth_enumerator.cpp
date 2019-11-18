@@ -71,9 +71,9 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
     cout << "Using " << unfiltered.size() << " for the second term." << endl;
   }
 
-  for (value v : values) {
-    cout << v->to_string() << endl;
-  }
+  //for (value v : values) {
+  //  cout << v->to_string() << endl;
+  //}
   //assert(false);
 
   if (options.impl_shape) {
