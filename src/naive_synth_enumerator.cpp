@@ -135,7 +135,7 @@ value NaiveCandidateSolver::getNext()
         increment();
         continue;
       } else if (cur_indices.size() > 2) {
-        break;
+        return nullptr;
       }
 
       value v = fuse_as_impl(values[cur_indices[0]], unfiltered[cur_indices[1]]);
