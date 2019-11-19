@@ -700,3 +700,121 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   total_bench.dump();
   printf("\n");
 }
+
+void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
+{
+  z3::context ctx;
+
+  assert(module->templates.size() >= 1);
+
+  vector<value> all_found_invs;
+  vector<value> found_invs;
+  vector<value> all_found_invs_unsimplified;
+  if (is_invariant_with_conjectures(module, v_true())) {
+    printf("already invariant, done\n");
+    return;
+  }
+
+  int bmc_depth = 4;
+  printf("bmc_depth = %d\n", bmc_depth);
+  BMCContext bmc(ctx, module, bmc_depth);
+
+  int num_iterations_total = 0;
+  int num_iterations_outer = 0;
+
+  Benchmarking total_bench;
+
+  while (true) {
+    num_iterations_outer++;
+
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
+    if (options.enum_sat) {
+      for (value inv : found_invs) {
+        cs->addExistingInvariant(inv);
+      }
+    } else {
+      for (value inv : all_found_invs_unsimplified) {
+        cs->addExistingInvariant(inv);
+      }
+    }
+
+    int num_iterations = 0;
+    bool any_formula_synthesized_this_round = false;
+
+    while (true) {
+      num_iterations++;
+      num_iterations_total++;
+
+      cout << endl;
+
+      value candidate0 = cs->getNext();
+
+      if (!candidate0) {
+        break;
+      }
+
+      any_formula_synthesized_this_round = true;
+
+      cout << "total iterations: " << num_iterations_total << " (" << num_iterations_outer << " outer + " << num_iterations << ")" << endl;
+      cout << "candidate: " << candidate0->to_string() << endl;
+
+      value candidate = candidate0->reduce_quants();
+
+      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+      Counterexample cex = get_counterexample_simple(
+                module, bmc, initctx, indctx, nullptr /* conjctx */,
+                v_and(found_invs), candidate);
+
+      Benchmarking bench2;
+      bench2.start("simplification");
+      cex = simplify_cex_nosafety(module, cex, bmc);
+      bench2.end();
+      bench2.dump();
+
+      assert(cex.is_false == nullptr);
+
+      if (cex.none) {
+        value simplified_inv;
+        if (options.enum_sat) {
+          Benchmarking bench_strengthen;
+          bench_strengthen.start("strengthen");
+          simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
+              ->simplify()->reduce_quants();
+          bench_strengthen.end();
+          bench_strengthen.dump();
+        } else {
+          simplified_inv = candidate;
+        }
+
+        found_invs.push_back(simplified_inv);
+        all_found_invs_unsimplified.push_back(candidate0);
+        all_found_invs.push_back(simplified_inv);
+
+        cout << "\nfound new invariant! all so far:\n";
+        for (value found_inv : found_invs) {
+          cout << "    " << found_inv->to_string() << endl;
+        }
+
+        if (is_invariant_with_conjectures(module, found_invs)) {
+          cout << "invariant implies safety condition, done!" << endl;
+          return;
+        }
+
+        if (options.enum_sat) {
+          cs->addExistingInvariant(simplified_inv);
+        } else {
+          cs->addExistingInvariant(candidate0);
+        }
+      } else {
+        cex_stats(cex);
+        cs->addCounterexample(cex, candidate0);
+      }
+    }
+
+    if (!any_formula_synthesized_this_round) {
+      cout << "unable to synthesize any formula" << endl;
+      break;
+    }
+  }
+}

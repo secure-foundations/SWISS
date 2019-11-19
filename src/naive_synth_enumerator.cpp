@@ -344,8 +344,8 @@ void NaiveCandidateSolver::init_implications()
 
 void NaiveCandidateSolver::addExistingInvariant(value inv)
 {
-  cout << "inv is " << inv->to_string() << endl;
-  cout << "norm is " << inv->totally_normalize()->to_string() << endl;
+  //cout << "inv is " << inv->to_string() << endl;
+  //cout << "norm is " << inv->totally_normalize()->to_string() << endl;
 
   ComparableValue cv(inv->totally_normalize());
   auto iter = normalized_to_idx.find(cv);

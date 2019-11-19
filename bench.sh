@@ -8,6 +8,9 @@ fi
 if [ "$1" = "naive-inc-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --incremental --enum-naive --conj-arity 1 --disj-arity 3
 fi
+if [ "$1" = "naive-breadth-leader-election" ]; then
+  echo_and_run ./save.sh benchmarks/leader-election.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3
+fi
 if [ "$1" = "sat-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --enum-sat --arity 3 --depth 4
 fi

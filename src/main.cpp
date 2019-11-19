@@ -597,6 +597,7 @@ int main(int argc, char* argv[]) {
   int seed = 1234;
   bool check_inductiveness = false;
   bool incremental = false;
+  bool breadth = false;
   bool wpr = false;
   int wpr_index = 0;
   for (int i = 1; i < argc; i++) {
@@ -619,6 +620,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--incremental")) {
       incremental = true;
+    }
+    else if (argv[i] == string("--breadth")) {
+      breadth = true;
     }
     else if (argv[i] == string("--arity")) {
       assert(i + 1 < argc);
@@ -658,6 +662,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  assert(!(breadth && incremental));
+
   if (wpr) {
     print_wpr(module, wpr_index);
     return 0;
@@ -694,7 +700,9 @@ int main(int argc, char* argv[]) {
     //guided_incremental(module, initctx, indctx, conjctx, invctx);
     assert(argc >= 3);
 
-    if (incremental) {
+    if (breadth) {
+      synth_loop_incremental_breadth(module, options);
+    } else if (incremental) {
       synth_loop_incremental(module, options);
     } else {
       synth_loop(module, options);
