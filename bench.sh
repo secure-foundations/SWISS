@@ -39,3 +39,7 @@ if [ "$1" = "naive-inc-learning-switch" ]; then
   echo_and_run ./save.sh benchmarks/learning-switch.ivy --incremental --enum-naive --conj-arity 1 --disj-arity 3
 fi
 
+
+if [ "$1" = "naive-breadth-chord" ]; then
+  echo_and_run ./save.sh benchmarks/chord.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 4
+fi
