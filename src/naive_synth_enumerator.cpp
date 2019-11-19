@@ -188,7 +188,6 @@ value NaiveCandidateSolver::getNext()
       bool failed = false;
 
       for (int i = 0; i < cur_indices.size(); i++) {
-        cout << "checking cur_indices " << i << " " << cur_indices[i] << " " << values_usable[cur_indices[i]] << endl;
         if (!values_usable[cur_indices[i]]) {
           failed = true;
         }
@@ -345,8 +344,8 @@ void NaiveCandidateSolver::init_implications()
 
 void NaiveCandidateSolver::addExistingInvariant(value inv)
 {
-  cout << "inv is " << inv << endl;
-  cout << "norm is " << inv->totally_normalize() << endl;
+  cout << "inv is " << inv->to_string() << endl;
+  cout << "norm is " << inv->totally_normalize()->to_string() << endl;
 
   ComparableValue cv(inv->totally_normalize());
   auto iter = normalized_to_idx.find(cv);

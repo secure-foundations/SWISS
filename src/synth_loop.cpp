@@ -545,6 +545,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
   vector<value> all_found_invs;
   vector<value> found_invs;
+  vector<value> all_found_invs_unsimplified;
   if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
     return;
@@ -562,8 +563,14 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
   while (true) {
     shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
-    for (value inv : found_invs) {
-      cs->addExistingInvariant(inv);
+    if (options.enum_sat) {
+      for (value inv : found_invs) {
+        cs->addExistingInvariant(inv);
+      }
+    } else {
+      for (value inv : all_found_invs_unsimplified) {
+        cs->addExistingInvariant(inv);
+      }
     }
     for (auto& p : cexes) {
       cs->addCounterexample(p.first, p.second);
@@ -628,6 +635,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
         }
 
         found_invs.push_back(simplified_inv);
+        all_found_invs_unsimplified.push_back(candidate0);
         all_found_invs.push_back(simplified_inv);
 
         cexes = filter_unneeded_cexes(cexes, v_and(found_invs));
