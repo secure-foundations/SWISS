@@ -22,6 +22,7 @@ OBJECTS = $(addprefix bin/,\
 	filter.o \
 	synth_enumerator.o \
 	naive_synth_enumerator.o \
+	obviously_implies.o \
 	lib/json11/json11.o \
 )
 

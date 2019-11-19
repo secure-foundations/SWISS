@@ -1,14 +1,17 @@
 #include "synth_enumerator.h"
 
 #include <cassert>
+#include <vector>
+#include <map>
 
 #include "enumerator.h"
+#include "obviously_implies.h"
 
 using namespace std;
 
 class NaiveCandidateSolver : public CandidateSolver {
 public:
-  NaiveCandidateSolver(std::shared_ptr<Module>, Options const&,
+  NaiveCandidateSolver(shared_ptr<Module>, Options const&,
       bool ensure_nonredundant, Shape shape);
 
   value getNext();
@@ -16,20 +19,25 @@ public:
   void addExistingInvariant(value inv);
 
 //private:
-  std::shared_ptr<Module> module;
+  shared_ptr<Module> module;
   Shape shape;
   Options options;
   bool ensure_nonredundant;
 
   TopQuantifierDesc tqd;
 
-  std::vector<value> values;
-  std::vector<value> unfiltered;
+  vector<bool> values_usable;
+  vector<value> values;
+  vector<value> unfiltered;
 
-  std::vector<Counterexample> cexes;
-  std::vector<int> cur_indices;
+  vector<Counterexample> cexes;
+  vector<int> cur_indices;
 
-  std::vector<std::vector<std::pair<bool, bool>>> cached_evals;
+  vector<vector<pair<bool, bool>>> cached_evals;
+
+  vector<vector<int>> implications;
+  map<ComparableValue, int> normalized_to_idx;
+  void init_implications();
 
   void increment();
   void dump_cur_indices();
@@ -50,6 +58,10 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   , ensure_nonredundant(ensure_nonredundant)
   , tqd(module->templates[0])
 {
+  if (ensure_nonredundant) {
+    assert (!options.impl_shape);
+    assert (options.conj_arity == 1);
+  }
   if (!options.impl_shape) {
     assert (options.conj_arity >= 1);
   }
@@ -59,8 +71,10 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   auto p = enumerate_for_template(module, module->templates[0], options.disj_arity);
   values = p.first;
   unfiltered = p.second;
+  values_usable.resize(values.size());
   for (int i = 0; i < values.size(); i++) {
     values[i] = values[i]->simplify();
+    values_usable[i] = true;
   }
   for (int i = 0; i < unfiltered.size(); i++) {
     unfiltered[i] = unfiltered[i]->simplify();
@@ -80,6 +94,7 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
     cur_indices = {0, 0};
   } else {
     cur_indices = {};
+    init_implications();
   }
 }
 
@@ -164,18 +179,27 @@ value NaiveCandidateSolver::getNext()
       }
 
       bool failed = false;
-      for (int i = 0; i < cexes.size(); i++) {
-        bool first_bool = true;
-        bool second_bool = true;
-        for (int k = 0; k < cur_indices.size(); k++) {
-          int j = cur_indices[k];
-          first_bool = first_bool && cached_evals[i][j].first;
-          second_bool = second_bool && cached_evals[i][j].second;
-        }
 
-        if (first_bool && !second_bool) {
+      for (int i = 0; i < cur_indices.size(); i++) {
+        if (!values_usable[cur_indices[i]]) {
           failed = true;
-          break;
+        }
+      }
+
+      if (!failed) {
+        for (int i = 0; i < cexes.size(); i++) {
+          bool first_bool = true;
+          bool second_bool = true;
+          for (int k = 0; k < cur_indices.size(); k++) {
+            int j = cur_indices[k];
+            first_bool = first_bool && cached_evals[i][j].first;
+            second_bool = second_bool && cached_evals[i][j].second;
+          }
+
+          if (first_bool && !second_bool) {
+            failed = true;
+            break;
+          }
         }
       }
 
@@ -277,6 +301,37 @@ void NaiveCandidateSolver::addCounterexample(Counterexample cex, value candidate
   }
 }
 
+void NaiveCandidateSolver::init_implications()
+{
+  implications.resize(values.size());
+
+  for (int i = 0; i < values.size(); i++) {
+    ComparableValue cv(values[i]->totally_normalize());
+    normalized_to_idx.insert(make_pair(cv, i));
+  }
+
+  for (int i = 0; i < values.size(); i++) {
+    vector<value> subs = all_sub_disjunctions(values[i]);
+    for (value v : subs) {
+      ComparableValue cv(v->totally_normalize());
+      auto iter = normalized_to_idx.find(cv);
+      assert(iter != normalized_to_idx.end());
+      int idx = iter->second;
+      assert(idx <= i);
+      implications[idx].push_back(i);
+    }
+  }
+}
+
 void NaiveCandidateSolver::addExistingInvariant(value inv)
 {
+  ComparableValue cv(inv->totally_normalize());
+  auto iter = normalized_to_idx.find(cv);
+  assert(iter != normalized_to_idx.end());
+  int idx = iter->second;
+  assert(0 <= idx && idx < implications.size());
+
+  for (int idx2 : implications[idx]) {
+    values_usable[idx2] = false;
+  }
 }

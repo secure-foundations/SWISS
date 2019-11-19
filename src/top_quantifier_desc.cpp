@@ -21,6 +21,23 @@ TopQuantifierDesc::TopQuantifierDesc(value v) {
   }
 }
 
+pair<TopQuantifierDesc, value> get_tqd_and_body(value v)
+{
+  TopQuantifierDesc tqd(v);
+
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      v = f->body;
+    } else if (NearlyForall* f = dynamic_cast<NearlyForall*>(v.get())) {
+      v = f->body;
+    } else {
+      break;
+    }
+  }
+
+  return make_pair(tqd, v);
+}
+
 vector<VarDecl> TopQuantifierDesc::decls() const {
   vector<VarDecl> res;
   for (auto p : d) {

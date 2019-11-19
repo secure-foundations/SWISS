@@ -39,4 +39,6 @@ private:
   std::vector<std::pair<QType, std::vector<VarDecl>>> d;
 };
 
+std::pair<TopQuantifierDesc, value> get_tqd_and_body(value);
+
 #endif
