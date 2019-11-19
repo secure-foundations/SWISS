@@ -17,6 +17,9 @@ fi
 if [ "$1" = "sat-inc-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --incremental --enum-sat --arity 3 --depth 3
 fi
+if [ "$1" = "sat-breadth-leader-election" ]; then
+  echo_and_run ./save.sh benchmarks/leader-election.ivy --breadth --enum-sat --arity 3 --depth 3
+fi
 
 
 
@@ -37,6 +40,9 @@ fi
 
 if [ "$1" = "naive-inc-learning-switch" ]; then
   echo_and_run ./save.sh benchmarks/learning-switch.ivy --incremental --enum-naive --conj-arity 1 --disj-arity 3
+fi
+if [ "$1" = "naive-breadth-learning-switch" ]; then
+  echo_and_run ./save.sh benchmarks/learning-switch.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3
 fi
 
 
