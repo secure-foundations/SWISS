@@ -29,7 +29,7 @@ vector<value> all_sub_disjunctions(value v)
 
   vector<value> res;
 
-  for (int i = 0; i < (1 << n); i++) {
+  for (int i = 1; i < (1 << n); i++) {
     vector<value> v;
     for (int j = 0; j < n; j++) {
       if (i & (1 << j)) {

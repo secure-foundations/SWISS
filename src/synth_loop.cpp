@@ -598,7 +598,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
       cout << "candidate: " << candidate0->to_string() << endl;
 
-      value candidate = cs->getNext()->reduce_quants();
+      value candidate = candidate0->reduce_quants();
 
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));

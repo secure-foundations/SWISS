@@ -93,7 +93,14 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   if (options.impl_shape) {
     cur_indices = {0, 0};
   } else {
-    cur_indices = {};
+    if (ensure_nonredundant) {
+      cur_indices = {0};
+    } else {
+      cur_indices = {};
+    }
+  }
+
+  if (ensure_nonredundant) {
     init_implications();
   }
 }
@@ -164,12 +171,12 @@ value NaiveCandidateSolver::getNext()
         }
       }
 
-      increment();
-
       if (!failed) {
         dump_cur_indices();
-
+        increment();
         return v;
+      } else {
+        increment();
       }
     }
   } else {
@@ -181,6 +188,7 @@ value NaiveCandidateSolver::getNext()
       bool failed = false;
 
       for (int i = 0; i < cur_indices.size(); i++) {
+        cout << "checking cur_indices " << i << " " << cur_indices[i] << " " << values_usable[cur_indices[i]] << endl;
         if (!values_usable[cur_indices[i]]) {
           failed = true;
         }
@@ -203,8 +211,6 @@ value NaiveCandidateSolver::getNext()
         }
       }
 
-      increment();
-
       if (!failed) {
         dump_cur_indices();
 
@@ -214,8 +220,12 @@ value NaiveCandidateSolver::getNext()
         }
         value v = v_and(conjuncts);
 
+        increment();
+
         //cout << v->to_string() << endl;
         return v;
+      } else {
+        increment();
       }
     }
   }
@@ -311,7 +321,9 @@ void NaiveCandidateSolver::init_implications()
   }
 
   for (int i = 0; i < values.size(); i++) {
+    //cout << "doing " << i << "   " << values[i]->to_string() << endl;
     vector<value> subs = all_sub_disjunctions(values[i]);
+    bool found_self = false;
     for (value v : subs) {
       ComparableValue cv(v->totally_normalize());
       auto iter = normalized_to_idx.find(cv);
@@ -319,12 +331,23 @@ void NaiveCandidateSolver::init_implications()
       int idx = iter->second;
       assert(idx <= i);
       implications[idx].push_back(i);
+
+      //cout << "  " << idx << "   " << v->to_string() << "   " << v->totally_normalize()->to_string() << "   " << endl;
+
+      if (idx == i) {
+        found_self = true;
+      }
     }
+    //cout << endl;
+    assert(found_self);
   }
 }
 
 void NaiveCandidateSolver::addExistingInvariant(value inv)
 {
+  cout << "inv is " << inv << endl;
+  cout << "norm is " << inv->totally_normalize() << endl;
+
   ComparableValue cv(inv->totally_normalize());
   auto iter = normalized_to_idx.find(cv);
   assert(iter != normalized_to_idx.end());
@@ -332,6 +355,7 @@ void NaiveCandidateSolver::addExistingInvariant(value inv)
   assert(0 <= idx && idx < implications.size());
 
   for (int idx2 : implications[idx]) {
+    //cout << "setting " << idx2 << endl;
     values_usable[idx2] = false;
   }
 }
