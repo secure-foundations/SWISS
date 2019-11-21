@@ -284,27 +284,52 @@ void NaiveCandidateSolver::addCounterexample(Counterexample cex, value candidate
 {
   assert (!cex.none);
   assert (cex.is_true || cex.is_false || (cex.hypothesis && cex.conclusion));
-  cexes.push_back(cex);
 
   if (!options.impl_shape) {
-    int i = cexes.size() - 1;
-
-    cached_evals.push_back({});
-    cached_evals[i].resize(values.size());
-
-    for (int j = 0; j < values.size(); j++) {
-      if (cex.is_true) {
-        cached_evals[i][j].first = true;
-        // TODO if it's false, we never have to look at values[j] again.
-        cached_evals[i][j].second = cex.is_true->eval_predicate(values[j]);
+    if (options.conj_arity == 1) {
+      for (int j = 0; j < values.size(); j++) {
+        if (values_usable[j]) {
+          if (cex.is_true) {
+            if (!cex.is_true->eval_predicate(values[j])) {
+              values_usable[j] = false;
+            }
+          }
+          else if (cex.is_false) {
+            if (cex.is_false->eval_predicate(values[j])) {
+              values_usable[j] = false;
+            }
+          }
+          else {
+            if (cex.hypothesis->eval_predicate(values[j]) &&
+                !cex.conclusion->eval_predicate(values[j])) {
+              values_usable[j] = false;
+            }
+          }
+        }
       }
-      else if (cex.is_false) {
-        cached_evals[i][j].first = cex.is_false->eval_predicate(values[j]);
-        cached_evals[i][j].second = false;
-      }
-      else {
-        cached_evals[i][j].first = cex.hypothesis->eval_predicate(values[j]);
-        cached_evals[i][j].second = cex.conclusion->eval_predicate(values[j]);
+    } else {
+      cexes.push_back(cex);
+      int i = cexes.size() - 1;
+
+      cached_evals.push_back({});
+      cached_evals[i].resize(values.size());
+
+      for (int j = 0; j < values.size(); j++) {
+        if (values_usable[j]) {
+          if (cex.is_true) {
+            cached_evals[i][j].first = true;
+            // TODO if it's false, we never have to look at values[j] again.
+            cached_evals[i][j].second = cex.is_true->eval_predicate(values[j]);
+          }
+          else if (cex.is_false) {
+            cached_evals[i][j].first = cex.is_false->eval_predicate(values[j]);
+            cached_evals[i][j].second = false;
+          }
+          else {
+            cached_evals[i][j].first = cex.hypothesis->eval_predicate(values[j]);
+            cached_evals[i][j].second = cex.conclusion->eval_predicate(values[j]);
+          }
+        }
       }
     }
   }
