@@ -407,6 +407,17 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
   return res;
 }
 
+bool invariant_is_nonredundant(shared_ptr<Module> module, z3::context& ctx, vector<value> existingInvariants, value newInvariant)
+{
+  BasicContext basic(ctx, module);
+  for (value v : existingInvariants) {
+    basic.ctx->solver.add(basic.e->value2expr(v));
+  }
+  basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
+  z3::check_result res = basic.ctx->solver.check();
+  assert (res == z3::sat || res == z3::unsat);
+  return res == z3::sat;
+}
 
 /*
 extern int run_id;
@@ -707,9 +718,8 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
   assert(module->templates.size() >= 1);
 
-  vector<value> all_found_invs;
-  vector<value> found_invs;
-  vector<value> all_found_invs_unsimplified;
+  vector<value> raw_invs;
+  vector<value> filtered_simplified_invs;
   if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
     return;
@@ -729,11 +739,11 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
     shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
     if (options.enum_sat) {
-      for (value inv : found_invs) {
+      for (value inv : filtered_simplified_invs) {
         cs->addExistingInvariant(inv);
       }
     } else {
-      for (value inv : all_found_invs_unsimplified) {
+      for (value inv : raw_invs) {
         cs->addExistingInvariant(inv);
       }
     }
@@ -764,7 +774,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
                 module, bmc, initctx, indctx, nullptr /* conjctx */,
-                v_and(found_invs), candidate);
+                v_and(filtered_simplified_invs), candidate);
 
       Benchmarking bench2;
       bench2.start("simplification");
@@ -779,7 +789,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
         if (options.enum_sat) {
           Benchmarking bench_strengthen;
           bench_strengthen.start("strengthen");
-          simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
+          simplified_inv = strengthen_invariant(module, v_and(filtered_simplified_invs), candidate)
               ->simplify()->reduce_quants();
           bench_strengthen.end();
           bench_strengthen.dump();
@@ -787,18 +797,29 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
           simplified_inv = candidate;
         }
 
-        found_invs.push_back(simplified_inv);
-        all_found_invs_unsimplified.push_back(candidate0);
-        all_found_invs.push_back(simplified_inv);
+        raw_invs.push_back(candidate0);
 
-        cout << "\nfound new invariant! all so far:\n";
-        for (value found_inv : found_invs) {
-          cout << "    " << found_inv->to_string() << endl;
+        bool is_nonredundant;
+        if (options.enum_sat) {
+          is_nonredundant = true;
+        } else {
+          is_nonredundant = invariant_is_nonredundant(module, ctx, filtered_simplified_invs, candidate);
         }
 
-        if (is_invariant_with_conjectures(module, found_invs)) {
-          cout << "invariant implies safety condition, done!" << endl;
-          return;
+        if (is_nonredundant) {
+          filtered_simplified_invs.push_back(simplified_inv);
+
+          cout << "\nfound new invariant! all so far:\n";
+          for (value found_inv : filtered_simplified_invs) {
+            cout << "    " << found_inv->to_string() << endl;
+          }
+
+          if (is_invariant_with_conjectures(module, filtered_simplified_invs)) {
+            cout << "invariant implies safety condition, done!" << endl;
+            return;
+          }
+        } else {
+          cout << "invariant is redundant" << endl;
         }
 
         if (options.enum_sat) {
