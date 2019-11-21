@@ -42,10 +42,9 @@ Counterexample get_bmc_counterexample(
 
 Counterexample get_counterexample_simple(
     shared_ptr<Module> module,
+    z3::context& ctx,
     BMCContext& bmc,
-    shared_ptr<InitContext> initctx,
-    shared_ptr<InductionContext> indctx,
-    shared_ptr<ConjectureContext> conjctx,
+    bool check_implies_conj,
     value cur_invariant,
     value candidate)
 {
@@ -58,6 +57,7 @@ Counterexample get_counterexample_simple(
   Counterexample cex;
   cex.none = false;
 
+  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
   z3::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
@@ -88,7 +88,9 @@ Counterexample get_counterexample_simple(
     init_solver.pop();
   }
 
-  if (conjctx != nullptr) {
+  if (check_implies_conj) {
+    auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
+
     z3::solver& conj_solver = conjctx->ctx->solver;
     conj_solver.push();
     if (cur_invariant) {
@@ -133,38 +135,41 @@ Counterexample get_counterexample_simple(
     }
   }
 
-  z3::solver& solver = indctx->ctx->solver;
-  solver.push();
-  if (cur_invariant) {
-    solver.add(indctx->e1->value2expr(cur_invariant));
-  }
-  solver.add(indctx->e1->value2expr(candidate));
-  solver.add(indctx->e2->value2expr(v_not(candidate)));
-  bench.start("inductivity-check");
-  z3::check_result res = solver.check();
-  bench.end();
-
-  if (res == z3::sat) {
-    if (use_minimal) {
-      bench.start("inductivity-minimization");
-      auto ms = Model::extract_minimal_models_from_z3(
-          indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-      bench.end();
-      cex.hypothesis = ms[0];
-      cex.conclusion = ms[1];
-    } else {
-      cex.hypothesis = Model::extract_model_from_z3(
-          indctx->ctx->ctx, solver, module, *indctx->e1);
-      cex.conclusion = Model::extract_model_from_z3(
-          indctx->ctx->ctx, solver, module, *indctx->e2);
+  for (int j = 0; j < module->actions.size(); j++) {
+    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
+    z3::solver& solver = indctx->ctx->solver;
+    solver.push();
+    if (cur_invariant) {
+      solver.add(indctx->e1->value2expr(cur_invariant));
     }
+    solver.add(indctx->e1->value2expr(candidate));
+    solver.add(indctx->e2->value2expr(v_not(candidate)));
+    bench.start("inductivity-check");
+    z3::check_result res = solver.check();
+    bench.end();
 
-    solver.pop();
+    if (res == z3::sat) {
+      if (use_minimal) {
+        bench.start("inductivity-minimization");
+        auto ms = Model::extract_minimal_models_from_z3(
+            indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+        bench.end();
+        cex.hypothesis = ms[0];
+        cex.conclusion = ms[1];
+      } else {
+        cex.hypothesis = Model::extract_model_from_z3(
+            indctx->ctx->ctx, solver, module, *indctx->e1);
+        cex.conclusion = Model::extract_model_from_z3(
+            indctx->ctx->ctx, solver, module, *indctx->e2);
+      }
 
-    printf("counterexample type: INDUCTIVE\n");
+      solver.pop();
 
-    bench.dump();
-    return cex;
+      printf("counterexample type: INDUCTIVE\n");
+
+      bench.dump();
+      return cex;
+    }
   }
 
   cex.none = true;
@@ -486,11 +491,6 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     cout << "candidate: " << candidate->to_string() << endl;
 
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-    auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
-    //auto invctx = shared_ptr<InvariantsContext>(new InvariantsContext(ctx, module));
-
     Counterexample cex;
     if (options.with_conjs) {
       //cout << "getting counterexample ..." << endl;
@@ -502,7 +502,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
       //cout << "simplify_cex done" << endl;
       cout.flush();
     } else {
-      cex = get_counterexample_simple(module, bmc, initctx, indctx, conjctx, nullptr, candidate);
+      cex = get_counterexample_simple(module, ctx, bmc, true, nullptr, candidate);
       cex = simplify_cex(module, cex, bmc, antibmc);
     }
     if (cex.none) {
@@ -621,7 +621,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
-                module, bmc, initctx, indctx, nullptr /* conjctx */,
+                module, ctx, bmc, false,
                 v_and(found_invs), candidate);
 
       Benchmarking bench2;
@@ -773,7 +773,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
-                module, bmc, initctx, indctx, nullptr /* conjctx */,
+                module, ctx, bmc, false,
                 v_and(filtered_simplified_invs), candidate);
 
       Benchmarking bench2;
