@@ -27,7 +27,7 @@ Counterexample get_bmc_counterexample(
     value candidate,
     bool minimal)
 {
-  shared_ptr<Model> model = bmc.get_k_invariance_violation(candidate, minimal);
+  shared_ptr<Model> model = bmc.get_k_invariance_violation_maybe(candidate, minimal);
   if (model) {
     printf("counterexample type: INIT (after some steps)\n");
     Counterexample cex;
@@ -551,6 +551,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 {
   z3::context ctx;
+  z3::context bmcctx;
 
   assert(module->templates.size() >= 1);
 
@@ -564,7 +565,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
-  BMCContext bmc(ctx, module, bmc_depth);
+  BMCContext bmc(bmcctx, module, bmc_depth);
+  z3_set_timeout(bmcctx, 15000); // 15 seconds
 
   int num_iterations_total = 0;
 
@@ -715,6 +717,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
 {
   z3::context ctx;
+  z3::context bmcctx;
 
   assert(module->templates.size() >= 1);
 
@@ -727,7 +730,8 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
-  BMCContext bmc(ctx, module, bmc_depth);
+  BMCContext bmc(bmcctx, module, bmc_depth);
+  z3_set_timeout(bmcctx, 15000); // 15 seconds
 
   int num_iterations_total = 0;
   int num_iterations_outer = 0;

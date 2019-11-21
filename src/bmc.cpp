@@ -70,6 +70,30 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v, bool get_
   return ans;
 }
 
+shared_ptr<Model> FixedBMCContext::get_k_invariance_violation_maybe(value v, bool get_minimal) {
+  z3::solver& solver = ctx->solver;
+  solver.push();
+  if (!from_safety) {
+    solver.add(this->e2->value2expr(v_not(v)));
+  } else {
+    solver.add(this->e1->value2expr(v_not(v)));
+  }
+  z3::check_result res = solver.check();
+  assert(res == z3::sat || res == z3::unsat || res == z3::unknown);
+
+  shared_ptr<Model> ans;
+  if (res == z3::sat) {
+    if (get_minimal) {
+      ans = Model::extract_minimal_models_from_z3(ctx->ctx, solver, module, {e2}, /* hint */ v)[0];
+    } else {
+      ans = Model::extract_model_from_z3(ctx->ctx, solver, module, *e2);
+    }
+  }
+
+  solver.pop();
+  return ans;
+}
+
 bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
   z3::solver& solver = ctx->solver;
   solver.push();
@@ -118,6 +142,16 @@ bool BMCContext::is_k_invariant(value v) {
 shared_ptr<Model> BMCContext::get_k_invariance_violation(value v, bool get_minimal) {
   for (auto bmc : bmcs) {
     shared_ptr<Model> mod = bmc->get_k_invariance_violation(v, get_minimal);
+    if (mod) {
+      return mod;
+    }
+  }
+  return nullptr;
+}
+
+shared_ptr<Model> BMCContext::get_k_invariance_violation_maybe(value v, bool get_minimal) {
+  for (auto bmc : bmcs) {
+    shared_ptr<Model> mod = bmc->get_k_invariance_violation_maybe(v, get_minimal);
     if (mod) {
       return mod;
     }

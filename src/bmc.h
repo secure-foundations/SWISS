@@ -17,6 +17,7 @@ public:
   FixedBMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety);
   bool is_exactly_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal);
+  std::shared_ptr<Model> get_k_invariance_violation_maybe(value v, bool get_minimal);
   bool is_reachable(std::shared_ptr<Model> model);
   bool is_reachable_returning_false_if_unknown(std::shared_ptr<Model> model);
 };
@@ -29,6 +30,7 @@ public:
   BMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety = false);
   bool is_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal = false);
+  std::shared_ptr<Model> get_k_invariance_violation_maybe(value v, bool get_minimal = false);
   bool is_reachable(std::shared_ptr<Model> model);
   bool is_reachable_returning_false_if_unknown(std::shared_ptr<Model> model);
   bool is_reachable_exact_steps(std::shared_ptr<Model> model);
