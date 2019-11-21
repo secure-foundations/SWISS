@@ -35,11 +35,22 @@ relation btw(X:node,Y:node, Z:node) # Y is on the acyclic path from X to Z
 
 # Axiom defining the btw relation - note it's not reflexive
 # not needed:
-axiom btw(X,Y,Z) -> X ~= Y & X ~= Z & Y ~= Z  # anti-reflexive
-axiom btw(W, X, Y) & btw(W, Y, Z) -> btw(W, X, Z)  # transitive
-axiom btw(W, X, Y) -> ~btw(W, Y, X)  # acyclic
-axiom btw(W, X, Y) | btw(W, Y, X) | W=X | X=Y  # total
-axiom (btw(X, Y, Z) & X ~= Z) -> btw(Y, Z, X)  # cyclic permutations
+#axiom btw(X,Y,Z) -> X ~= Y & X ~= Z & Y ~= Z  # anti-reflexive
+#axiom btw(W, X, Y) & btw(W, Y, Z) -> btw(W, X, Z)  # transitive
+#axiom btw(W, X, Y) -> ~btw(W, Y, X)  # acyclic
+#axiom btw(W, X, Y) | btw(W, Y, X) | W=X | X=Y | W=Y # total
+#axiom (btw(X, Y, Z) & X ~= Z) -> btw(Y, Z, X)  # cyclic permutations
+
+
+axiom btw(W, Y, Z) & btw(W, X, Y) -> btw(X, Y, Z)
+axiom btw(W, X, Z) & btw(X, Y, Z) -> btw(W, X, Y)
+axiom btw(W, X, Z) & btw(X, Y, Z) -> btw(W, Y, Z)
+axiom btw(W, Y, Z) & btw(W, X, Y) -> btw(W, X, Z)
+axiom W = X | btw(W, X, W)
+axiom ~btw(X, X, Y)
+axiom ~btw(X, Y, Y)
+axiom btw(X,Y,Z) |  Y = Z |  btw(X,Z,Y)
+axiom btw(X,Y,Z) |  Y = X |  btw(Y,X,Z)
 
 relation a(X : node)                    # active set
 relation s1(X : node, Y : node)         # first successor
@@ -183,13 +194,13 @@ action remove_org = {
 
 action test = {
   local x : node {
-    #assume (s1(X, Y) & a(Y) & reach(Y)) -> reach(X);
-    #assume (s1(X, Y) & ~a(Y) & s2(X, Z) & a(Z) & reach(Z)) -> reach(X);
-    #assume (btw(x, Y, org) & a(Y)) -> reach(Y);
-    #assume a(x);
-    #assume ~reach(x);
-    #assume in_s1(x) -> exists Y. s1(x, Y);
-    #assume in_s2(x) -> exists Y. s2(x, Y);
+    assume (s1(X, Y) & a(Y) & reach(Y)) -> reach(X);
+    assume (s1(X, Y) & ~a(Y) & s2(X, Z) & a(Z) & reach(Z)) -> reach(X);
+    assume (btw(x, Y, org) & a(Y)) -> reach(Y);
+    assume a(x);
+    assume ~reach(x);
+    assume in_s1(x) -> exists Y. s1(x, Y);
+    assume in_s2(x) -> exists Y. s2(x, Y);
     error(x) := true;
   }
 }
@@ -207,11 +218,13 @@ action test = {
 #conjecture (in_s1(X) | ~a(X))
 #conjecture (a(Y) | a(Z) | ~s1(X, Y) | ~s2(X, Z)) 
 #conjecture (a(Y) | in_s2(X) | ~a(X) | ~s1(X, Y)) 
+#conjecture p(A,B) -> a(A)
+
 #conjecture a(X) & p(Y,X) & s1(X,Y) -> a(Y)
 #conjecture (~btw(X, org, Y) | ~s1(X, Y)) 
 #conjecture ~(s1(V0, V1) & V1 ~= org & s2(V0, V2) & btw(V0, org, V2))
 
-template forall A:node . forall B:node . forall C:node . WILD
-
 # safety condition:
 conjecture ~error(N)
+
+template forall A:node . forall B:node . forall C:node . WILD
