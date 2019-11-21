@@ -580,6 +580,7 @@ public:
   std::vector<std::shared_ptr<Value>> conjectures;
   std::vector<std::shared_ptr<Value>> templates;
   std::vector<std::shared_ptr<Action>> actions;
+  std::vector<std::string> action_names;
 
   Module(
     std::vector<std::string> const& sorts,
@@ -588,14 +589,16 @@ public:
     std::vector<std::shared_ptr<Value>> const& inits,
     std::vector<std::shared_ptr<Value>> const& conjectures,
     std::vector<std::shared_ptr<Value>> const& templates,
-    std::vector<std::shared_ptr<Action>> const& actions)
+    std::vector<std::shared_ptr<Action>> const& actions,
+    std::vector<std::string> const& action_names)
     : sorts(sorts),
       functions(functions),
       axioms(axioms),
       inits(inits),
       conjectures(conjectures),
       templates(templates),
-      actions(actions) { }
+      actions(actions),
+      action_names(action_names) { }
 };
 
 std::shared_ptr<Module> parse_module(std::string const& src);

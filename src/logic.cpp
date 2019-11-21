@@ -14,7 +14,7 @@ shared_ptr<Module> json2module(Json j);
 vector<string> json2string_array(Json j);
 vector<shared_ptr<Value>> json2value_array(Json j);
 vector<shared_ptr<Action>> json2action_array(Json j);
-vector<shared_ptr<Action>> json2action_array_from_map(Json j);
+pair<vector<shared_ptr<Action>>, vector<string>> json2action_array_from_map(Json j);
 vector<shared_ptr<Sort>> json2sort_array(Json j);
 vector<VarDecl> json2decl_array(Json j);
 shared_ptr<Value> json2value(Json j);
@@ -29,6 +29,7 @@ shared_ptr<Module> parse_module(string const& src) {
 
 shared_ptr<Module> json2module(Json j) {
   assert(j.is_object());
+  auto p = json2action_array_from_map(j["actions"]);
   return shared_ptr<Module>(new Module(
       json2string_array(j["sorts"]),
       json2decl_array(j["functions"]),
@@ -36,7 +37,8 @@ shared_ptr<Module> json2module(Json j) {
       json2value_array(j["inits"]),
       json2value_array(j["conjectures"]),
       json2value_array(j["templates"]),
-      json2action_array_from_map(j["actions"])));
+      p.first,
+      p.second));
 }
 
 vector<string> json2string_array(Json j) {
@@ -67,13 +69,15 @@ vector<shared_ptr<Action>> json2action_array(Json j) {
   return res;
 }
 
-vector<shared_ptr<Action>> json2action_array_from_map(Json j) {
+pair<vector<shared_ptr<Action>>, vector<string>> json2action_array_from_map(Json j) {
   assert(j.is_object());
   vector<shared_ptr<Action>> res;
+  vector<string> names;
   for (auto p : j.object_items()) {
     res.push_back(json2action(p.second));
+    names.push_back(p.first);
   }
-  return res;
+  return make_pair(res, names);
 }
 
 vector<shared_ptr<Sort>> json2sort_array(Json j) {

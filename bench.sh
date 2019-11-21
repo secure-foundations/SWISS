@@ -51,3 +51,10 @@ if [ "$1" = "naive-breadth-chord" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 4
 fi
 
+# TODO not final
+if [ "$1" = "ex-chord-sat" ]; then
+  echo_and_run ./save.sh examples/chord.ivy --enum-sat --arity 3 --depth 4 --with-conjs
+fi
+if [ "$1" = "ex-chord-breadth-naive" ]; then
+  echo_and_run ./save.sh examples/chord.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
+fi
