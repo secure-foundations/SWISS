@@ -9,6 +9,76 @@
 
 using namespace std;
 
+struct PreComp {
+  vector<value> values;
+  vector<value> unfiltered;
+  vector<vector<int>> implications;
+  map<ComparableValue, int> normalized_to_idx;
+};
+
+map<pair<pair<shared_ptr<Module>, bool>, int>, PreComp> precomp_map;
+PreComp make_precomp(
+  shared_ptr<Module> module,
+  bool ensure_nonredundant,
+  int disj_arity)
+{
+  pair<pair<shared_ptr<Module>, bool>, int> tup = make_pair(make_pair(module, ensure_nonredundant), disj_arity);
+  if (precomp_map.count(tup)) {
+    return precomp_map[tup];
+  }
+
+  PreComp pc;
+
+  auto p = enumerate_for_template(module, module->templates[0], disj_arity);
+  pc.values = p.first;
+  pc.unfiltered = p.second;
+  for (int i = 0; i < pc.values.size(); i++) {
+    pc.values[i] = pc.values[i]->simplify();
+  }
+  for (int i = 0; i < pc.unfiltered.size(); i++) {
+    pc.unfiltered[i] = pc.unfiltered[i]->simplify();
+  }
+
+  //for (value v : pc.values) {
+  //  cout << v->to_string() << endl;
+  //}
+  //assert(false);
+
+  if (ensure_nonredundant) {
+    pc.implications.resize(pc.values.size());
+
+    for (int i = 0; i < pc.values.size(); i++) {
+      ComparableValue cv(pc.values[i]->totally_normalize());
+      pc.normalized_to_idx.insert(make_pair(cv, i));
+    }
+
+    for (int i = 0; i < pc.values.size(); i++) {
+      //cout << "doing " << i << "   " << pc.values[i]->to_string() << endl;
+      vector<value> subs = all_sub_disjunctions(pc.values[i]);
+      bool found_self = false;
+      for (value v : subs) {
+        ComparableValue cv(v->totally_normalize());
+        auto iter = pc.normalized_to_idx.find(cv);
+        assert(iter != pc.normalized_to_idx.end());
+        int idx = iter->second;
+        assert(idx <= i);
+        pc.implications[idx].push_back(i);
+
+        //cout << "  " << idx << "   " << v->to_string() << "   " << v->totally_normalize()->to_string() << "   " << endl;
+
+        if (idx == i) {
+          found_self = true;
+        }
+      }
+      //cout << endl;
+      assert(found_self);
+    }
+  }
+
+  precomp_map.insert(make_pair(tup, pc));
+  return pc;
+}
+
 class NaiveCandidateSolver : public CandidateSolver {
 public:
   NaiveCandidateSolver(shared_ptr<Module>, Options const&,
@@ -37,7 +107,6 @@ public:
 
   vector<vector<int>> implications;
   map<ComparableValue, int> normalized_to_idx;
-  void init_implications();
 
   void increment();
   void dump_cur_indices();
@@ -68,27 +137,21 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   assert (options.disj_arity >= 1);
   assert (module->templates.size() == 1);
 
-  auto p = enumerate_for_template(module, module->templates[0], options.disj_arity);
-  values = p.first;
-  unfiltered = p.second;
-  values_usable.resize(values.size());
-  for (int i = 0; i < values.size(); i++) {
-    values[i] = values[i]->simplify();
-    values_usable[i] = true;
-  }
-  for (int i = 0; i < unfiltered.size(); i++) {
-    unfiltered[i] = unfiltered[i]->simplify();
-  }
+  PreComp pc = make_precomp(module, ensure_nonredundant, options.disj_arity);
+  values = move(pc.values);
+  unfiltered = move(pc.unfiltered);
+  implications = move(pc.implications);
+  normalized_to_idx = move(pc.normalized_to_idx);
 
   cout << "Using " << values.size() << " values that are a disjunction of at most " << options.disj_arity << " terms." << endl;
   if (options.impl_shape) {
     cout << "Using " << unfiltered.size() << " for the second term." << endl;
   }
 
-  //for (value v : values) {
-  //  cout << v->to_string() << endl;
-  //}
-  //assert(false);
+  values_usable.resize(values.size());
+  for (int i = 0; i < values.size(); i++) {
+    values_usable[i] = true;
+  }
 
   if (options.impl_shape) {
     cur_indices = {0, 0};
@@ -98,10 +161,6 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
     } else {
       cur_indices = {};
     }
-  }
-
-  if (ensure_nonredundant) {
-    init_implications();
   }
 }
 
@@ -332,38 +391,6 @@ void NaiveCandidateSolver::addCounterexample(Counterexample cex, value candidate
         }
       }
     }
-  }
-}
-
-void NaiveCandidateSolver::init_implications()
-{
-  implications.resize(values.size());
-
-  for (int i = 0; i < values.size(); i++) {
-    ComparableValue cv(values[i]->totally_normalize());
-    normalized_to_idx.insert(make_pair(cv, i));
-  }
-
-  for (int i = 0; i < values.size(); i++) {
-    //cout << "doing " << i << "   " << values[i]->to_string() << endl;
-    vector<value> subs = all_sub_disjunctions(values[i]);
-    bool found_self = false;
-    for (value v : subs) {
-      ComparableValue cv(v->totally_normalize());
-      auto iter = normalized_to_idx.find(cv);
-      assert(iter != normalized_to_idx.end());
-      int idx = iter->second;
-      assert(idx <= i);
-      implications[idx].push_back(i);
-
-      //cout << "  " << idx << "   " << v->to_string() << "   " << v->totally_normalize()->to_string() << "   " << endl;
-
-      if (idx == i) {
-        found_self = true;
-      }
-    }
-    //cout << endl;
-    assert(found_self);
   }
 }
 
