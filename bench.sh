@@ -32,10 +32,10 @@ if [ "$1" = "sat-inc-paxos" ]; then
 fi
 
 if [ "$1" = "naive-breadth-paxos-size3" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --incremental --conj-arity 1 --disj-arity 3
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
 fi
 if [ "$1" = "naive-breadth-paxos-size4" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --incremental --conj-arity 1 --disj-arity 4
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
 fi
 
 
