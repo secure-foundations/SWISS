@@ -767,8 +767,6 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
         break;
       }
 
-      any_formula_synthesized_this_round = true;
-
       cout << "total iterations: " << num_iterations_total << " (" << num_iterations_outer << " outer + " << num_iterations << ")" << endl;
       cout << "candidate: " << candidate0->to_string() << endl;
 
@@ -811,6 +809,8 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
         }
 
         if (is_nonredundant) {
+          any_formula_synthesized_this_round = true;
+
           filtered_simplified_invs.push_back(simplified_inv);
 
           cout << "\nfound new invariant! all so far:\n";
