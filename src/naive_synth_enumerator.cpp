@@ -16,13 +16,14 @@ struct PreComp {
   map<ComparableValue, int> normalized_to_idx;
 };
 
-map<pair<pair<shared_ptr<Module>, bool>, int>, PreComp> precomp_map;
+map<pair<pair<shared_ptr<Module>, bool>, pair<int, bool>>, PreComp> precomp_map;
 PreComp make_precomp(
   shared_ptr<Module> module,
   bool ensure_nonredundant,
-  int disj_arity)
+  int disj_arity,
+  bool impl_shape)
 {
-  pair<pair<shared_ptr<Module>, bool>, int> tup = make_pair(make_pair(module, ensure_nonredundant), disj_arity);
+  auto tup = make_pair(make_pair(module, ensure_nonredundant), make_pair(disj_arity, impl_shape));
   if (precomp_map.count(tup)) {
     return precomp_map[tup];
   }
@@ -31,12 +32,14 @@ PreComp make_precomp(
 
   auto p = enumerate_for_template(module, module->templates[0], disj_arity);
   pc.values = p.first;
-  pc.unfiltered = p.second;
   for (int i = 0; i < pc.values.size(); i++) {
     pc.values[i] = pc.values[i]->simplify();
   }
-  for (int i = 0; i < pc.unfiltered.size(); i++) {
-    pc.unfiltered[i] = pc.unfiltered[i]->simplify();
+  if (impl_shape) {
+    for (int i = 0; i < pc.unfiltered.size(); i++) {
+      pc.unfiltered[i] = pc.unfiltered[i]->simplify();
+    }
+    pc.unfiltered = p.second;
   }
 
   //for (value v : pc.values) {
@@ -137,7 +140,7 @@ NaiveCandidateSolver::NaiveCandidateSolver(shared_ptr<Module> module, Options co
   assert (options.disj_arity >= 1);
   assert (module->templates.size() == 1);
 
-  PreComp pc = make_precomp(module, ensure_nonredundant, options.disj_arity);
+  PreComp pc = make_precomp(module, ensure_nonredundant, options.disj_arity, options.impl_shape);
   values = move(pc.values);
   unfiltered = move(pc.unfiltered);
   implications = move(pc.implications);
