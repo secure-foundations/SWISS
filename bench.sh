@@ -31,6 +31,13 @@ if [ "$1" = "sat-inc-paxos" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 4 --depth 3
 fi
 
+if [ "$1" = "naive-breadth-paxos-size3" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 3 --depth 3
+fi
+if [ "$1" = "naive-breadth-paxos-size4" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 4 --depth 3
+fi
+
 
 
 if [ "$1" = "sat-inc-learning-switch" ]; then
