@@ -637,7 +637,8 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     }
 
     z3::check_result res = solver.check();
-    assert(res == z3::sat || res == z3::unsat);
+
+    //assert(res == z3::sat || res == z3::unsat);
     if (res == z3::sat) {
       all_models.clear();
       for (auto e : es) {
