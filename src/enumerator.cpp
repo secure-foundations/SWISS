@@ -532,15 +532,8 @@ void populate(shared_ptr<Module> module, int k) {
 
   shared_ptr<ValueList> v1 { new ValueList() };
   shared_ptr<ValueList> v2 { new ValueList() };
-  v1->values = move(p.first);
-  v2->values = move(p.second);
-
-  for (int i = 0; i < v1->values.size(); i++) {
-    v1->values[i] = v1->values[i]->simplify();
-  }
-  for (int i = 0; i < v2->values.size(); i++) {
-    v2->values[i] = v2->values[i]->simplify();
-  }
+  v1->values_unsimplified = move(p.first);
+  v2->values_unsimplified = move(p.second);
 
   cache_filtered.insert(make_pair(make_pair(module, k), v1));
   cache_unfiltered.insert(make_pair(make_pair(module, k), v2));
@@ -570,7 +563,19 @@ std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> 
   }
 }
 
+void ValueList::init_simp() {
+  if (values.size() == values_unsimplified.size()) {
+    return;
+  }
+
+  for (value v : values_unsimplified) {
+    values.push_back(v->simplify());
+  }
+}
+
 void ValueList::init_extra() {
+  init_simp();
+
   if (implications.size() == values.size()) {
     return;
   }

@@ -19,10 +19,12 @@ std::vector<value> remove_equiv2(std::vector<value> const& values);
 value fill_holes_in_value(value templ, std::vector<value> const& fills);
 
 struct ValueList {
+  std::vector<value> values_unsimplified;
   std::vector<value> values;
   std::vector<std::vector<int>> implications;
   std::map<ComparableValue, int> normalized_to_idx;
 
+  void init_simp();
   void init_extra();
 };
 
