@@ -6,6 +6,7 @@
 #include "logic.h"
 #include "grammar.h"
 #include "smt.h"
+#include "obviously_implies.h"
 
 using namespace std;
 
@@ -521,4 +522,85 @@ pair<vector<value>, vector<value>> enumerate_for_template(
   return res;
 }*/
 
+map<pair<shared_ptr<Module>, int>, shared_ptr<ValueList>> cache_filtered;
+map<pair<shared_ptr<Module>, int>, shared_ptr<ValueList>> cache_unfiltered;
 
+void populate(shared_ptr<Module> module, int k) {
+  assert(module->templates.size() == 1);
+
+  auto p = enumerate_for_template(module, module->templates[0], k);
+
+  shared_ptr<ValueList> v1 { new ValueList() };
+  shared_ptr<ValueList> v2 { new ValueList() };
+  v1->values = move(p.first);
+  v2->values = move(p.second);
+
+  for (int i = 0; i < v1->values.size(); i++) {
+    v1->values[i] = v1->values[i]->simplify();
+  }
+  for (int i = 0; i < v2->values.size(); i++) {
+    v2->values[i] = v2->values[i]->simplify();
+  }
+
+  cache_filtered.insert(make_pair(make_pair(module, k), v1));
+  cache_unfiltered.insert(make_pair(make_pair(module, k), v2));
+}
+
+std::shared_ptr<ValueList> cached_get_filtered_values(std::shared_ptr<Module> module, int k)
+{
+  auto key = make_pair(module, k);
+  auto iter = cache_filtered.find(key);
+  if (iter == cache_filtered.end()) {
+    populate(module, k);
+    return cache_filtered[key];
+  } else {
+    return iter->second;
+  }
+}
+
+std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> module, int k)
+{
+  auto key = make_pair(module, k);
+  auto iter = cache_unfiltered.find(key);
+  if (iter == cache_unfiltered.end()) {
+    populate(module, k);
+    return cache_unfiltered[key];
+  } else {
+    return iter->second;
+  }
+}
+
+void ValueList::init_extra() {
+  if (implications.size() == values.size()) {
+    return;
+  }
+
+  implications.resize(values.size());
+
+  for (int i = 0; i < values.size(); i++) {
+    ComparableValue cv(values[i]->totally_normalize());
+    normalized_to_idx.insert(make_pair(cv, i));
+  }
+
+  for (int i = 0; i < values.size(); i++) {
+    //cout << "doing " << i << "   " << values[i]->to_string() << endl;
+    vector<value> subs = all_sub_disjunctions(values[i]);
+    bool found_self = false;
+    for (value v : subs) {
+      ComparableValue cv(v->totally_normalize());
+      auto iter = normalized_to_idx.find(cv);
+      assert(iter != normalized_to_idx.end());
+      int idx = iter->second;
+      assert(idx <= i);
+      implications[idx].push_back(i);
+
+      //cout << "  " << idx << "   " << v->to_string() << "   " << v->totally_normalize()->to_string() << "   " << endl;
+
+      if (idx == i) {
+        found_self = true;
+      }
+    }
+    //cout << endl;
+    assert(found_self);
+  }
+}
