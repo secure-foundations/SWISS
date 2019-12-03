@@ -54,7 +54,7 @@ if [ "$1" = "naive-breadth-learning-switch" ]; then
 fi
 
 if [ "$1" = "sat-breadth-chord" ]; then
-  echo_and_run ./save.sh benchmarks/chord.ivy --enum-sat --breadth --arity 3 --depth 3
+  echo_and_run ./save.sh benchmarks/chord.ivy --enum-sat --breadth --arity 4 --depth 3
 fi
 if [ "$1" = "naive-breadth-chord" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
