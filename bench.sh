@@ -23,22 +23,6 @@ fi
 
 
 
-if [ "$1" = "naive-paxos-missing1" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr_missing1.ivy --enum-naive --impl-shape --disj-arity 3 --with-conjs 
-fi
-
-if [ "$1" = "sat-inc-paxos" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 4 --depth 3
-fi
-
-if [ "$1" = "naive-breadth-paxos-size3" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
-fi
-if [ "$1" = "naive-breadth-paxos-size4" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
-fi
-
-
 
 if [ "$1" = "sat-inc-learning-switch" ]; then
   echo_and_run ./save.sh benchmarks/learning-switch.ivy --incremental --enum-sat --arity 3 --depth 3
@@ -56,9 +40,27 @@ fi
 if [ "$1" = "sat-breadth-chord" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-sat --breadth --arity 4 --depth 3
 fi
-if [ "$1" = "naive-breadth-chord" ]; then
+if [ "$1" = "naive-breadth-chord-size3" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
 fi
-if [ "$1" = "naive-inc-chord" ]; then
+if [ "$1" = "naive-inc-chord-size3" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-naive --incremental --conj-arity 1 --disj-arity 3
 fi
+
+
+if [ "$1" = "naive-paxos-missing1" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr_missing1.ivy --enum-naive --impl-shape --disj-arity 3 --with-conjs 
+fi
+
+if [ "$1" = "sat-inc-paxos" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 4 --depth 3
+fi
+
+if [ "$1" = "naive-breadth-paxos-size3" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
+fi
+if [ "$1" = "naive-breadth-paxos-size4" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
+fi
+
+
