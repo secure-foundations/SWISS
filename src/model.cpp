@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "top_quantifier_desc.h"
+#include "bitset_eval_result.h"
 
 using namespace std;
 using namespace json11;
@@ -1326,6 +1327,70 @@ bool eval_qi(QuantifierInstantiation const& qi, value v)
   delete[] var_values;
 
   return ans == 1;
+}
+
+BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, value val)
+{
+  //model->dump();
+  //cout << "eval'ing for value: " << val->to_string() << endl;
+
+  TopQuantifierDesc tqd(val);
+  vector<VarDecl> decls = tqd.decls();
+  vector<iden> names;
+  for (VarDecl const& decl : decls) {
+    names.push_back(decl.name);
+  }
+  EvalExpr ee = model->value_to_eval_expr(val, names);
+
+  int n_vars = max(max_var(ee), (int)decls.size()) + 1;
+  int* var_values = new int[n_vars];
+
+  BitsetEvalResult ber;
+  vector<int> max_sizes;
+  max_sizes.resize(decls.size());
+  for (int i = 0; i < decls.size(); i++) {
+    max_sizes[i] = model->get_domain_size(decls[i].sort);
+    var_values[i] = 0;
+  }
+
+  uint64_t cur = 0;
+  int bit_place = 0;
+  while (true) {
+    //cout << "bp: " << bit_place << endl;
+    int ans = eval(ee, var_values);
+    assert(ans == 0 || ans == 1);
+    cur |= (ans << bit_place);
+    bit_place++;
+    if (bit_place == 64) {
+      ber.v.push_back(cur);
+      cur = 0;
+      bit_place = 0;
+    }
+
+    int i;
+    for (i = 0; i < decls.size(); i++) {
+      var_values[i]++;
+      if (var_values[i] == max_sizes[i]) {
+        var_values[i] = 0;
+      } else {
+        break;
+      }
+    }
+    if (i == decls.size()) {
+      break;
+    }
+  }
+
+  if (bit_place > 0) {
+    ber.v.push_back(cur);
+    ber.last_bits = ((uint64_t)1 << bit_place) - 1;
+  } else {
+    ber.last_bits = (uint64_t)(-1);
+  }
+
+  delete[] var_values;
+  //ber.dump();
+  return ber;
 }
 
 vector<size_t> Model::get_domain_sizes_for_function(iden name) const {

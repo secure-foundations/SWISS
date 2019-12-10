@@ -593,6 +593,7 @@ int main(int argc, char* argv[]) {
   options.enum_naive = false;
   options.impl_shape = false;
   options.with_conjs = false;
+  options.strat2 = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -655,6 +656,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
+    }
+    else if (argv[i] == string("--strat2")) {
+      options.strat2 = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

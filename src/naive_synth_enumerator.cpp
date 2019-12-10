@@ -6,6 +6,7 @@
 
 #include "enumerator.h"
 #include "obviously_implies.h"
+#include "big_disjunct_synth_enumerator.h"
 
 using namespace std;
 
@@ -264,10 +265,13 @@ std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
     std::shared_ptr<Module> module, Options const& options,
       bool ensure_nonredundant, Shape shape)
 {
-  if (options.conj_arity == 1 && !options.impl_shape) {
+  if (options.conj_arity == 1 && !options.impl_shape && !options.strat2) {
     return shared_ptr<CandidateSolver>(new SimpleCandidateSolver(module, options.disj_arity, ensure_nonredundant));
   }
-  else if (!options.impl_shape && !ensure_nonredundant) {
+  else if (options.conj_arity == 1 && !options.impl_shape && options.strat2) {
+    return shared_ptr<CandidateSolver>(new BigDisjunctCandidateSolver(module, options.disj_arity));
+  }
+  else if (!options.impl_shape && !ensure_nonredundant && !options.strat2) {
     return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, options.conj_arity, options.disj_arity));
   }
   assert(false);
