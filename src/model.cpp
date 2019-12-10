@@ -1359,7 +1359,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
     //cout << "bp: " << bit_place << endl;
     int ans = eval(ee, var_values);
     assert(ans == 0 || ans == 1);
-    cur |= (ans << bit_place);
+    cur |= ((uint64_t)ans << bit_place);
     bit_place++;
     if (bit_place == 64) {
       ber.v.push_back(cur);
