@@ -11,6 +11,9 @@ fi
 if [ "$1" = "naive-breadth-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3
 fi
+if [ "$1" = "naive-strat2-breadth-leader-election" ]; then
+  echo_and_run ./save.sh benchmarks/leader-election.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3 --strat2
+fi
 if [ "$1" = "sat-leader-election" ]; then
   echo_and_run ./save.sh benchmarks/leader-election.ivy --enum-sat --arity 3 --depth 4
 fi
@@ -36,6 +39,9 @@ fi
 if [ "$1" = "naive-breadth-learning-switch" ]; then
   echo_and_run ./save.sh benchmarks/learning-switch.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3
 fi
+if [ "$1" = "naive-strat2-breadth-learning-switch" ]; then
+  echo_and_run ./save.sh benchmarks/learning-switch.ivy --breadth --enum-naive --conj-arity 1 --disj-arity 3 --strat2
+fi
 
 if [ "$1" = "sat-breadth-chord" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-sat --breadth --arity 4 --depth 3
@@ -45,6 +51,9 @@ if [ "$1" = "naive-breadth-chord-size3" ]; then
 fi
 if [ "$1" = "naive-inc-chord-size3" ]; then
   echo_and_run ./save.sh benchmarks/chord.ivy --enum-naive --incremental --conj-arity 1 --disj-arity 3
+fi
+if [ "$1" = "naive-strat2-breadth-chord" ]; then
+  echo_and_run ./save.sh benchmarks/chord.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
 fi
 
 
@@ -61,6 +70,9 @@ if [ "$1" = "naive-breadth-paxos-size3" ]; then
 fi
 if [ "$1" = "naive-breadth-paxos-size4" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
+fi
+if [ "$1" = "naive-strat2-breadth-paxos-size4" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
 fi
 
 
