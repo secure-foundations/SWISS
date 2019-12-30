@@ -590,6 +590,17 @@ InvariantsContext::InvariantsContext(
   }
 }
 
+bool is_satisfiable(shared_ptr<Module> module, value candidate)
+{
+  z3::context ctx;  
+  BasicContext basicctx(ctx, module);
+  z3::solver& solver = basicctx.ctx->solver;
+  solver.add(basicctx.e->value2expr(candidate));
+  z3::check_result res = solver.check();
+  assert (res == z3::sat || res == z3::unsat);
+  return res == z3::sat;
+}
+
 bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
   z3::context ctx;  
 

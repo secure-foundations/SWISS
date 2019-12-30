@@ -127,6 +127,8 @@ ActionResult applyAction(
     std::shared_ptr<Action> action,
     std::unordered_map<iden, z3::expr> const& consts);
 
+bool is_satisfiable(std::shared_ptr<Module>, value);
+
 bool is_complete_invariant(std::shared_ptr<Module>, value);
 
 bool is_itself_invariant(std::shared_ptr<Module>, value);

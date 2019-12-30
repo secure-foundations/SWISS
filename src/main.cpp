@@ -597,6 +597,7 @@ int main(int argc, char* argv[]) {
 
   int seed = 1234;
   bool check_inductiveness = false;
+  bool check_implication = false;
   bool incremental = false;
   bool breadth = false;
   bool wpr = false;
@@ -618,6 +619,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--check-inductiveness")) {
       check_inductiveness = true;
+    }
+    else if (argv[i] == string("--check-implication")) {
+      check_implication = true;
     }
     else if (argv[i] == string("--incremental")) {
       incremental = true;
@@ -679,6 +683,21 @@ int main(int argc, char* argv[]) {
       printf("yes\n");
     } else{
       printf("no\n");
+    }
+    return 0;
+  }
+
+  if (check_implication) {
+    printf("just checking inductiveness...\n");
+    vector<value> vs;
+    for (int i = 0; i < module->conjectures.size(); i++) {
+      vs.push_back(i == 0 ? v_not(module->conjectures[i]) :
+          module->conjectures[i]);
+    }
+    if (is_satisfiable(module, v_and(vs))) {
+      printf("first is NOT implied by the rest\n");
+    } else{
+      printf("first IS implied by the rest\n");
     }
     return 0;
   }
