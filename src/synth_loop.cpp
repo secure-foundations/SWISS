@@ -722,7 +722,8 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
   assert(module->templates.size() >= 1);
 
   vector<value> raw_invs;
-  vector<value> filtered_simplified_invs;
+  vector<value> strengthened_invs;
+  vector<value> filtered_simplified_strengthened_invs;
   if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
     return;
@@ -743,11 +744,11 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
     shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
     if (options.enum_sat) {
-      for (value inv : filtered_simplified_invs) {
+      for (value inv : filtered_simplified_strengthened_invs) {
         cs->addExistingInvariant(inv);
       }
     } else {
-      for (value inv : raw_invs) {
+      for (value inv : strengthened_invs) {
         cs->addExistingInvariant(inv);
       }
     }
@@ -776,7 +777,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
                 module, ctx, bmc, false,
-                v_and(filtered_simplified_invs), candidate);
+                v_and(filtered_simplified_strengthened_invs), candidate);
 
       Benchmarking bench2;
       bench2.start("simplification");
@@ -787,38 +788,35 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
       assert(cex.is_false == nullptr);
 
       if (cex.none) {
-        value simplified_inv;
-        if (options.enum_sat) {
-          Benchmarking bench_strengthen;
-          bench_strengthen.start("strengthen");
-          simplified_inv = strengthen_invariant(module, v_and(filtered_simplified_invs), candidate)
-              ->simplify()->reduce_quants();
-          bench_strengthen.end();
-          bench_strengthen.dump();
-        } else {
-          simplified_inv = candidate;
-        }
-
-        raw_invs.push_back(candidate0);
+        //Benchmarking bench_strengthen;
+        //bench_strengthen.start("strengthen");
+        value strengthened_inv = strengthen_invariant(module, v_and(filtered_simplified_strengthened_invs), candidate0);
+        value simplified_strengthened_inv = strengthened_inv->simplify()->reduce_quants();
+        //bench_strengthen.end();
+        //bench_strengthen.dump();
+        cout << "strengthened " << strengthened_inv->to_string() << endl;
 
         bool is_nonredundant;
         if (options.enum_sat) {
           is_nonredundant = true;
         } else {
-          is_nonredundant = invariant_is_nonredundant(module, ctx, filtered_simplified_invs, candidate);
+          is_nonredundant = invariant_is_nonredundant(module, ctx, filtered_simplified_strengthened_invs, simplified_strengthened_inv);
         }
+
+        raw_invs.push_back(candidate0);
+        strengthened_invs.push_back(strengthened_inv);
 
         if (is_nonredundant) {
           any_formula_synthesized_this_round = true;
 
-          filtered_simplified_invs.push_back(simplified_inv);
+          filtered_simplified_strengthened_invs.push_back(simplified_strengthened_inv);
 
           cout << "\nfound new invariant! all so far:\n";
-          for (value found_inv : filtered_simplified_invs) {
+          for (value found_inv : filtered_simplified_strengthened_invs) {
             cout << "    " << found_inv->to_string() << endl;
           }
 
-          if (is_invariant_with_conjectures(module, filtered_simplified_invs)) {
+          if (is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
             return;
           }
@@ -827,9 +825,9 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
         }
 
         if (options.enum_sat) {
-          cs->addExistingInvariant(simplified_inv);
+          cs->addExistingInvariant(simplified_strengthened_inv);
         } else {
-          cs->addExistingInvariant(candidate0);
+          cs->addExistingInvariant(strengthened_inv);
         }
       } else {
         cex_stats(cex);

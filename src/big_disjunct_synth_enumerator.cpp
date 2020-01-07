@@ -289,7 +289,7 @@ body_start:
       var_index_states[t]);
   }
 
-  cur_indices[t] = 0;
+  cur_indices[t] = (t == 0 ? 0 : cur_indices[t-1] + 1);
 
 loop_start:
   if (var_index_is_valid_transition(
