@@ -1,6 +1,7 @@
 #include "big_disjunct_synth_enumerator.h"
 
 #include "enumerator.h"
+#include "var_lex_graph.h"
 
 using namespace std;
 
@@ -19,10 +20,23 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   pieces = values->values;
 
   cout << "Using " << pieces.size() << " terms" << endl;
+  //for (value p : pieces) {
+  //  cout << "piece: " << p->to_string() << endl;
+  //}
   
   init_piece_to_index();
 
   cur_indices = {};
+  done = false;
+
+  var_index_states.resize(disj_arity + 2);
+  var_index_states[0] = get_var_index_init_state(module->templates[0]);
+  for (int i = 1; i < var_index_states.size(); i++) {
+    var_index_states[i] = var_index_states[0];
+  }
+
+  var_index_transitions =
+      get_var_index_transitions(module->templates[0], pieces);
 }
 
 void BigDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
@@ -155,9 +169,18 @@ value BigDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
 value BigDisjunctCandidateSolver::getNext() {
   while (true) {
     increment();
-    if (cur_indices.size() > disj_arity) {
+    if (done) {
       return nullptr;
     }
+
+    /*{
+    vector<value> disjs;
+    for (int i = 0; i < cur_indices.size(); i++) {
+      disjs.push_back(pieces[cur_indices[i]]);
+    }
+    value v = disjunction_fuse(disjs);
+    cout << "getNext: " << v->to_string() << endl;
+    }*/
 
     vector<BitsetEvalResult*> bers;
     bers.resize(cur_indices.size());
@@ -240,21 +263,54 @@ void BigDisjunctCandidateSolver::dump_cur_indices()
 
 void BigDisjunctCandidateSolver::increment()
 {
-  int j;
-  for (j = cur_indices.size() - 1; j >= 0; j--) {
-    if (cur_indices[j] != pieces.size() - cur_indices.size() + j) {
-      cur_indices[j]++;
-      for (int k = j+1; k < cur_indices.size(); k++) {
-        cur_indices[k] = cur_indices[k-1] + 1;
-      }
-      break;
-    }
+  int n = pieces.size();
+
+  int t = cur_indices.size();
+  goto body_end;
+
+level_size_top:
+  cur_indices.push_back(0);
+  if (cur_indices.size() > disj_arity) {
+    this->done = true;
+    return;
   }
-  if (j == -1) {
-    cur_indices.push_back(0);
-    assert (cur_indices.size() <= pieces.size());
-    for (int i = 0; i < cur_indices.size(); i++) {
-      cur_indices[i] = i;
-    }
+  t = 0;
+  goto body_start;
+
+body_start:
+  if (t == cur_indices.size()) {
+    return;
+  }
+
+  if (t > 0) {
+    var_index_do_transition(
+      var_index_states[t-1],
+      var_index_transitions[cur_indices[t-1]].res,
+      var_index_states[t]);
+  }
+
+  cur_indices[t] = 0;
+
+loop_start:
+  if (var_index_is_valid_transition(
+      var_index_states[t],
+      var_index_transitions[cur_indices[t]].pre)) {
+    t++;
+    goto body_start;
+  }
+
+call_end:
+  cur_indices[t]++;
+  if (cur_indices[t] >= n + t - (int)cur_indices.size() + 1) {
+    goto body_end;
+  }
+  goto loop_start;
+
+body_end:
+  if (t == 0) {
+    goto level_size_top;
+  } else {
+    t--;
+    goto call_end;
   }
 }

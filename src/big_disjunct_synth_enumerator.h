@@ -3,6 +3,7 @@
 
 #include "synth_enumerator.h"
 #include "bitset_eval_result.h"
+#include "var_lex_graph.h"
 
 class BigDisjunctCandidateSolver : public CandidateSolver {
 public:
@@ -20,6 +21,7 @@ public:
 
   std::vector<value> pieces;
   std::vector<int> cur_indices;
+  bool done;
 
   std::vector<Counterexample> cexes;
   std::vector<std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>>> cex_results;
@@ -28,6 +30,9 @@ public:
   std::set<ComparableValue> existing_invariant_set;
 
   std::map<ComparableValue, int> piece_to_index;
+
+  std::vector<VarIndexState> var_index_states;
+  std::vector<VarIndexTransition> var_index_transitions;
 
   void increment();
   void dump_cur_indices();
