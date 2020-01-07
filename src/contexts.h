@@ -141,6 +141,8 @@ bool is_wpr_itself_inductive(std::shared_ptr<Module>, value, int wprIter);
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, value);
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, std::vector<value>);
 
+bool is_invariant_wrt(std::shared_ptr<Module>, value invariant_so_far, value candidate);
+
 // TODO better place for this?
 void z3_set_timeout(z3::context&, int ms);
 

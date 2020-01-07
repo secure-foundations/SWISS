@@ -765,6 +765,36 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
   return true;
 }
 
+bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
+  z3::context ctx;  
+
+  {
+    InitContext initctx(ctx, module);
+    z3::solver& init_solver = initctx.ctx->solver;
+    init_solver.add(initctx.e->value2expr(v_not(candidate)));
+    z3::check_result init_res = init_solver.check();
+    assert (init_res == z3::sat || init_res == z3::unsat);
+    if (init_res == z3::sat) {
+      return false;
+    }
+  }
+
+  for (int i = 0; i < module->actions.size(); i++) {
+    InductionContext indctx(ctx, module, i);
+    z3::solver& solver = indctx.ctx->solver;
+    solver.add(indctx.e1->value2expr(invariant_so_far));
+    solver.add(indctx.e1->value2expr(candidate));
+    solver.add(indctx.e2->value2expr(v_not(candidate)));
+    z3::check_result res = solver.check();
+    assert (res == z3::sat || res == z3::unsat);
+    if (res == z3::sat) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void z3_set_timeout(z3::context& ctx, int ms) {
   ctx.set("timeout", ms);
 }

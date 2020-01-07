@@ -44,7 +44,7 @@ value strengthen_invariant(
   for (int i = 0; i < args.size(); i++) {
     vector<value> new_args = remove(args, i);
     value inv = tqd.with_body(v_or(new_args));
-    if (is_itself_invariant(module, v_and({invariant_so_far, inv}))) {
+    if (is_invariant_wrt(module, invariant_so_far, inv)) {
       args = new_args;
       i--;
     }
