@@ -167,6 +167,8 @@ value BigDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
 }
 
 value BigDisjunctCandidateSolver::getNext() {
+  vector<BitsetEvalResult*> bers;
+
   while (true) {
     increment();
     if (done) {
@@ -182,8 +184,9 @@ value BigDisjunctCandidateSolver::getNext() {
     cout << "getNext: " << v->to_string() << endl;
     }*/
 
-    vector<BitsetEvalResult*> bers;
-    bers.resize(cur_indices.size());
+    if (bers.size() != cur_indices.size()) {
+      bers.resize(cur_indices.size());
+    }
 
     bool failed = false;
     for (int i = 0; i < cexes.size(); i++) {
