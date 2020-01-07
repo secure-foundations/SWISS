@@ -1,5 +1,7 @@
 #include "var_lex_graph.h"
 
+#include <cassert>
+
 #include "top_quantifier_desc.h"
 
 using namespace std;
