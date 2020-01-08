@@ -35,6 +35,7 @@ public:
   std::vector<VarIndexTransition> var_index_transitions;
 
   void increment();
+  void skipAhead(int upTo);
   void dump_cur_indices();
   value disjunction_fuse(std::vector<value> values);
   std::vector<int> get_indices_of_value(value inv);

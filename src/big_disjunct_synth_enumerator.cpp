@@ -75,8 +75,8 @@ void BigDisjunctCandidateSolver::addExistingInvariant(value inv)
   existing_invariant_set.insert(ComparableValue(norm));
 }
 
-bool is_indices_subset(vector<int> const& a, vector<int> const& b) {
-  if (a.size() == 0) return true;
+bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
+  if (a.size() == 0) { upTo = 0; return true; }
   if (b.size() == 0) return false;
   int i = 0;
   int j = 0;
@@ -87,7 +87,7 @@ bool is_indices_subset(vector<int> const& a, vector<int> const& b) {
     else if (a[i] == b[j]) {
       i++;
       j++;
-      if (i >= a.size()) return true;
+      if (i >= a.size()) { upTo = j; return true; }
       if (j >= b.size()) return false;
     }
     else {
@@ -232,7 +232,9 @@ value BigDisjunctCandidateSolver::getNext() {
     if (failed) continue;
 
     for (int i = 0; i < existing_invariant_indices.size(); i++) {
-      if (is_indices_subset(existing_invariant_indices[i], cur_indices)) {
+      int upTo;
+      if (is_indices_subset(existing_invariant_indices[i], cur_indices, upTo /* output */)) {
+        skipAhead(upTo);
         failed = true;
         break;
       }
@@ -263,6 +265,15 @@ void BigDisjunctCandidateSolver::dump_cur_indices()
     cout << " " << i;
   }
   cout << " / " << pieces.size() << endl;
+}
+
+// Skip all remaining index-sequences that match
+// the first `upTo` numbers of the current index-sequence
+void BigDisjunctCandidateSolver::skipAhead(int upTo)
+{
+  for (int i = upTo; i < cur_indices.size(); i++) {
+    cur_indices[i] = (int)pieces.size() + i - (int)cur_indices.size();
+  }
 }
 
 void BigDisjunctCandidateSolver::increment()
