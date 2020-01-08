@@ -38,6 +38,8 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
 
   var_index_transitions =
       get_var_index_transitions(module->templates[0], pieces);
+
+  existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
 
 void BigDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
@@ -66,10 +68,16 @@ void BigDisjunctCandidateSolver::addCounterexample(Counterexample cex, value can
   }
 }
 
+void BigDisjunctCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
+{
+  existing_invariant_indices.push_back(indices);
+  existing_invariant_trie.insert(indices);
+}
+
 void BigDisjunctCandidateSolver::addExistingInvariant(value inv)
 {
   vector<int> indices = get_indices_of_value(inv);
-  existing_invariant_indices.push_back(indices);
+  existing_invariants_append(indices);
 
   value norm = inv->totally_normalize();
   existing_invariant_set.insert(ComparableValue(norm));
@@ -189,13 +197,10 @@ value BigDisjunctCandidateSolver::getNext() {
 
     //// Check if it contains an existing invariant
 
-    for (int i = 0; i < existing_invariant_indices.size(); i++) {
-      int upTo;
-      if (is_indices_subset(existing_invariant_indices[i], cur_indices, upTo /* output */)) {
-        skipAhead(upTo);
-        failed = true;
-        break;
-      }
+    int upTo;
+    if (existing_invariant_trie.query(cur_indices, upTo /* output */)) {
+      this->skipAhead(upTo);
+      failed = true;
     }
 
     if (failed) continue;
@@ -257,7 +262,7 @@ value BigDisjunctCandidateSolver::getNext() {
     value v = disjunction_fuse(disjs);
 
     if (existing_invariant_set.count(ComparableValue(v->totally_normalize())) > 0) {
-      existing_invariant_indices.push_back(cur_indices);
+      existing_invariants_append(cur_indices);
       continue;
     }
 

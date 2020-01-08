@@ -4,6 +4,7 @@
 #include "synth_enumerator.h"
 #include "bitset_eval_result.h"
 #include "var_lex_graph.h"
+#include "subsequence_trie.h"
 
 class BigDisjunctCandidateSolver : public CandidateSolver {
 public:
@@ -27,6 +28,8 @@ public:
   std::vector<std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>>> cex_results;
 
   std::vector<std::vector<int>> existing_invariant_indices;
+  SubsequenceTrie existing_invariant_trie;
+
   std::set<ComparableValue> existing_invariant_set;
 
   std::map<ComparableValue, int> piece_to_index;
@@ -41,6 +44,7 @@ public:
   std::vector<int> get_indices_of_value(value inv);
   int get_index_of_piece(value p);
   void init_piece_to_index();
+  void existing_invariants_append(std::vector<int> const& indices);
 };
 
 #endif
