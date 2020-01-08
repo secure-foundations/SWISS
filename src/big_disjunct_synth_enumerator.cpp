@@ -23,6 +23,7 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   //for (value p : pieces) {
   //  cout << "piece: " << p->to_string() << endl;
   //}
+  //assert(false);
   
   init_piece_to_index();
 
