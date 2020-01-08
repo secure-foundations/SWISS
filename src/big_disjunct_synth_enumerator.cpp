@@ -185,11 +185,27 @@ value BigDisjunctCandidateSolver::getNext() {
     cout << "getNext: " << v->to_string() << endl;
     }*/
 
+    bool failed = false;
+
+    //// Check if it contains an existing invariant
+
+    for (int i = 0; i < existing_invariant_indices.size(); i++) {
+      int upTo;
+      if (is_indices_subset(existing_invariant_indices[i], cur_indices, upTo /* output */)) {
+        skipAhead(upTo);
+        failed = true;
+        break;
+      }
+    }
+
+    if (failed) continue;
+
+    //// Check if it violates a countereample
+
     if (bers.size() != cur_indices.size()) {
       bers.resize(cur_indices.size());
     }
 
-    bool failed = false;
     for (int i = 0; i < cexes.size(); i++) {
       if (cexes[i].is_true) {
         for (int j = 0; j < cur_indices.size(); j++) {
@@ -231,16 +247,8 @@ value BigDisjunctCandidateSolver::getNext() {
 
     if (failed) continue;
 
-    for (int i = 0; i < existing_invariant_indices.size(); i++) {
-      int upTo;
-      if (is_indices_subset(existing_invariant_indices[i], cur_indices, upTo /* output */)) {
-        skipAhead(upTo);
-        failed = true;
-        break;
-      }
-    }
-
-    if (failed) continue;
+    //// Check if it's equivalent to an existing invariant
+    //// by some normalization.
 
     vector<value> disjs;
     for (int i = 0; i < cur_indices.size(); i++) {
