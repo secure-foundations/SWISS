@@ -149,7 +149,10 @@ conjecture forall R:round, V:value. (exists N:node. decision(N,R,V)) -> exists Q
 # properties of one_b_max_vote
 conjecture one_b_max_vote(N,R2,none,V1) & ~le(R2,R1) -> ~vote(N,R1,V2)
 conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none -> ~le(R,RMAX) & vote(N,RMAX,V)
-conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vote(N,ROTHER,VOTHER)
+
+# turns out the RMAX ~= none is superfluous
+#conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vote(N,ROTHER,VOTHER)
+conjecture one_b_max_vote(N,R,RMAX,V) & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vote(N,ROTHER,VOTHER)
 
 # properties of none
 conjecture ~vote(N,none,V)

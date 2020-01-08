@@ -71,10 +71,10 @@ fi
 if [ "$1" = "naive-breadth-paxos-size4" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
 fi
-if [ "$1" = "naive-strat2-breadth-paxos-size4" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr_4.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
+if [ "$1" = "naive-strat2-breadth-paxos-4-r2" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr_4_r2.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
 fi
-if [ "$1" = "naive-strat2-breadth-paxos-size5" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr_5.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 5 --strat2
+if [ "$1" = "naive-strat2-breadth-paxos-4-r3" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr_4_r3.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
 fi
 
