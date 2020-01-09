@@ -13,6 +13,7 @@ BENCHMARKS = [
   "naive-leader-election",
   "naive-inc-leader-election",
   "naive-breadth-leader-election",
+  "naive-strat2-breadth-leader-election",
   "sat-leader-election",
   "sat-inc-leader-election",
   "sat-breadth-leader-election",
@@ -21,15 +22,19 @@ BENCHMARKS = [
   "sat-breadth-learning-switch",
   "naive-inc-learning-switch",
   "naive-breadth-learning-switch",
+  "naive-strat2-breadth-learning-switch",
 
   "sat-breadth-chord",
   "naive-breadth-chord-size3",
   "naive-inc-chord-size3",
+  "naive-strat2-breadth-chord",
 
   "naive-paxos-missing1",
   "sat-inc-paxos",
-  "naive-breadth-paxos-size3",
-  "naive-breadth-paxos-size4",
+  #"naive-breadth-paxos-size3",
+  #"naive-breadth-paxos-size4",
+  "naive-strat2-breadth-paxos-4-r2",
+  "naive-strat2-breadth-paxos-4-r3",
 ]
 
 def run_benchmark(name):

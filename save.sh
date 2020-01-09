@@ -24,3 +24,5 @@ set +e
 { time ./run.sh $@ ; } 2>&1 | tee -a $LOGFILE
 
 echo "logged to $LOGFILE"
+
+exit $RETCODE

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo_and_run() { echo "$*" ; "$@" ; }
 
 if [ "$1" = "naive-leader-election" ]; then
