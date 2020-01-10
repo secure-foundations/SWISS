@@ -31,10 +31,14 @@ BENCHMARKS = [
 
   "naive-paxos-missing1",
   "sat-inc-paxos",
-  #"naive-breadth-paxos-size3",
-  #"naive-breadth-paxos-size4",
+
+  "naive-strat2-breadth-paxos-3",
   "naive-strat2-breadth-paxos-4-r2",
   "naive-strat2-breadth-paxos-4-r3",
+
+  "sat-breadth-paxos-3",
+  "sat-breadth-paxos-4-r2",
+  "sat-breadth-paxos-4-r3",
 ]
 
 def run_benchmark(name):

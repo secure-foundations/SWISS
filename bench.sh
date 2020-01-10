@@ -67,11 +67,8 @@ if [ "$1" = "sat-inc-paxos" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-sat --incremental --arity 4 --depth 3
 fi
 
-if [ "$1" = "naive-breadth-paxos-size3" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3
-fi
-if [ "$1" = "naive-breadth-paxos-size4" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4
+if [ "$1" = "naive-strat2-breadth-paxos-3" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr_3_r2.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat2
 fi
 if [ "$1" = "naive-strat2-breadth-paxos-4-r2" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr_4_r2.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
@@ -80,8 +77,11 @@ if [ "$1" = "naive-strat2-breadth-paxos-4-r3" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr_4_r3.ivy --enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2
 fi
 
+if [ "$1" = "sat-breadth-paxos-3" ]; then
+  echo_and_run ./save.sh benchmarks/paxos_epr_3.ivy --enum-sat --breadth --arity 3 --depth 3
+fi
 if [ "$1" = "sat-breadth-paxos-4-r2" ]; then
-  echo_and_run ./save.sh benchmarks/paxos_epr_4_r2.ivy --enum-sat --breadth --arity 3 --depth 3
+  echo_and_run ./save.sh benchmarks/paxos_epr_4_r2.ivy --enum-sat --breadth --arity 4 --depth 3
 fi
 if [ "$1" = "sat-breadth-paxos-4-r3" ]; then
   echo_and_run ./save.sh benchmarks/paxos_epr_4_r3.ivy --enum-sat --breadth --arity 4 --depth 3
