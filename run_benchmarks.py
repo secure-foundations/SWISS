@@ -95,5 +95,11 @@ def do_benchmark(name):
   logfile, res = run_benchmark(name)
   print(" " + pad_left(res, 16) + "   [" + logfile + "]")
 
-for bench in BENCHMARKS:
-  do_benchmark(bench)
+if __name__ == '__main__':
+  benches = sys.argv[1:]
+  if len(benches) == 0:
+    for bench in BENCHMARKS:
+      do_benchmark(bench)
+  else:
+    for bench in benches:
+      do_benchmark(bench)
