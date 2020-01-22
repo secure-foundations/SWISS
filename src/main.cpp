@@ -594,6 +594,7 @@ int main(int argc, char* argv[]) {
   options.impl_shape = false;
   options.with_conjs = false;
   options.strat2 = false;
+  options.whole_space = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -628,6 +629,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--breadth")) {
       breadth = true;
+    }
+    else if (argv[i] == string("--whole-space")) {
+      options.whole_space = true;
     }
     else if (argv[i] == string("--arity")) {
       assert(i + 1 < argc);

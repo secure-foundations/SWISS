@@ -690,7 +690,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
     assert(is_itself_invariant(module, found_invs));
 
-    if (is_invariant_with_conjectures(module, found_invs)) {
+    if (!options.whole_space && is_invariant_with_conjectures(module, found_invs)) {
       printf("invariant implies safety condition, done!\n");
       break;
     }
@@ -816,7 +816,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
             cout << "    " << found_inv->to_string() << endl;
           }
 
-          if (is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
+          if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
             return;
           }

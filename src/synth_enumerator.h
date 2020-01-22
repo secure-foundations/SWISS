@@ -14,6 +14,8 @@ struct Options {
 
   bool filter_redundant;
 
+  bool whole_space;
+
   // SAT solving
   int arity;
   int depth;
