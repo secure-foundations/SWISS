@@ -11,7 +11,7 @@ struct NormalizeState {
   vector<iden> names;
   iden get_name(iden name) {
     int idx = -1;
-    for (int i = 0; i < names.size(); i++) {
+    for (int i = 0; i < (int)names.size(); i++) {
       if (names[i] == name) {
         idx = i;
         break;
@@ -94,7 +94,7 @@ bool is_redundant_quick(value a, value b)
     if (a_f->decls.size() != b_f->decls.size()) {
       return false;
     }
-    for (int i = 0; i < a_f->decls.size(); i++) {
+    for (int i = 0; i < (int)a_f->decls.size(); i++) {
       if (a_f->decls[i].name != b_f->decls[i].name) {
         return false;
       }

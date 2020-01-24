@@ -135,7 +135,7 @@ Counterexample get_counterexample_simple(
     }
   }
 
-  for (int j = 0; j < module->actions.size(); j++) {
+  for (int j = 0; j < (int)module->actions.size(); j++) {
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
     z3::solver& solver = indctx->ctx->solver;
     solver.push();
@@ -210,16 +210,16 @@ Counterexample get_counterexample(
   value full_conj = v_and(module->conjectures);
   value full_candidate = v_and({candidate, full_conj});
 
-  for (int i = 0; i <= module->conjectures.size(); i++) {
+  for (int i = 0; i <= (int)module->conjectures.size(); i++) {
     //cout << "starting inductive check " << i << endl; cout.flush();
 
-    for (int j = 0; j < module->actions.size(); j++) {
+    for (int j = 0; j < (int)module->actions.size(); j++) {
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
 
       z3::solver& solver = indctx->ctx->solver;
       solver.add(indctx->e1->value2expr(full_candidate));
 
-      bool testing_candidate = (i == module->conjectures.size());
+      bool testing_candidate = (i == (int)module->conjectures.size());
 
       solver.push();
       solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));

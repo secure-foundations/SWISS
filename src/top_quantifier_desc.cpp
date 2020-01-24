@@ -118,7 +118,7 @@ vector<QSRange> TopQuantifierDesc::grouped_by_sort() const {
   }
 
   set<string> names;
-  for (int i = 0; i < res.size(); i++) {
+  for (int i = 0; i < (int)res.size(); i++) {
     if (i > 0 && res[i].qtype != res[i-1].qtype) {
       names.clear();
     }

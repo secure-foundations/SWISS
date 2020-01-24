@@ -98,7 +98,7 @@ public:
 
 		// empty production
 		_empty_production = 0;
-		for (int z = 0; z < _grammar.getFunctions().size(); z++){
+		for (int z = 0; z < (int)_grammar.getFunctions().size(); z++){
 			_name2production[_grammar.getFunctions()[z].getName()] = z;
 			_production2name[z] = _grammar.getFunctions()[z].getName();
 

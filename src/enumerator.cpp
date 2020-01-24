@@ -196,7 +196,7 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
 value fill_holes_in_value(value templ, vector<value> const& fills) {
   int idx = 0;
   value res = fill_holes_in_value(templ, fills, idx);
-  assert(idx == fills.size());
+  assert(idx == (int)fills.size());
   return res;
 }
 
@@ -204,30 +204,30 @@ vector<value> fill_holes(value templ, vector<vector<value>> const& fills) {
   vector<value> result;
 
   vector<int> indices;
-  for (int i = 0; i < fills.size(); i++) {
+  for (int i = 0; i < (int)fills.size(); i++) {
     indices.push_back(0);
   }
   while (true) {
     vector<value> values_to_fill;
-    for (int i = 0; i < fills.size(); i++) {
-      assert(0 <= indices[i] && indices[i] < fills[i].size());
+    for (int i = 0; i < (int)fills.size(); i++) {
+      assert(0 <= indices[i] && indices[i] < (int)fills[i].size());
       values_to_fill.push_back(fills[i][indices[i]]);
     }
 
     int idx = 0;
     result.push_back(fill_holes_in_value(templ, values_to_fill, idx));
-    assert(idx == fills.size());
+    assert(idx == (int)fills.size());
     
     int i;
-    for (i = 0; i < fills.size(); i++) {
+    for (i = 0; i < (int)fills.size(); i++) {
       indices[i]++;
-      if (indices[i] == fills[i].size()) {
+      if (indices[i] == (int)fills[i].size()) {
         indices[i] = 0;
       } else {
         break;
       }
     }
-    if (i == fills.size()) {
+    if (i == (int)fills.size()) {
       break;
     }
   }
@@ -251,17 +251,17 @@ void enum_conjuncts_(
     vector<value> const& pieces, int k,
     int idx, vector<value> acc, vector<value>& result)
 {
-  if (acc.size() == k) {
+  if ((int)acc.size() == k) {
     result.push_back(v_and(acc));
     return;
   }
 
-  for (int i = idx + 1; i < pieces.size(); i++) {
+  for (int i = idx + 1; i < (int)pieces.size(); i++) {
     if (i == idx+1) acc.push_back(pieces[i]);
     else acc[acc.size() - 1] = pieces[i];
 
     bool skip = false;
-    for (int j = 0; j < acc.size() - 1; j++) {
+    for (int j = 0; j < (int)acc.size() - 1; j++) {
       if (are_negations(acc[j], pieces[i])) {
         skip = true;
         break;
@@ -327,7 +327,7 @@ struct NormalizeState {
   vector<iden> names;
   iden get_name(iden name) {
     int idx = -1;
-    for (int i = 0; i < names.size(); i++) {
+    for (int i = 0; i < (int)names.size(); i++) {
       if (names[i] == name) {
         idx = i;
         break;
@@ -481,7 +481,7 @@ pair<vector<value>, vector<value>> enumerate_for_template(
     //cout << "f2 len " << f2.size() << endl;
     //cout << "f3 len " << f3.size() << endl;
 
-    for (int i = 0; i < f3.size(); i++) {
+    for (int i = 0; i < (int)f3.size(); i++) {
       f3[i] = v_not(f3[i]);
     }
     all_hole_fills.push_back(move(f3));
@@ -582,12 +582,12 @@ void ValueList::init_extra() {
 
   implications.resize(values.size());
 
-  for (int i = 0; i < values.size(); i++) {
+  for (int i = 0; i < (int)values.size(); i++) {
     ComparableValue cv(values[i]->totally_normalize());
     normalized_to_idx.insert(make_pair(cv, i));
   }
 
-  for (int i = 0; i < values.size(); i++) {
+  for (int i = 0; i < (int)values.size(); i++) {
     //cout << "doing " << i << "   " << values[i]->to_string() << endl;
     vector<value> subs = all_sub_disjunctions(values[i]);
     bool found_self = false;

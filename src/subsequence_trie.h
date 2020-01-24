@@ -27,7 +27,7 @@ inline bool subseq_query(std::vector<int> const& t, int idx, TrieNode* node, int
     return true;
   }
 
-  if (idx == t.size()) {
+  if (idx == (int)t.size()) {
     return false;
   }
 
@@ -55,7 +55,7 @@ struct SubsequenceTrie {
 
   void insert(std::vector<int> const& s) {
     TrieNode* node = root.get();
-    for (int i = 0; i < s.size(); i++) {
+    for (int i = 0; i < (int)s.size(); i++) {
       int j = s[i];
       if (node->children[j] == nullptr) {
         node->children[j] = std::unique_ptr<TrieNode>(new TrieNode(alphabet_size));

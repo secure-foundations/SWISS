@@ -40,7 +40,7 @@ value wpr(value v, shared_ptr<Action> a)
   }
   else if (ChoiceAction* action = dynamic_cast<ChoiceAction*>(a.get())) {
     vector<value> values;
-    for (int i = 0; i < action->actions.size(); i++) {
+    for (int i = 0; i < (int)action->actions.size(); i++) {
       values.push_back(wpr(v, action->actions[i]));
     }
     return v_and(values);
@@ -56,7 +56,7 @@ value wpr(value v, shared_ptr<Action> a)
     Const* c = dynamic_cast<Const*>(apply->func.get());
     assert(c != NULL);
 
-    for (int i = 0; i < apply->args.size(); i++) {
+    for (int i = 0; i < (int)apply->args.size(); i++) {
       value arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
         args.push_back(arg);

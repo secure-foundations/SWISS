@@ -333,7 +333,7 @@ string UninterpretedSort::to_string() const {
 
 string FunctionSort::to_string() const {
   string res = "(";
-  for (int i = 0; i < domain.size(); i++) {
+  for (int i = 0; i < (int)domain.size(); i++) {
     if (i != 0) res += ", ";
     res += domain[i]->to_string();
   }
@@ -342,7 +342,7 @@ string FunctionSort::to_string() const {
 
 string Forall::to_string() const {
   string res = "forall ";
-  for (int i = 0; i < decls.size(); i++) {
+  for (int i = 0; i < (int)decls.size(); i++) {
     if (i > 0) {
       res += ", ";
     }
@@ -354,7 +354,7 @@ string Forall::to_string() const {
 
 string NearlyForall::to_string() const {
   string res = "nearlyforall ";
-  for (int i = 0; i < decls.size(); i++) {
+  for (int i = 0; i < (int)decls.size(); i++) {
     if (i > 0) {
       res += ", ";
     }
@@ -367,7 +367,7 @@ string NearlyForall::to_string() const {
 
 string Exists::to_string() const {
   string res = "exists ";
-  for (int i = 0; i < decls.size(); i++) {
+  for (int i = 0; i < (int)decls.size(); i++) {
     if (i > 0) {
       res += ", ";
     }
@@ -405,7 +405,7 @@ string And::to_string() const {
   if (args.size() == 0) return "true";
   string res = "";
   if (args.size() <= 1) res += "AND[";
-  for (int i = 0; i < args.size(); i++) {
+  for (int i = 0; i < (int)args.size(); i++) {
     if (i > 0) {
       res += " & ";
     }
@@ -419,7 +419,7 @@ string Or::to_string() const {
   if (args.size() == 0) return "false";
   string res = "";
   if (args.size() <= 1) res += "OR[";
-  for (int i = 0; i < args.size(); i++) {
+  for (int i = 0; i < (int)args.size(); i++) {
     if (i > 0) {
       res += " | ";
     }
@@ -435,7 +435,7 @@ string IfThenElse::to_string() const {
 
 string Apply::to_string() const {
   string res = func->to_string() + "(";
-  for (int i = 0; i < args.size(); i++) {
+  for (int i = 0; i < (int)args.size(); i++) {
     if (i > 0) {
       res += ", ";
     }
@@ -585,7 +585,7 @@ value Apply::subst_fun(iden f, vector<VarDecl> const& d, value e) const {
   if (c->name == f) {
     value res = e;
     assert (d.size() == args.size());
-    for (int i = 0; i < d.size(); i++) {
+    for (int i = 0; i < (int)d.size(); i++) {
       res = res->subst(d[i].name, args[i]);
     }
     return res;
@@ -1166,12 +1166,12 @@ value forall_exists_normalize_symmetries(
     int idx,
     ScopeState const& ss)
 {
-  if (idx == decls.size()) {
+  if (idx == (int)decls.size()) {
     return body->normalize_symmetries(ss, vars_used);
   }
 
   int idx_end = idx + 1;
-  while (idx_end < decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
+  while (idx_end < (int)decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
     idx_end++;
   }
 
@@ -1241,7 +1241,7 @@ value forall_exists_normalize_symmetries(
     }
   } while (next_permutation(perm.begin() + perm_start, perm.begin() + perm_end));
 
-  if (idx_end < decls.size()) {
+  if (idx_end < (int)decls.size()) {
     if (Forall* inner = dynamic_cast<Forall*>(smallest.get())) {
       smallest = inner->body;
       extend(smallest_decls, inner->decls);
@@ -1348,7 +1348,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     if (a->decls.size() > b->decls.size()) return 1;
     ScopeState ss_a_new = ss_a;
     ScopeState ss_b_new = ss_b;
-    for (int i = 0; i < a->decls.size(); i++) {
+    for (int i = 0; i < (int)a->decls.size(); i++) {
       if (int c = cmp_sort(a->decls[i].sort, b->decls[i].sort)) {
         return c;
       }
@@ -1366,7 +1366,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     if (a->decls.size() > b->decls.size()) return 1;
     ScopeState ss_a_new = ss_a;
     ScopeState ss_b_new = ss_b;
-    for (int i = 0; i < a->decls.size(); i++) {
+    for (int i = 0; i < (int)a->decls.size(); i++) {
       if (int c = cmp_sort(a->decls[i].sort, b->decls[i].sort)) {
         return c;
       }
@@ -1381,13 +1381,13 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     assert(b != NULL);
 
     int a_idx = -1, b_idx = -1;
-    for (int i = 0; i < ss_a.decls.size(); i++) {
+    for (int i = 0; i < (int)ss_a.decls.size(); i++) {
       if (ss_a.decls[i].name == a->name) {
         a_idx = i;
         break;
       }
     }
-    for (int i = 0; i < ss_b.decls.size(); i++) {
+    for (int i = 0; i < (int)ss_b.decls.size(); i++) {
       if (ss_b.decls[i].name == b->name) {
         b_idx = i;
         break;
@@ -1453,7 +1453,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     if (a->args.size() < b->args.size()) return -1;
     if (a->args.size() > b->args.size()) return 1;
 
-    for (int i = 0; i < a->args.size(); i++) {
+    for (int i = 0; i < (int)a->args.size(); i++) {
       if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
         return c;
       }
@@ -1469,7 +1469,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     if (a->args.size() < b->args.size()) return -1;
     if (a->args.size() > b->args.size()) return 1;
 
-    for (int i = 0; i < a->args.size(); i++) {
+    for (int i = 0; i < (int)a->args.size(); i++) {
       if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
         return c;
       }
@@ -1485,7 +1485,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     if (a->args.size() < b->args.size()) return -1;
     if (a->args.size() > b->args.size()) return 1;
 
-    for (int i = 0; i < a->args.size(); i++) {
+    for (int i = 0; i < (int)a->args.size(); i++) {
       if (int c = cmp_expr(a->args[i], b->args[i], ss_a, ss_b)) {
         return c;
       }
@@ -1563,7 +1563,7 @@ int cmp_expr_def(value a_, value b_) {
     if (a->args.size() < b->args.size()) return -1;
     if (a->args.size() > b->args.size()) return 1;
 
-    for (int i = 0; i < a->args.size(); i++) {
+    for (int i = 0; i < (int)a->args.size(); i++) {
       if (int c = cmp_expr_def(a->args[i], b->args[i])) {
         return c;
       }
@@ -1598,10 +1598,10 @@ bool get_certain_variable_order(
   }
 
   else if (Var* a = dynamic_cast<Var*>(a_.get())) {
-    for (int i = 0; i < d.size(); i++) {
+    for (int i = 0; i < (int)d.size(); i++) {
       if (d[i].name == a->name) {
         bool contains = false;
-        for (int j = 0; j < res.size(); j++) {
+        for (int j = 0; j < (int)res.size(); j++) {
           if (res[j] == a->name) {
             contains = true;
             break;
@@ -1639,9 +1639,9 @@ bool get_certain_variable_order(
       if (okay) {
         okay = get_certain_variable_order(a->right, d, res, n);
       }
-      if (okay && res.size() <= cur_size + 1) {
+      if (okay && (int)res.size() <= cur_size + 1) {
         return true;
-      } else if (okay && res.size() == n && cur_size == n - 2 &&
+      } else if (okay && (int)res.size() == n && cur_size == n - 2 &&
           dynamic_cast<Var*>(a->left.get()) && dynamic_cast<Var*>(a->right.get())) {
         // A=B case where A and B are the last two 
         // In this case, we learn nothing about the ordering from this term.
@@ -1725,15 +1725,15 @@ vector<iden> get_front_quantifier_order(
   });
 
   int certain = 0;
-  while (certain < juncts.size() - 1 && cmp_expr_def(juncts[certain], juncts[certain+1]) < 0) {
+  while (certain < (int)juncts.size() - 1 && cmp_expr_def(juncts[certain], juncts[certain+1]) < 0) {
     certain++;
   }
-  if (certain == juncts.size() - 1) {
+  if (certain == (int)juncts.size() - 1) {
     certain++;
   }
 
   vector<iden> used_decl_names;
-  for (int i = 0; i < decls.size(); i++) {
+  for (int i = 0; i < (int)decls.size(); i++) {
     if (vars_used.count(decls[i].name)) {
       used_decl_names.push_back(decls[i].name);
     }
@@ -1747,7 +1747,7 @@ vector<iden> get_front_quantifier_order(
       break;
     }
   }
-  if (!failed && certain == juncts.size()) {
+  if (!failed && certain == (int)juncts.size()) {
     for (iden name : used_decl_names) {
       bool used = false;
       for (iden s : certain_order) {
@@ -1988,7 +1988,7 @@ bool sorts_eq(lsort s, lsort t) {
     if (u2 == NULL) return false;
     if (u1->domain.size() != u2->domain.size()) return false;
     if (!sorts_eq(u1->range, u2->range)) return false;
-    for (int i = 0; i < u1->domain.size(); i++) {
+    for (int i = 0; i < (int)u1->domain.size(); i++) {
       if (!sorts_eq(u1->domain[i], u2->domain[i])) return false;
     }
     return true;
@@ -2126,7 +2126,7 @@ value factor_quants(value v) {
   }
 
   int min_i = 0;
-  for (int i = 1; i < used.size(); i++) {
+  for (int i = 1; i < (int)used.size(); i++) {
     if (used[i].size() < used[min_i].size()) min_i = i;
   }
 
@@ -2153,7 +2153,7 @@ value factor_quants(value v) {
   vector<value> first_args;  
   vector<value> second_args;  
 
-  for (int i = 0; i < disj.size(); i++) {
+  for (int i = 0; i < (int)disj.size(); i++) {
     if (vec_subset(used[i], used[min_i])) {
       first_args.push_back(disj[i]);
     } else {
@@ -2278,7 +2278,7 @@ vector<value> aggressively_split_into_conjuncts(value v)
   if (Forall* val = dynamic_cast<Forall*>(v.get())) {
     vector<value> vs = aggressively_split_into_conjuncts(val->body);
     vector<value> res;
-    for (int i = 0; i < vs.size(); i++) {
+    for (int i = 0; i < (int)vs.size(); i++) {
       res.push_back(v_forall(val->decls, vs[i]));
     }
     return res;
@@ -2335,21 +2335,21 @@ vector<value> aggressively_split_into_conjuncts(value v)
     vector<value> res;
     while (true) {
       vector<value> ors;
-      for (int i = 0; i < inds.size(); i++) {
+      for (int i = 0; i < (int)inds.size(); i++) {
         ors.push_back(a[i][inds[i]]);
       }
       res.push_back(v_or(ors));
 
       int i;
-      for (i = 0; i < inds.size(); i++) {
+      for (i = 0; i < (int)inds.size(); i++) {
         inds[i]++;
-        if (inds[i] == a[i].size()) {
+        if (inds[i] == (int)a[i].size()) {
           inds[i] = 0;
         } else {
           break;
         }
       }
-      if (i == inds.size()) {
+      if (i == (int)inds.size()) {
         break;
       }
     }

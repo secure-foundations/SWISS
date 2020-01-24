@@ -38,7 +38,7 @@ Grammar createGrammarFromModule(shared_ptr<Module> module, vector<GrammarVar> va
 
     vector<Type> inputs;
     //assert(fun_sort->domain.size() <= numChildren);
-    for (int i = 0; i < fun_sort->domain.size(); i++) {
+    for (int i = 0; i < (int)fun_sort->domain.size(); i++) {
       inputs.push_back(sort_to_type(fun_sort->domain[i]));
     }
     /*

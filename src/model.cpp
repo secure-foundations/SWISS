@@ -72,7 +72,7 @@ EvalExpr Model::value_to_eval_expr(
     if (dynamic_cast<NearlyForall*>(v.get())) {
       EvalExpr ee2;
       ee2.type = EvalExprType::NearlyForall;
-      for (int i = 0; i < decls->size(); i++) {
+      for (int i = 0; i < (int)decls->size(); i++) {
         VarDecl decl = (*decls)[i];
         ee2.nearlyforall_quantifier_domain_sizes.push_back(get_domain_size(decl.sort.get()));
         ee2.nearlyforall_var_indices.push_back(names.size() + i);
@@ -93,7 +93,7 @@ EvalExpr Model::value_to_eval_expr(
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     int idx = -1;
-    for (int i = 0; i < names.size(); i++) {
+    for (int i = 0; i < (int)names.size(); i++) {
       if (names[i] == value->name) {
         idx = i;
         break;
@@ -355,7 +355,7 @@ QuantifierInstantiation get_counterexample(shared_ptr<Model> model, value v) {
     assert(f != NULL);
     qi.decls.push_back(f->decls[idx]);
     idx++;
-    if (idx == f->decls.size()) {
+    if (idx == (int)f->decls.size()) {
       idx = 0;
       w = f->body;
     }
@@ -596,7 +596,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       int sz = tqd.weighted_sort_count(sort);
       hint_sizes.push_back(sz < 1 ? 1 : sz);
     }
-    for (int i = 0; i < sizes.size(); i++) {
+    for (int i = 0; i < (int)sizes.size(); i++) {
       hint_sizes[i] = min(sizes[i], hint_sizes[i]);
     }
     try_hint_sizes = true;
@@ -604,7 +604,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
 
   int sort_idx = 0;
   int lower_bound_size = 0;
-  while (sort_idx < sorts.size()) {
+  while (sort_idx < (int)sorts.size()) {
     vector<int> new_sizes;
 
     if (try_hint_sizes) {
@@ -624,7 +624,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
 
     solver.push();
 
-    for (int i = 0; i < sorts.size(); i++) {
+    for (int i = 0; i < (int)sorts.size(); i++) {
       z3::sort so = bgctx.getUninterpretedSort(sorts[i]);
       z3::expr_vector vec(ctx);
       z3::expr elem = ctx.constant(name("valvar").c_str(), so);
@@ -801,7 +801,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
               table->reset(new FunctionTable());
               (*table)->children.resize(domain_sort_sizes[argnum]);
             }
-            assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
+            assert(0 <= argvalue && (int)argvalue < domain_sort_sizes[argnum]);
             table = &(*table)->children[argvalue];
           }
           object_value result_value =
@@ -816,7 +816,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
           int i;
           for (i = num_args - 1; i >= 0; i--) {
             args[i]++;
-            if (args[i] == domain_sort_sizes[i]) {
+            if ((int)args[i] == domain_sort_sizes[i]) {
               args[i] = 0;
             } else {
               break;
@@ -838,7 +838,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
               table->reset(new FunctionTable());
               (*table)->children.resize(domain_sort_sizes[argnum]);
             }
-            assert(0 <= argvalue && argvalue < domain_sort_sizes[argnum]);
+            assert(0 <= argvalue && (int)argvalue < domain_sort_sizes[argnum]);
             table = &(*table)->children[argvalue];
           }
 
@@ -898,19 +898,19 @@ void Model::dump() const {
         obj_to_string(range_sort, finfo.else_value).c_str());
     
     vector<object_value> args;
-    for (int i = 0; i < num_args; i++) {
+    for (int i = 0; i < (int)num_args; i++) {
       args.push_back(0);
     }
     while (true) {
       FunctionTable* ftable = finfo.table.get();
-      for (int i = 0; i < num_args; i++) {
+      for (int i = 0; i < (int)num_args; i++) {
         if (ftable == NULL) break;
         ftable = ftable->children[args[i]].get();
       }
       if (ftable != NULL) {
         object_value res = ftable->value;
         printf("%s(", iden_to_string(name).c_str());
-        for (int i = 0; i < num_args; i++) {
+        for (int i = 0; i < (int)num_args; i++) {
           if (i > 0) {
             printf(", ");
           }
@@ -1011,11 +1011,11 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     z3::sort so = bgctx.getUninterpretedSort(sort_name);
 
     z3::expr_vector vec(bgctx.ctx);
-    for (int i = 0; i < sinfo.domain_size; i++) {
+    for (int i = 0; i < (int)sinfo.domain_size; i++) {
       vec.push_back(bgctx.ctx.constant(name(sort_name + "_val").c_str(), so));
     }
-    for (int i = 0; i < vec.size(); i++) {
-      for (int j = i+1; j < vec.size(); j++) {
+    for (int i = 0; i < (int)vec.size(); i++) {
+      for (int j = i+1; j < (int)vec.size(); j++) {
         assertions.push_back(vec[i] != vec[j]);
       }
     }
@@ -1023,7 +1023,7 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     if (exact) {
       z3::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
       z3::expr_vector eqs(bgctx.ctx);
-      for (int i = 0; i < vec.size(); i++) {
+      for (int i = 0; i < (int)vec.size(); i++) {
         eqs.push_back(vec[i] == elem);
       }
       z3::expr_vector qvars(bgctx.ctx);
@@ -1067,13 +1067,13 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     }
 
     vector<object_value> args;
-    for (int i = 0; i < num_args; i++) {
+    for (int i = 0; i < (int)num_args; i++) {
       args.push_back(0);
     }
     while (true) {
       object_value res = finfo.else_value;
       FunctionTable* ftable = finfo.table.get();
-      for (int i = 0; i < num_args; i++) {
+      for (int i = 0; i < (int)num_args; i++) {
         if (ftable == NULL) break;
         ftable = ftable->children[args[i]].get();
       }
@@ -1082,7 +1082,7 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
       }
 
       z3::expr_vector z3_args(bgctx.ctx);
-      for (int i = 0; i < domain_sorts.size(); i++) {
+      for (int i = 0; i < (int)domain_sorts.size(); i++) {
         z3_args.push_back(mkExpr(domain_sorts[i], args[i]));
       }
       assertions.push_back(e->getFunc(name)(z3_args) == mkExpr(range_sort, res));
@@ -1126,7 +1126,7 @@ shared_ptr<Model> transition_model(
     // allow any action
     action.reset(new ChoiceAction(module->actions));
   } else {
-    assert(0 <= which_action && which_action < module->actions.size());
+    assert(0 <= which_action && which_action < (int)module->actions.size());
     action = module->actions[which_action];
   }
   ActionResult res = applyAction(e1, action, {});
@@ -1159,7 +1159,7 @@ void get_tree_of_models_(
     return;
   }
 
-  for (int i = 0; i < module->actions.size(); i++) {
+  for (int i = 0; i < (int)module->actions.size(); i++) {
     shared_ptr<Model> next_state = transition_model(ctx, module, start_state, i);
     if (next_state != nullptr) {
       get_tree_of_models_(ctx, module, next_state, depth - 1, res);
@@ -1237,9 +1237,9 @@ void get_tree_of_models2_(
 
   // recurse
   if (found_any) {
-    if (action_indices.size() < depth) { 
+    if ((int)action_indices.size() < depth) { 
       action_indices.push_back(0);
-      for (int i = 0; i < module->actions.size(); i++) {
+      for (int i = 0; i < (int)module->actions.size(); i++) {
         action_indices[action_indices.size() - 1] = i;
         get_tree_of_models2_(z3ctx, module, action_indices, depth, multiplicity, reversed, res);
       }
@@ -1318,7 +1318,7 @@ bool eval_qi(QuantifierInstantiation const& qi, value v)
   int n_vars = max(max_var(ee), (int)qi.variable_values.size()) + 1;
   int* var_values = new int[n_vars];
 
-  for (int i = 0; i < qi.variable_values.size(); i++) {
+  for (int i = 0; i < (int)qi.variable_values.size(); i++) {
     var_values[i] = qi.variable_values[i];
   }
 
@@ -1348,7 +1348,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
   BitsetEvalResult ber;
   vector<int> max_sizes;
   max_sizes.resize(decls.size());
-  for (int i = 0; i < decls.size(); i++) {
+  for (int i = 0; i < (int)decls.size(); i++) {
     max_sizes[i] = model->get_domain_size(decls[i].sort);
     var_values[i] = 0;
   }
@@ -1368,7 +1368,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
     }
 
     int i;
-    for (i = 0; i < decls.size(); i++) {
+    for (i = 0; i < (int)decls.size(); i++) {
       var_values[i]++;
       if (var_values[i] == max_sizes[i]) {
         var_values[i] = 0;
@@ -1376,7 +1376,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
         break;
       }
     }
-    if (i == decls.size()) {
+    if (i == (int)decls.size()) {
       break;
     }
   }
@@ -1417,7 +1417,7 @@ object_value Model::func_eval(iden name, std::vector<object_value> const& args)
 {
   FunctionInfo const& finfo = get_function_info(name);
   FunctionTable* ftable = finfo.table.get();
-  for (int i = 0; i < args.size(); i++) {
+  for (int i = 0; i < (int)args.size(); i++) {
     if (ftable == NULL) break;
     assert (args[i] < ftable->children.size());
     ftable = ftable->children[args[i]].get();
@@ -1461,18 +1461,18 @@ std::vector<FunctionEntry> Model::getFunctionEntries(iden name)
   }
 
   vector<object_value> args;
-  for (int i = 0; i < num_args; i++) {
+  for (int i = 0; i < (int)num_args; i++) {
     args.push_back(0);
   }
   while (true) {
     FunctionEntry entry;
 
     FunctionTable* ftable = finfo.table.get();
-    for (int i = 0; i < num_args; i++) {
+    for (int i = 0; i < (int)num_args; i++) {
       if (ftable == NULL) break;
       ftable = ftable->children[args[i]].get();
     }
-    for (int i = 0; i < num_args; i++) {
+    for (int i = 0; i < (int)num_args; i++) {
       entry.args.push_back(args[i]);
     }
     if (ftable != NULL) {

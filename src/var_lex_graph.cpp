@@ -13,8 +13,8 @@ struct GI {
 
 GI get_gi(vector<QSRange> const& groups, iden name)
 {
-  for (int i = 0; i < groups.size(); i++) {
-    for (int j = 0; j < groups[i].decls.size(); j++) {
+  for (int i = 0; i < (int)groups.size(); i++) {
+    for (int j = 0; j < (int)groups[i].decls.size(); j++) {
       if (groups[i].decls[j].name == name) {
         GI gi;
         gi.group = i;
@@ -120,7 +120,7 @@ vector<VarIndexTransition> get_var_index_transitions(
   int ngroups = groups.size();
 
   for (int i = 0; i < ngroups; i++) {
-    for (int j = 1; j < groups[i].decls.size(); j++) {
+    for (int j = 1; j < (int)groups[i].decls.size(); j++) {
       if (!(iden_to_string(groups[i].decls[j-1].name) <
             iden_to_string(groups[i].decls[j].name))) {
         assert(false && "template args should be in alphabetical order (yeah it's dumb, but or else we might accidentally rely on two different sorting orders being the same or something)");
@@ -130,7 +130,7 @@ vector<VarIndexTransition> get_var_index_transitions(
 
   vector<VarIndexTransition> vits;
 
-  for (int i = 0; i < values.size(); i++) {
+  for (int i = 0; i < (int)values.size(); i++) {
     vits.push_back(get_var_index_transition(groups, values[i]));
   }
 

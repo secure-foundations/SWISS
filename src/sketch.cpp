@@ -56,18 +56,18 @@ SketchFormula::SketchFormula(
         NTT::Eq, -1, {s, s}, bool_sort));
     this->node_types[this->node_types.size() - 1].negated_function = true;
   }
-  for (int i = 0; i < module->functions.size(); i++) {
+  for (int i = 0; i < (int)module->functions.size(); i++) {
     VarDecl const& decl = module->functions[i];
-    if (decl.sort->get_domain_as_function().size() <= arity) {
+    if ((int)decl.sort->get_domain_as_function().size() <= arity) {
       this->node_types.push_back(NodeType("func_" + iden_to_string(decl.name),
         NTT::Func, i,
         decl.sort->get_domain_as_function(),
         decl.sort->get_range_as_function()));
     }
   }
-  for (int i = 0; i < module->functions.size(); i++) {
+  for (int i = 0; i < (int)module->functions.size(); i++) {
     VarDecl const& decl = module->functions[i];
-    if (decl.sort->get_domain_as_function().size() <= arity &&
+    if ((int)decl.sort->get_domain_as_function().size() <= arity &&
         dynamic_cast<BooleanSort*>(decl.sort->get_range_as_function().get())
         ) {
       this->node_types.push_back(NodeType("func_negated_" + iden_to_string(decl.name),
@@ -77,7 +77,7 @@ SketchFormula::SketchFormula(
       this->node_types[this->node_types.size() - 1].negated_function = true;
     }
   }
-  for (int i = 0; i < free_vars.size(); i++) {
+  for (int i = 0; i < (int)free_vars.size(); i++) {
     VarDecl& decl = free_vars[i];
     this->node_types.push_back(NodeType("var_" + iden_to_string(decl.name),
         NTT::Var, i, {}, decl.sort));
@@ -101,7 +101,7 @@ SketchFormula::SketchFormula(
     nodes[i].is_leaf = (i >= num_branch_nodes);
     if (!nodes[i].is_leaf) {
       for (int j = 0; j < arity; j++) {
-        assert(i * arity + j < nodes.size());
+        assert(i * arity + j < (int)nodes.size());
         int c = i * arity + j + 1;
         nodes[i].children.push_back(&nodes[c]);
         nodes[c].name = nodes[i].name + to_string(j);
@@ -127,8 +127,8 @@ SketchFormula::SketchFormula(
 }
 
 void SketchFormula::make_sort_bools(SFNode* node) {
-  for (int i = 0; i < sorts.size() + 1; i++) {
-    string na = name(node->name + (i == sorts.size() ? "sort_bool" : "sort_" +
+  for (int i = 0; i < (int)sorts.size() + 1; i++) {
+    string na = name(node->name + (i == (int)sorts.size() ? "sort_bool" : "sort_" +
         dynamic_cast<UninterpretedSort*>(sorts[i].get())->name));
     node->sort_bools.push_back(bool_const(na));
     for (int j = 0; j < i; j++) {
@@ -141,7 +141,7 @@ void SketchFormula::make_sort_bools(SFNode* node) {
 }
 
 void SketchFormula::make_bt_bools(SFNode* node) {
-  for (int i = 0; i < node_types.size() - 1; i++) {
+  for (int i = 0; i < (int)node_types.size() - 1; i++) {
     string na = node->name + "_nt_" + node_types[i].name;
     node->nt_bools.push_back(bool_const(na));
   }
@@ -152,7 +152,7 @@ sat_expr SketchFormula::expr_is_sort(SFNode* node, lsort s) {
     return node->sort_bools[node->sort_bools.size() - 1];
   } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(s.get())) {
     string name = usort->name;
-    for (int i = 0; i < sorts.size(); i++) {
+    for (int i = 0; i < (int)sorts.size(); i++) {
       if (dynamic_cast<UninterpretedSort*>(sorts[i].get())->name == name) {
         return node->sort_bools[i];
       }
@@ -195,7 +195,7 @@ value SketchFormula::to_value() {
 
 value SketchFormula::node_to_value(SFNode* node) {
   int j = node_types.size() - 1;
-  for (int i = 0; i < node->nt_bools.size(); i++) {
+  for (int i = 0; i < (int)node->nt_bools.size(); i++) {
     if (solver.get(node->nt_bools[i])) {
       j = i;
       break;
@@ -234,7 +234,7 @@ value SketchFormula::node_to_value(SFNode* node) {
     }
     case NTT::Func: {
       vector<value> args;
-      assert(arity <= node->children.size());
+      assert(arity <= (int)node->children.size());
       for (int i = 0; i < arity; i++) {
         args.push_back(node_to_value(node->children[i]));
       }
@@ -268,14 +268,14 @@ bool SketchFormula::is_true(std::string name) {
 
 sat_expr exactly_one(vector<sat_expr> const& bools) {
   vector<sat_expr> vec;
-  for (int i = 0; i < bools.size(); i++) {
-    for (int j = i+1; j < bools.size(); j++) {
+  for (int i = 0; i < (int)bools.size(); i++) {
+    for (int j = i+1; j < (int)bools.size(); j++) {
       vec.push_back(sat_not(sat_and(bools[i], bools[j])));
     }
   }
 
   vector<sat_expr> at_least_one_vec;
-  for (int i = 0; i < bools.size(); i++) {
+  for (int i = 0; i < (int)bools.size(); i++) {
     at_least_one_vec.push_back(bools[i]);
   }
 
@@ -315,9 +315,9 @@ sat_expr SketchFormula::encodings_not_eq(VarEncoding& enc1, VarEncoding& enc2)
     */
 
     vector<sat_expr> vec;
-    for (int i = 0; i < enc1.vars.size(); i++) {
+    for (int i = 0; i < (int)enc1.vars.size(); i++) {
       vector<sat_expr> enc2_not_i;
-      for (int j = 0; j < enc2.vars.size(); j++) {
+      for (int j = 0; j < (int)enc2.vars.size(); j++) {
         if (i != j) {
           enc2_not_i.push_back(enc2.vars[j]);
         }
@@ -337,12 +337,12 @@ sat_expr SketchFormula::interpret(
   vector<VarEncoding> var_exps;
   sat_expr const_true = sat_true();
   sat_expr const_false = sat_false();
-  for (int i = 0; i < vars.size(); i++) {
+  for (int i = 0; i < (int)vars.size(); i++) {
     vector<sat_expr> v;
     int dsize = model->get_domain_size(free_vars[i].sort);
-    assert(vars[i] < dsize);
+    assert((int)vars[i] < dsize);
     for (int j = 0; j < dsize; j++) {
-      v.push_back(j == vars[i] ? const_true : const_false);
+      v.push_back(j == (int)vars[i] ? const_true : const_false);
     }
     VarEncoding enc;
     enc.vars = v;
@@ -394,7 +394,7 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
     shared_ptr<Model> model, SketchModel* sm,
     int idx, vector<QRange> const& qranges, string const& vname)
 {
-  if (idx == qranges.size()) {
+  if (idx == (int)qranges.size()) {
     vector<vector<VarEncoding>> res;
     res.push_back({});
     return res;
@@ -411,7 +411,7 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
 
     vector<vector<VarEncoding>> suffixes = get_all_var_exps_tree(model, sm, idx+1, qranges, vname);
 
-    for (int i = 0; i < suffixes.size(); i++) {
+    for (int i = 0; i < (int)suffixes.size(); i++) {
       suffixes[i] = concat_vector(prefix, suffixes[i]);
     }
 
@@ -439,10 +439,10 @@ vector<vector<VarEncoding>> SketchFormula::get_all_var_exps_tree(
     vector<vector<VarEncoding>> suffixes2 =
         get_all_var_exps_tree(model, sm, idx+1, qranges, vname + "1");
 
-    for (int i = 0; i < suffixes1.size(); i++) {
+    for (int i = 0; i < (int)suffixes1.size(); i++) {
       suffixes1[i] = concat_vector(prefix1, suffixes1[i]);
     }
-    for (int i = 0; i < suffixes2.size(); i++) {
+    for (int i = 0; i < (int)suffixes2.size(); i++) {
       suffixes2[i] = concat_vector(prefix2, suffixes2[i]);
     }
 
@@ -504,7 +504,7 @@ sat_expr SketchFormula::ftree_to_expr(
     }
 
     case FTree::Type::Atom: {
-      assert(0 <= ft->arg_idx && ft->arg_idx < nt.domain.size());
+      assert(0 <= ft->arg_idx && ft->arg_idx < (int)nt.domain.size());
       return get_vector_value_entry(
           children[ft->arg_idx],
           nt.domain[ft->arg_idx],
@@ -535,7 +535,7 @@ ValueVector SketchFormula::to_value_vector(
   vector<sat_expr> v_is_false;
   vector<vector<vector<sat_expr>>> v_objs;
   vector<int> domain_sizes;
-  for (int i = 0; i < sorts.size(); i++) {
+  for (int i = 0; i < (int)sorts.size(); i++) {
     int domain_size = model ? model->get_domain_size(sorts[i]) : sm->get_domain_size(sorts[i]);
     domain_sizes.push_back(domain_size);
     v_objs.push_back({});
@@ -544,14 +544,14 @@ ValueVector SketchFormula::to_value_vector(
     }
   }
   
-  for (int nt_i = 0; nt_i < node_types.size(); nt_i++) {
+  for (int nt_i = 0; nt_i < (int)node_types.size(); nt_i++) {
     NodeType& nt = node_types[nt_i];
     int arity = get_arity(nt, node);
 
     if (arity == -1) {
       v_is_true.push_back(const_false);
       v_is_false.push_back(const_false);
-      for (int i = 0; i < sorts.size(); i++) {
+      for (int i = 0; i < (int)sorts.size(); i++) {
         for (int j = 0; j < domain_sizes[i]; j++) {
           v_objs[i][j].push_back(const_false);
         }
@@ -564,7 +564,7 @@ ValueVector SketchFormula::to_value_vector(
       case NTT::False: {
         v_is_true.push_back(nt.ntt == NTT::True ? const_true : const_false);
         v_is_false.push_back(nt.ntt == NTT::False ? const_true : const_false);
-        for (int i = 0; i < sorts.size(); i++) {
+        for (int i = 0; i < (int)sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             v_objs[i][j].push_back(const_false);
           }
@@ -585,7 +585,7 @@ ValueVector SketchFormula::to_value_vector(
         v_is_true.push_back(nt.ntt == NTT::And ? sat_and(vec) : sat_or(vec));
         v_is_false.push_back(nt.ntt == NTT::And ? sat_or(vec_not) : sat_and(vec_not));
         
-        for (int i = 0; i < sorts.size(); i++) {
+        for (int i = 0; i < (int)sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             v_objs[i][j].push_back(const_false);
           }
@@ -598,7 +598,7 @@ ValueVector SketchFormula::to_value_vector(
         v_is_true.push_back(children[0].is_false);
         v_is_false.push_back(children[0].is_true);
         
-        for (int i = 0; i < sorts.size(); i++) {
+        for (int i = 0; i < (int)sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             v_objs[i][j].push_back(const_false);
           }
@@ -636,7 +636,7 @@ ValueVector SketchFormula::to_value_vector(
           v_is_false.push_back(sat_or(possibilities_not));
         }
 
-        for (int i = 0; i < sorts.size(); i++) {
+        for (int i = 0; i < (int)sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             v_objs[i][j].push_back(const_false);
           }
@@ -663,7 +663,7 @@ ValueVector SketchFormula::to_value_vector(
               for (SketchFunctionEntry& sfe : iter->second.table) {
                 vector<sat_expr> vec;
                 vec.push_back(sfe.res.get(val));
-                for (int i = 0; i < sfe.args.size(); i++) {
+                for (int i = 0; i < (int)sfe.args.size(); i++) {
                   vec.push_back(get_vector_value_entry(children[i], nt.domain[i], sfe.args[i]));
                 }
                 possibilities.push_back(sat_and(vec));
@@ -681,7 +681,7 @@ ValueVector SketchFormula::to_value_vector(
               v_is_false.push_back(exprs[0]);
             }
 
-            for (int i = 0; i < sorts.size(); i++) {
+            for (int i = 0; i < (int)sorts.size(); i++) {
               for (int j = 0; j < domain_sizes[i]; j++) {
                 v_objs[i][j].push_back(const_false);
               }
@@ -692,7 +692,7 @@ ValueVector SketchFormula::to_value_vector(
 
             int sort_index = get_sort_index(nt.range);
 
-            for (int i = 0; i < sorts.size(); i++) {
+            for (int i = 0; i < (int)sorts.size(); i++) {
               for (int j = 0; j < domain_sizes[i]; j++) {
                 v_objs[i][j].push_back(i == sort_index ? exprs[j] : const_false);
               }
@@ -761,11 +761,11 @@ ValueVector SketchFormula::to_value_vector(
       case NTT::Var: {
         int sort_index = get_sort_index(nt.range);
 
-        assert(nt.index < var_exprs.size());
+        assert(nt.index < (int)var_exprs.size());
 
         v_is_true.push_back(const_false);
         v_is_false.push_back(const_false);
-        for (int i = 0; i < sorts.size(); i++) {
+        for (int i = 0; i < (int)sorts.size(); i++) {
           for (int j = 0; j < domain_sizes[i]; j++) {
             if (i == sort_index) {
               v_objs[i][j].push_back(var_exprs[nt.index].vars[j]);
@@ -788,7 +788,7 @@ ValueVector SketchFormula::to_value_vector(
       new_const_impl(case_by_node_type(node, v_is_true), node->name + "_is_true"),
       new_const_impl(case_by_node_type(node, v_is_false), node->name + "_is_false")
       );
-  for (int i = 0; i < sorts.size(); i++) {
+  for (int i = 0; i < (int)sorts.size(); i++) {
     vv.is_obj.push_back({});
     for (int j = 0; j < domain_sizes[i]; j++) {
       vv.is_obj[i].push_back(new_const_impl(case_by_node_type(node, v_objs[i][j]),
@@ -839,7 +839,7 @@ sat_expr SketchFormula::get_vector_value_entry(ValueVector& vv,
     int sort_index = get_sort_index(s);
     
     assert(sort_index != -1);
-    assert(sort_index < vv.is_obj.size());
+    assert(sort_index < (int)vv.is_obj.size());
     assert(o < vv.is_obj[sort_index].size());
     return vv.is_obj[sort_index][o];
   }
@@ -851,7 +851,7 @@ sat_expr SketchFormula::get_vector_value_entry(ValueVector& vv,
 int SketchFormula::get_sort_index(lsort s) {
   UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(s.get());
   assert(usort != NULL);
-  for (int i = 0; i < sorts.size(); i++) {
+  for (int i = 0; i < (int)sorts.size(); i++) {
     UninterpretedSort* usort2 = dynamic_cast<UninterpretedSort*>(sorts[i].get());
     assert(usort2 != NULL);
     if (usort2->name == usort->name) {
@@ -882,7 +882,7 @@ void SketchFormula::add_constraint_for_no_outer_negation() {
 }
 
 void SketchFormula::add_lex_constraints() {
-  for (int idx = 0; idx < nodes.size(); idx++) {
+  for (int idx = 0; idx < (int)nodes.size(); idx++) {
     SFNode* node = &nodes[idx];
     if (!node->is_leaf) {
       solver.add(sat_implies(
@@ -904,7 +904,7 @@ void SketchFormula::add_lex_constraints() {
 sat_expr SketchFormula::children_ascending(SFNode* node) {
   assert(!node->is_leaf);
   vector<sat_expr> vec;
-  for (int i = 1; i < node->children.size(); i++) {
+  for (int i = 1; i < (int)node->children.size(); i++) {
     vec.push_back(nodes_le(node->children[i-1], node->children[i]));
   }
   return sat_and(vec);
@@ -919,16 +919,16 @@ sat_expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
   assert(!(a->is_leaf ^ b->is_leaf));
 
   vector<sat_expr> vec;
-  for (int i = 0; i < a->nt_bools.size(); i++) {
+  for (int i = 0; i < (int)a->nt_bools.size(); i++) {
     vec.push_back(sat_implies(b->nt_bools[i], a->nt_bools[i]));
   }
 
   if (!a->is_leaf) {
     vector<sat_expr> children_lex;
-    for (int i = 0; i < node_types.size(); i++) {
+    for (int i = 0; i < (int)node_types.size(); i++) {
       int arity = get_arity(node_types[i], a);
       assert (arity == get_arity(node_types[i], b));
-      if (i < node_types.size() - 1) {
+      if (i < (int)node_types.size() - 1) {
         children_lex.push_back(sat_implies(b->nt_bools[i], children_lex_le(a, b, arity)));
       } else {
         children_lex.push_back(children_lex_le(a, b, arity));
@@ -944,7 +944,7 @@ sat_expr SketchFormula::nodes_le(SFNode* a, SFNode* b) {
 }
 
 sat_expr SketchFormula::children_lex_le(SFNode* a, SFNode* b, int nchildren) {
-  assert(0 <= nchildren && nchildren <= a->children.size() && nchildren <= b->children.size());
+  assert(0 <= nchildren && nchildren <= (int)a->children.size() && nchildren <= (int)b->children.size());
   assert(!a->is_leaf);
   assert(!b->is_leaf);
 
@@ -969,7 +969,7 @@ sat_expr SketchFormula::nodes_eq(SFNode* a, SFNode* b) {
   assert(!(a->is_leaf ^ b->is_leaf));
 
   vector<sat_expr> children_eq_per_node_type;
-  for (int i = 0; i < node_types.size(); i++) {
+  for (int i = 0; i < (int)node_types.size(); i++) {
     int arity = get_arity(node_types[i], a);
     assert(arity == get_arity(node_types[i], b));
     if (arity != -1) {
@@ -1007,7 +1007,7 @@ sat_expr SketchFormula::node_is_ntt(SFNode* node, NTT ntt) {
   int i = 0;
   for (NodeType& nt : node_types) {
     if (nt.ntt == ntt) {
-      if (i < node_types.size() - 1) {
+      if (i < (int)node_types.size() - 1) {
         vec.push_back(node->nt_bools[i]);
       }
       return sat_and(vec);
@@ -1034,9 +1034,9 @@ sat_expr SketchFormula::node_is_eq_or_ne(SFNode* node) {
   for (NodeType& nt : node_types) {
     if (nt.ntt == NTT::Eq) {
       vector<sat_expr> eq_vec;
-      for (int j = i; j < node_types.size(); j++) {
+      for (int j = i; j < (int)node_types.size(); j++) {
         if (node_types[j].ntt == NTT::Eq) {
-          assert(j < node->nt_bools.size());
+          assert(j < (int)node->nt_bools.size());
           eq_vec.push_back(node->nt_bools[j]);
         } else {
           break;
@@ -1046,7 +1046,7 @@ sat_expr SketchFormula::node_is_eq_or_ne(SFNode* node) {
       vec.push_back(sat_or(eq_vec));
       return sat_and(vec);
     } else {
-      assert(i < node->nt_bools.size());
+      assert(i < (int)node->nt_bools.size());
       vec.push_back(sat_not(node->nt_bools[i]));
     }
     i++;
@@ -1059,7 +1059,7 @@ sat_expr SketchFormula::node_is_var(SFNode* node, int var_index) {
   int i = 0;
   for (NodeType& nt : node_types) {
     if (nt.ntt == NTT::Var && nt.index == var_index) {
-      if (i < node_types.size() - 1) {
+      if (i < (int)node_types.size() - 1) {
         vec.push_back(node->nt_bools[i]);
       }
       return sat_and(vec);
@@ -1090,7 +1090,7 @@ void SketchFormula::add_variable_ordering_constraints() {
 */
 
 bool contains(vector<int> const& v, int t) {
-  for (int i = 0; i < v.size(); i++) {
+  for (int i = 0; i < (int)v.size(); i++) {
     if (v[i] == t) return true;
   }
   return false;
@@ -1177,7 +1177,7 @@ SFNode* SketchFormula::get_node_latest_before_subtree_in_post_order(SFNode* node
     }
   }
 
-  for (int i = 1; i < pa->children.size(); i++) {
+  for (int i = 1; i < (int)pa->children.size(); i++) {
     if (pa->children[i] == node) {
       return pa->children[i-1];
     }
@@ -1210,7 +1210,7 @@ void SketchFormula::constrain_disj_form() {
 }
 
 void SketchFormula::constrain_node_as_non_and_or(SFNode* node) {
-  for (int i = 0; i < node->nt_bools.size(); i++) {
+  for (int i = 0; i < (int)node->nt_bools.size(); i++) {
     sat_expr e = node->nt_bools[i];
     if (node_types[i].ntt == NTT::And || node_types[i].ntt == NTT::Or) {
       solver.add(sat_not(node->nt_bools[i]));
@@ -1219,14 +1219,14 @@ void SketchFormula::constrain_node_as_non_and_or(SFNode* node) {
 }
 
 void SketchFormula::constrain_node_as_and(SFNode* node) {
-  for (int i = 0; i < node->nt_bools.size(); i++) {
+  for (int i = 0; i < (int)node->nt_bools.size(); i++) {
     sat_expr e = node->nt_bools[i];
     solver.add(node_types[i].ntt == NTT::And ? e : sat_not(e));
   }
 }
 
 void SketchFormula::constrain_node_as_or(SFNode* node) {
-  for (int i = 0; i < node->nt_bools.size(); i++) {
+  for (int i = 0; i < (int)node->nt_bools.size(); i++) {
     sat_expr e = node->nt_bools[i];
     solver.add(node_types[i].ntt == NTT::Or ? e : sat_not(e));
   }

@@ -10,7 +10,7 @@ bool is_necessary(
     int i)
 {
   BasicContext basic_ctx(ctx, module);
-  for (int j = 0; j < values.size(); j++) {
+  for (int j = 0; j < (int)values.size(); j++) {
     if (j == i) {
       basic_ctx.e->value2expr(v_not(values[i]));
     } else {
@@ -31,9 +31,9 @@ vector<value> filter_redundant_formulas(
 {
   z3::context ctx;
 
-  for (int i = 0; i < values.size(); i++) {
+  for (int i = 0; i < (int)values.size(); i++) {
     if (!is_necessary(ctx, module, values, i)) {
-      for (int j = i; j < values.size() - 1; j++) {
+      for (int j = i; j < (int)values.size() - 1; j++) {
         values[j] = values[j+1];
       }
       values.pop_back();

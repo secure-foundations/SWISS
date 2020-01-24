@@ -176,7 +176,7 @@ void SatSolver::add_(sat_expr se_) {
   }
   else if (se->ty == se_type::Or) {
     Glucose::vec<Glucose::Lit> lits(se->args.size());
-    for (int i = 0; i < se->args.size(); i++) {
+    for (int i = 0; i < (int)se->args.size(); i++) {
       lits[i] = expr_to_lit(se->args[i], false);
     }
     solver.addClause(lits);
@@ -216,7 +216,7 @@ Glucose::Lit SatSolver::expr_to_lit(sat_expr se_, bool negate) {
     Glucose::Lit neg_l = Glucose::mkLit(v, true);
     Glucose::vec<Glucose::Lit> vec(se->args.size() + 1);
     vec[0] = neg_l;
-    for (int i = 0; i < se->args.size(); i++) {
+    for (int i = 0; i < (int)se->args.size(); i++) {
       vec[i+1] = expr_to_lit(se->args[i], negate);
     }
     solver.addClause(vec);

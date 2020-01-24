@@ -379,7 +379,7 @@ void try_to_add_invariants(
 
   vector<bool> is_good_candidate;
   is_good_candidate.resize(invariants.size());
-  for (int i = 0; i < invariants.size(); i++) {
+  for (int i = 0; i < (int)invariants.size(); i++) {
     is_good_candidate[i] = true;
   }
 
@@ -694,7 +694,7 @@ int main(int argc, char* argv[]) {
   if (check_implication) {
     printf("just checking inductiveness...\n");
     vector<value> vs;
-    for (int i = 0; i < module->conjectures.size(); i++) {
+    for (int i = 0; i < (int)module->conjectures.size(); i++) {
       vs.push_back(i == 0 ? v_not(module->conjectures[i]) :
           module->conjectures[i]);
     }

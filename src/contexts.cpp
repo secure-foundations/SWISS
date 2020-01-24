@@ -314,7 +314,7 @@ ActionResult do_if_else(
 
 expr funcs_equal(z3::context& ctx, func_decl a, func_decl b) {
   z3::expr_vector args(ctx);
-  for (int i = 0; i < a.arity(); i++) {
+  for (int i = 0; i < (int)a.arity(); i++) {
     z3::sort arg_sort = a.domain(i);
     args.push_back(ctx.constant(name("arg").c_str(), arg_sort));
   }
@@ -415,7 +415,7 @@ ActionResult applyAction(
     func_decl orig_func = e->getFunc(func_const->name);
 
     z3::sort_vector domain(ctx->ctx);
-    for (int i = 0; i < orig_func.arity(); i++) {
+    for (int i = 0; i < (int)orig_func.arity(); i++) {
       domain.push_back(orig_func.domain(i));
     }
     string new_name = name(func_const->name);
@@ -425,7 +425,7 @@ ActionResult applyAction(
     z3::expr_vector qvars(ctx->ctx);
     z3::expr_vector all_eq_parts(ctx->ctx);
     unordered_map<iden, z3::expr> vars;
-    for (int i = 0; i < orig_func.arity(); i++) {
+    for (int i = 0; i < (int)orig_func.arity(); i++) {
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
@@ -464,7 +464,7 @@ ActionResult applyAction(
     func_decl orig_func = e->getFunc(func_const->name);
 
     z3::sort_vector domain(ctx->ctx);
-    for (int i = 0; i < orig_func.arity(); i++) {
+    for (int i = 0; i < (int)orig_func.arity(); i++) {
       domain.push_back(orig_func.domain(i));
     }
     string new_name = name(func_const->name);
@@ -474,7 +474,7 @@ ActionResult applyAction(
     z3::expr_vector qvars(ctx->ctx);
     z3::expr_vector all_eq_parts(ctx->ctx);
     unordered_map<iden, z3::expr> vars;
-    for (int i = 0; i < orig_func.arity(); i++) {
+    for (int i = 0; i < (int)orig_func.arity(); i++) {
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
@@ -703,7 +703,7 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
       }
     }
 
-    for (int i = 0; i < module->actions.size(); i++) {
+    for (int i = 0; i < (int)module->actions.size(); i++) {
       InductionContext indctx(ctx, module, i);
       z3::solver& solver = indctx.ctx->solver;
       solver.add(indctx.e1->value2expr(full));
@@ -779,7 +779,7 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value c
     }
   }
 
-  for (int i = 0; i < module->actions.size(); i++) {
+  for (int i = 0; i < (int)module->actions.size(); i++) {
     InductionContext indctx(ctx, module, i);
     z3::solver& solver = indctx.ctx->solver;
     solver.add(indctx.e1->value2expr(invariant_so_far));

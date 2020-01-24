@@ -40,7 +40,7 @@ void SMT::blockModel(){
 	bool no_string = false;
 
 	if (!no_string){
-		for (int i = 0; i < _nodes.size(); i++){
+		for (int i = 0; i < (int)_nodes.size(); i++){
 			_nodes[i].setFunction("");
 		}
 	}
@@ -68,12 +68,12 @@ void SMT::blockModel(){
 
 	std::vector<std::vector<int>> values;
 	std::vector<std::vector<int>> ids;
-	for (int i = 0; i < _and_nodes.size(); i++){
+	for (int i = 0; i < (int)_and_nodes.size(); i++){
 		std::vector<int> v;
 		std::vector<int> id;
 		values.push_back(v);
 		ids.push_back(id);
-		for (int j = 0; j < _and_nodes[i].size(); j++){
+		for (int j = 0; j < (int)_and_nodes[i].size(); j++){
 			int var = _and_nodes[i][j];
 				//std::cout << "v* = " << var <<  " " << " value* = " << assignment[var] << std::endl;
 			values[values.size()-1].push_back(assignment[var]);
@@ -85,12 +85,12 @@ void SMT::blockModel(){
 	// std::cout << _nodes[2].getFunction() << std::endl;
 	// std::cout << _nodes[3].getFunction() << std::endl;
 
-	for (int i = 0; i < _result.size(); i++){
+	for (int i = 0; i < (int)_result.size(); i++){
 		expr_vector ctr(*_z3_ctx);
-		for (int j = 0; j < _result[i].size(); j++){
+		for (int j = 0; j < (int)_result[i].size(); j++){
 			int x = _result[i][j]-1;
 			int y = j;
-			for (int z = 0; z < ids[x].size(); z++){
+			for (int z = 0; z < (int)ids[x].size(); z++){
 				assert (ids[x].size() == values[y].size());
 				int id = ids[x][z];
 				int value = values[y][z];
@@ -139,7 +139,7 @@ value SMT::nodeToValue(Node const& node) {
 
   if (dynamic_cast<FunctionSort*>(function_sort.get())) {
     std::vector<value> children;
-    for (int j = 0; j < _nodes[node.getId()-1].getChildren().size(); j++){
+    for (int j = 0; j < (int)_nodes[node.getId()-1].getChildren().size(); j++){
       // FIXME: fix the pointers in the _nodes
       if (_nodes[_nodes[node.getId()-1].getChildren()[j].getId()-1].getFunction().compare("")){						
         children.push_back(
@@ -171,7 +171,7 @@ value SMT::nodeToValue(Node const& node) {
 
 value SMT::solutionToValue() {
 	std::vector<value> conjuncts;
-	for (int i = 0; i < _and_nodes.size(); i++){
+	for (int i = 0; i < (int)_and_nodes.size(); i++){
 	  Node& node = _nodes[_and_nodes[i][0]-1];
 	  if (node.getFunction() != "") {
       conjuncts.push_back(nodeToValue(node));
@@ -203,7 +203,7 @@ void SMT::getAndNodes(Node root, std::vector<int>& ids){
 		work.pop_front();
 		ids.push_back(current.getId());
 		//printf("id=%d\n",current.getId());
-		for (int i = 0; i < _nodes[current.getId()-1].getChildren().size(); i++){
+		for (int i = 0; i < (int) _nodes[current.getId()-1].getChildren().size(); i++){
 			work.push_back(_nodes[current.getId()-1].getChildren()[i]);
 		}
 	}
@@ -232,8 +232,8 @@ void SMT::buildTree(std::vector<Node>& nodes, int num_children, int max_depth){
 
 int SMT::findNumChildren(){
 	int max = 0;
-	for (int i = 0; i < _grammar.getFunctions().size(); i++){
-		int children = _grammar.getFunctions()[i].getInputs().size();
+	for (int i = 0; i < (int)_grammar.getFunctions().size(); i++){
+		int children = (int)_grammar.getFunctions()[i].getInputs().size();
 		if (children > max) max = children;
 	}
 	return max;
@@ -241,11 +241,11 @@ int SMT::findNumChildren(){
 
 void SMT::createVariables(){
 
-	for (int j = 0; j < _nodes.size(); j++){
+	for (int j = 0; j < (int)_nodes.size(); j++){
 		std::string name = "node" + std::to_string(_nodes[j].getId());
 		expr x = _z3_ctx->int_const(name.c_str());
 		_variables.push_back(x);
-		_node2var[_nodes[j].getId()] = _variables.size()-1;
+		_node2var[_nodes[j].getId()] = (int)_variables.size()-1;
 	}
 }
 
@@ -334,7 +334,7 @@ void SMT::breakSymmetries(std::string name, std::string a, std::string b, std::s
 void SMT::createConstraints(){
 	// domain of each integer variable
 	int domain = _grammar.getFunctions().size();
-	for (int j = 0; j < _nodes.size(); j++){
+	for (int j = 0; j < (int)_nodes.size(); j++){
 		expr_vector ctr(*_z3_ctx);
 		ctr.push_back(_variables[j] >= 0);
 		ctr.push_back(_variables[j] < domain);
@@ -343,7 +343,7 @@ void SMT::createConstraints(){
 
 	// parent to children relation
 	// position 0 is the root of this tree with single depth
-	for (int j = 0; j < _nodes.size(); j++){
+	for (int j = 0; j < (int)_nodes.size(); j++){
 		if (_nodes[j].getChildren().empty()){
 				// leaf node
 			expr_vector ctr(*_z3_ctx);
@@ -358,7 +358,7 @@ void SMT::createConstraints(){
 				// parent-child constraint
 		for (int z = 0; z < domain; z++){
 			for (int w = 0; w < _num_children; w++){
-				if (_grammar.getFunctions()[z].getInputs().size() < w+1){
+				if ((int)_grammar.getFunctions()[z].getInputs().size() < w+1){
 							// if the number of children is smaller than the node will be empty
 					int id_node = _node2var[_nodes[j].getChildren()[w].getId()];
 					_z3_solver->add(implies(_variables[j] == z, _variables[id_node] == _empty_production));
@@ -394,7 +394,7 @@ for (int j = 0; j < domain; j++){
 		std::string name = _grammar.getFunctions()[j].getName();
 		if (!name.compare("and")){
 			//std::cout << _grammar.getFunctions()[j].getName() << std::endl;
-			for (int z = 0; z < _variables.size(); z++){
+			for (int z = 0; z < (int)_variables.size(); z++){
 				if (z == 0){
 					expr_vector ctr(*_z3_ctx);
 					ctr.push_back(_variables[z] == j);

@@ -99,7 +99,7 @@ sat_expr SketchModel::to_sat(value v, size_t res, std::map<iden, ValueVars> cons
     for (SketchFunctionEntry const& fe : sf.table) {
       vector<sat_expr> vec;
       vec.push_back(fe.res.get(res));
-      for (int i = 0; i < fe.args.size(); i++) {
+      for (int i = 0; i < (int)fe.args.size(); i++) {
         vec.push_back(to_sat(value->args[i], fe.args[i], vars));
       }
       full_vec.push_back(sat_and(vec));
@@ -200,7 +200,7 @@ ValueVars SketchModel::make_value_vars_const(lsort sort, size_t val)
   vv.sort = sort;
   vv.n = get_domain_size(sort);
   for (int i = 0; i < vv.n; i++) {
-    vv.exprs.push_back(i == val ? sat_true() : sat_false());
+    vv.exprs.push_back(i == (int)val ? sat_true() : sat_false());
   }
   vv.constant_value = val;
   return vv;
@@ -259,7 +259,7 @@ SketchModel::SketchModel(
 
     while (true) {
       string name = "sm_" + iden_to_string(decl.name);
-      for (int i = 0; i < domain.size(); i++) {
+      for (int i = 0; i < (int)domain.size(); i++) {
         name += "_" + to_string(args[i]);
       }
 
@@ -269,7 +269,7 @@ SketchModel::SketchModel(
       sf.table.push_back(move(sfe));
 
       int i;
-      for (i = 0; i < domain.size(); i++) {
+      for (i = 0; i < (int)domain.size(); i++) {
         args[i]++;
         if (args[i] == sf.domain_sizes[i]) {
           args[i] = 0;
@@ -277,7 +277,7 @@ SketchModel::SketchModel(
           break;
         }
       }
-      if (i == domain.size()) {
+      if (i == (int)domain.size()) {
         break;
       }
     }
@@ -323,10 +323,10 @@ shared_ptr<Model> SketchModel::to_model()
 
     for (SketchFunctionEntry& sfe : sf.table) {
       FunctionTable* ft = finfo.table.get();
-      for (int i = 0; i < sfe.args.size(); i++) {
+      for (int i = 0; i < (int)sfe.args.size(); i++) {
         if (ft->children.size() == 0) {
           ft->children.resize(sf.domain_sizes[i]);
-          for (int j = 0; j < sf.domain_sizes[i]; j++) {
+          for (int j = 0; j < (int)sf.domain_sizes[i]; j++) {
             ft->children[j].reset(new FunctionTable());
           }
         }
@@ -344,7 +344,7 @@ shared_ptr<Model> SketchModel::to_model()
 
 object_value SketchModel::get_value_from_model(ValueVars& vv)
 {
-  for (int i = 0; i < vv.exprs.size(); i++) {
+  for (int i = 0; i < (int)vv.exprs.size(); i++) {
     if (solver.get(vv.exprs[i])) {
       return i;
     }

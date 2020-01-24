@@ -15,7 +15,7 @@ bool is_function_iso(shared_ptr<Model> m1, shared_ptr<Model> m2,
   for (lsort so : decl.sort->get_domain_as_function()) {
     domain_sizes.push_back(m1->get_domain_size(so));
     args.push_back(0);
-    for (int i = 0; i < module->sorts.size(); i++) {
+    for (int i = 0; i < (int)module->sorts.size(); i++) {
       if (sorts_eq(so, s_uninterp(module->sorts[i]))) {
         idx_for_arg.push_back(i);
         goto end_of_loop;
@@ -43,7 +43,7 @@ bool is_function_iso(shared_ptr<Model> m1, shared_ptr<Model> m2,
     int i;
     for (i = 0; i < n; i++) {
       args[i]++;
-      if (args[i] == domain_sizes[i]) {
+      if ((int)args[i] == domain_sizes[i]) {
         args[i] = 0;
       } else {
         break;

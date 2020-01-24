@@ -14,7 +14,7 @@ void get_quantifier_permutations_(
     vector<unsigned int> const& partial,
     vector<vector<unsigned int>>& res)
 {
-  if (idx == qranges.size()) {
+  if (idx == (int)qranges.size()) {
     res.push_back(partial);
     return;
   }
@@ -82,7 +82,7 @@ vector<vector<vector<unsigned int>>> get_multiqi_quantifier_permutations(
     for (int i = 0; i < n; i++) {
       qis.push_back(vector<unsigned int>{});
     }
-    assert(packed_qis.size() == m);
+    assert((int)packed_qis.size() == m);
     for (int i = 0; i < m; i++) {
       vector<unsigned int> tuple = i_to_t[packed_qis[i]];
       for (int j = 0; j < n; j++) {

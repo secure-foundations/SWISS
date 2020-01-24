@@ -36,7 +36,7 @@ endif
 
 DEP_DIR = bin/deps
 
-CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable
 
 all: synthesis
 

@@ -26,7 +26,7 @@ inline void var_index_do_transition(
   VarIndexTransitionResult const& trans,
   VarIndexState& result)
 {
-  for (int i = 0; i < state.indices.size(); i++) {
+  for (int i = 0; i < (int)state.indices.size(); i++) {
     result.indices[i] = state.indices[i] > trans.indices[i] ?
         state.indices[i] : trans.indices[i];
   }
@@ -36,7 +36,7 @@ inline bool var_index_is_valid_transition(
     VarIndexState const& state,
     VarIndexTransitionPrecondition const& pre)
 {
-  for (int i = 0; i < state.indices.size(); i++) {
+  for (int i = 0; i < (int)state.indices.size(); i++) {
     if (pre.indices[i] > state.indices[i]) {
       return false;
     }

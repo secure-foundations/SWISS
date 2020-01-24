@@ -43,7 +43,7 @@ SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, int k, b
   cout << "Using " << values->values.size() << " values that are a disjunction of at most " << k << " terms." << endl;
 
   values_usable.resize(values->values.size());
-  for (int i = 0; i < values->values.size(); i++) {
+  for (int i = 0; i < (int)values->values.size(); i++) {
     values_usable[i] = true;
   }
 
@@ -52,7 +52,7 @@ SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, int k, b
 
 void SimpleCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
-  for (int j = 0; j < values->values.size(); j++) {
+  for (int j = 0; j < (int)values->values.size(); j++) {
     if (values_usable[j]) {
       if (cex.is_true) {
         if (!cex.is_true->eval_predicate(values->values[j])) {
@@ -81,7 +81,7 @@ void SimpleCandidateSolver::addExistingInvariant(value inv)
   auto iter = values->normalized_to_idx.find(cv);
   assert(iter != values->normalized_to_idx.end());
   int idx = iter->second;
-  assert(0 <= idx && idx < values->implications.size());
+  assert(0 <= idx && idx < (int)values->implications.size());
 
   for (int idx2 : values->implications[idx]) {
     values_usable[idx2] = false;
@@ -96,7 +96,7 @@ void SimpleCandidateSolver::dump_cur_indices()
 value SimpleCandidateSolver::getNext()
 {
   while (true) {
-    if (cur_idx >= values->values.size()) {
+    if (cur_idx >= (int)values->values.size()) {
       return nullptr;
     }
 
@@ -167,7 +167,7 @@ void ConjunctCandidateSolver::addCounterexample(Counterexample cex, value candid
   cached_evals.push_back({});
   cached_evals[i].resize(values->values.size());
 
-  for (int j = 0; j < values->values.size(); j++) {
+  for (int j = 0; j < (int)values->values.size(); j++) {
     if (cex.is_true) {
       cached_evals[i][j].first = true;
       // TODO if it's false, we never have to look at values->values[j] again.
@@ -201,9 +201,9 @@ void ConjunctCandidateSolver::increment()
 {
   int j;
   for (j = cur_indices.size() - 1; j >= 0; j--) {
-    if (cur_indices[j] != values->values.size() - cur_indices.size() + j) {
+    if (cur_indices[j] != (int)values->values.size() - (int)cur_indices.size() + j) {
       cur_indices[j]++;
-      for (int k = j+1; k < cur_indices.size(); k++) {
+      for (int k = j+1; k < (int)cur_indices.size(); k++) {
         cur_indices[k] = cur_indices[k-1] + 1;
       }
       break;
@@ -212,7 +212,7 @@ void ConjunctCandidateSolver::increment()
   if (j == -1) {
     cur_indices.push_back(0);
     assert (cur_indices.size() <= values->values.size());
-    for (int i = 0; i < cur_indices.size(); i++) {
+    for (int i = 0; i < (int)cur_indices.size(); i++) {
       cur_indices[i] = i;
     }
   }
@@ -221,16 +221,16 @@ void ConjunctCandidateSolver::increment()
 value ConjunctCandidateSolver::getNext()
 {
   while (true) {
-    if (cur_indices.size() > this->conj_arity) {
+    if ((int)cur_indices.size() > this->conj_arity) {
       return nullptr;
     }
 
     bool failed = false;
 
-    for (int i = 0; i < cexes.size(); i++) {
+    for (int i = 0; i < (int)cexes.size(); i++) {
       bool first_bool = true;
       bool second_bool = true;
-      for (int k = 0; k < cur_indices.size(); k++) {
+      for (int k = 0; k < (int)cur_indices.size(); k++) {
         int j = cur_indices[k];
         first_bool = first_bool && cached_evals[i][j].first;
         second_bool = second_bool && cached_evals[i][j].second;
@@ -246,7 +246,7 @@ value ConjunctCandidateSolver::getNext()
       dump_cur_indices();
 
       vector<value> conjuncts;
-      for (int i = 0; i < cur_indices.size(); i++) {
+      for (int i = 0; i < (int)cur_indices.size(); i++) {
         conjuncts.push_back(values->values[cur_indices[i]]);
       }
       value v = v_and(conjuncts);

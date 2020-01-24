@@ -7,7 +7,7 @@ using namespace std;
 
 vector<value> remove(vector<value> const& ar, int j) {
   vector<value> v;
-  for (int i = 0; i < ar.size(); i++) {
+  for (int i = 0; i < (int)ar.size(); i++) {
     if (i != j) {
       v.push_back(ar[i]);
     }
@@ -41,7 +41,7 @@ value strengthen_invariant(
   }
   vector<value> args = disj->args;
 
-  for (int i = 0; i < args.size(); i++) {
+  for (int i = 0; i < (int)args.size(); i++) {
     vector<value> new_args = remove(args, i);
     value inv = tqd.with_body(v_or(new_args));
     if (is_invariant_wrt(module, invariant_so_far, inv)) {

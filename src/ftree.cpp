@@ -220,7 +220,7 @@ shared_ptr<FTree> do_branch(
   int best_idx;
   object_value best_val;
 
-  for (int idx = 0; idx < domain_sizes.size(); idx++) {
+  for (int idx = 0; idx < (int)domain_sizes.size(); idx++) {
     for (object_value val = 0; val < domain_sizes[idx]; val++) {
       int ltrue = 0, lfalse = 0, rtrue = 0, rfalse = 0;
       for (FunctionEntry const& fe : entries) {
@@ -321,7 +321,7 @@ bool ftree_eval(
     int arg_idx = ft->arg_idx;
     object_value arg_value = ft->arg_value;
 
-    assert(0 <= arg_idx && arg_idx < domain_sizes.size());
+    assert(0 <= arg_idx && arg_idx < (int)domain_sizes.size());
     assert(arg_value < domain_sizes[arg_idx]);
     return args[arg_idx] == arg_value;
   }
@@ -337,7 +337,7 @@ bool is_correct(
 {
   for (FunctionEntry const& fe : entries) {
     if (!(
-      ((int)ftree_eval(ft, fe.args, domain_sizes)) == fe.res
+      ((int)ftree_eval(ft, fe.args, domain_sizes)) == (int)fe.res
     )) {
       return false;
     }
