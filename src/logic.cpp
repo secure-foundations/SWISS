@@ -1124,7 +1124,7 @@ int cmp_sort(lsort a, lsort b) {
     if (dynamic_cast<BooleanSort*>(b.get())) {
       return 0;
     }
-    else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(b.get())) {
+    else if (dynamic_cast<UninterpretedSort*>(b.get())) {
       return -1;
     }
     else {
@@ -1525,7 +1525,7 @@ int cmp_expr_def(value a_, value b_) {
     return cmp_expr_def(a->body, b->body);
   }
 
-  if (Var* a = dynamic_cast<Var*>(a_.get())) {
+  if (dynamic_cast<Var*>(a_.get())) {
     return 0;
   }
 
@@ -1536,7 +1536,7 @@ int cmp_expr_def(value a_, value b_) {
     return a->name < b->name ? -1 : (a->name == b->name ? 0 : 1);
   }
 
-  if (Eq* a = dynamic_cast<Eq*>(a_.get())) {
+  if (dynamic_cast<Eq*>(a_.get())) {
     Eq* b = dynamic_cast<Eq*>(b_.get());
     assert(b != NULL);
 
@@ -1550,7 +1550,7 @@ int cmp_expr_def(value a_, value b_) {
     return cmp_expr_def(a->val, b->val);
   }
 
-  if (Implies* a = dynamic_cast<Implies*>(a_.get())) {
+  if (dynamic_cast<Implies*>(a_.get())) {
     assert(false);
   }
 
@@ -1572,11 +1572,11 @@ int cmp_expr_def(value a_, value b_) {
     return 0;
   }
 
-  if (And* a = dynamic_cast<And*>(a_.get())) {
+  if (dynamic_cast<And*>(a_.get())) {
     return 0;
   }
 
-  if (Or* a = dynamic_cast<Or*>(a_.get())) {
+  if (dynamic_cast<Or*>(a_.get())) {
     return 0;
   }
 
@@ -1617,7 +1617,7 @@ bool get_certain_variable_order(
     return true;
   }
 
-  else if (Const* a = dynamic_cast<Const*>(a_.get())) {
+  else if (dynamic_cast<Const*>(a_.get())) {
     return true;
   }
 
@@ -1658,7 +1658,7 @@ bool get_certain_variable_order(
     return get_certain_variable_order(a->val, d, res, n);
   }
 
-  if (Implies* a = dynamic_cast<Implies*>(a_.get())) {
+  if (dynamic_cast<Implies*>(a_.get())) {
     assert(false);
   }
 
@@ -2289,13 +2289,13 @@ vector<value> aggressively_split_into_conjuncts(value v)
   else if (NearlyForall* val = dynamic_cast<NearlyForall*>(v.get())) {
     return {v};
   }
-  else if (Var* val = dynamic_cast<Var*>(v.get())) {
+  else if (dynamic_cast<Var*>(v.get())) {
     return {v};
   }
-  else if (Const* val = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     return {v};
   }
-  else if (Eq* val = dynamic_cast<Eq*>(v.get())) {
+  else if (dynamic_cast<Eq*>(v.get())) {
     return {v};
   }
   else if (Not* val = dynamic_cast<Not*>(v.get())) {
@@ -2311,7 +2311,7 @@ vector<value> aggressively_split_into_conjuncts(value v)
   else if (Implies* val = dynamic_cast<Implies*>(v.get())) {
     return aggressively_split_into_conjuncts(v_or({v_not(val->left), val->right}));
   }
-  else if (Apply* val = dynamic_cast<Apply*>(v.get())) {
+  else if (dynamic_cast<Apply*>(v.get())) {
     return {v};
   }
   else if (And* val = dynamic_cast<And*>(v.get())) {
