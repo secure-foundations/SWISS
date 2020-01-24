@@ -9,38 +9,6 @@ import signal
 HOUR = 60*60
 TIMEOUT = 4 * HOUR
 
-BENCHMARKS = [
-  "naive-leader-election",
-  "naive-inc-leader-election",
-  "naive-breadth-leader-election",
-  "naive-strat2-breadth-leader-election",
-  "sat-leader-election",
-  "sat-inc-leader-election",
-  "sat-breadth-leader-election",
-
-  "sat-inc-learning-switch",
-  "sat-breadth-learning-switch",
-  "naive-inc-learning-switch",
-  "naive-breadth-learning-switch",
-  "naive-strat2-breadth-learning-switch",
-
-  "sat-breadth-chord",
-  "naive-breadth-chord-size3",
-  "naive-inc-chord-size3",
-  "naive-strat2-breadth-chord",
-
-  "naive-paxos-missing1",
-  "sat-inc-paxos",
-
-  "naive-strat2-breadth-paxos-3",
-  "naive-strat2-breadth-paxos-4-r2",
-  "naive-strat2-breadth-paxos-4-r3",
-
-  "sat-breadth-paxos-3",
-  "sat-breadth-paxos-4-r2",
-  "sat-breadth-paxos-4-r3",
-]
-
 def run_benchmark(name):
   proc = subprocess.Popen(["./bench.sh", name],
       preexec_fn=os.setsid,
@@ -92,12 +60,21 @@ def pad_left(name, l):
     name = " " + name
   return name
 
+def benchmark_print_1(name):
+  return pad_right(name + " ...", 50)
+
+def benchmark_print_2(name, res, logfile):
+  return " " + pad_left(res, 16) + "   [" + logfile + "]"
+
+def benchmark_print_line(name, res, logfile):
+  return benchmark_print_1(name) + benchmark_print_2(name, res, logfile)
+
 def do_benchmark(name):
-  print(pad_right(name + " ...", 50), end="")
+  print(benchmark_print_1(name))
   sys.stdout.flush()
 
   logfile, res = run_benchmark(name)
-  print(" " + pad_left(res, 16) + "   [" + logfile + "]")
+  print(benchmark_print_2(name, res, logfile))
 
 if __name__ == '__main__':
   benches = sys.argv[1:]

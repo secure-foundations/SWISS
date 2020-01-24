@@ -1,6 +1,7 @@
 import sys
 import random
 import subprocess
+from benchmarks import BENCHMARKS
 
 n = int(sys.argv[1])
 args = sys.argv[2 : ]
