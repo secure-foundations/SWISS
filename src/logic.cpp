@@ -2283,10 +2283,10 @@ vector<value> aggressively_split_into_conjuncts(value v)
     }
     return res;
   }
-  else if (Exists* val = dynamic_cast<Exists*>(v.get())) {
+  else if (dynamic_cast<Exists*>(v.get())) {
     return {v};
   }
-  else if (NearlyForall* val = dynamic_cast<NearlyForall*>(v.get())) {
+  else if (dynamic_cast<NearlyForall*>(v.get())) {
     return {v};
   }
   else if (dynamic_cast<Var*>(v.get())) {
