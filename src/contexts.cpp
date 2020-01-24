@@ -50,7 +50,7 @@ z3::sort BackgroundContext::getSort(std::shared_ptr<Sort> sort) {
     return ctx.bool_sort();
   } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(s)) {
     return getUninterpretedSort(usort->name);
-  } else if (FunctionSort* fsort = dynamic_cast<FunctionSort*>(s)) {
+  } else if (dynamic_cast<FunctionSort*>(s)) {
     assert(false && "getSort does not support FunctionSort");
   } else {
     assert(false && "getSort does not support unknown sort");
