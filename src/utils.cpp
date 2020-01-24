@@ -36,7 +36,7 @@ value normalize(value v, NormalizeState& ns) {
   else if (Var* va = dynamic_cast<Var*>(v.get())) {
     return v_var(ns.get_name(va->name), va->sort);
   }
-  else if (Const* va = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     return v;
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {

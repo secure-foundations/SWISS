@@ -1129,13 +1129,13 @@ shared_ptr<Model> transition_model(
     assert(0 <= which_action && which_action < (int)module->actions.size());
     action = module->actions[which_action];
   }
-  ActionResult res = applyAction(e1, action, {});
+  ActionResult res = applyAction(e1, action, std::unordered_map<iden, z3::expr> {});
   shared_ptr<ModelEmbedding> e2 = res.e;
   // Add the relation between the two states
   solver.add(res.constraint);
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    solver.add(e1->value2expr(axiom, {}));
+    solver.add(e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
   }
 
   start_state->assert_model_is(e1);
@@ -1200,14 +1200,14 @@ void get_tree_of_models2_(
   }
 
   for (int action_index : action_indices_ordered) {
-    ActionResult res = applyAction(e2, module->actions[action_index], {});
+    ActionResult res = applyAction(e2, module->actions[action_index], std::unordered_map<iden, z3::expr> {});
     e2 = res.e;
     ctx->solver.add(res.constraint);
   }
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(e1->value2expr(axiom, {}));
+    ctx->solver.add(e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
   }
 
   if (!reversed) {

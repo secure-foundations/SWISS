@@ -77,7 +77,7 @@ value wpr(value v, shared_ptr<Action> a)
 
     return v->subst_fun(c->name, decls, expr);
   }
-  else if (Havoc* action = dynamic_cast<Havoc*>(a.get())) {
+  else if (dynamic_cast<Havoc*>(a.get())) {
     assert(false);
   }
   else {

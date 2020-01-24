@@ -11,7 +11,7 @@ FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, 
   this->e2 = this->e1;
   for (int i = 0; i < k; i++) {
     shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
-    ActionResult res = applyAction(this->e2, action, {});
+    ActionResult res = applyAction(this->e2, action, std::unordered_map<iden, z3::expr> {});
     this->e2 = res.e;
     // Add the relation between the two states
     ctx->solver.add(res.constraint);
@@ -19,7 +19,7 @@ FixedBMCContext::FixedBMCContext(z3::context& z3ctx, shared_ptr<Module> module, 
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(this->e1->value2expr(axiom, {}));
+    ctx->solver.add(this->e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
   }
 
   // Add the inits

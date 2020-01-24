@@ -97,7 +97,7 @@ z3::func_decl ModelEmbedding::getFunc(iden name) const {
 z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value)
 {
-  return value2expr(value, {}, {});
+  return value2expr(value, std::unordered_map<iden, z3::expr> {}, std::unordered_map<iden, z3::expr> {});
 }
 
 
@@ -105,14 +105,14 @@ z3::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value,
     std::unordered_map<iden, z3::expr> const& consts)
 {
-  return value2expr(value, consts, {});
+  return value2expr(value, consts, std::unordered_map<iden, z3::expr> {});
 }
 
 z3::expr ModelEmbedding::value2expr_with_vars(
     shared_ptr<Value> value,
     std::unordered_map<iden, z3::expr> const& vars)
 {
-  return value2expr(value, {}, vars);
+  return value2expr(value, std::unordered_map<iden, z3::expr> {}, vars);
 }
 
 z3::expr ModelEmbedding::value2expr(
@@ -245,7 +245,7 @@ InductionContext::InductionContext(
   shared_ptr<Action> action = action_idx == -1
       ? shared_ptr<Action>(new ChoiceAction(module->actions))
       : module->actions[action_idx];
-  ActionResult res = applyAction(this->e1, action, {});
+  ActionResult res = applyAction(this->e1, action, std::unordered_map<iden, z3::expr> {});
   this->e2 = res.e;
 
   // Add the relation between the two states
@@ -253,7 +253,7 @@ InductionContext::InductionContext(
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(this->e1->value2expr(axiom, {}));
+    ctx->solver.add(this->e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
   }
 }
 
@@ -273,7 +273,7 @@ ChainContext::ChainContext(
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
 
   for (int i = 0; i < numTransitions; i++) {
-    ActionResult res = applyAction(this->es[i], action, {});
+    ActionResult res = applyAction(this->es[i], action, std::unordered_map<iden, z3::expr> {});
     this->es[i+1] = res.e;
 
     // Add the relation between the two states
@@ -282,7 +282,7 @@ ChainContext::ChainContext(
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(this->es[0]->value2expr(axiom, {}));
+    ctx->solver.add(this->es[0]->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
   }
 }
 

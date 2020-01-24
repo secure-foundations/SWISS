@@ -32,10 +32,10 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
     }
     getHoleInfo_(va->body, vars, res);
   }
-  else if (Var* va = dynamic_cast<Var*>(v.get())) {
+  else if (dynamic_cast<Var*>(v.get())) {
     return;
   }
-  else if (Const* va = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     return;
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {
@@ -65,7 +65,7 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
       getHoleInfo_(arg, vars, res);
     }
   }
-  else if (TemplateHole* value = dynamic_cast<TemplateHole*>(v.get())) {
+  else if (dynamic_cast<TemplateHole*>(v.get())) {
     HoleInfo hi;
     hi.vars = vars;
     res.push_back(hi);
@@ -142,10 +142,10 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
   else if (NearlyForall* va = dynamic_cast<NearlyForall*>(templ.get())) {
     return v_nearlyforall(va->decls, fill_holes_in_value(va->body, fills, idx));
   }
-  else if (Var* va = dynamic_cast<Var*>(templ.get())) {
+  else if (dynamic_cast<Var*>(templ.get())) {
     return templ;
   }
-  else if (Const* va = dynamic_cast<Const*>(templ.get())) {
+  else if (dynamic_cast<Const*>(templ.get())) {
     return templ;
   }
   else if (Eq* va = dynamic_cast<Eq*>(templ.get())) {
@@ -184,7 +184,7 @@ value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
     }
     return v_or(args);
   }
-  else if (TemplateHole* value = dynamic_cast<TemplateHole*>(templ.get())) {
+  else if (dynamic_cast<TemplateHole*>(templ.get())) {
     return fills[idx++];
   }
   else {
@@ -349,7 +349,7 @@ value normalize(value v, NormalizeState& ns) {
   else if (Var* va = dynamic_cast<Var*>(v.get())) {
     return v_var(ns.get_name(va->name), va->sort);
   }
-  else if (Const* va = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     return v;
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {

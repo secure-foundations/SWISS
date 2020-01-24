@@ -53,7 +53,7 @@ void get_var_index_transition_rec(
       vit.res.indices[gi.group] = gi.index;
     }
   }
-  else if (Const* val = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
   }
   else if (Eq* val = dynamic_cast<Eq*>(v.get())) {
     get_var_index_transition_rec(groups, val->left, vit);

@@ -43,7 +43,7 @@ all: synthesis
 glucoselib: $(LIBS)
 
 synthesis: $(OBJECTS) $(LIBS)
-	clang++ -g -o synthesis -lz3 $(OBJECTS) $(LIBS)
+	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3
 
 bin/lib_glucose_release.a:
 	@mkdir -p $(basename $@)
@@ -57,7 +57,7 @@ bin/lib_glucose_debug.a:
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
 	@mkdir -p $(DEP_DIR)/$(basename $<)
-	clang++ $(CXXFLAGS) -c -o $@ $< -MMD -MP -MF "$(DEP_DIR)/$(<:.cpp=.d)"
+	clang++ $(CXXFLAGS) $(INCLUDES) -c -o $@ $< -MMD -MP -MF "$(DEP_DIR)/$(<:.cpp=.d)"
 
 clean:
 	rm -rf bin synthesis

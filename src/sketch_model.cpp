@@ -33,7 +33,7 @@ sat_expr SketchModel::to_sat(value v, size_t res, std::map<iden, ValueVars> cons
   else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
     result = to_sat_forall_exists(res, vars, false, value->decls, value->body);
   }
-  else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
+  else if (dynamic_cast<NearlyForall*>(v.get())) {
     assert(false && "SketchModel::to_sat NearlyForall case not implemented");
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
@@ -41,7 +41,7 @@ sat_expr SketchModel::to_sat(value v, size_t res, std::map<iden, ValueVars> cons
     assert(iter != vars.end());
     result = iter->second.get(res);
   }
-  else if (Const* value = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     assert(false && "shouldn't get here?");
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
