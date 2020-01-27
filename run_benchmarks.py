@@ -5,6 +5,7 @@ import time
 import sys
 import os
 import signal
+from benchmarks import BENCHMARKS
 
 HOUR = 60*60
 TIMEOUT = 4 * HOUR
@@ -70,11 +71,8 @@ def benchmark_print_line(name, res, logfile):
   return benchmark_print_1(name) + benchmark_print_2(name, res, logfile)
 
 def do_benchmark(name):
-  print(benchmark_print_1(name))
-  sys.stdout.flush()
-
   logfile, res = run_benchmark(name)
-  print(benchmark_print_2(name, res, logfile))
+  print(benchmark_print_1(name) + benchmark_print_2(name, res, logfile))
 
 if __name__ == '__main__':
   benches = sys.argv[1:]
