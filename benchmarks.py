@@ -10,8 +10,6 @@ BENCHMARKS = {
   Benchmark("benchmarks/leader-election.ivy", "--incremental --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
 "naive-breadth-leader-election" : 
   Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
-}
-"""
 "naive-strat2-breadth-leader-election" : 
   Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --strat2 --whole-space"),
 "sat-leader-election" : 
@@ -55,4 +53,3 @@ BENCHMARKS = {
 "sat-breadth-paxos-4-r3" : 
   Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-sat --breadth --arity 4 --depth 3 --whole-space"),
 }
-"""
