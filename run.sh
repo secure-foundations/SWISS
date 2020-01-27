@@ -2,6 +2,7 @@
 
 set -e
 
-python file_to_json.py $1 > ./src.json
+TEMP=$(mktemp)
+python file_to_json.py $1 > $TEMP
 shift
-./synthesis "$@" < ./src.json
+./synthesis "$@" < $TEMP
