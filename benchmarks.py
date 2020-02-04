@@ -77,7 +77,7 @@ BENCHMARKS = {
   Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2 --whole-space"),
 
 "naive-breadth-paxos-exist-2" :
-  Benchmark("benchmarks/paxos_exist_2.ivy", "--enum-naive --breadth --conj-arity 1 --conj-arity 3 --strat-alt --whole-space"),
+  Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --whole-space"),
 
 "sat-breadth-paxos-3" : 
   Benchmark("benchmarks/paxos_epr_3.ivy", "--enum-sat --breadth --arity 3 --depth 3 --whole-space"),
