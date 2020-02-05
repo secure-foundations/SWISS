@@ -1,6 +1,7 @@
 #include "var_lex_graph.h"
 
 #include <cassert>
+#include <iostream>
 
 #include "top_quantifier_desc.h"
 
@@ -114,8 +115,8 @@ vector<VarIndexTransition> get_var_index_transitions(
   value templ,
   vector<value> const& values)
 {
-  TopQuantifierDesc tqd(templ);
-  vector<QSRange> groups = tqd.grouped_by_sort();
+  TopAlternatingQuantifierDesc taqd(templ);
+  vector<QSRange> groups = taqd.grouped_by_sort();
 
   int ngroups = groups.size();
 
@@ -123,6 +124,9 @@ vector<VarIndexTransition> get_var_index_transitions(
     for (int j = 1; j < (int)groups[i].decls.size(); j++) {
       if (!(iden_to_string(groups[i].decls[j-1].name) <
             iden_to_string(groups[i].decls[j].name))) {
+        for (VarDecl d : groups[i].decls) {
+          cout << iden_to_string(d.name) << endl;
+        }
         assert(false && "template args should be in alphabetical order (yeah it's dumb, but or else we might accidentally rely on two different sorting orders being the same or something)");
       }
     }
@@ -139,8 +143,8 @@ vector<VarIndexTransition> get_var_index_transitions(
 
 VarIndexState get_var_index_init_state(value templ)
 {
-  TopQuantifierDesc tqd(templ);
-  vector<QSRange> groups = tqd.grouped_by_sort();
+  TopQuantifierDesc taqd(templ);
+  vector<QSRange> groups = taqd.grouped_by_sort();
   int ngroups = groups.size();
   VarIndexState vis;
   vis.indices.resize(ngroups);

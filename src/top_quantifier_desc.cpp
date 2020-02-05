@@ -234,3 +234,52 @@ value TopAlternatingQuantifierDesc::with_body(value v)
   }
   return v;
 }
+
+vector<QSRange> TopAlternatingQuantifierDesc::grouped_by_sort() const {
+  vector<QSRange> res;
+  QSRange cur;
+  cur.start = 0;
+  cur.end = 0;
+
+  for (auto alt : alts) {
+    assert(alt.altType == AltType::Forall || alt.altType == AltType::Exists);
+    QType ty = alt.altType == AltType::Forall ? QType::Forall : QType::Exists;
+    for (auto decl : alt.decls) {
+      if (cur.end > cur.start && !(cur.qtype == ty && sorts_eq(cur.decls[0].sort, decl.sort))) {
+        res.push_back(cur);
+        cur.start = cur.end;
+        cur.decls.clear();
+      }
+
+      cur.decls.push_back(decl);
+      cur.qtype = ty;
+      cur.sort = decl.sort;
+      cur.end++;
+    }
+
+    /*if (ty == QType::NearlyForall && cur.end > cur.start) {
+      res.push_back(cur);
+      cur.start = cur.end;
+      cur.decls.clear();
+    }*/
+  }
+
+  if (cur.end > cur.start) {
+    res.push_back(cur);
+  }
+
+  set<string> names;
+  for (int i = 0; i < (int)res.size(); i++) {
+    if (i > 0 && res[i].qtype != res[i-1].qtype) {
+      names.clear();
+    }
+    UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(res[i].decls[0].sort.get());
+    assert(usort != NULL);
+    if (res[i].qtype == QType::Forall) {
+      assert (names.count(usort->name) == 0);
+    }
+    names.insert(usort->name);
+  }
+
+  return res;
+}

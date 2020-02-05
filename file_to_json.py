@@ -161,6 +161,10 @@ def maybe_merge_nearlys(obj):
   else:
     return obj
 
+def sort_vars_alphabetically(vs):
+  # ["var", "Q", ["uninterpretedSort", "quorum"]]
+  return sorted(vs, key = lambda v : (v[2][1], v[1]))
+
 def logic_to_obj(l):
   if isinstance(l, logic.ForAll):
     vs = [v for v in l.variables if v.name != "WILD"]
@@ -168,13 +172,16 @@ def logic_to_obj(l):
       the_vars = [logic_to_obj(var) for var in vs]
       is_nearly = the_vars[0][1].startswith("Nearly_")
       name = "nearlyforall" if is_nearly else "forall"
+      the_vars = sort_vars_alphabetically(the_vars)
       return maybe_merge_nearlys([name, the_vars, logic_to_obj(l.body)])
     else:
       return logic_to_obj(l.body)
   if isinstance(l, logic.Exists):
     vars = [logic_to_obj(var) for var in l.variables]
     if len(vars) > 0 and vars[0][1] != 'FakeOutHackExists':
-      return ["exists", [logic_to_obj(var) for var in l.variables], logic_to_obj(l.body)]
+      the_vars = [logic_to_obj(var) for var in l.variables]
+      the_vars = sort_vars_alphabetically(the_vars)
+      return ["exists", the_vars, logic_to_obj(l.body)]
     else:
       return logic_to_obj(l.body)
   elif isinstance(l, logic.Var):

@@ -163,7 +163,7 @@ conjecture forall R1:round, R2:round, V1:value, V2:value, Q:quorum. ~le(R2,R1) &
 conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
 conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
 
-template (forall R:round, V:value. exists Q:quorum. forall N:node, M:node. WILD)
+template (forall R:round, V:value. exists Q:quorum. forall M1:node, M2:node. WILD)
 
 # try to infer this one:
 #conjecture forall R:round, V:value. exists Q:quorum. forall N:node, M:node. ~decision(N,R,V) | ~member(M,Q) | vote(M,R,V)

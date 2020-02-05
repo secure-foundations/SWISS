@@ -6,6 +6,7 @@
 enum class QType {
   Forall,
   NearlyForall,
+  Exists,
 };
 
 struct QRange {
@@ -61,6 +62,7 @@ public:
 
   static value get_body(value);
   value with_body(value);
+  std::vector<QSRange> grouped_by_sort() const;
 
 private:
   std::vector<Alternation> alts;
