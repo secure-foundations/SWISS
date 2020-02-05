@@ -1,16 +1,16 @@
-#include "big_disjunct_synth_enumerator.h"
+#include "alt_synth_enumerator.h"
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
 
 using namespace std;
 
-BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
+AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
   : module(module)
   , disj_arity(disj_arity)
-  , tqd(module->templates[0])
+  , taqd(module->templates[0])
 {
-  cout << "Using BigDisjunctCandidateSolver" << endl;
+  cout << "Using AltDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
   assert(module->templates.size() == 1);
@@ -42,7 +42,7 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
 
-void BigDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
+void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
   cout << "add counterexample" << endl;
   assert (!cex.none);
@@ -51,30 +51,52 @@ void BigDisjunctCandidateSolver::addCounterexample(Counterexample cex, value can
   cexes.push_back(cex);
   int i = cexes.size() - 1;
 
+  AlternationBitsetEvaluator abe1;
+  AlternationBitsetEvaluator abe2;
+
+  if (cex.is_true) {
+    abe2 = AlternationBitsetEvaluator::make_evaluator(
+        cex.is_true, pieces[0]);
+  }
+  else if (cex.is_false) {
+    abe1 = AlternationBitsetEvaluator::make_evaluator(
+        cex.is_false, pieces[0]);
+  }
+  else {
+    assert(cex.hypothesis);
+    assert(cex.conclusion);
+    abe1 = AlternationBitsetEvaluator::make_evaluator(
+        cex.hypothesis, pieces[0]);
+    abe2 = AlternationBitsetEvaluator::make_evaluator(
+        cex.conclusion, pieces[0]);
+  }
+
+  abes.push_back(make_pair(move(abe1), move(abe2)));
+
   cex_results.push_back({});
   cex_results[i].resize(pieces.size());
 
   for (int j = 0; j < (int)pieces.size(); j++) {
     if (cex.is_true) {
-      cex_results[i][j].second = BitsetEvalResult::eval_over_foralls(cex.is_true, pieces[j]);
+      cex_results[i][j].second = BitsetEvalResult::eval_over_alternating_quantifiers(cex.is_true, pieces[j]);
     }
     else if (cex.is_false) {
-      cex_results[i][j].first = BitsetEvalResult::eval_over_foralls(cex.is_false, pieces[j]);
+      cex_results[i][j].first = BitsetEvalResult::eval_over_alternating_quantifiers(cex.is_false, pieces[j]);
     }
     else {
-      cex_results[i][j].first = BitsetEvalResult::eval_over_foralls(cex.hypothesis, pieces[j]);
-      cex_results[i][j].second = BitsetEvalResult::eval_over_foralls(cex.conclusion, pieces[j]);
+      cex_results[i][j].first = BitsetEvalResult::eval_over_alternating_quantifiers(cex.hypothesis, pieces[j]);
+      cex_results[i][j].second = BitsetEvalResult::eval_over_alternating_quantifiers(cex.conclusion, pieces[j]);
     }
   }
 }
 
-void BigDisjunctCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
+void AltDisjunctCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
 {
   existing_invariant_indices.push_back(indices);
   existing_invariant_trie.insert(indices);
 }
 
-void BigDisjunctCandidateSolver::addExistingInvariant(value inv)
+void AltDisjunctCandidateSolver::addExistingInvariant(value inv)
 {
   vector<int> indices = get_indices_of_value(inv);
   existing_invariants_append(indices);
@@ -83,7 +105,7 @@ void BigDisjunctCandidateSolver::addExistingInvariant(value inv)
   existing_invariant_set.insert(ComparableValue(norm));
 }
 
-bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
+inline bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
   if (a.size() == 0) { upTo = 0; return true; }
   if (b.size() == 0) return false;
   int i = 0;
@@ -105,7 +127,7 @@ bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
   }
 }
 
-void BigDisjunctCandidateSolver::init_piece_to_index() {
+void AltDisjunctCandidateSolver::init_piece_to_index() {
   for (int i = 0; i < (int)pieces.size(); i++) {
     value v = pieces[i];
     while (true) {
@@ -123,13 +145,13 @@ void BigDisjunctCandidateSolver::init_piece_to_index() {
   }
 }
 
-int BigDisjunctCandidateSolver::get_index_of_piece(value p) {
+int AltDisjunctCandidateSolver::get_index_of_piece(value p) {
   auto it = piece_to_index.find(ComparableValue(p));
   assert (it != piece_to_index.end());
   return it->second;
 }
 
-vector<int> BigDisjunctCandidateSolver::get_indices_of_value(value inv) {
+vector<int> AltDisjunctCandidateSolver::get_indices_of_value(value inv) {
   while (true) {
     if (Forall* f = dynamic_cast<Forall*>(inv.get())) {
       inv = f->body;
@@ -157,7 +179,7 @@ vector<int> BigDisjunctCandidateSolver::get_indices_of_value(value inv) {
   }
 }
 
-value BigDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
+value AltDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
   for (int i = 0; i < (int)values.size(); i++) {
     while (true) {
       if (Forall* f = dynamic_cast<Forall*>(values[i].get())) {
@@ -172,26 +194,26 @@ value BigDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
     }
   }
 
-  return tqd.with_body(v_or(values));
+  return taqd.with_body(v_or(values));
 }
 
-value BigDisjunctCandidateSolver::getNext() {
-  vector<BitsetEvalResult*> bers;
-
+value AltDisjunctCandidateSolver::getNext() {
   while (true) {
     increment();
     if (done) {
       return nullptr;
     }
 
-    /*{
-    vector<value> disjs;
-    for (int i = 0; i < cur_indices.size(); i++) {
-      disjs.push_back(pieces[cur_indices[i]]);
+    // TODO comment this
+    value sanity_v;
+    {
+      vector<value> disjs;
+      for (int i = 0; i < (int)cur_indices.size(); i++) {
+        disjs.push_back(pieces[cur_indices[i]]);
+      }
+      sanity_v = disjunction_fuse(disjs);
+      //cout << "getNext: " << sanity_v->to_string() << endl;
     }
-    value v = disjunction_fuse(disjs);
-    cout << "getNext: " << v->to_string() << endl;
-    }*/
 
     bool failed = false;
 
@@ -207,41 +229,45 @@ value BigDisjunctCandidateSolver::getNext() {
 
     //// Check if it violates a countereample
 
-    if (bers.size() != cur_indices.size()) {
-      bers.resize(cur_indices.size());
-    }
-
     for (int i = 0; i < (int)cexes.size(); i++) {
       if (cexes[i].is_true) {
+        abes[i].second.reset_for_disj();
         for (int j = 0; j < (int)cur_indices.size(); j++) {
-          bers[j] = &cex_results[i][cur_indices[j]].second;
+          abes[i].second.add_disj(cex_results[i][cur_indices[j]].second);
         }
-        bool res = BitsetEvalResult::disj_is_true(bers);
+        bool res = abes[i].second.evaluate();
+        assert (res == cexes[i].is_true->eval_predicate(sanity_v));
         if (!res) {
           failed = true;
           break;
         }
       }
       else if (cexes[i].is_false) {
+        abes[i].first.reset_for_disj();
         for (int j = 0; j < (int)cur_indices.size(); j++) {
-          bers[j] = &cex_results[i][cur_indices[j]].first;
+          abes[i].first.add_disj(cex_results[i][cur_indices[j]].first);
         }
-        bool res = BitsetEvalResult::disj_is_true(bers);
+        bool res = abes[i].first.evaluate();
+        assert (res == cexes[i].is_false->eval_predicate(sanity_v));
         if (res) {
           failed = true;
           break;
         }
       }
       else {
+        abes[i].first.reset_for_disj();
         for (int j = 0; j < (int)cur_indices.size(); j++) {
-          bers[j] = &cex_results[i][cur_indices[j]].first;
+          abes[i].first.add_disj(cex_results[i][cur_indices[j]].first);
         }
-        bool res = BitsetEvalResult::disj_is_true(bers);
+        bool res = abes[i].first.evaluate();
+        assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
         if (res) {
+          abes[i].second.reset_for_disj();
           for (int j = 0; j < (int)cur_indices.size(); j++) {
-            bers[j] = &cex_results[i][cur_indices[j]].second;
+            abes[i].second.add_disj(cex_results[i][cur_indices[j]].second);
           }
-          bool res2 = BitsetEvalResult::disj_is_true(bers);
+          bool res2 = abes[i].second.evaluate();
+          assert (res2 == cexes[i].conclusion->eval_predicate(sanity_v));
           if (!res2) {
             failed = true;
             break;
@@ -271,7 +297,7 @@ value BigDisjunctCandidateSolver::getNext() {
   }
 }
 
-void BigDisjunctCandidateSolver::dump_cur_indices()
+void AltDisjunctCandidateSolver::dump_cur_indices()
 {
   cout << "cur_indices:";
   for (int i : cur_indices) {
@@ -282,14 +308,14 @@ void BigDisjunctCandidateSolver::dump_cur_indices()
 
 // Skip all remaining index-sequences that match
 // the first `upTo` numbers of the current index-sequence
-void BigDisjunctCandidateSolver::skipAhead(int upTo)
+void AltDisjunctCandidateSolver::skipAhead(int upTo)
 {
   for (int i = upTo; i < (int)cur_indices.size(); i++) {
     cur_indices[i] = (int)pieces.size() + i - (int)cur_indices.size();
   }
 }
 
-void BigDisjunctCandidateSolver::increment()
+void AltDisjunctCandidateSolver::increment()
 {
   int n = pieces.size();
 

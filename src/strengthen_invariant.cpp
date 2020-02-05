@@ -20,20 +20,8 @@ value strengthen_invariant(
   value invariant_so_far,
   value new_invariant)
 {
-  TopQuantifierDesc tqd(new_invariant);
-
-  value body = new_invariant;
-  while (true) {
-    if (Forall* f = dynamic_cast<Forall*>(body.get())) {
-      body = f->body;
-    }
-    else if (NearlyForall* f = dynamic_cast<NearlyForall*>(body.get())) {
-      body = f->body;
-    }
-    else {
-      break;
-    }
-  }
+  TopAlternatingQuantifierDesc taqd(new_invariant);
+  value body = TopAlternatingQuantifierDesc::get_body(new_invariant);
 
   Or* disj = dynamic_cast<Or*>(body.get());
   if (!disj) {
@@ -43,12 +31,12 @@ value strengthen_invariant(
 
   for (int i = 0; i < (int)args.size(); i++) {
     vector<value> new_args = remove(args, i);
-    value inv = tqd.with_body(v_or(new_args));
+    value inv = taqd.with_body(v_or(new_args));
     if (is_invariant_wrt(module, invariant_so_far, inv)) {
       args = new_args;
       i--;
     }
   }
 
-  return tqd.with_body(v_or(args));
+  return taqd.with_body(v_or(args));
 }

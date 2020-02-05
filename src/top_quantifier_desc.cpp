@@ -163,3 +163,72 @@ int TopQuantifierDesc::weighted_sort_count(std::string sort) const {
   }
   return count;
 }
+
+TopAlternatingQuantifierDesc::TopAlternatingQuantifierDesc(value v)
+{
+  Alternation alt;
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      if (alt.decls.size() > 0 && alt.altType != AltType::Forall) {
+        alts.push_back(alt);
+        alt.decls = {};
+      }
+
+      alt.altType = AltType::Forall;
+
+      for (VarDecl decl : f->decls) {
+        alt.decls.push_back(decl);
+      }
+
+      v = f->body;
+    } else if (NearlyForall* f = dynamic_cast<NearlyForall*>(v.get())) {
+      assert(false);
+    } else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
+      if (alt.decls.size() > 0 && alt.altType != AltType::Exists) {
+        alts.push_back(alt);
+        alt.decls = {};
+      }
+
+      alt.altType = AltType::Exists;
+
+      for (VarDecl decl : f->decls) {
+        alt.decls.push_back(decl);
+      }
+
+      v = f->body;
+    }
+  }
+
+  if (alt.decls.size() > 0) {
+    alts.push_back(alt);
+  }
+}
+
+value TopAlternatingQuantifierDesc::get_body(value v)
+{
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      v = f->body;
+    }
+    else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
+      v = f->body;
+    }
+    else {
+      break;
+    }
+  }
+  return v;
+}
+
+value TopAlternatingQuantifierDesc::with_body(value v)
+{
+  for (int i = alts.size() - 1; i >= 0; i--) {
+    Alternation& alt = alts[i];
+    if (alt.altType == AltType::Forall) {
+      v = v_forall(alt.decls, v);
+    } else {
+      v = v_exists(alt.decls, v);
+    }
+  }
+  return v;
+}

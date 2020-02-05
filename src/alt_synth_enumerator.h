@@ -6,9 +6,9 @@
 #include "var_lex_graph.h"
 #include "subsequence_trie.h"
 
-class BigDisjunctCandidateSolver : public CandidateSolver {
+class AltDisjunctCandidateSolver : public CandidateSolver {
 public:
-  BigDisjunctCandidateSolver(std::shared_ptr<Module>, int disj_arity);
+  AltDisjunctCandidateSolver(std::shared_ptr<Module>, int disj_arity);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
@@ -18,7 +18,7 @@ public:
   std::shared_ptr<Module> module;
   int disj_arity;
 
-  TopQuantifierDesc tqd;
+  TopAlternatingQuantifierDesc taqd;
 
   std::vector<value> pieces;
   std::vector<int> cur_indices;
@@ -26,6 +26,7 @@ public:
 
   std::vector<Counterexample> cexes;
   std::vector<std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>>> cex_results;
+  std::vector<std::pair<AlternationBitsetEvaluator, AlternationBitsetEvaluator>> abes;
 
   std::vector<std::vector<int>> existing_invariant_indices;
   SubsequenceTrie existing_invariant_trie;

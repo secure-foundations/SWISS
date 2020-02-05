@@ -1393,6 +1393,121 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
   return ber;
 }
 
+AlternationBitsetEvaluator AlternationBitsetEvaluator::make_evaluator(
+    std::shared_ptr<Model> model, value v)
+{
+  TopAlternatingQuantifierDesc taqd(v);
+  vector<int> sizes;
+
+  vector<Alternation> alternations = taqd.alternations();
+  assert(alternations.size() > 0);
+
+  for (Alternation const& alt : alternations) {
+    int prod = 1;
+    for (VarDecl const& decl : alt.decls) {
+      prod *= model->get_domain_size(decl.sort);
+    }
+    sizes.push_back(prod);
+  }
+
+  AlternationBitsetEvaluator abe;
+  abe.levels.resize(sizes.size() - 1);
+
+  int p = 1;
+  for (int i = 0; i < (int)sizes.size() - 1; i++) {
+    p *= sizes[i];
+    abe.levels[abe.levels.size() - 1 - i].block_size = p;
+    abe.levels[abe.levels.size() - 1 - i].num_blocks = sizes[i+1];
+    abe.levels[abe.levels.size() - 1 - i].conj = alternations[alternations.size() - 1 - i].is_forall();
+  }
+
+  p *= sizes[sizes.size() - 1];
+  abe.scratch.resize(p / 64 + 2);
+
+  abe.final_conj = alternations[0].is_forall();
+  if (sizes[0] % 64 == 0) {
+    abe.final_num_full_words_64 = sizes[0] / 64 - 1;
+    abe.final_last_bits = (uint64_t)(-1);
+  } else {
+    abe.final_num_full_words_64 = sizes[0] / 64;
+    abe.final_last_bits = (((uint64_t)1) << (sizes[0] % 64)) - 1;
+  }
+
+  return abe;
+}
+
+BitsetEvalResult BitsetEvalResult::eval_over_alternating_quantifiers(
+    shared_ptr<Model> model, value val)
+{
+  //model->dump();
+  //cout << "eval'ing for value: " << val->to_string() << endl;
+
+  TopAlternatingQuantifierDesc taqd(val);
+  vector<Alternation> alternations = taqd.alternations();
+  vector<VarDecl> decls;
+  for (int i = alternations.size() - 1; i >= 0; i--) {
+    Alternation const& alt = alternations[i];
+    for (int j = 0; j < (int)alt.decls.size(); j++) {
+      decls.push_back(alt.decls[j]);
+    }
+  }
+  vector<iden> names;
+  for (VarDecl const& decl : decls) {
+    names.push_back(decl.name);
+  }
+  EvalExpr ee = model->value_to_eval_expr(val, names);
+
+  int n_vars = max(max_var(ee), (int)decls.size()) + 1;
+  int* var_values = new int[n_vars];
+
+  BitsetEvalResult ber;
+  vector<int> max_sizes;
+  max_sizes.resize(decls.size());
+  for (int i = 0; i < (int)decls.size(); i++) {
+    max_sizes[i] = model->get_domain_size(decls[i].sort);
+    var_values[i] = 0;
+  }
+
+  uint64_t cur = 0;
+  int bit_place = 0;
+  while (true) {
+    //cout << "bp: " << bit_place << endl;
+    int ans = eval(ee, var_values);
+    assert(ans == 0 || ans == 1);
+    cur |= ((uint64_t)ans << bit_place);
+    bit_place++;
+    if (bit_place == 64) {
+      ber.v.push_back(cur);
+      cur = 0;
+      bit_place = 0;
+    }
+
+    int i;
+    for (i = 0; i < (int)decls.size(); i++) {
+      var_values[i]++;
+      if (var_values[i] == max_sizes[i]) {
+        var_values[i] = 0;
+      } else {
+        break;
+      }
+    }
+    if (i == (int)decls.size()) {
+      break;
+    }
+  }
+
+  if (bit_place > 0) {
+    ber.v.push_back(cur);
+    ber.last_bits = ((uint64_t)1 << bit_place) - 1;
+  } else {
+    ber.last_bits = (uint64_t)(-1);
+  }
+
+  delete[] var_values;
+  //ber.dump();
+  return ber;
+}
+
 vector<size_t> Model::get_domain_sizes_for_function(iden name) const {
   lsort sort;
   for (VarDecl decl : module->functions) {
