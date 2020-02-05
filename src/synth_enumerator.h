@@ -25,6 +25,7 @@ struct Options {
   int conj_arity;
   bool impl_shape;
   bool strat2;
+  bool strat_alt;
 };
 
 enum class Shape {

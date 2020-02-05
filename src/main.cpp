@@ -594,6 +594,7 @@ int main(int argc, char* argv[]) {
   options.impl_shape = false;
   options.with_conjs = false;
   options.strat2 = false;
+  options.strat_alt = false;
   options.whole_space = false;
 
   int seed = 1234;
@@ -667,6 +668,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--strat2")) {
       options.strat2 = true;
+    }
+    else if (argv[i] == string("--strat-alt")) {
+      options.strat_alt = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

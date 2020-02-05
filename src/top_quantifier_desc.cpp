@@ -196,6 +196,8 @@ TopAlternatingQuantifierDesc::TopAlternatingQuantifierDesc(value v)
       }
 
       v = f->body;
+    } else {
+      break;
     }
   }
 

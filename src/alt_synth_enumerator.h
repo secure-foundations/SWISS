@@ -1,5 +1,5 @@
-#ifndef BIG_DISJUNCT_SYNTH_ENUMERATOR_H
-#define BIG_DISJUNCT_SYNTH_ENUMERATOR_H
+#ifndef ALT_SYNTH_ENUMERATOR_H
+#define ALT_SYNTH_ENUMERATOR_H
 
 #include "synth_enumerator.h"
 #include "bitset_eval_result.h"

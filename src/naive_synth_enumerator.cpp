@@ -7,6 +7,7 @@
 #include "enumerator.h"
 #include "obviously_implies.h"
 #include "big_disjunct_synth_enumerator.h"
+#include "alt_synth_enumerator.h"
 
 using namespace std;
 
@@ -265,13 +266,16 @@ std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
     std::shared_ptr<Module> module, Options const& options,
       bool ensure_nonredundant, Shape shape)
 {
-  if (options.conj_arity == 1 && !options.impl_shape && !options.strat2) {
+  if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && !options.strat_alt) {
     return shared_ptr<CandidateSolver>(new SimpleCandidateSolver(module, options.disj_arity, ensure_nonredundant));
   }
-  else if (options.conj_arity == 1 && !options.impl_shape && options.strat2) {
+  else if (options.conj_arity == 1 && !options.impl_shape && options.strat2 && !options.strat_alt) {
     return shared_ptr<CandidateSolver>(new BigDisjunctCandidateSolver(module, options.disj_arity));
   }
-  else if (!options.impl_shape && !ensure_nonredundant && !options.strat2) {
+  else if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && options.strat_alt) {
+    return shared_ptr<CandidateSolver>(new AltDisjunctCandidateSolver(module, options.disj_arity));
+  }
+  else if (!options.impl_shape && !ensure_nonredundant && !options.strat2 && !options.strat_alt) {
     return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, options.conj_arity, options.disj_arity));
   }
   assert(false);
