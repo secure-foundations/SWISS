@@ -1418,7 +1418,7 @@ AlternationBitsetEvaluator AlternationBitsetEvaluator::make_evaluator(
     p *= sizes[i];
     abe.levels[abe.levels.size() - 1 - i].block_size = p;
     abe.levels[abe.levels.size() - 1 - i].num_blocks = sizes[i+1];
-    abe.levels[abe.levels.size() - 1 - i].conj = alternations[alternations.size() - 1 - i].is_forall();
+    abe.levels[abe.levels.size() - 1 - i].conj = alternations[i+1].is_forall();
   }
 
   p *= sizes[sizes.size() - 1];
