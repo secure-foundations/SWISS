@@ -181,7 +181,7 @@ TopAlternatingQuantifierDesc::TopAlternatingQuantifierDesc(value v)
       }
 
       v = f->body;
-    } else if (NearlyForall* f = dynamic_cast<NearlyForall*>(v.get())) {
+    } else if (/* NearlyForall* f = */ dynamic_cast<NearlyForall*>(v.get())) {
       assert(false);
     } else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
       if (alt.decls.size() > 0 && alt.altType != AltType::Exists) {
