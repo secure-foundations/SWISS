@@ -2,6 +2,7 @@
 #define BITSET_EVAL_RESULT_H
 
 #include <iostream>
+#include <cstring>
 
 struct BitsetEvalResult {
   std::vector<uint64_t> v;
