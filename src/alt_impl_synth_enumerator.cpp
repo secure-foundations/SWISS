@@ -1,17 +1,20 @@
-#include "alt_synth_enumerator.h"
+#include "alt_impl_synth_enumerator.h"
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
 
 using namespace std;
 
-AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
+AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int disj_arity)
   : module(module)
-  , disj_arity(disj_arity)
+  , arity1(disj_arity)
+  , arity2(disj_arity)
   , taqd(module->templates[0])
 {
-  cout << "Using AltDisjunctCandidateSolver" << endl;
+  cout << "Using AltImplCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
+
+  total_arity = arity1 + arity2;
 
   assert(module->templates.size() == 1);
 
@@ -24,13 +27,13 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   //  cout << "piece: " << p->to_string() << endl;
   //}
   //assert(false);
-  
+
   init_piece_to_index();
 
   cur_indices = {};
   done = false;
 
-  var_index_states.resize(disj_arity + 2);
+  var_index_states.resize(total_arity + 2);
   var_index_states[0] = get_var_index_init_state(module->templates[0]);
   for (int i = 1; i < (int)var_index_states.size(); i++) {
     var_index_states[i] = var_index_states[0];
@@ -42,7 +45,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
 
-void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
+void AltImplCandidateSolver::addCounterexample(Counterexample cex, value candidate)
 {
   cout << "add counterexample" << endl;
   assert (!cex.none);
@@ -90,13 +93,13 @@ void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex, value can
   }
 }
 
-void AltDisjunctCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
+void AltImplCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
 {
   existing_invariant_indices.push_back(indices);
   existing_invariant_trie.insert(indices);
 }
 
-void AltDisjunctCandidateSolver::addExistingInvariant(value inv)
+void AltImplCandidateSolver::addExistingInvariant(value inv)
 {
   vector<int> indices = get_indices_of_value(inv);
   existing_invariants_append(indices);
@@ -127,7 +130,7 @@ inline bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& u
   }
 }
 
-void AltDisjunctCandidateSolver::init_piece_to_index() {
+void AltImplCandidateSolver::init_piece_to_index() {
   for (int i = 0; i < (int)pieces.size(); i++) {
     value v = pieces[i];
     while (true) {
@@ -145,13 +148,13 @@ void AltDisjunctCandidateSolver::init_piece_to_index() {
   }
 }
 
-int AltDisjunctCandidateSolver::get_index_of_piece(value p) {
+int AltImplCandidateSolver::get_index_of_piece(value p) {
   auto it = piece_to_index.find(ComparableValue(p));
   assert (it != piece_to_index.end());
   return it->second;
 }
 
-vector<int> AltDisjunctCandidateSolver::get_indices_of_value(value inv) {
+vector<int> AltImplCandidateSolver::get_indices_of_value(value inv) {
   while (true) {
     if (Forall* f = dynamic_cast<Forall*>(inv.get())) {
       inv = f->body;
@@ -179,7 +182,7 @@ vector<int> AltDisjunctCandidateSolver::get_indices_of_value(value inv) {
   }
 }
 
-value AltDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
+value AltImplCandidateSolver::disjunction_fuse(vector<value> values) {
   for (int i = 0; i < (int)values.size(); i++) {
     while (true) {
       if (Forall* f = dynamic_cast<Forall*>(values[i].get())) {
@@ -194,10 +197,21 @@ value AltDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
     }
   }
 
-  return taqd.with_body(v_or(values));
+  vector<value> conj;
+  for (int i = arity1; i < arity1 + arity2; i++) {
+    conj.push_back(values[i]);
+  }
+
+  vector<value> disj;
+  for (int i = 0; i < arity1; i++) {
+    disj.push_back(values[i]);
+  }
+  disj.push_back(v_and(conj));
+
+  return taqd.with_body(v_or(disj));
 }
 
-value AltDisjunctCandidateSolver::getNext() {
+value AltImplCandidateSolver::getNext() {
   while (true) {
     increment();
     if (done) {
@@ -297,7 +311,7 @@ value AltDisjunctCandidateSolver::getNext() {
   }
 }
 
-void AltDisjunctCandidateSolver::dump_cur_indices()
+void AltImplCandidateSolver::dump_cur_indices()
 {
   cout << "cur_indices:";
   for (int i : cur_indices) {
@@ -308,23 +322,30 @@ void AltDisjunctCandidateSolver::dump_cur_indices()
 
 // Skip all remaining index-sequences that match
 // the first `upTo` numbers of the current index-sequence
-void AltDisjunctCandidateSolver::skipAhead(int upTo)
+void AltImplCandidateSolver::skipAhead(int upTo)
 {
   for (int i = upTo; i < (int)cur_indices.size(); i++) {
     cur_indices[i] = (int)pieces.size() + i - (int)cur_indices.size();
   }
 }
 
-void AltDisjunctCandidateSolver::increment()
+void AltImplCandidateSolver::increment()
 {
   int n = pieces.size();
 
   int t = cur_indices.size();
+
+  if (t < total_arity) {
+    cur_indices.resize(total_arity);
+    t = 0;
+    goto body_start;
+  }
+
   goto body_end;
 
 level_size_top:
   cur_indices.push_back(0);
-  if ((int)cur_indices.size() > disj_arity) {
+  if ((int)cur_indices.size() > total_arity) {
     this->done = true;
     return;
   }
@@ -343,7 +364,7 @@ body_start:
       var_index_states[t]);
   }
 
-  cur_indices[t] = (t == 0 ? 0 : cur_indices[t-1] + 1);
+  cur_indices[t] = (t == 0 || t == arity1 ? 0 : cur_indices[t-1] + 1);
 
 loop_start:
   if (var_index_is_valid_transition(
@@ -355,7 +376,7 @@ loop_start:
 
 call_end:
   cur_indices[t]++;
-  if (cur_indices[t] >= n + t - (int)cur_indices.size() + 1) {
+  if (cur_indices[t] >= n) {
     goto body_end;
   }
   goto loop_start;
