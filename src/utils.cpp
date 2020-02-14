@@ -161,3 +161,15 @@ bool is_redundant_quick(value a, value b)
 
   return false;
 }
+
+vector<int> sort_and_uniquify(vector<int> const& v) {
+  vector<int> t = v;
+  sort(t.begin(), t.end());
+  vector<int> u;
+  for (int i = 0; i < (int)t.size(); i++) {
+    if (i == 0 || t[i] != t[i-1]) {
+      u.push_back(t[i]);
+    }
+  }
+  return u;
+}

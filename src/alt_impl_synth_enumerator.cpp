@@ -2,6 +2,7 @@
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -42,7 +43,12 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
   var_index_transitions =
       get_var_index_transitions(module->templates[0], pieces);
 
-  existing_invariant_trie = SubsequenceTrie(pieces.size());
+  assert (arity2 <= 3);
+  existing_invariant_tries.resize(1 + pieces.size() * pieces.size() * pieces.size());
+
+  for (int i = 0; i < (int)existing_invariant_tries.size(); i++) {
+    existing_invariant_tries[i] = SubsequenceTrie(pieces.size());
+  }
 }
 
 void AltImplCandidateSolver::addCounterexample(Counterexample cex, value candidate)
@@ -93,15 +99,16 @@ void AltImplCandidateSolver::addCounterexample(Counterexample cex, value candida
   }
 }
 
-void AltImplCandidateSolver::existing_invariants_append(std::vector<int> const& indices)
+void AltImplCandidateSolver::existing_invariants_append(
+    std::pair<std::vector<int>, int> const& indices)
 {
-  existing_invariant_indices.push_back(indices);
-  existing_invariant_trie.insert(indices);
+  //existing_invariant_indices.push_back(indices);
+  existing_invariant_tries[indices.second].insert(indices.first);
 }
 
 void AltImplCandidateSolver::addExistingInvariant(value inv)
 {
-  vector<int> indices = get_indices_of_value(inv);
+  auto indices = get_indices_of_value(inv);
   existing_invariants_append(indices);
 
   value norm = inv->totally_normalize();
@@ -154,7 +161,18 @@ int AltImplCandidateSolver::get_index_of_piece(value p) {
   return it->second;
 }
 
-vector<int> AltImplCandidateSolver::get_indices_of_value(value inv) {
+int AltImplCandidateSolver::get_index_for_and(std::vector<value> const& p)
+{
+  assert ((int)p.size() == arity2);
+  int c = 0;
+  for (int i = 0; i < (int)p.size(); i++) {
+    c = c * pieces.size() + get_index_of_piece(p[i]);
+  }
+  return c + 1;
+}
+
+pair<vector<int>, int> AltImplCandidateSolver::get_indices_of_value(value inv)
+{
   while (true) {
     if (Forall* f = dynamic_cast<Forall*>(inv.get())) {
       inv = f->body;
@@ -167,19 +185,25 @@ vector<int> AltImplCandidateSolver::get_indices_of_value(value inv) {
     }
   }
   Or* o = dynamic_cast<Or*>(inv.get());
+  vector<value> args;
   if (o != NULL) {
-    vector<int> t;
-    t.resize(o->args.size());
-    for (int i = 0; i < (int)t.size(); i++) {
-      t[i] = get_index_of_piece(o->args[i]);
-    }
-    return t;
+    args = o->args;
   } else {
-    vector<int> t;
-    t.resize(1);
-    t[0] = get_index_of_piece(inv);
-    return t;
+    args.push_back(inv);
   }
+
+  int the_and = 0;
+  vector<int> t;
+  for (int i = 0; i < (int)args.size(); i++) {
+    if (And* a = dynamic_cast<And*>(args[i].get())) {
+      assert (the_and == 0);
+      the_and = get_index_for_and(a->args);
+    } else {
+      t.push_back(get_index_of_piece(o->args[i]));
+    }
+  }
+
+  return make_pair(sort_and_uniquify(t), the_and);
 }
 
 value AltImplCandidateSolver::disjunction_fuse(vector<value> values) {
@@ -234,7 +258,15 @@ value AltImplCandidateSolver::getNext() {
     //// Check if it contains an existing invariant
 
     int upTo;
-    if (existing_invariant_trie.query(cur_indices, upTo /* output */)) {
+
+    vector<int> simple_indices = get_simple_indices(cur_indices);
+    if (existing_invariant_tries[0].query(simple_indices, upTo /* output */)) {
+      this->skipAhead(upTo);
+      failed = true;
+    }
+
+    int ci = get_summary_index(cur_indices);
+    if (existing_invariant_tries[ci].query(simple_indices, upTo /* output */)) {
       this->skipAhead(upTo);
       failed = true;
     }
@@ -245,10 +277,7 @@ value AltImplCandidateSolver::getNext() {
 
     for (int i = 0; i < (int)cexes.size(); i++) {
       if (cexes[i].is_true) {
-        abes[i].second.reset_for_disj();
-        for (int j = 0; j < (int)cur_indices.size(); j++) {
-          abes[i].second.add_disj(cex_results[i][cur_indices[j]].second);
-        }
+        setup_abe2(abes[i].second, cex_results[i], cur_indices);
         bool res = abes[i].second.evaluate();
         //assert (res == cexes[i].is_true->eval_predicate(sanity_v));
         if (!res) {
@@ -257,10 +286,7 @@ value AltImplCandidateSolver::getNext() {
         }
       }
       else if (cexes[i].is_false) {
-        abes[i].first.reset_for_disj();
-        for (int j = 0; j < (int)cur_indices.size(); j++) {
-          abes[i].first.add_disj(cex_results[i][cur_indices[j]].first);
-        }
+        setup_abe1(abes[i].second, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
         //assert (res == cexes[i].is_false->eval_predicate(sanity_v));
         if (res) {
@@ -269,17 +295,11 @@ value AltImplCandidateSolver::getNext() {
         }
       }
       else {
-        abes[i].first.reset_for_disj();
-        for (int j = 0; j < (int)cur_indices.size(); j++) {
-          abes[i].first.add_disj(cex_results[i][cur_indices[j]].first);
-        }
+        setup_abe1(abes[i].second, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
         //assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
         if (res) {
-          abes[i].second.reset_for_disj();
-          for (int j = 0; j < (int)cur_indices.size(); j++) {
-            abes[i].second.add_disj(cex_results[i][cur_indices[j]].second);
-          }
+          setup_abe2(abes[i].second, cex_results[i], cur_indices);
           bool res2 = abes[i].second.evaluate();
           //assert (res2 == cexes[i].conclusion->eval_predicate(sanity_v));
           if (!res2) {
@@ -302,7 +322,7 @@ value AltImplCandidateSolver::getNext() {
     value v = disjunction_fuse(disjs);
 
     if (existing_invariant_set.count(ComparableValue(v->totally_normalize())) > 0) {
-      existing_invariants_append(cur_indices);
+      existing_invariants_append(make_pair(simple_indices, ci));
       continue;
     }
 
@@ -366,6 +386,8 @@ body_start:
 
   cur_indices[t] = (t == 0 || t == arity1 ? 0 : cur_indices[t-1] + 1);
 
+  goto loop_start_before_check;
+
 loop_start:
   if (var_index_is_valid_transition(
       var_index_states[t],
@@ -376,6 +398,7 @@ loop_start:
 
 call_end:
   cur_indices[t]++;
+loop_start_before_check:
   if (cur_indices[t] >= n) {
     goto body_end;
   }
@@ -387,5 +410,46 @@ body_end:
   } else {
     t--;
     goto call_end;
+  }
+}
+
+std::vector<int> AltImplCandidateSolver::get_simple_indices(std::vector<int> const& v) {
+  vector<int> res;
+  res.resize(arity1);
+  std::copy(v.begin(), v.begin() + arity1, res.begin());
+  return res;
+}
+
+int AltImplCandidateSolver::get_summary_index(std::vector<int> const& v) {
+  int c = 0;
+  for (int i = arity1; i < arity1 + arity2; i++) {
+    c = c * pieces.size() + v[i];
+  }
+  return c + 1;
+}
+
+void AltImplCandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe, 
+    std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
+    std::vector<int> const& cur_indices)
+{
+  abe.reset_for_conj();
+  for (int i = arity1; i < arity1 + arity2; i++) {
+    abe.add_conj(cex_result[cur_indices[i]].first);
+  }
+  for (int i = 0; i < arity1; i++) {
+    abe.add_disj(cex_result[cur_indices[i]].first);
+  }
+}
+
+void AltImplCandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe, 
+    std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
+    std::vector<int> const& cur_indices)
+{
+  abe.reset_for_conj();
+  for (int i = arity1; i < arity1 + arity2; i++) {
+    abe.add_conj(cex_result[cur_indices[i]].second);
+  }
+  for (int i = 0; i < arity1; i++) {
+    abe.add_disj(cex_result[cur_indices[i]].second);
   }
 }

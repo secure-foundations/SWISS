@@ -15,6 +15,7 @@ struct Options {
   bool filter_redundant;
 
   bool whole_space;
+  bool start_with_existing_conjectures;
 
   // SAT solving
   int arity;

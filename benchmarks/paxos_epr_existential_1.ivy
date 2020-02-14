@@ -131,11 +131,11 @@ export propose
 export cast_vote
 export decide
 
-# safety property:
-#conjecture (
-#    decision(N1,R1,V1) &
-#    decision(N2,R2,V2)
-#) -> V1 = V2
+conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((member(N, Q)) & (~(left_rnd(N, none))) & (~(proposal(none, V1))))))
+
+conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((member(N, Q))))
+conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((~(left_rnd(N, none)))))
+conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((~(proposal(none, V1)))))
 
 # proposals are unique per round
 conjecture proposal(R,V1) & proposal(R,V2) -> V1 = V2
@@ -155,15 +155,13 @@ conjecture one_b_max_vote(N,R,RMAX,V) & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vot
 # properties of none
 conjecture ~vote(N,none,V)
 
-# Properties of choosable and proposal
-conjecture forall R1:round, R2:round, V1:value, V2:value, Q:quorum. ~le(R2,R1) & proposal(R2,V2) & V1 ~= V2 ->
-    exists N:node. member(N,Q) & left_rnd(N,R1) & ~vote(N,R1,V1)
-
 # properties of one_b, left_rnd
 conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
 conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
 
-template (forall R:round, V:value. exists Q:quorum. forall M1:node, M2:node. WILD)
+template (forall R1:round, R2:round, V1:value, V2:value, Q:quorum. exists N:node. WILD)
 
 # try to infer this one:
-#conjecture forall R:round, V:value. exists Q:quorum. forall N:node, M:node. ~decision(N,R,V) | ~member(M,Q) | vote(M,R,V)
+#conjecture forall R1:round, R2:round, V1:value, V2:value, Q:quorum. ~le(R2,R1) & proposal(R2,V2) & V1 ~= V2 ->
+#    exists N:node. member(N,Q) & left_rnd(N,R1) & ~vote(N,R1,V1)
+

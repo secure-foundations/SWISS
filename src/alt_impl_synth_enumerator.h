@@ -30,8 +30,8 @@ public:
   std::vector<std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>>> cex_results;
   std::vector<std::pair<AlternationBitsetEvaluator, AlternationBitsetEvaluator>> abes;
 
-  std::vector<std::vector<int>> existing_invariant_indices;
-  SubsequenceTrie existing_invariant_trie;
+  //std::vector<std::vector<int>> existing_invariant_indices;
+  std::vector<SubsequenceTrie> existing_invariant_tries;
 
   std::set<ComparableValue> existing_invariant_set;
 
@@ -44,10 +44,21 @@ public:
   void skipAhead(int upTo);
   void dump_cur_indices();
   value disjunction_fuse(std::vector<value> values);
-  std::vector<int> get_indices_of_value(value inv);
+  int get_index_for_and(std::vector<value> const& inv);
+  std::pair<std::vector<int>, int> get_indices_of_value(value inv);
+  std::vector<int> get_simple_indices(std::vector<int> const& v);
+  int get_summary_index(std::vector<int> const& v);
   int get_index_of_piece(value p);
   void init_piece_to_index();
-  void existing_invariants_append(std::vector<int> const& indices);
+  void existing_invariants_append(std::pair<std::vector<int>, int> const& indices);
+
+  void setup_abe1(AlternationBitsetEvaluator& abe, 
+      std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
+      std::vector<int> const& cur_indices);
+
+  void setup_abe2(AlternationBitsetEvaluator& abe, 
+      std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
+      std::vector<int> const& cur_indices);
 };
 
 #endif

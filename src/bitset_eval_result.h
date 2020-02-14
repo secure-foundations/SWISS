@@ -64,12 +64,24 @@ struct AlternationBitsetEvaluator {
   static AlternationBitsetEvaluator make_evaluator(
       std::shared_ptr<Model> model, value v);
 
+  void reset_for_conj() {
+    for (int i = 0; i < (int)scratch.size(); i++) {
+      scratch[i] = ~(uint64_t)0;
+    }
+    scratch[scratch.size() - 1] = final_last_bits;
+  }
   void reset_for_disj() {
     for (int i = 0; i < (int)scratch.size(); i++) {
       scratch[i] = 0;
     }
   }
-  void add_disj(BitsetEvalResult& ber) {
+
+  void add_conj(BitsetEvalResult const& ber) {
+    for (int i = 0; i < (int)scratch.size(); i++) {
+      scratch[i] &= ber.v[i];
+    }
+  }
+  void add_disj(BitsetEvalResult const& ber) {
     for (int i = 0; i < (int)scratch.size(); i++) {
       scratch[i] |= ber.v[i];
     }

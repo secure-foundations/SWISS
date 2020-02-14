@@ -724,9 +724,18 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
   vector<value> raw_invs;
   vector<value> strengthened_invs;
   vector<value> filtered_simplified_strengthened_invs;
-  if (is_invariant_with_conjectures(module, v_true())) {
+  if (!options.start_with_existing_conjectures &&
+      is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
     return;
+  }
+
+  if (options.start_with_existing_conjectures) {
+    if (!is_invariant_with_conjectures(module, v_true())) {
+      cout << "error: starting conjectures are not invariant" << endl;
+      return;
+    }
+    filtered_simplified_strengthened_invs = module->conjectures;
   }
 
   int bmc_depth = 4;

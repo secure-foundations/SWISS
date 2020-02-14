@@ -596,6 +596,7 @@ int main(int argc, char* argv[]) {
   options.strat2 = false;
   options.strat_alt = false;
   options.whole_space = false;
+  options.start_with_existing_conjectures = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -671,6 +672,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--strat-alt")) {
       options.strat_alt = true;
+    }
+    else if (argv[i] == string("--start-with-existing-conjectures")) {
+      options.start_with_existing_conjectures = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;
