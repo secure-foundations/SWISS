@@ -131,12 +131,6 @@ export propose
 export cast_vote
 export decide
 
-conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((member(N, Q)) & (~(left_rnd(N, none))) & (~(proposal(none, V1))))))
-
-conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((member(N, Q))))
-conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((~(left_rnd(N, none)))))
-conjecture forall Q, V1 . (exists N . (left_rnd(N, none)) | ((~(proposal(none, V1)))))
-
 # proposals are unique per round
 conjecture proposal(R,V1) & proposal(R,V2) -> V1 = V2
 
