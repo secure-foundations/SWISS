@@ -199,7 +199,7 @@ pair<vector<int>, int> AltImplCandidateSolver::get_indices_of_value(value inv)
       assert (the_and == 0);
       the_and = get_index_for_and(a->args);
     } else {
-      t.push_back(get_index_of_piece(o->args[i]));
+      t.push_back(get_index_of_piece(args[i]));
     }
   }
 
