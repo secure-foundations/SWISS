@@ -31,6 +31,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
 
   init_piece_to_index();
 
+  //cur_indices = {0, 103, 105, 0, 1, 2};
   cur_indices = {};
   done = false;
 
@@ -271,16 +272,14 @@ value AltImplCandidateSolver::getNext() {
     vector<int> simple_indices = get_simple_indices(cur_indices);
     if (existing_invariant_tries[0].query(simple_indices, upTo /* output */)) {
       this->skipAhead(upTo);
-      failed = true;
+      continue;
     }
 
     int ci = get_summary_index(cur_indices);
     if (existing_invariant_tries[ci].query(simple_indices, upTo /* output */)) {
       this->skipAhead(upTo);
-      failed = true;
+      continue;
     }
-
-    if (failed) continue;
 
     //// Check if it violates a countereample
 
@@ -354,7 +353,7 @@ void AltImplCandidateSolver::dump_cur_indices()
 void AltImplCandidateSolver::skipAhead(int upTo)
 {
   for (int i = upTo; i < (int)cur_indices.size(); i++) {
-    cur_indices[i] = (int)pieces.size() + i - (int)cur_indices.size();
+    cur_indices[i] = pieces.size();
   }
 }
 
