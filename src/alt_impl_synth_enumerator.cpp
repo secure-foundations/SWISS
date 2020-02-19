@@ -32,6 +32,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
   init_piece_to_index();
 
   //cur_indices = {0, 103, 105, 0, 1, 2};
+  //cur_incides = {3, 4, 5, 11, 23, 97};
   cur_indices = {};
   done = false;
 
@@ -277,7 +278,7 @@ value AltImplCandidateSolver::getNext() {
 
     int ci = get_summary_index(cur_indices);
     if (existing_invariant_tries[ci].query(simple_indices, upTo /* output */)) {
-      this->skipAhead(upTo);
+      //this->skipAhead(upTo);
       continue;
     }
 
