@@ -235,11 +235,20 @@ value AltImplCandidateSolver::disjunction_fuse(vector<value> values) {
   return taqd.with_body(v_or(disj));
 }
 
+int t = 0;
+
 value AltImplCandidateSolver::getNext() {
   while (true) {
     increment();
     if (done) {
       return nullptr;
+    }
+
+    t++;
+    if (t == 50000) {
+      cout << "incrementing... ";
+      dump_cur_indices();
+      t = 0;
     }
 
     // TODO comment this
