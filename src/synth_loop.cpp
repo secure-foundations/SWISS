@@ -24,7 +24,7 @@ using namespace json11;
 
 extern int run_id;
 
-void log_smtlib(z3::solver& solver, long long ms) {
+void log_smtlib(z3::solver& solver, long long ms, string const& notes) {
   static int log_num = 1;
 
   string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
@@ -32,7 +32,9 @@ void log_smtlib(z3::solver& solver, long long ms) {
 
   ofstream myfile;
   myfile.open(filename);
-  myfile << "; time: " << ms << " ms" << endl << endl;
+  myfile << "; time: " << ms << " ms" << endl;
+  myfile << "; " << notes << endl;
+  myfile << endl;
   myfile << solver << endl;
   myfile.close();
 
@@ -171,7 +173,7 @@ Counterexample get_counterexample_simple(
 
     long long ms = as_ms(t2 - t1);
     if (options.log_z3_files) {
-      log_smtlib(solver, ms);
+      log_smtlib(solver, ms, "action: " + module->action_names[j]);
     }
 
     if (res == z3::sat) {
