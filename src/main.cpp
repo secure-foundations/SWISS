@@ -600,6 +600,7 @@ int main(int argc, char* argv[]) {
 
   int seed = 1234;
   bool check_inductiveness = false;
+  bool check_rel_inductiveness = false;
   bool check_implication = false;
   bool incremental = false;
   bool breadth = false;
@@ -622,6 +623,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--check-inductiveness")) {
       check_inductiveness = true;
+    }
+    else if (argv[i] == string("--check-rel-inductiveness")) {
+      check_rel_inductiveness = true;
     }
     else if (argv[i] == string("--check-implication")) {
       check_implication = true;
@@ -698,6 +702,22 @@ int main(int argc, char* argv[]) {
     }
     return 0;
   }
+
+  if (check_rel_inductiveness) {
+    printf("just inductiveness of the last one...\n");
+    value v = module->conjectures[module->conjectures.size() - 1];
+    vector<value> others;
+    for (int i = 0; i < (int)module->conjectures.size() - 1; i++) {
+      others.push_back(module->conjectures[i]);
+    }
+    if (is_invariant_wrt(module, v_and(others), v)) {
+      printf("yes\n");
+    } else{
+      printf("no\n");
+    }
+    return 0;
+  }
+
 
   if (check_implication) {
     printf("just checking inductiveness...\n");
