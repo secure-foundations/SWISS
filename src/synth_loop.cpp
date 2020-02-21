@@ -22,6 +22,23 @@
 using namespace std;
 using namespace json11;
 
+extern int run_id;
+
+void log_smtlib(z3::solver& solver, long long ms) {
+  static int log_num = 1;
+
+  string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
+  log_num++;
+
+  ofstream myfile;
+  myfile.open(filename);
+  myfile << "; time: " << ms << " ms" << endl << endl;
+  myfile << solver << endl;
+  myfile.close();
+
+  cout << "logged smtlib to " << filename << endl;
+}
+
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
     value candidate,
@@ -42,6 +59,7 @@ Counterexample get_bmc_counterexample(
 
 Counterexample get_counterexample_simple(
     shared_ptr<Module> module,
+    Options const& options,
     z3::context& ctx,
     BMCContext& bmc,
     bool check_implies_conj,
@@ -144,9 +162,17 @@ Counterexample get_counterexample_simple(
     }
     solver.add(indctx->e1->value2expr(candidate));
     solver.add(indctx->e2->value2expr(v_not(candidate)));
+
     bench.start("inductivity-check");
+    auto t1 = now();
     z3::check_result res = solver.check();
+    auto t2 = now();
     bench.end();
+
+    long long ms = as_ms(t2 - t1);
+    if (options.log_z3_files) {
+      log_smtlib(solver, ms);
+    }
 
     if (res == z3::sat) {
       if (use_minimal) {
@@ -424,24 +450,6 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, z3::context& ctx, vect
   return res == z3::sat;
 }
 
-/*
-extern int run_id;
-
-void log_smtlib(z3::solver& solver) {
-  static int log_num = 1;
-
-  string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
-  log_num++;
-
-  ofstream myfile;
-  myfile.open(filename);
-  myfile << solver << endl;
-  myfile.close();
-
-  cout << "logged smtlib to " << filename << endl;
-}
-*/
-
 void synth_loop(shared_ptr<Module> module, Options const& options)
 {
   assert(module->templates.size() == 1);
@@ -502,7 +510,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
       //cout << "simplify_cex done" << endl;
       cout.flush();
     } else {
-      cex = get_counterexample_simple(module, ctx, bmc, true, nullptr, candidate);
+      cex = get_counterexample_simple(module, options, ctx, bmc, true, nullptr, candidate);
       cex = simplify_cex(module, cex, bmc, antibmc);
     }
     if (cex.none) {
@@ -623,7 +631,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
-                module, ctx, bmc, false,
+                module, options, ctx, bmc, false,
                 v_and(found_invs), candidate);
 
       Benchmarking bench2;
@@ -785,7 +793,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
       auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
-                module, ctx, bmc, false,
+                module, options, ctx, bmc, false /* check_implies_conj */,
                 v_and(filtered_simplified_strengthened_invs), candidate);
 
       Benchmarking bench2;

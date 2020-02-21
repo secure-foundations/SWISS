@@ -28,4 +28,14 @@ private:
 
 void benchmarking_dump_totals();
 
+inline std::chrono::time_point<std::chrono::high_resolution_clock>
+now() {
+  return std::chrono::high_resolution_clock::now();
+}
+
+inline long long as_ms(std::chrono::high_resolution_clock::duration dur)
+{
+  return std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
+}
+
 #endif

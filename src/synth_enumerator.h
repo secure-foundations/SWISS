@@ -17,6 +17,8 @@ struct Options {
   bool whole_space;
   bool start_with_existing_conjectures;
 
+  bool log_z3_files;
+
   // SAT solving
   int arity;
   int depth;
