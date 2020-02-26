@@ -46,7 +46,11 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
       get_var_index_transitions(module->templates[0], pieces);
 
   assert (arity2 <= 3);
-  existing_invariant_tries.resize(1 + pieces.size() * pieces.size() * pieces.size());
+  existing_invariant_tries.resize(1 +
+    pieces.size() +
+    pieces.size() * pieces.size() +
+    pieces.size() * pieces.size() * pieces.size()
+    );
 
   for (int i = 0; i < (int)existing_invariant_tries.size(); i++) {
     existing_invariant_tries[i] = SubsequenceTrie(pieces.size());
@@ -165,12 +169,21 @@ int AltImplCandidateSolver::get_index_of_piece(value p) {
 
 int AltImplCandidateSolver::get_index_for_and(std::vector<value> const& p)
 {
-  assert ((int)p.size() == arity2);
+  assert ((int)p.size() <= arity2);
   int c = 0;
   for (int i = 0; i < (int)p.size(); i++) {
     c = c * pieces.size() + get_index_of_piece(p[i]);
   }
-  return c + 1;
+
+  c++;
+  int q = 1;
+  for (int i = 1; i < (int)p.size(); i++) {
+    q *= pieces.size();
+    c += q;
+  }
+
+  assert (c < (int)existing_invariant_tries.size());
+  return c;
 }
 
 pair<vector<int>, int> AltImplCandidateSolver::get_indices_of_value(value inv)
@@ -434,7 +447,10 @@ int AltImplCandidateSolver::get_summary_index(std::vector<int> const& v) {
   for (int i = arity1; i < arity1 + arity2; i++) {
     c = c * pieces.size() + v[i];
   }
-  return c + 1;
+  assert(arity2 == 3);
+  int q = pieces.size() +
+      pieces.size() * pieces.size();
+  return c + 1 + q;
 }
 
 void AltImplCandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe, 
