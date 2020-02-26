@@ -283,3 +283,18 @@ vector<QSRange> TopAlternatingQuantifierDesc::grouped_by_sort() const {
 
   return res;
 }
+
+TopAlternatingQuantifierDesc TopAlternatingQuantifierDesc::
+    replace_exists_with_forall() const {
+  Alternation bigalt;
+  bigalt.altType = AltType::Forall;
+  for (Alternation const& alt : alts) {
+    for (VarDecl decl : alt.decls) {
+      bigalt.decls.push_back(decl);
+    }
+  }
+
+  TopAlternatingQuantifierDesc res;
+  res.alts.push_back(bigalt); 
+  return res;
+}

@@ -64,8 +64,12 @@ public:
   value with_body(value);
   std::vector<QSRange> grouped_by_sort() const;
 
+  TopAlternatingQuantifierDesc replace_exists_with_forall() const;
+
 private:
   std::vector<Alternation> alts;
+
+  TopAlternatingQuantifierDesc() { }
 };
 
 #endif
