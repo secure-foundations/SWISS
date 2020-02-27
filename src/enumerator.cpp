@@ -5,7 +5,7 @@
 
 #include "logic.h"
 #include "grammar.h"
-#include "smt.h"
+#include "expr_gen_smt.h"
 #include "obviously_implies.h"
 
 using namespace std;

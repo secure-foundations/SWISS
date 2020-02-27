@@ -3,7 +3,7 @@ OBJECTS = $(addprefix bin/,\
 	logic.o \
 	main.o \
 	model.o \
-	smt.o \
+	expr_gen_smt.o \
 	benchmarking.o \
 	grammar.o \
 	bmc.o \

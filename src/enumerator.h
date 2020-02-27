@@ -1,7 +1,7 @@
 #ifndef ENUMERATOR_H
 #define ENUMERATOR_H
 
-#include "smt.h"
+#include "expr_gen_smt.h"
 #include "logic.h"
 
 void add_constraints(std::shared_ptr<Module> module, SMT& solver);

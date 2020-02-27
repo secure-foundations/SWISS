@@ -2,7 +2,7 @@
 #include "contexts.h"
 #include "model.h"
 #include "grammar.h"
-#include "smt.h"
+#include "expr_gen_smt.h"
 #include "benchmarking.h"
 #include "bmc.h"
 #include "enumerator.h"

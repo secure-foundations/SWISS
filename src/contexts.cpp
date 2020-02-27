@@ -202,18 +202,30 @@ z3::expr ModelEmbedding::value2expr(
     return getFunc(func_value->name)(args);
   }
   else if (And* value = dynamic_cast<And*>(v.get())) {
-    z3::expr_vector args(ctx->ctx);
-    for (shared_ptr<Value> arg : value->args) {
-      args.push_back(value2expr(arg, consts, vars));
+    if (value->args.size() == 0) {
+      return ctx->ctx.bool_val(true);
+    } else if (value->args.size() == 1) {
+      return value2expr(value->args[0], consts, vars);
+    } else {
+      z3::expr_vector args(ctx->ctx);
+      for (shared_ptr<Value> arg : value->args) {
+        args.push_back(value2expr(arg, consts, vars));
+      }
+      return mk_and(args);
     }
-    return mk_and(args);
   }
   else if (Or* value = dynamic_cast<Or*>(v.get())) {
-    z3::expr_vector args(ctx->ctx);
-    for (shared_ptr<Value> arg : value->args) {
-      args.push_back(value2expr(arg, consts, vars));
+    if (value->args.size() == 0) {
+      return ctx->ctx.bool_val(false);
+    } else if (value->args.size() == 1) {
+      return value2expr(value->args[0], consts, vars);
+    } else {
+      z3::expr_vector args(ctx->ctx);
+      for (shared_ptr<Value> arg : value->args) {
+        args.push_back(value2expr(arg, consts, vars));
+      }
+      return mk_or(args);
     }
-    return mk_or(args);
   }
   else if (IfThenElse* value = dynamic_cast<IfThenElse*>(v.get())) {
     return z3::ite(

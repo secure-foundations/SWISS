@@ -1,5 +1,5 @@
-#ifndef SMT_H
-#define SMT_H
+#ifndef EXP_GEN_SMT_H
+#define EXP_GEN_SMT_H
 
 #include <vector>
 #include <unordered_map>
