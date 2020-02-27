@@ -94,27 +94,20 @@ namespace smt {
     z3::solver z3_solver;
     solver(context& ctx) : z3_solver(ctx.ctx) { }
 
-    bool check_sat() {
-      z3::check_result res = z3_solver.check();
-      assert (res == z3::sat || res == z3::unsat);
-      return res == z3::sat;
-    }
+    std::string log_info;
+    void set_log_info(std::string const& s) { log_info = s; }
 
-    bool is_sat_or_unknown() {
-      z3::check_result res = z3_solver.check();
-      assert (res == z3::sat || res == z3::unsat || res == z3::unknown);
-      return res == z3::sat || res == z3::unknown;
-    }
-
-    bool is_unsat_or_unknown() {
-      z3::check_result res = z3_solver.check();
-      assert (res == z3::sat || res == z3::unsat || res == z3::unknown);
-      return res == z3::unsat || res == z3::unknown;
-    }
+    bool check_sat();
+    bool is_sat_or_unknown();
+    bool is_unsat_or_unknown();
 
     void push() { z3_solver.push(); }
     void pop() { z3_solver.pop(); }
     void add(expr e) { z3_solver.add(e.ex); }
+
+    void log_smtlib(
+        long long ms,
+        z3::check_result res);
   };
 
   inline expr forall(expr_vector args, expr body) {

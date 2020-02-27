@@ -22,25 +22,6 @@
 using namespace std;
 using namespace json11;
 
-extern int run_id;
-
-void log_smtlib(smt::solver& solver, long long ms, string const& notes) {
-  static int log_num = 1;
-
-  string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
-  log_num++;
-
-  ofstream myfile;
-  myfile.open(filename);
-  myfile << "; time: " << ms << " ms" << endl;
-  myfile << "; " << notes << endl;
-  myfile << endl;
-  myfile << solver.z3_solver << endl;
-  myfile.close();
-
-  cout << "logged smtlib to " << filename << endl;
-}
-
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
     value candidate,
@@ -82,6 +63,7 @@ Counterexample get_counterexample_simple(
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
   bench.start("init-check");
+  init_solver.set_log_info("init-check");
   bool init_res = init_solver.check_sat();
   bench.end();
 
@@ -118,6 +100,7 @@ Counterexample get_counterexample_simple(
     }
     conj_solver.add(conjctx->e->value2expr(candidate));
     bench.start("conj-check");
+    conj_solver.set_log_info("conj-check");
     bool conj_res = conj_solver.check_sat();
     bench.end();
 
@@ -166,15 +149,10 @@ Counterexample get_counterexample_simple(
     solver.add(indctx->e2->value2expr(v_not(candidate)));
 
     bench.start("inductivity-check");
-    auto t1 = now();
+    solver.set_log_info(
+        "inductivity-check: " + module->action_names[j]);
     bool res = solver.check_sat();
-    auto t2 = now();
     bench.end();
-
-    long long ms = as_ms(t2 - t1);
-    if (options.log_z3_files) {
-      log_smtlib(solver, ms, "action: " + module->action_names[j]);
-    }
 
     if (res) {
       if (use_minimal) {
@@ -221,6 +199,7 @@ Counterexample get_counterexample(
   smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
+  init_solver.set_log_info("init-check");
   bool init_res = init_solver.check_sat();
 
   if (init_res) {
@@ -251,6 +230,8 @@ Counterexample get_counterexample(
 
       solver.push();
       solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));
+
+      solver.set_log_info("get_counterexample");
       bool res = solver.check_sat();
 
       if (res) {
@@ -447,6 +428,7 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vec
     basic.ctx->solver.add(basic.e->value2expr(v));
   }
   basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
+  basic.ctx->solver.set_log_info("redundancy check");
   bool res = basic.ctx->solver.check_sat();
   return res;
 }

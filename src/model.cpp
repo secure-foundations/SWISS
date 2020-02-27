@@ -637,6 +637,7 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       solver.add(smt::forall(qvars, mk_or(vec)));
     }
 
+    solver.set_log_info("extract minimal");
     bool res = solver.is_unsat_or_unknown();
 
     if (!res) {

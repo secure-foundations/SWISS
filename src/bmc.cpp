@@ -6,6 +6,7 @@ FixedBMCContext::FixedBMCContext(smt::context& z3ctx, shared_ptr<Module> module,
     bool from_safety)
     : module(module), ctx(new BackgroundContext(z3ctx, module)), from_safety(from_safety)
 {
+  this->k = k;
   this->e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
   this->e2 = this->e1;
@@ -40,6 +41,7 @@ bool FixedBMCContext::is_exactly_k_invariant(value v) {
   } else{
     solver.add(this->e1->value2expr(v_not(v)));
   }
+  solver.set_log_info("bmc: " + to_string(k));
   bool res = !solver.check_sat();
   solver.pop();
   return res;
@@ -53,6 +55,7 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation(value v, bool get_
   } else {
     solver.add(this->e1->value2expr(v_not(v)));
   }
+  solver.set_log_info("bmc: " + to_string(k));
   bool res = solver.check_sat();
 
   shared_ptr<Model> ans;
@@ -76,6 +79,7 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation_maybe(value v, boo
   } else {
     solver.add(this->e1->value2expr(v_not(v)));
   }
+  solver.set_log_info("bmc: " + to_string(k));
   bool res = solver.is_unsat_or_unknown();
 
   shared_ptr<Model> ans;
@@ -100,6 +104,7 @@ bool FixedBMCContext::is_reachable(shared_ptr<Model> model) {
     model->assert_model_is(this->e1);
   }
 
+  solver.set_log_info("bmc: " + to_string(k));
   bool res = solver.check_sat();
   solver.pop();
   return res;
@@ -114,6 +119,7 @@ bool FixedBMCContext::is_reachable_returning_false_if_unknown(shared_ptr<Model> 
     model->assert_model_is(this->e1);
   }
 
+  solver.set_log_info("bmc: " + to_string(k));
   bool res = solver.is_unsat_or_unknown();
   solver.pop();
   return !res;

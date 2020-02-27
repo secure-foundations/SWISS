@@ -540,6 +540,7 @@ void print_wpr(shared_ptr<Module> module, int count)
 }
 
 int run_id;
+extern bool enable_smt_logging;
 
 int main(int argc, char* argv[]) {
   //test_sat(); return 0;
@@ -585,7 +586,6 @@ int main(int argc, char* argv[]) {
   options.strat2 = false;
   options.strat_alt = false;
   options.whole_space = false;
-  options.log_z3_files = false;
   options.start_with_existing_conjectures = false;
 
   int seed = 1234;
@@ -670,8 +670,8 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--start-with-existing-conjectures")) {
       options.start_with_existing_conjectures = true;
     }
-    else if (argv[i] == string("--log-z3-files")) {
-      options.log_z3_files = true;
+    else if (argv[i] == string("--log-smt-files")) {
+      enable_smt_logging = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

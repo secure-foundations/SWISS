@@ -12,6 +12,7 @@ class FixedBMCContext {
   std::shared_ptr<ModelEmbedding> e1;
   std::shared_ptr<ModelEmbedding> e2;
   bool from_safety;
+  int k;
 
 public:
   FixedBMCContext(smt::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety);
