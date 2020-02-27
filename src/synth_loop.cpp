@@ -24,7 +24,7 @@ using namespace json11;
 
 extern int run_id;
 
-void log_smtlib(z3::solver& solver, long long ms, string const& notes) {
+void log_smtlib(smt::solver& solver, long long ms, string const& notes) {
   static int log_num = 1;
 
   string filename = "./logs/smtlib/log." + to_string(run_id) + "." + to_string(log_num) + ".z3";
@@ -35,7 +35,7 @@ void log_smtlib(z3::solver& solver, long long ms, string const& notes) {
   myfile << "; time: " << ms << " ms" << endl;
   myfile << "; " << notes << endl;
   myfile << endl;
-  myfile << solver << endl;
+  myfile << solver.z3_solver << endl;
   myfile.close();
 
   cout << "logged smtlib to " << filename << endl;
@@ -62,7 +62,7 @@ Counterexample get_bmc_counterexample(
 Counterexample get_counterexample_simple(
     shared_ptr<Module> module,
     Options const& options,
-    z3::context& ctx,
+    smt::context& ctx,
     BMCContext& bmc,
     bool check_implies_conj,
     value cur_invariant,
@@ -78,14 +78,14 @@ Counterexample get_counterexample_simple(
   cex.none = false;
 
   auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-  z3::solver& init_solver = initctx->ctx->solver;
+  smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
   bench.start("init-check");
-  z3::check_result init_res = init_solver.check();
+  bool init_res = init_solver.check_sat();
   bench.end();
 
-  if (init_res == z3::sat) {
+  if (init_res) {
     if (use_minimal) {
       bench.start("init-minimization");
       cex.is_true = Model::extract_minimal_models_from_z3(
@@ -111,17 +111,17 @@ Counterexample get_counterexample_simple(
   if (check_implies_conj) {
     auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
 
-    z3::solver& conj_solver = conjctx->ctx->solver;
+    smt::solver& conj_solver = conjctx->ctx->solver;
     conj_solver.push();
     if (cur_invariant) {
       conj_solver.add(conjctx->e->value2expr(cur_invariant));
     }
     conj_solver.add(conjctx->e->value2expr(candidate));
     bench.start("conj-check");
-    z3::check_result conj_res = conj_solver.check();
+    bool conj_res = conj_solver.check_sat();
     bench.end();
 
-    if (conj_res == z3::sat) {
+    if (conj_res) {
       if (use_minimal || use_minimal_only_for_safety) {
         bench.start("conj-minimization");
         cex.is_false = Model::extract_minimal_models_from_z3(
@@ -157,7 +157,7 @@ Counterexample get_counterexample_simple(
 
   for (int j = 0; j < (int)module->actions.size(); j++) {
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
-    z3::solver& solver = indctx->ctx->solver;
+    smt::solver& solver = indctx->ctx->solver;
     solver.push();
     if (cur_invariant) {
       solver.add(indctx->e1->value2expr(cur_invariant));
@@ -167,7 +167,7 @@ Counterexample get_counterexample_simple(
 
     bench.start("inductivity-check");
     auto t1 = now();
-    z3::check_result res = solver.check();
+    bool res = solver.check_sat();
     auto t2 = now();
     bench.end();
 
@@ -176,7 +176,7 @@ Counterexample get_counterexample_simple(
       log_smtlib(solver, ms, "action: " + module->action_names[j]);
     }
 
-    if (res == z3::sat) {
+    if (res) {
       if (use_minimal) {
         bench.start("inductivity-minimization");
         auto ms = Model::extract_minimal_models_from_z3(
@@ -208,7 +208,7 @@ Counterexample get_counterexample_simple(
 
 Counterexample get_counterexample(
     shared_ptr<Module> module,
-    z3::context& ctx,
+    smt::context& ctx,
     value candidate)
 {
   Counterexample cex;
@@ -218,12 +218,12 @@ Counterexample get_counterexample(
 
   auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
 
-  z3::solver& init_solver = initctx->ctx->solver;
+  smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  z3::check_result init_res = init_solver.check();
+  bool init_res = init_solver.check_sat();
 
-  if (init_res == z3::sat) {
+  if (init_res) {
     //cout << "got SAT, starting minimize..." << endl; cout.flush();
     cex.is_true = Model::extract_minimal_models_from_z3(
         initctx->ctx->ctx,
@@ -244,16 +244,16 @@ Counterexample get_counterexample(
     for (int j = 0; j < (int)module->actions.size(); j++) {
       auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
 
-      z3::solver& solver = indctx->ctx->solver;
+      smt::solver& solver = indctx->ctx->solver;
       solver.add(indctx->e1->value2expr(full_candidate));
 
       bool testing_candidate = (i == (int)module->conjectures.size());
 
       solver.push();
       solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));
-      z3::check_result res = solver.check();
+      bool res = solver.check_sat();
 
-      if (res == z3::sat) {
+      if (res) {
         //cout << "got SAT, starting minimize" << endl; cout.flush();
         auto m1_and_m2 = Model::extract_minimal_models_from_z3(
               indctx->ctx->ctx,
@@ -440,31 +440,30 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
   return res;
 }
 
-bool invariant_is_nonredundant(shared_ptr<Module> module, z3::context& ctx, vector<value> existingInvariants, value newInvariant)
+bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vector<value> existingInvariants, value newInvariant)
 {
   BasicContext basic(ctx, module);
   for (value v : existingInvariants) {
     basic.ctx->solver.add(basic.e->value2expr(v));
   }
   basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
-  z3::check_result res = basic.ctx->solver.check();
-  assert (res == z3::sat || res == z3::unsat);
-  return res == z3::sat;
+  bool res = basic.ctx->solver.check_sat();
+  return res;
 }
 
 void synth_loop(shared_ptr<Module> module, Options const& options)
 {
   assert(module->templates.size() == 1);
 
-  z3::context ctx;
-  z3::context bmcctx;
+  smt::context ctx;
+  smt::context bmcctx;
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(bmcctx, module, bmc_depth);
   BMCContext antibmc(bmcctx, module, bmc_depth, true);
 
-  z3_set_timeout(bmcctx, 15000); // 15 seconds
+  bmcctx.set_timeout(15000); // 15 seconds
 
   int num_iterations = 0;
 
@@ -560,8 +559,8 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
 void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 {
-  z3::context ctx;
-  z3::context bmcctx;
+  smt::context ctx;
+  smt::context bmcctx;
 
   assert(module->templates.size() >= 1);
 
@@ -576,7 +575,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(bmcctx, module, bmc_depth);
-  z3_set_timeout(bmcctx, 15000); // 15 seconds
+  bmcctx.set_timeout(15000); // 15 seconds
 
   int num_iterations_total = 0;
 
@@ -726,8 +725,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
 void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
 {
-  z3::context ctx;
-  z3::context bmcctx;
+  smt::context ctx;
+  smt::context bmcctx;
 
   assert(module->templates.size() >= 1);
 
@@ -751,7 +750,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(bmcctx, module, bmc_depth);
-  z3_set_timeout(bmcctx, 15000); // 15 seconds
+  bmcctx.set_timeout(15000); // 15 seconds
 
   int num_iterations_total = 0;
   int num_iterations_outer = 0;

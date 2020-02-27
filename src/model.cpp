@@ -560,8 +560,8 @@ int get_num_forall_quantifiers_at_top(EvalExpr* ee) {
 }
 
 vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
-    z3::context& ctx,
-    z3::solver& solver,
+    smt::context& ctx,
+    smt::solver& solver,
     shared_ptr<Module> module,
     vector<shared_ptr<ModelEmbedding>> es,
     value hint)
@@ -625,22 +625,21 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     solver.push();
 
     for (int i = 0; i < (int)sorts.size(); i++) {
-      z3::sort so = bgctx.getUninterpretedSort(sorts[i]);
-      z3::expr_vector vec(ctx);
-      z3::expr elem = ctx.constant(name("valvar").c_str(), so);
+      smt::sort so = bgctx.getUninterpretedSort(sorts[i]);
+      smt::expr_vector vec(ctx);
+      smt::expr elem = ctx.constant(name("valvar").c_str(), so);
       for (int j = 0; j < new_sizes[i]; j++) {
-        z3::expr c = ctx.constant(name("val").c_str(), so);
+        smt::expr c = ctx.constant(name("val").c_str(), so);
         vec.push_back(elem == c);
       }
-      z3::expr_vector qvars(ctx);
+      smt::expr_vector qvars(ctx);
       qvars.push_back(elem);
-      solver.add(z3::forall(qvars, mk_or(vec)));
+      solver.add(smt::forall(qvars, mk_or(vec)));
     }
 
-    z3::check_result res = solver.check();
+    bool res = solver.is_unsat_or_unknown();
 
-    //assert(res == z3::sat || res == z3::unsat);
-    if (res == z3::sat) {
+    if (!res) {
       all_models.clear();
       for (auto e : es) {
         all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
@@ -663,33 +662,33 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
 }
 
 shared_ptr<Model> Model::extract_model_from_z3(
-    z3::context& ctx,
-    z3::solver& solver,
+    smt::context& ctx,
+    smt::solver& solver,
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
   std::unordered_map<std::string, SortInfo> sort_info;
   std::unordered_map<iden, FunctionInfo> function_info;
 
-  z3::model z3model = solver.get_model();
+  z3::model z3model = solver.z3_solver.get_model();
 
   map<string, z3::expr_vector> universes;
 
   for (auto p : e.ctx->sorts) {
     string name = p.first;
-    z3::sort s = p.second;
+    z3::sort s = p.second.so;
 
     // The C++ api doesn't seem to have the functionality we need.
     // Go down to the C API.
-    Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx, z3model, s);
+    Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx.ctx, z3model, s);
     int len;
     if (c_univ) {
-      z3::expr_vector univ(ctx, c_univ);
+      z3::expr_vector univ(ctx.ctx, c_univ);
       universes.insert(make_pair(name, univ));
       len = univ.size();
     } else {
-      z3::expr_vector univ(ctx);
-      univ.push_back(ctx.constant(::name("whatever").c_str(), s));
+      z3::expr_vector univ(ctx.ctx);
+      univ.push_back(ctx.ctx.constant(::name("whatever").c_str(), s));
       universes.insert(make_pair(name, univ));
       len = univ.size();
     }
@@ -703,9 +702,9 @@ shared_ptr<Model> Model::extract_model_from_z3(
         Sort* sort, z3::expr expression1) -> object_value {
     z3::expr expression = z3model.eval(expression1, true);
     if (dynamic_cast<BooleanSort*>(sort)) {
-      if (z3::eq(expression, ctx.bool_val(true))) {
+      if (z3::eq(expression, ctx.ctx.bool_val(true))) {
         return 1;
-      } else if (z3::eq(expression, ctx.bool_val(false))) {
+      } else if (z3::eq(expression, ctx.ctx.bool_val(false))) {
         return 0;
       } else {
         assert(false);
@@ -729,9 +728,9 @@ shared_ptr<Model> Model::extract_model_from_z3(
         Sort* sort, object_value v) -> z3::expr {
     if (dynamic_cast<BooleanSort*>(sort)) {
       if (v == 0) {
-        return ctx.bool_val(false);
+        return ctx.ctx.bool_val(false);
       } else if (v == 1) {
-        return ctx.bool_val(true);
+        return ctx.ctx.bool_val(true);
       } else {
         assert(false);
       }
@@ -748,7 +747,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
 
   for (VarDecl decl : module->functions) {
     iden name = decl.name;
-    z3::func_decl fdecl = e.getFunc(name);
+    z3::func_decl fdecl = e.getFunc(name).fd;
 
     int num_args;
     Sort* range_sort;
@@ -792,7 +791,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
           args.push_back(0);
         }
         while (true) {
-          z3::expr_vector args_exprs(ctx);
+          z3::expr_vector args_exprs(ctx.ctx);
           unique_ptr<FunctionTable>* table = &finfo.table;
           for (int argnum = 0; argnum < num_args; argnum++) {
             object_value argvalue = args[argnum];
@@ -999,18 +998,18 @@ void Model::assert_model_does_not_have_substructure(shared_ptr<ModelEmbedding> e
 void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     bool exact, bool negate) {
   BackgroundContext& bgctx = *e->ctx;
-  z3::solver& solver = bgctx.solver;
+  smt::solver& solver = bgctx.solver;
 
-  unordered_map<string, z3::expr_vector> consts;
+  unordered_map<string, smt::expr_vector> consts;
 
-  z3::expr_vector assertions(bgctx.ctx);
+  smt::expr_vector assertions(bgctx.ctx);
 
   for (auto p : this->sort_info) {
     string sort_name = p.first;
     SortInfo sinfo = p.second;
-    z3::sort so = bgctx.getUninterpretedSort(sort_name);
+    smt::sort so = bgctx.getUninterpretedSort(sort_name);
 
-    z3::expr_vector vec(bgctx.ctx);
+    smt::expr_vector vec(bgctx.ctx);
     for (int i = 0; i < (int)sinfo.domain_size; i++) {
       vec.push_back(bgctx.ctx.constant(name(sort_name + "_val").c_str(), so));
     }
@@ -1021,14 +1020,14 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     }
 
     if (exact) {
-      z3::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
-      z3::expr_vector eqs(bgctx.ctx);
+      smt::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
+      smt::expr_vector eqs(bgctx.ctx);
       for (int i = 0; i < (int)vec.size(); i++) {
         eqs.push_back(vec[i] == elem);
       }
-      z3::expr_vector qvars(bgctx.ctx);
+      smt::expr_vector qvars(bgctx.ctx);
       qvars.push_back(elem);
-      assertions.push_back(z3::forall(qvars, mk_or(eqs)));
+      assertions.push_back(smt::forall(qvars, mk_or(eqs)));
     }
 
     consts.insert(make_pair(sort_name, vec));
@@ -1081,11 +1080,11 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
         res = ftable->value;
       }
 
-      z3::expr_vector z3_args(bgctx.ctx);
+      smt::expr_vector z3_args(bgctx.ctx);
       for (int i = 0; i < (int)domain_sorts.size(); i++) {
         z3_args.push_back(mkExpr(domain_sorts[i], args[i]));
       }
-      assertions.push_back(e->getFunc(name)(z3_args) == mkExpr(range_sort, res));
+      assertions.push_back(e->getFunc(name).call(z3_args) == mkExpr(range_sort, res));
 
       int i;
       for (i = num_args - 1; i >= 0; i--) {
@@ -1103,22 +1102,22 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
   }
 
   if (negate) {
-    solver.add(!z3::mk_and(assertions));
+    solver.add(!smt::mk_and(assertions));
   } else {
-    solver.add(z3::mk_and(assertions));
+    solver.add(smt::mk_and(assertions));
   }
 
   //printf("'%s'\n", solver.to_smt2().c_str());
 }
 
 shared_ptr<Model> transition_model(
-    z3::context& ctx,
+    smt::context& ctx,
     shared_ptr<Module> module,
     std::shared_ptr<Model> start_state,
     int which_action
 ) {
   shared_ptr<BackgroundContext> bgctx = make_shared<BackgroundContext>(ctx, module);
-  z3::solver& solver = bgctx->solver;
+  smt::solver& solver = bgctx->solver;
 
   shared_ptr<ModelEmbedding> e1 = ModelEmbedding::makeEmbedding(bgctx, module);
   shared_ptr<Action> action;
@@ -1129,18 +1128,17 @@ shared_ptr<Model> transition_model(
     assert(0 <= which_action && which_action < (int)module->actions.size());
     action = module->actions[which_action];
   }
-  ActionResult res = applyAction(e1, action, std::unordered_map<iden, z3::expr> {});
+  ActionResult res = applyAction(e1, action, std::unordered_map<iden, smt::expr> {});
   shared_ptr<ModelEmbedding> e2 = res.e;
   // Add the relation between the two states
   solver.add(res.constraint);
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    solver.add(e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
+    solver.add(e1->value2expr(axiom, std::unordered_map<iden, smt::expr> {}));
   }
 
   start_state->assert_model_is(e1);
-  z3::check_result sat_result = solver.check();
-  if (sat_result == z3::sat) {
+  if (solver.check_sat()) {
     return Model::extract_model_from_z3(ctx, solver, module, *e2);
   } else {
     return nullptr;
@@ -1148,7 +1146,7 @@ shared_ptr<Model> transition_model(
 }
 
 void get_tree_of_models_(
-  z3::context& ctx,
+  smt::context& ctx,
   shared_ptr<Module> module,
   std::shared_ptr<Model> start_state,
   int depth,
@@ -1168,7 +1166,7 @@ void get_tree_of_models_(
 }
 
 vector<shared_ptr<Model>> get_tree_of_models(
-  z3::context& ctx,
+  smt::context& ctx,
   shared_ptr<Module> module,
   std::shared_ptr<Model> start_state,
   int depth
@@ -1179,7 +1177,7 @@ vector<shared_ptr<Model>> get_tree_of_models(
 }
 
 void get_tree_of_models2_(
-  z3::context& z3ctx,
+  smt::context& z3ctx,
   shared_ptr<Module> module,
   vector<int> action_indices,
   int depth,
@@ -1188,7 +1186,7 @@ void get_tree_of_models2_(
   vector<shared_ptr<Model>>& res
 ) {
   shared_ptr<BackgroundContext> ctx = make_shared<BackgroundContext>(z3ctx, module);
-  z3::solver& solver = ctx->solver;
+  smt::solver& solver = ctx->solver;
 
   shared_ptr<ModelEmbedding> e1 = ModelEmbedding::makeEmbedding(ctx, module);
 
@@ -1200,14 +1198,14 @@ void get_tree_of_models2_(
   }
 
   for (int action_index : action_indices_ordered) {
-    ActionResult res = applyAction(e2, module->actions[action_index], std::unordered_map<iden, z3::expr> {});
+    ActionResult res = applyAction(e2, module->actions[action_index], std::unordered_map<iden, smt::expr> {});
     e2 = res.e;
     ctx->solver.add(res.constraint);
   }
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
+    ctx->solver.add(e1->value2expr(axiom, std::unordered_map<iden, smt::expr> {}));
   }
 
   if (!reversed) {
@@ -1223,8 +1221,7 @@ void get_tree_of_models2_(
   bool found_any = false;
 
   for (int j = 0; j < multiplicity; j++) {
-    z3::check_result sat_result = solver.check();
-    if (sat_result != z3::sat) {
+    if (!solver.check_sat()) {
       break;
     } else {
       auto model = Model::extract_model_from_z3(z3ctx, solver, module, reversed ? *e1 : *e2);
@@ -1248,7 +1245,7 @@ void get_tree_of_models2_(
 }
 
 vector<shared_ptr<Model>> get_tree_of_models2(
-  z3::context& ctx,
+  smt::context& ctx,
   shared_ptr<Module> module,
   int depth,
   int multiplicity,
@@ -1265,8 +1262,8 @@ Z3VarSet add_existential_constraint(
     value v)
 {
   shared_ptr<BackgroundContext> bgctx = me->ctx;
-  z3::context& ctx = bgctx->ctx;
-  z3::solver& solver = bgctx->solver;
+  smt::context& ctx = bgctx->ctx;
+  smt::solver& solver = bgctx->solver;
 
   // Change NOT(forall ...) into a (exists ...)
   if (Not* n = dynamic_cast<Not*>(v.get())) {
@@ -1274,13 +1271,13 @@ Z3VarSet add_existential_constraint(
   }
 
   Z3VarSet res;
-  unordered_map<iden, z3::expr> vars;
+  unordered_map<iden, smt::expr> vars;
 
   Exists* exists;
   while ((exists = dynamic_cast<Exists*>(v.get())) != NULL) {
     for (VarDecl decl : exists->decls) {
-      z3::func_decl fd = ctx.function(name(decl.name).c_str(), 0, 0, bgctx->getSort(decl.sort));
-      z3::expr e = fd();
+      smt::func_decl fd = ctx.function(name(decl.name).c_str(), 0, 0, bgctx->getSort(decl.sort));
+      smt::expr e = fd();
       res.vars.push_back(e);
       vars.insert(make_pair(decl.name, e));
     }
@@ -1295,7 +1292,7 @@ Z3VarSet add_existential_constraint(
 
 QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
     Z3VarSet const&,
-    z3::solver&,
+    smt::solver&,
     std::shared_ptr<Model>,
     value v)
 {

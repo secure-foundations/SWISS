@@ -68,15 +68,15 @@ public:
   bool eval_predicate(value) const;
 
   static std::vector<std::shared_ptr<Model>> extract_minimal_models_from_z3(
-      z3::context& ctx,
-      z3::solver& solver,
+      smt::context& ctx,
+      smt::solver& solver,
       std::shared_ptr<Module> module,
       std::vector<std::shared_ptr<ModelEmbedding>> es,
       std::shared_ptr<Value> hint);
 
   static std::shared_ptr<Model> extract_model_from_z3(
-      z3::context& ctx,
-      z3::solver& solver,
+      smt::context& ctx,
+      smt::solver& solver,
       std::shared_ptr<Module> module,
       ModelEmbedding const& e);
 
@@ -131,19 +131,19 @@ private:
 };
 
 std::shared_ptr<Model> transition_model(
-    z3::context& ctx,
+    smt::context& ctx,
     std::shared_ptr<Module> module,
     std::shared_ptr<Model> start_state,
     int which_action = -1);
 
 std::vector<std::shared_ptr<Model>> get_tree_of_models(
-    z3::context& ctx,
+    smt::context& ctx,
     std::shared_ptr<Module> module,
     std::shared_ptr<Model> start_state,
     int depth);
 
 std::vector<std::shared_ptr<Model>> get_tree_of_models2(
-  z3::context& ctx,
+  smt::context& ctx,
   std::shared_ptr<Module> module,
   int depth,
   int multiplicity,
@@ -159,7 +159,7 @@ struct QuantifierInstantiation {
 };
 
 struct Z3VarSet {
-  std::vector<z3::expr> vars;
+  std::vector<smt::expr> vars;
 };
 
 // Give a value of the form `forall A,B,...,Z . expr`, returns
@@ -176,7 +176,7 @@ bool get_multiqi_counterexample(
 Z3VarSet add_existential_constraint(std::shared_ptr<ModelEmbedding>, value);
 QuantifierInstantiation z3_var_set_2_quantifier_instantiation(
     Z3VarSet const&,
-    z3::solver&,
+    smt::solver&,
     std::shared_ptr<Model>,
     value v);
 */

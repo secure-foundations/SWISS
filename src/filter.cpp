@@ -4,7 +4,7 @@
 using namespace std;
 
 bool is_necessary(
-    z3::context& ctx,
+    smt::context& ctx,
     shared_ptr<Module> module,
     vector<value> values,
     int i)
@@ -18,18 +18,15 @@ bool is_necessary(
     }
   }
 
-  z3::solver& solver = basic_ctx.ctx->solver;
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
-
-  return res == z3::sat;
+  smt::solver& solver = basic_ctx.ctx->solver;
+  return solver.check_sat();
 }
 
 vector<value> filter_redundant_formulas(
   shared_ptr<Module> module,
   vector<value> values)
 {
-  z3::context ctx;
+  smt::context ctx;
 
   for (int i = 0; i < (int)values.size(); i++) {
     if (!is_necessary(ctx, module, values, i)) {

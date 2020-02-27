@@ -5,11 +5,7 @@
 #include <cstdlib>
 
 using namespace std;
-using z3::context;
-using z3::solver;
-using z3::sort;
-using z3::func_decl;
-using z3::expr;
+using smt::expr;
 
 int name_counter = 1;
 string name(iden basename) {
@@ -26,16 +22,16 @@ string name(string basename) {
  * BackgroundContext
  */
 
-BackgroundContext::BackgroundContext(z3::context& ctx, std::shared_ptr<Module> module)
+BackgroundContext::BackgroundContext(smt::context& ctx, std::shared_ptr<Module> module)
     : ctx(ctx),
       solver(ctx)
 {
   for (string sort : module->sorts) {
-    this->sorts.insert(make_pair(sort, ctx.uninterpreted_sort(sort.c_str())));
+    this->sorts.insert(make_pair(sort, ctx.uninterpreted_sort(sort)));
   }
 }
 
-z3::sort BackgroundContext::getUninterpretedSort(std::string name) {
+smt::sort BackgroundContext::getUninterpretedSort(std::string name) {
   auto iter = sorts.find(name);
   if (iter == sorts.end()) {
     printf("failed to find sort %s\n", name.c_str());
@@ -44,7 +40,7 @@ z3::sort BackgroundContext::getUninterpretedSort(std::string name) {
   return iter->second;
 }
 
-z3::sort BackgroundContext::getSort(std::shared_ptr<Sort> sort) {
+smt::sort BackgroundContext::getSort(std::shared_ptr<Sort> sort) {
   Sort* s = sort.get();
   if (dynamic_cast<BooleanSort*>(s)) {
     return ctx.bool_sort();
@@ -65,27 +61,27 @@ shared_ptr<ModelEmbedding> ModelEmbedding::makeEmbedding(
     shared_ptr<BackgroundContext> ctx,
     shared_ptr<Module> module)
 {
-  unordered_map<iden, func_decl> mapping;
+  unordered_map<iden, smt::func_decl> mapping;
   for (VarDecl decl : module->functions) {
     Sort* s = decl.sort.get();
     if (FunctionSort* fsort = dynamic_cast<FunctionSort*>(s)) {
-      z3::sort_vector domain(ctx->ctx);
+      smt::sort_vector domain(ctx->ctx);
       for (std::shared_ptr<Sort> domain_sort : fsort->domain) {
         domain.push_back(ctx->getSort(domain_sort));
       }
-      z3::sort range = ctx->getSort(fsort->range);
+      smt::sort range = ctx->getSort(fsort->range);
       mapping.insert(make_pair(decl.name, ctx->ctx.function(
-          name(decl.name).c_str(), domain, range)));
+          name(decl.name), domain, range)));
     } else {
-      mapping.insert(make_pair(decl.name, ctx->ctx.function(name(decl.name).c_str(), 0, 0,
-          ctx->getSort(decl.sort))));
+      mapping.insert(make_pair(decl.name, ctx->ctx.function(
+          name(decl.name), ctx->getSort(decl.sort))));
     }
   }
 
   return shared_ptr<ModelEmbedding>(new ModelEmbedding(ctx, mapping));
 }
 
-z3::func_decl ModelEmbedding::getFunc(iden name) const {
+smt::func_decl ModelEmbedding::getFunc(iden name) const {
   auto iter = mapping.find(name);
   if (iter == mapping.end()) {
     cout << "couldn't find function " << iden_to_string(name) << endl;
@@ -94,72 +90,72 @@ z3::func_decl ModelEmbedding::getFunc(iden name) const {
   return iter->second;
 }
 
-z3::expr ModelEmbedding::value2expr(
+smt::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value)
 {
-  return value2expr(value, std::unordered_map<iden, z3::expr> {}, std::unordered_map<iden, z3::expr> {});
+  return value2expr(value, std::unordered_map<iden, smt::expr> {}, std::unordered_map<iden, smt::expr> {});
 }
 
 
-z3::expr ModelEmbedding::value2expr(
+smt::expr ModelEmbedding::value2expr(
     shared_ptr<Value> value,
-    std::unordered_map<iden, z3::expr> const& consts)
+    std::unordered_map<iden, smt::expr> const& consts)
 {
-  return value2expr(value, consts, std::unordered_map<iden, z3::expr> {});
+  return value2expr(value, consts, std::unordered_map<iden, smt::expr> {});
 }
 
-z3::expr ModelEmbedding::value2expr_with_vars(
+smt::expr ModelEmbedding::value2expr_with_vars(
     shared_ptr<Value> value,
-    std::unordered_map<iden, z3::expr> const& vars)
+    std::unordered_map<iden, smt::expr> const& vars)
 {
-  return value2expr(value, std::unordered_map<iden, z3::expr> {}, vars);
+  return value2expr(value, std::unordered_map<iden, smt::expr> {}, vars);
 }
 
-z3::expr ModelEmbedding::value2expr(
+smt::expr ModelEmbedding::value2expr(
     shared_ptr<Value> v,
-    std::unordered_map<iden, z3::expr> const& consts,
-    std::unordered_map<iden, z3::expr> const& vars)
+    std::unordered_map<iden, smt::expr> const& consts,
+    std::unordered_map<iden, smt::expr> const& vars)
 {
   assert(v.get() != NULL);
   if (Forall* value = dynamic_cast<Forall*>(v.get())) {
-    z3::expr_vector vec_vars(ctx->ctx);
-    std::unordered_map<iden, z3::expr> new_vars = vars;
+    smt::expr_vector vec_vars(ctx->ctx);
+    std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
-      expr var = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      expr var = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
       new_vars.insert(make_pair(decl.name, var));
     }
-    return z3::forall(vec_vars, value2expr(value->body, consts, new_vars));
+    return smt::forall(vec_vars, value2expr(value->body, consts, new_vars));
   }
   else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
-    z3::expr_vector vec_vars(ctx->ctx);
-    std::unordered_map<iden, z3::expr> new_vars = vars;
+    smt::expr_vector vec_vars(ctx->ctx);
+    std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
-      expr var = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      expr var = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
       new_vars.insert(make_pair(decl.name, var));
     }
-    return z3::exists(vec_vars, value2expr(value->body, consts, new_vars));
+    return smt::exists(vec_vars, value2expr(value->body, consts, new_vars));
   }
   else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
-    z3::expr_vector vec_vars(ctx->ctx);
-    z3::expr_vector all_eq(ctx->ctx);
-    std::unordered_map<iden, z3::expr> new_vars1 = vars;
-    std::unordered_map<iden, z3::expr> new_vars2 = vars;
+    smt::expr_vector vec_vars(ctx->ctx);
+    smt::expr_vector all_eq(ctx->ctx);
+    std::unordered_map<iden, smt::expr> new_vars1 = vars;
+    std::unordered_map<iden, smt::expr> new_vars2 = vars;
     for (VarDecl decl : value->decls) {
-      expr var1 = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
-      expr var2 = ctx->ctx.constant(name(decl.name).c_str(), ctx->getSort(decl.sort));
+      expr var1 = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
+      expr var2 = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var1);
       vec_vars.push_back(var2);
       new_vars1.insert(make_pair(decl.name, var1));
       new_vars2.insert(make_pair(decl.name, var2));
       all_eq.push_back(var1 == var2);
     }
-    z3::expr_vector vec_or(ctx->ctx);
+    smt::expr_vector vec_or(ctx->ctx);
     vec_or.push_back(value2expr(value->body, consts, new_vars1));
     vec_or.push_back(value2expr(value->body, consts, new_vars2));
-    vec_or.push_back(z3::mk_and(all_eq));
-    return z3::forall(vec_vars, z3::mk_or(vec_or));
+    vec_or.push_back(smt::mk_and(all_eq));
+    return smt::forall(vec_vars, smt::mk_or(vec_or));
   }
   else if (Var* value = dynamic_cast<Var*>(v.get())) {
     auto iter = vars.find(value->name);
@@ -177,8 +173,8 @@ z3::expr ModelEmbedding::value2expr(
         printf("could not find %s\n", iden_to_string(value->name).c_str());
         assert(false);
       }
-      z3::func_decl fd = iter->second;
-      return fd();
+      smt::func_decl fd = iter->second;
+      return fd.call();
     } else {
       return iter->second;
     }
@@ -193,13 +189,13 @@ z3::expr ModelEmbedding::value2expr(
     return !value2expr(value->left, consts, vars) || value2expr(value->right, consts, vars);
   }
   else if (Apply* value = dynamic_cast<Apply*>(v.get())) {
-    z3::expr_vector args(ctx->ctx);
+    smt::expr_vector args(ctx->ctx);
     for (shared_ptr<Value> arg : value->args) {
       args.push_back(value2expr(arg, consts, vars));
     }
     Const* func_value = dynamic_cast<Const*>(value->func.get());
     assert(func_value != NULL);
-    return getFunc(func_value->name)(args);
+    return getFunc(func_value->name).call(args);
   }
   else if (And* value = dynamic_cast<And*>(v.get())) {
     if (value->args.size() == 0) {
@@ -207,7 +203,7 @@ z3::expr ModelEmbedding::value2expr(
     } else if (value->args.size() == 1) {
       return value2expr(value->args[0], consts, vars);
     } else {
-      z3::expr_vector args(ctx->ctx);
+      smt::expr_vector args(ctx->ctx);
       for (shared_ptr<Value> arg : value->args) {
         args.push_back(value2expr(arg, consts, vars));
       }
@@ -220,7 +216,7 @@ z3::expr ModelEmbedding::value2expr(
     } else if (value->args.size() == 1) {
       return value2expr(value->args[0], consts, vars);
     } else {
-      z3::expr_vector args(ctx->ctx);
+      smt::expr_vector args(ctx->ctx);
       for (shared_ptr<Value> arg : value->args) {
         args.push_back(value2expr(arg, consts, vars));
       }
@@ -228,7 +224,7 @@ z3::expr ModelEmbedding::value2expr(
     }
   }
   else if (IfThenElse* value = dynamic_cast<IfThenElse*>(v.get())) {
-    return z3::ite(
+    return smt::ite(
         value2expr(value->cond, consts, vars),
         value2expr(value->then_value, consts, vars),
         value2expr(value->else_value, consts, vars)
@@ -245,7 +241,7 @@ z3::expr ModelEmbedding::value2expr(
  */
 
 InductionContext::InductionContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module,
     int action_idx)
     : ctx(new BackgroundContext(z3ctx, module)), action_idx(action_idx)
@@ -257,7 +253,7 @@ InductionContext::InductionContext(
   shared_ptr<Action> action = action_idx == -1
       ? shared_ptr<Action>(new ChoiceAction(module->actions))
       : module->actions[action_idx];
-  ActionResult res = applyAction(this->e1, action, std::unordered_map<iden, z3::expr> {});
+  ActionResult res = applyAction(this->e1, action, std::unordered_map<iden, smt::expr> {});
   this->e2 = res.e;
 
   // Add the relation between the two states
@@ -265,7 +261,7 @@ InductionContext::InductionContext(
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(this->e1->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
+    ctx->solver.add(this->e1->value2expr(axiom, std::unordered_map<iden, smt::expr> {}));
   }
 }
 
@@ -274,7 +270,7 @@ InductionContext::InductionContext(
  */
 
 ChainContext::ChainContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module,
     int numTransitions)
     : ctx(new BackgroundContext(z3ctx, module))
@@ -285,7 +281,7 @@ ChainContext::ChainContext(
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
 
   for (int i = 0; i < numTransitions; i++) {
-    ActionResult res = applyAction(this->es[i], action, std::unordered_map<iden, z3::expr> {});
+    ActionResult res = applyAction(this->es[i], action, std::unordered_map<iden, smt::expr> {});
     this->es[i+1] = res.e;
 
     // Add the relation between the two states
@@ -294,7 +290,7 @@ ChainContext::ChainContext(
 
   // Add the axioms
   for (shared_ptr<Value> axiom : module->axioms) {
-    ctx->solver.add(this->es[0]->value2expr(axiom, std::unordered_map<iden, z3::expr> {}));
+    ctx->solver.add(this->es[0]->value2expr(axiom, std::unordered_map<iden, smt::expr> {}));
   }
 }
 
@@ -304,7 +300,7 @@ ActionResult do_if_else(
     shared_ptr<Value> condition,
     shared_ptr<Action> then_body,
     shared_ptr<Action> else_body,
-    unordered_map<iden, z3::expr> const& consts)
+    unordered_map<iden, smt::expr> const& consts)
 {
   vector<shared_ptr<Action>> seq1;
   seq1.push_back(shared_ptr<Action>(new Assume(condition)));
@@ -324,16 +320,16 @@ ActionResult do_if_else(
   return applyAction(e, shared_ptr<Action>(new ChoiceAction(choices)), consts);
 }
 
-expr funcs_equal(z3::context& ctx, func_decl a, func_decl b) {
-  z3::expr_vector args(ctx);
+expr funcs_equal(smt::context& ctx, smt::func_decl a, smt::func_decl b) {
+  smt::expr_vector args(ctx);
   for (int i = 0; i < (int)a.arity(); i++) {
-    z3::sort arg_sort = a.domain(i);
-    args.push_back(ctx.constant(name("arg").c_str(), arg_sort));
+    smt::sort arg_sort = a.domain(i);
+    args.push_back(ctx.constant(name("arg"), arg_sort));
   }
   if (args.size() == 0) {
-    return a(args) == b(args);
+    return a.call(args) == b.call(args);
   } else {
-    return z3::forall(args, a(args) == b(args));
+    return smt::forall(args, a.call(args) == b.call(args));
   }
 }
 
@@ -347,21 +343,21 @@ ActionResult applyAction(
   if (LocalAction* action = dynamic_cast<LocalAction*>(a.get())) {
     unordered_map<iden, expr> new_consts(consts);
     for (VarDecl decl : action->args) {
-      func_decl d = ctx->ctx.function(name(decl.name).c_str(), 0, 0, ctx->getSort(decl.sort));
-      expr ex = d();
+      smt::func_decl d = ctx->ctx.function(name(decl.name), ctx->getSort(decl.sort));
+      expr ex = d.call();
       new_consts.insert(make_pair(decl.name, ex));
     }
     return applyAction(e, action->body, new_consts);
   }
   else if (SequenceAction* action = dynamic_cast<SequenceAction*>(a.get())) {
-    z3::expr_vector parts(ctx->ctx);
+    smt::expr_vector parts(ctx->ctx);
     for (shared_ptr<Action> sub_action : action->actions) {
       ActionResult res = applyAction(e, sub_action, consts);
       e = res.e;
       parts.push_back(res.constraint);
     }
-    expr ex = z3::mk_and(parts);
-    return ActionResult(e, z3::mk_and(parts));
+    expr ex = smt::mk_and(parts);
+    return ActionResult(e, smt::mk_and(parts));
   }
   else if (Assume* action = dynamic_cast<Assume*>(a.get())) {
     return ActionResult(e, e->value2expr(action->body, consts));
@@ -375,21 +371,21 @@ ActionResult applyAction(
   else if (ChoiceAction* action = dynamic_cast<ChoiceAction*>(a.get())) {
     int len = action->actions.size();
     vector<shared_ptr<ModelEmbedding>> es;
-    vector<z3::expr> constraints;
+    vector<smt::expr> constraints;
     for (int i = 0; i < len; i++) {
       ActionResult res = applyAction(e, action->actions[i], consts);
       es.push_back(res.e);
       constraints.push_back(res.constraint);
     }
-    unordered_map<iden, z3::func_decl> mapping;
+    unordered_map<iden, smt::func_decl> mapping;
 
     for (auto p : e->mapping) {
       iden func_name = p.first;
 
       bool is_ident = true;
-      func_decl new_func_decl = e->getFunc(func_name);
+      smt::func_decl new_func_decl = e->getFunc(func_name);
       for (int i = 0; i < len; i++) {
-        if (es[i]->getFunc(func_name).name() != e->getFunc(func_name).name()) {
+        if (!func_decl_eq(es[i]->getFunc(func_name), e->getFunc(func_name))) {
           is_ident = false;
           new_func_decl = es[i]->mapping.find(func_name)->second;
           break;
@@ -398,7 +394,7 @@ ActionResult applyAction(
       mapping.insert(make_pair(func_name, new_func_decl));
       if (!is_ident) {
         for (int i = 0; i < len; i++) {
-          if (es[i]->getFunc(func_name).name() != new_func_decl.name()) {
+          if (!func_decl_eq(es[i]->getFunc(func_name), new_func_decl)) {
             constraints[i] =
                 funcs_equal(ctx->ctx, es[i]->getFunc(func_name), new_func_decl) &&
                 constraints[i];
@@ -407,14 +403,14 @@ ActionResult applyAction(
       }
     }
 
-    z3::expr_vector constraints_vec(ctx->ctx);
+    smt::expr_vector constraints_vec(ctx->ctx);
     for (int i = 0; i < len; i++) {
       constraints_vec.push_back(constraints[i]);
     }
 
     return ActionResult(
         shared_ptr<ModelEmbedding>(new ModelEmbedding(e->ctx, mapping)),
-        z3::mk_or(constraints_vec)
+        smt::mk_or(constraints_vec)
       );
   }
   else if (Assign* action = dynamic_cast<Assign*>(a.get())) {
@@ -424,43 +420,43 @@ ActionResult applyAction(
 
     Const* func_const = dynamic_cast<Const*>(apply != NULL ? apply->func.get() : left);
     assert(func_const != NULL);
-    func_decl orig_func = e->getFunc(func_const->name);
+    smt::func_decl orig_func = e->getFunc(func_const->name);
 
-    z3::sort_vector domain(ctx->ctx);
+    smt::sort_vector domain(ctx->ctx);
     for (int i = 0; i < (int)orig_func.arity(); i++) {
       domain.push_back(orig_func.domain(i));
     }
     string new_name = name(func_const->name);
-    func_decl new_func = ctx->ctx.function(new_name.c_str(),
+    smt::func_decl new_func = ctx->ctx.function(new_name,
         domain, orig_func.range());
 
-    z3::expr_vector qvars(ctx->ctx);
-    z3::expr_vector all_eq_parts(ctx->ctx);
-    unordered_map<iden, z3::expr> vars;
+    smt::expr_vector qvars(ctx->ctx);
+    smt::expr_vector all_eq_parts(ctx->ctx);
+    unordered_map<iden, smt::expr> vars;
     for (int i = 0; i < (int)orig_func.arity(); i++) {
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
-        expr qvar = ctx->ctx.constant(name(arg_var->name).c_str(), ctx->getSort(arg_var->sort));
+        expr qvar = ctx->ctx.constant(name(arg_var->name), ctx->getSort(arg_var->sort));
         qvars.push_back(qvar);
         vars.insert(make_pair(arg_var->name, qvar));
       } else {
-        expr qvar = ctx->ctx.constant(name("arg").c_str(), domain[i]);
+        expr qvar = ctx->ctx.constant(name("arg"), domain[i]);
         qvars.push_back(qvar);
         all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
       }
     }
 
-    unordered_map<iden, z3::func_decl> new_mapping = e->mapping;
+    unordered_map<iden, smt::func_decl> new_mapping = e->mapping;
     new_mapping.erase(func_const->name);
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
 
-    z3::expr inner = new_func(qvars) == z3::ite(
-          z3::mk_and(all_eq_parts),
+    smt::expr inner = new_func.call(qvars) == smt::ite(
+          smt::mk_and(all_eq_parts),
           e->value2expr(action->right, consts, vars),
-          orig_func(qvars));
-    z3::expr outer = qvars.size() == 0 ? inner : z3::forall(qvars, inner);
+          orig_func.call(qvars));
+    smt::expr outer = qvars.size() == 0 ? inner : smt::forall(qvars, inner);
 
     ActionResult ar(shared_ptr<ModelEmbedding>(new_e), outer);
 
@@ -473,42 +469,42 @@ ActionResult applyAction(
 
     Const* func_const = dynamic_cast<Const*>(apply != NULL ? apply->func.get() : left);
     assert(func_const != NULL);
-    func_decl orig_func = e->getFunc(func_const->name);
+    smt::func_decl orig_func = e->getFunc(func_const->name);
 
-    z3::sort_vector domain(ctx->ctx);
+    smt::sort_vector domain(ctx->ctx);
     for (int i = 0; i < (int)orig_func.arity(); i++) {
       domain.push_back(orig_func.domain(i));
     }
     string new_name = name(func_const->name);
-    func_decl new_func = ctx->ctx.function(new_name.c_str(),
+    smt::func_decl new_func = ctx->ctx.function(new_name,
         domain, orig_func.range());
 
-    z3::expr_vector qvars(ctx->ctx);
-    z3::expr_vector all_eq_parts(ctx->ctx);
-    unordered_map<iden, z3::expr> vars;
+    smt::expr_vector qvars(ctx->ctx);
+    smt::expr_vector all_eq_parts(ctx->ctx);
+    unordered_map<iden, smt::expr> vars;
     for (int i = 0; i < (int)orig_func.arity(); i++) {
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
-        expr qvar = ctx->ctx.constant(name(arg_var->name).c_str(), ctx->getSort(arg_var->sort));
+        expr qvar = ctx->ctx.constant(name(arg_var->name), ctx->getSort(arg_var->sort));
         qvars.push_back(qvar);
         vars.insert(make_pair(arg_var->name, qvar));
       } else {
-        expr qvar = ctx->ctx.constant(name("arg").c_str(), domain[i]);
+        expr qvar = ctx->ctx.constant(name("arg"), domain[i]);
         qvars.push_back(qvar);
         all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
       }
     }
 
-    unordered_map<iden, z3::func_decl> new_mapping = e->mapping;
+    unordered_map<iden, smt::func_decl> new_mapping = e->mapping;
     new_mapping.erase(func_const->name);
     new_mapping.insert(make_pair(func_const->name, new_func));
     ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
 
-    z3::expr inner = z3::implies(
-          !z3::mk_and(all_eq_parts),
-          new_func(qvars) == orig_func(qvars));
-    z3::expr outer = qvars.size() == 0 ? inner : z3::forall(qvars, inner);
+    smt::expr inner = smt::implies(
+          !smt::mk_and(all_eq_parts),
+          new_func.call(qvars) == orig_func.call(qvars));
+    smt::expr outer = qvars.size() == 0 ? inner : smt::forall(qvars, inner);
 
     ActionResult ar(shared_ptr<ModelEmbedding>(new_e), outer);
 
@@ -521,7 +517,7 @@ ActionResult applyAction(
 
 void ModelEmbedding::dump() {
   for (auto p : mapping) {
-    printf("%s -> %s\n", iden_to_string(p.first).c_str(), p.second.name().str().c_str());
+    printf("%s -> %s\n", iden_to_string(p.first).c_str(), p.second.get_name().c_str());
   }
 }
 
@@ -530,7 +526,7 @@ void ModelEmbedding::dump() {
  */
 
 BasicContext::BasicContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module)
     : ctx(new BackgroundContext(z3ctx, module))
 {
@@ -547,7 +543,7 @@ BasicContext::BasicContext(
  */
 
 InitContext::InitContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module)
     : ctx(new BackgroundContext(z3ctx, module))
 {
@@ -568,7 +564,7 @@ InitContext::InitContext(
  */
 
 ConjectureContext::ConjectureContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module)
     : ctx(new BackgroundContext(z3ctx, module))
 {
@@ -590,7 +586,7 @@ ConjectureContext::ConjectureContext(
  */
 
 InvariantsContext::InvariantsContext(
-    z3::context& z3ctx,
+    smt::context& z3ctx,
     std::shared_ptr<Module> module)
     : ctx(new BackgroundContext(z3ctx, module))
 {
@@ -604,48 +600,40 @@ InvariantsContext::InvariantsContext(
 
 bool is_satisfiable(shared_ptr<Module> module, value candidate)
 {
-  z3::context ctx;  
+  smt::context ctx;  
   BasicContext basicctx(ctx, module);
-  z3::solver& solver = basicctx.ctx->solver;
+  smt::solver& solver = basicctx.ctx->solver;
   solver.add(basicctx.e->value2expr(candidate));
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
-  return res == z3::sat;
+  return solver.check_sat();
 }
 
 bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
-  z3::context ctx;  
+  smt::context ctx;  
 
   {
     InitContext initctx(ctx, module);
-    z3::solver& init_solver = initctx.ctx->solver;
+    smt::solver& init_solver = initctx.ctx->solver;
     init_solver.add(initctx.e->value2expr(v_not(candidate)));
-    z3::check_result init_res = init_solver.check();
-    assert (init_res == z3::sat || init_res == z3::unsat);
-    if (init_res == z3::sat) {
+    if (init_solver.check_sat()) {
       return false;
     }
   }
 
   {
     ConjectureContext conjctx(ctx, module);
-    z3::solver& conj_solver = conjctx.ctx->solver;
+    smt::solver& conj_solver = conjctx.ctx->solver;
     conj_solver.add(conjctx.e->value2expr(candidate));
-    z3::check_result conj_res = conj_solver.check();
-    assert (conj_res == z3::sat || conj_res == z3::unsat);
-    if (conj_res == z3::sat) {
+    if (conj_solver.check_sat()) {
       return false;
     }
   }
 
   {
     InductionContext indctx(ctx, module);
-    z3::solver& solver = indctx.ctx->solver;
+    smt::solver& solver = indctx.ctx->solver;
     solver.add(indctx.e1->value2expr(candidate));
     solver.add(indctx.e2->value2expr(v_not(candidate)));
-    z3::check_result res = solver.check();
-    assert (res == z3::sat || res == z3::unsat);
-    if (res == z3::sat) {
+    if (solver.check_sat()) {
       return false;
     }
   }
@@ -654,27 +642,23 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
 }
 
 bool is_itself_invariant(shared_ptr<Module> module, value candidate) {
-  z3::context ctx;  
+  smt::context ctx;  
 
   {
     InitContext initctx(ctx, module);
-    z3::solver& init_solver = initctx.ctx->solver;
+    smt::solver& init_solver = initctx.ctx->solver;
     init_solver.add(initctx.e->value2expr(v_not(candidate)));
-    z3::check_result init_res = init_solver.check();
-    assert (init_res == z3::sat || init_res == z3::unsat);
-    if (init_res == z3::sat) {
+    if (init_solver.check_sat()) {
       return false;
     }
   }
 
   {
     InductionContext indctx(ctx, module);
-    z3::solver& solver = indctx.ctx->solver;
+    smt::solver& solver = indctx.ctx->solver;
     solver.add(indctx.e1->value2expr(candidate));
     solver.add(indctx.e2->value2expr(v_not(candidate)));
-    z3::check_result res = solver.check();
-    assert (res == z3::sat || res == z3::unsat);
-    if (res == z3::sat) {
+    if (solver.check_sat()) {
       return false;
     }
   }
@@ -696,7 +680,7 @@ bool is_invariant_with_conjectures(std::shared_ptr<Module> module, vector<value>
 bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
   //printf("is_itself_invariant\n");
 
-  z3::context ctx;  
+  smt::context ctx;  
 
   value full = v_and(candidates);
 
@@ -705,25 +689,21 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
 
     {
       InitContext initctx(ctx, module);
-      z3::solver& init_solver = initctx.ctx->solver;
+      smt::solver& init_solver = initctx.ctx->solver;
       init_solver.add(initctx.e->value2expr(v_not(candidate)));
       //printf("checking init condition...\n");
-      z3::check_result init_res = init_solver.check();
-      assert (init_res == z3::sat || init_res == z3::unsat);
-      if (init_res == z3::sat) {
+      if (init_solver.check_sat()) {
         return false;
       }
     }
 
     for (int i = 0; i < (int)module->actions.size(); i++) {
       InductionContext indctx(ctx, module, i);
-      z3::solver& solver = indctx.ctx->solver;
+      smt::solver& solver = indctx.ctx->solver;
       solver.add(indctx.e1->value2expr(full));
       solver.add(indctx.e2->value2expr(v_not(candidate)));
       //printf("checking invariant condition...\n");
-      z3::check_result res = solver.check();
-      assert (res == z3::sat || res == z3::unsat);
-      if (res == z3::sat) {
+      if (solver.check_sat()) {
         //cout << "failed with action " << module->action_names[i] << endl;
         //cout << "failed with candidate " << candidate->to_string() << endl;
 
@@ -750,7 +730,7 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
 }
 
 bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wprIter) {
-  z3::context ctx;
+  smt::context ctx;
 
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
 
@@ -763,13 +743,11 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
     cout << "is_wpr_itself_inductive: " << i << endl;
 
     ChainContext chainctx(ctx, module, i);
-    z3::solver& solver = chainctx.ctx->solver;
+    smt::solver& solver = chainctx.ctx->solver;
 
     solver.add(chainctx.es[0]->value2expr(wpr_candidate));
     solver.add(chainctx.es[i]->value2expr(v_not(candidate)));
-    z3::check_result res = solver.check();
-    assert (res == z3::sat || res == z3::unsat);
-    if (res == z3::sat) {
+    if (solver.check_sat()) {
       return false;
     }
   }
@@ -778,35 +756,28 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
 }
 
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
-  z3::context ctx;  
+  smt::context ctx;  
 
   {
     InitContext initctx(ctx, module);
-    z3::solver& init_solver = initctx.ctx->solver;
+    smt::solver& init_solver = initctx.ctx->solver;
     init_solver.add(initctx.e->value2expr(v_not(candidate)));
-    z3::check_result init_res = init_solver.check();
-    assert (init_res == z3::sat || init_res == z3::unsat);
-    if (init_res == z3::sat) {
+    if (init_solver.check_sat()) {
       return false;
     }
   }
 
   for (int i = 0; i < (int)module->actions.size(); i++) {
     InductionContext indctx(ctx, module, i);
-    z3::solver& solver = indctx.ctx->solver;
+    smt::solver& solver = indctx.ctx->solver;
     solver.add(indctx.e1->value2expr(invariant_so_far));
     solver.add(indctx.e1->value2expr(candidate));
     solver.add(indctx.e2->value2expr(v_not(candidate)));
-    z3::check_result res = solver.check();
-    assert (res == z3::sat || res == z3::unsat);
-    if (res == z3::sat) {
+
+    if (solver.check_sat()) {
       return false;
     }
   }
 
   return true;
-}
-
-void z3_set_timeout(z3::context& ctx, int ms) {
-  ctx.set("timeout", ms);
 }

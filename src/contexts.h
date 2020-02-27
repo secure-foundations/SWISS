@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "z3++.h"
+#include "smt.h"
 
 #include "logic.h"
 
@@ -14,14 +14,14 @@
 
 class BackgroundContext {
 public:
-  z3::context& ctx;
-  z3::solver solver;
-  std::unordered_map<std::string, z3::sort> sorts;
+  smt::context& ctx;
+  smt::solver solver;
+  std::unordered_map<std::string, smt::sort> sorts;
 
-  BackgroundContext(z3::context& ctx, std::shared_ptr<Module> module);
+  BackgroundContext(smt::context& ctx, std::shared_ptr<Module> module);
 
-  z3::sort getUninterpretedSort(std::string name);
-  z3::sort getSort(std::shared_ptr<Sort> sort);
+  smt::sort getUninterpretedSort(std::string name);
+  smt::sort getSort(std::shared_ptr<Sort> sort);
 };
 
 /**
@@ -30,30 +30,30 @@ public:
 class ModelEmbedding {
 public:
   std::shared_ptr<BackgroundContext> ctx;
-  std::unordered_map<iden, z3::func_decl> mapping;
+  std::unordered_map<iden, smt::func_decl> mapping;
 
   ModelEmbedding(
       std::shared_ptr<BackgroundContext> ctx,
-      std::unordered_map<iden, z3::func_decl> const& mapping)
+      std::unordered_map<iden, smt::func_decl> const& mapping)
       : ctx(ctx), mapping(mapping) { }
 
   static std::shared_ptr<ModelEmbedding> makeEmbedding(
       std::shared_ptr<BackgroundContext> ctx,
       std::shared_ptr<Module> module);
 
-  z3::func_decl getFunc(iden) const;
+  smt::func_decl getFunc(iden) const;
 
-  z3::expr value2expr(std::shared_ptr<Value>);
+  smt::expr value2expr(std::shared_ptr<Value>);
 
-  z3::expr value2expr(std::shared_ptr<Value>,
-      std::unordered_map<iden, z3::expr> const& consts);
+  smt::expr value2expr(std::shared_ptr<Value>,
+      std::unordered_map<iden, smt::expr> const& consts);
 
-  z3::expr value2expr_with_vars(std::shared_ptr<Value>,
-      std::unordered_map<iden, z3::expr> const& vars);
+  smt::expr value2expr_with_vars(std::shared_ptr<Value>,
+      std::unordered_map<iden, smt::expr> const& vars);
 
-  z3::expr value2expr(std::shared_ptr<Value>,
-      std::unordered_map<iden, z3::expr> const& consts,
-      std::unordered_map<iden, z3::expr> const& vars);
+  smt::expr value2expr(std::shared_ptr<Value>,
+      std::unordered_map<iden, smt::expr> const& consts,
+      std::unordered_map<iden, smt::expr> const& vars);
 
   void dump();
 };
@@ -65,7 +65,7 @@ public:
   std::shared_ptr<ModelEmbedding> e2;
   int action_idx;
 
-  InductionContext(z3::context& ctx, std::shared_ptr<Module> module,
+  InductionContext(smt::context& ctx, std::shared_ptr<Module> module,
       int action_idx = -1);
 };
 
@@ -74,7 +74,7 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::vector<std::shared_ptr<ModelEmbedding>> es;
 
-  ChainContext(z3::context& ctx, std::shared_ptr<Module> module, int numTransitions);
+  ChainContext(smt::context& ctx, std::shared_ptr<Module> module, int numTransitions);
 };
 
 class BasicContext {
@@ -82,7 +82,7 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e;
 
-  BasicContext(z3::context& ctx, std::shared_ptr<Module> module);
+  BasicContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
 
 class InitContext {
@@ -90,7 +90,7 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e;
 
-  InitContext(z3::context& ctx, std::shared_ptr<Module> module);
+  InitContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
 
 class ConjectureContext {
@@ -98,7 +98,7 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e;
 
-  ConjectureContext(z3::context& ctx, std::shared_ptr<Module> module);
+  ConjectureContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
 
 class InvariantsContext {
@@ -106,7 +106,7 @@ public:
   std::shared_ptr<BackgroundContext> ctx;
   std::shared_ptr<ModelEmbedding> e;
 
-  InvariantsContext(z3::context& ctx, std::shared_ptr<Module> module);
+  InvariantsContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
 
 std::string name(std::string basename);
@@ -114,18 +114,18 @@ std::string name(iden basename);
 
 struct ActionResult {
   std::shared_ptr<ModelEmbedding> e;
-  z3::expr constraint;
+  smt::expr constraint;
 
   ActionResult(
     std::shared_ptr<ModelEmbedding> e,
-    z3::expr constraint)
+    smt::expr constraint)
   : e(e), constraint(constraint) { }
 };
 
 ActionResult applyAction(
     std::shared_ptr<ModelEmbedding> e,
     std::shared_ptr<Action> action,
-    std::unordered_map<iden, z3::expr> const& consts);
+    std::unordered_map<iden, smt::expr> const& consts);
 
 bool is_satisfiable(std::shared_ptr<Module>, value);
 
@@ -142,8 +142,5 @@ bool is_invariant_with_conjectures(std::shared_ptr<Module>, value);
 bool is_invariant_with_conjectures(std::shared_ptr<Module>, std::vector<value>);
 
 bool is_invariant_wrt(std::shared_ptr<Module>, value invariant_so_far, value candidate);
-
-// TODO better place for this?
-void z3_set_timeout(z3::context&, int ms);
 
 #endif

@@ -14,7 +14,7 @@ class FixedBMCContext {
   bool from_safety;
 
 public:
-  FixedBMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety);
+  FixedBMCContext(smt::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety);
   bool is_exactly_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal);
   std::shared_ptr<Model> get_k_invariance_violation_maybe(value v, bool get_minimal);
@@ -27,7 +27,7 @@ class BMCContext {
   std::vector<std::shared_ptr<FixedBMCContext>> bmcs;
 
 public:
-  BMCContext(z3::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety = false);
+  BMCContext(smt::context& ctx, std::shared_ptr<Module> module, int k, bool from_safety = false);
   bool is_k_invariant(value v);
   std::shared_ptr<Model> get_k_invariance_violation(value v, bool get_minimal = false);
   std::shared_ptr<Model> get_k_invariance_violation_maybe(value v, bool get_minimal = false);

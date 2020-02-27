@@ -19,7 +19,7 @@
 
 using namespace std;
 
-bool try_to_add_invariant(
+/*bool try_to_add_invariant(
     shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
@@ -32,44 +32,42 @@ bool try_to_add_invariant(
   shared_ptr<Value> not_conjecture = shared_ptr<Value>(new Not(conjecture));
 
   // Check if INIT ==> INV
-  z3::solver& init_solver = initctx->ctx->solver;
+  smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(not_conjecture));
-  z3::check_result init_res = init_solver.check();
+  smt::check_result init_res = init_solver.check();
 
-  assert (init_res == z3::sat || init_res == z3::unsat);
+  assert (init_res == smt::sat || init_res == smt::unsat);
 
-  if (init_res == z3::sat) {
+  if (init_res == smt::sat) {
     init_solver.pop();
     return false;
   } else {
     init_solver.pop();
   }
 
-  z3::solver& solver = indctx->ctx->solver;
+  smt::solver& solver = indctx->ctx->solver;
 
   solver.push();
   solver.add(indctx->e1->value2expr(conjecture));
   solver.push();
   solver.add(indctx->e2->value2expr(not_conjecture));
 
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
+  smt::check_result res = solver.check();
+  assert (res == smt::sat || res == smt::unsat);
 
-  /*
-  printf("'%s'\n", solver.to_smt2().c_str());
+  //printf("'%s'\n", solver.to_smt2().c_str());
 
-  if (res == z3::sat) {
-    z3::model m = solver.get_model();
-    std::cout << m << "\n";
-  }
-  */
+  //if (res == smt::sat) {
+  //  smt::model m = solver.get_model();
+  //  std::cout << m << "\n";
+  //}
 
-  if (res == z3::unsat) {
+  if (res == smt::unsat) {
     solver.pop();
 
-    z3::solver& conj_solver = conjctx->ctx->solver;
-    z3::solver& inv_solver = invctx->ctx->solver;
+    smt::solver& conj_solver = conjctx->ctx->solver;
+    smt::solver& inv_solver = invctx->ctx->solver;
 
     solver.add(indctx->e2->value2expr(conjecture));
     init_solver.add(initctx->e->value2expr(conjecture));
@@ -97,35 +95,32 @@ bool try_to_add_invariant(
     solver.pop();
     return false;
   }
-}
+}*/
 
 bool do_invariants_imply_conjecture(shared_ptr<ConjectureContext> conjctx) {
-  z3::solver& solver = conjctx->ctx->solver;
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
-  return (res == z3::unsat);
+  smt::solver& solver = conjctx->ctx->solver;
+  return !solver.check_sat();
 }
 
 bool is_redundant(
     shared_ptr<InvariantsContext> invctx,
     shared_ptr<Value> formula)
 {
-  z3::solver& solver = invctx->ctx->solver;
+  smt::solver& solver = invctx->ctx->solver;
   solver.push();
   solver.add(invctx->e->value2expr(shared_ptr<Value>(new Not(formula))));
 
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
+  bool res = !solver.check_sat();
   solver.pop();
-  return (res == z3::unsat);
+  return res;
 }
 
 // get a Model that can be an initial state
-shared_ptr<Model> get_dumb_model(
+/*shared_ptr<Model> get_dumb_model(
     shared_ptr<InitContext> initctx,
     shared_ptr<Module> module)
 {
-  z3::solver& solver = initctx->ctx->solver;
+  smt::solver& solver = initctx->ctx->solver;
 
   solver.push();
 
@@ -149,8 +144,8 @@ shared_ptr<Model> get_dumb_model(
     ))));
   }
 
-  z3::check_result res = solver.check();
-  assert (res == z3::sat);
+  smt::check_result res = solver.check();
+  assert (res == smt::sat);
   
   shared_ptr<Model> result = Model::extract_model_from_z3(
       initctx->ctx->ctx,
@@ -161,7 +156,7 @@ shared_ptr<Model> get_dumb_model(
   solver.pop();
 
   return result;
-}
+}*/
 
 value augment_invariant(value a, value b) {
   if (Forall* f = dynamic_cast<Forall*>(a.get())) {
@@ -336,7 +331,7 @@ void enumerate_next_level(
 }*/
     
 
-void try_to_add_invariants(
+/*void try_to_add_invariants(
     shared_ptr<Module> module,
     shared_ptr<InitContext> initctx,
     shared_ptr<InductionContext> indctx,
@@ -359,12 +354,10 @@ void try_to_add_invariants(
       initctx->ctx->ctx,
       module, 5, 3);
   printf("using %d models\n", (int)models.size());
-  /*
-  vector<shared_ptr<Model>> bad_models = get_tree_of_models2(
-      initctx->ctx->ctx,
-      module, 5, true);
-  printf("using %d bad models\n", (int)bad_models.size());
-  */
+  //vector<shared_ptr<Model>> bad_models = get_tree_of_models2(
+  //    initctx->ctx->ctx,
+  //    module, 5, true);
+  //printf("using %d bad models\n", (int)bad_models.size());
 
   BMCContext bmc(initctx->ctx->ctx, module, 4);
 
@@ -400,19 +393,17 @@ void try_to_add_invariants(
 
     auto invariant = invariants[i];
 
-    if (i_ % 1000 == 0) {
-      /*
-      printf("total iterations: %d\n", count_iterations);
-      printf("total evals against good models: %d\n", count_evals);
-      printf("total evals against bad models: %d\n", count_bad_evals);
-      printf("total redundancy checks: %d\n", count_redundancy_checks);
-      printf("total bmc checks: %d\n", count_bmc_checks);
-      printf("total models added: %d\n", count_models_added);
-      printf("total invariance checks: %d\n", count_invariance_checks);
-      printf("total invariants added: %d\n", count_invariants_added);
-      bench.dump();
-      */
-    }
+    //if (i_ % 1000 == 0) {
+    //  printf("total iterations: %d\n", count_iterations);
+    //  printf("total evals against good models: %d\n", count_evals);
+    //  printf("total evals against bad models: %d\n", count_bad_evals);
+    //  printf("total redundancy checks: %d\n", count_redundancy_checks);
+    //  printf("total bmc checks: %d\n", count_bmc_checks);
+    //  printf("total models added: %d\n", count_models_added);
+    //  printf("total invariance checks: %d\n", count_invariance_checks);
+    //  printf("total invariants added: %d\n", count_invariants_added);
+    //  bench.dump();
+    //}
     //printf("%s\n", invariant->to_string().c_str());
     //printf("%s\n\n", invariant->totally_normalize()->to_string().c_str());
 
@@ -430,21 +421,19 @@ void try_to_add_invariants(
       continue;
     }
 
-    /*
-    count_bad_evals++;
-    for (auto model : bad_models) {
-      bench.start("eval");
-      bool model_eval = model->eval_predicate(invariant);
-      bench.end();
-      if (model_eval) {
-        is_good_candidate[i] = false;
-        break;
-      }
-    }
-    if (!is_good_candidate[i]) {
-      continue;
-    }
-    */
+    //count_bad_evals++;
+    //for (auto model : bad_models) {
+    //  bench.start("eval");
+    //  bool model_eval = model->eval_predicate(invariant);
+    //  bench.end();
+    //  if (model_eval) {
+    //    is_good_candidate[i] = false;
+    //    break;
+    //  }
+    //}
+    //if (!is_good_candidate[i]) {
+    //  continue;
+    //}
 
     count_redundancy_checks++;
     bench.start("redundancy");
@@ -515,7 +504,7 @@ void try_to_add_invariants(
   bench.dump();
 
   return;
-}
+}*/
 
 void print_wpr(shared_ptr<Module> module, int count)
 {
@@ -560,16 +549,16 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = parse_module(json_src);
 
-  /*z3::context ctx;
+  /*smt::context ctx;
   BasicContext basic(ctx, module);
-  z3::solver& solver = basic.ctx->solver; 
+  smt::solver& solver = basic.ctx->solver; 
   for (int i = 0; i < module->conjectures.size(); i++) {
     solver.add(basic.e->value2expr(i == 0 ?
         v_not(module->conjectures[i]) : module->conjectures[i]));
   }
-  z3::check_result res = solver.check();
-  assert (res == z3::sat || res == z3::unsat);
-  if (res == z3::sat) {
+  smt::check_result res = solver.check();
+  assert (res == smt::sat || res == smt::unsat);
+  if (res == smt::sat) {
     printf("nope\n");
   } else {
     printf("yep\n");
@@ -748,7 +737,7 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    z3::context ctx;
+    smt::context ctx;
 
     //auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     //auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
