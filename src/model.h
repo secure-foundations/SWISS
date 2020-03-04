@@ -6,7 +6,7 @@
 #include <map>
 #include "logic.h"
 #include "contexts.h"
-#include "z3++.h"
+#include "smt.h"
 #include "lib/json11/json11.hpp"
 
 class SortInfo {

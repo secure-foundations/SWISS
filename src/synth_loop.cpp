@@ -4,7 +4,6 @@
 #include <fstream>
 #include <streambuf>
 
-#include "z3++.h"
 #include "lib/json11/json11.hpp"
 
 #include "model.h"

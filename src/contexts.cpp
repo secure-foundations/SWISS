@@ -121,7 +121,7 @@ smt::expr ModelEmbedding::value2expr(
     smt::expr_vector vec_vars(ctx->ctx);
     std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
-      expr var = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
+      expr var = ctx->ctx.bound_var(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
       new_vars.insert(make_pair(decl.name, var));
     }
@@ -131,7 +131,7 @@ smt::expr ModelEmbedding::value2expr(
     smt::expr_vector vec_vars(ctx->ctx);
     std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
-      expr var = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
+      expr var = ctx->ctx.bound_var(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var);
       new_vars.insert(make_pair(decl.name, var));
     }
@@ -143,8 +143,8 @@ smt::expr ModelEmbedding::value2expr(
     std::unordered_map<iden, smt::expr> new_vars1 = vars;
     std::unordered_map<iden, smt::expr> new_vars2 = vars;
     for (VarDecl decl : value->decls) {
-      expr var1 = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
-      expr var2 = ctx->ctx.constant(name(decl.name), ctx->getSort(decl.sort));
+      expr var1 = ctx->ctx.bound_var(name(decl.name), ctx->getSort(decl.sort));
+      expr var2 = ctx->ctx.bound_var(name(decl.name), ctx->getSort(decl.sort));
       vec_vars.push_back(var1);
       vec_vars.push_back(var2);
       new_vars1.insert(make_pair(decl.name, var1));
@@ -324,7 +324,7 @@ expr funcs_equal(smt::context& ctx, smt::func_decl a, smt::func_decl b) {
   smt::expr_vector args(ctx);
   for (int i = 0; i < (int)a.arity(); i++) {
     smt::sort arg_sort = a.domain(i);
-    args.push_back(ctx.constant(name("arg"), arg_sort));
+    args.push_back(ctx.bound_var(name("arg"), arg_sort));
   }
   if (args.size() == 0) {
     return a.call(args) == b.call(args);
@@ -437,11 +437,11 @@ ActionResult applyAction(
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
-        expr qvar = ctx->ctx.constant(name(arg_var->name), ctx->getSort(arg_var->sort));
+        expr qvar = ctx->ctx.bound_var(name(arg_var->name), ctx->getSort(arg_var->sort));
         qvars.push_back(qvar);
         vars.insert(make_pair(arg_var->name, qvar));
       } else {
-        expr qvar = ctx->ctx.constant(name("arg"), domain[i]);
+        expr qvar = ctx->ctx.bound_var(name("arg"), domain[i]);
         qvars.push_back(qvar);
         all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
       }
@@ -486,11 +486,11 @@ ActionResult applyAction(
       assert(apply != NULL);
       shared_ptr<Value> arg = apply->args[i];
       if (Var* arg_var = dynamic_cast<Var*>(arg.get())) {
-        expr qvar = ctx->ctx.constant(name(arg_var->name), ctx->getSort(arg_var->sort));
+        expr qvar = ctx->ctx.bound_var(name(arg_var->name), ctx->getSort(arg_var->sort));
         qvars.push_back(qvar);
         vars.insert(make_pair(arg_var->name, qvar));
       } else {
-        expr qvar = ctx->ctx.constant(name("arg"), domain[i]);
+        expr qvar = ctx->ctx.bound_var(name("arg"), domain[i]);
         qvars.push_back(qvar);
         all_eq_parts.push_back(qvar == e->value2expr(arg, consts));
       }

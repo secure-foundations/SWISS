@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include "z3++.h"
 #include "grammar.h"
 #include "logic.h"
 

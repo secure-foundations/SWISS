@@ -11,6 +11,57 @@ extern int run_id;
 
 namespace smt {
 
+#ifdef SMT_CVC4
+
+bool been_set = false;
+
+bool solver::check_sat()
+{
+  //auto t1 = now();
+  CVC4::Result::Sat res = smt.checkSat().isSat();
+  //auto t2 = now();
+
+  //if (enable_smt_logging) {
+  //  long long ms = as_ms(t2 - t1);
+  //  log_smtlib(ms, res);
+  //}
+
+  assert (res == CVC4::Result::SAT || res == CVC4::Result::UNSAT);
+  return res == CVC4::Result::SAT;
+}
+
+bool solver::is_sat_or_unknown()
+{
+  //auto t1 = now();
+  CVC4::Result::Sat res = smt.checkSat().isSat();
+  //auto t2 = now();
+
+  //if (enable_smt_logging) {
+  //  long long ms = as_ms(t2 - t1);
+  //  log_smtlib(ms, res);
+  //}
+
+  return res == CVC4::Result::SAT || res == CVC4::Result::SAT_UNKNOWN;
+}
+
+bool solver::is_unsat_or_unknown()
+{
+  //auto t1 = now();
+  CVC4::Result::Sat res = smt.checkSat().isSat();
+  //auto t2 = now();
+
+  //if (enable_smt_logging) {
+  //  long long ms = as_ms(t2 - t1);
+  //  log_smtlib(ms, res);
+  //}
+
+  return res == CVC4::Result::UNSAT || res == CVC4::Result::SAT_UNKNOWN;
+}
+
+
+
+#else
+
 bool solver::check_sat()
 {
   auto t1 = now();
@@ -84,5 +135,7 @@ void solver::log_smtlib(
 
   cout << "logged smtlib to " << filename << endl;
 }
+
+#endif
 
 }

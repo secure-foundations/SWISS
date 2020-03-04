@@ -39,14 +39,14 @@ endif
 
 DEP_DIR = bin/deps
 
-CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable -DSMT_CVC4
 
 all: synthesis
 
 glucoselib: $(LIBS)
 
 synthesis: $(OBJECTS) $(LIBS)
-	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3
+	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3 -lcvc4
 
 bin/lib_glucose_release.a:
 	@mkdir -p $(basename $@)

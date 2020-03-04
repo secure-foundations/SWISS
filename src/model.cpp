@@ -7,6 +7,10 @@
 #include "top_quantifier_desc.h"
 #include "bitset_eval_result.h"
 
+//#ifdef SMT_CVC4
+//#include "cvc4_model.h"
+//#endif
+
 using namespace std;
 using namespace json11;
 
@@ -627,9 +631,9 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     for (int i = 0; i < (int)sorts.size(); i++) {
       smt::sort so = bgctx.getUninterpretedSort(sorts[i]);
       smt::expr_vector vec(ctx);
-      smt::expr elem = ctx.constant(name("valvar").c_str(), so);
+      smt::expr elem = ctx.bound_var(name("valvar").c_str(), so);
       for (int j = 0; j < new_sizes[i]; j++) {
-        smt::expr c = ctx.constant(name("val").c_str(), so);
+        smt::expr c = ctx.var(name("val").c_str(), so);
         vec.push_back(elem == c);
       }
       smt::expr_vector qvars(ctx);
@@ -662,6 +666,153 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
   return all_models;
 }
 
+#ifdef SMT_CVC4
+shared_ptr<Model> Model::extract_model_from_z3(
+    smt::context& ctx,
+    smt::solver& solver,
+    std::shared_ptr<Module> module,
+    ModelEmbedding const& e)
+{
+  CVC4::ExprManager& em = ctx.em;
+  CVC4::SmtEngine& smt = solver.smt;
+
+  CVC4::Model* cvc4_model = smt.getModel();
+
+  std::cout << *cvc4_model << endl;
+  std::cout << "death " << endl;
+
+  map<string, vector<CVC4::Expr>> universes;
+
+  std::unordered_map<std::string, SortInfo> sort_info;
+  for (auto p : e.ctx->sorts) {
+    string name = p.first;
+    CVC4::Type ty = p.second.ty;
+    std::cout << "hi " << name << endl;
+    vector<CVC4::Expr> exprs = cvc4_model->getDomainElements(ty);
+    std::cout << "meh" << endl;
+    assert (exprs.size() > 0);
+    universes.insert(make_pair(name, exprs));
+    SortInfo si;
+    si.domain_size = exprs.size();
+    sort_info.insert(make_pair(name, si));
+  }
+
+  std::unordered_map<iden, FunctionInfo> function_info;
+
+  for (VarDecl decl : module->functions) {
+    iden name = decl.name;
+    smt::func_decl fd = e.getFunc(name);
+
+    function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& fi = function_info.find(name)->second;
+    fi.else_value = 0;
+
+    vector<shared_ptr<Sort>> domain =
+        decl.sort->get_domain_as_function();
+
+    shared_ptr<Sort> range =
+        decl.sort->get_range_as_function();
+
+    vector<size_t> domain_sizes;
+    for (int i = 0; i < (int)domain.size(); i++) {
+      if (dynamic_cast<BooleanSort*>(domain[i].get())) {
+        domain_sizes.push_back(2);
+      } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(domain[i].get())) {
+        auto it = universes.find(us->name);
+        assert (it != universes.end());
+        domain_sizes.push_back(it->second.size());
+      } else {
+        assert (false);
+      }
+    }
+
+    vector<object_value> args;
+    args.resize(domain.size());
+    for (int i = 0; i < (int)domain.size(); i++) {
+      args[i] = 0;
+    }
+
+    CVC4::Expr const_true = em.mkConst(true);
+    CVC4::Expr const_false = em.mkConst(false);
+
+    while (true) {
+      smt::expr_vector args_exprs(ctx);
+      for (int i = 0; i < (int)domain.size(); i++) {
+        if (dynamic_cast<BooleanSort*>(domain[i].get())) {
+          args_exprs.push_back(args[i] == 0 ? const_false : const_true);
+        } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(domain[i].get())) {
+          auto it = universes.find(us->name);
+          assert (it != universes.end());
+          assert (0 <= args[i] < it->second.size());
+          args_exprs.push_back(it->second[args[i]]);
+        } else {
+          assert (false);
+        }
+      }
+
+      CVC4::Expr result_expr =
+          cvc4_model->getValue(fd.call(args_exprs).ex);
+      object_value result;
+
+      if (dynamic_cast<BooleanSort*>(range.get())) {
+        if (result_expr == const_true) {
+          result = 1;
+        } else if (result_expr == const_false) {
+          result = 0;
+        } else {
+          assert (false);
+        }
+      } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(range.get())) {
+        auto it = universes.find(us->name);
+        assert (it != universes.end());
+        vector<CVC4::Expr>& univ = it->second;
+        bool found = false;
+        for (int j = 0; j < (int)univ.size(); j++) {
+          if (univ[j] == result_expr) {
+            result = j;
+            found = true;
+            break;
+          }
+        }
+        assert (found);
+      } else {
+        assert (false);
+      }
+
+      if (fi.table == nullptr) {
+        fi.table = unique_ptr<FunctionTable>(new FunctionTable());
+        fi.table->children.resize(domain_sizes[0]);
+      }
+      FunctionTable* ft = fi.table.get();
+      for (int i = 0; i < (int)domain.size(); i++) {
+        if (ft->children[args[i]] == nullptr) {
+          ft->children[args[i]] = unique_ptr<FunctionTable>(new FunctionTable());
+          if (i + 1 < (int)domain.size()) {
+            ft->children[args[i]]->children.resize(domain_sizes[i+1]);
+          }
+        }
+        ft = ft->children[args[i]].get();
+      }
+      ft->value = result;
+
+      int i;
+      for (i = 0; i < (int)domain.size(); i++) {
+        args[i]++;
+        if (args[i] == domain_sizes[i]) {
+          args[i] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == (int)domain.size()) {
+        break;
+      }
+    }
+  }
+
+  return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
+}
+#else
 shared_ptr<Model> Model::extract_model_from_z3(
     smt::context& ctx,
     smt::solver& solver,
@@ -852,6 +1003,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
 
   return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
 }
+#endif
 
 void Model::dump_sizes() const {
   cout << "Model sizes: ";
@@ -1012,7 +1164,7 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
 
     smt::expr_vector vec(bgctx.ctx);
     for (int i = 0; i < (int)sinfo.domain_size; i++) {
-      vec.push_back(bgctx.ctx.constant(name(sort_name + "_val").c_str(), so));
+      vec.push_back(bgctx.ctx.var(name(sort_name + "_val").c_str(), so));
     }
     for (int i = 0; i < (int)vec.size(); i++) {
       for (int j = i+1; j < (int)vec.size(); j++) {
@@ -1021,7 +1173,7 @@ void Model::assert_model_is_or_isnt(shared_ptr<ModelEmbedding> e,
     }
 
     if (exact) {
-      smt::expr elem = bgctx.ctx.constant(name(sort_name).c_str(), so);
+      smt::expr elem = bgctx.ctx.bound_var(name(sort_name).c_str(), so);
       smt::expr_vector eqs(bgctx.ctx);
       for (int i = 0; i < (int)vec.size(); i++) {
         eqs.push_back(vec[i] == elem);
