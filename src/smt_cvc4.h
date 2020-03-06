@@ -4,6 +4,7 @@
 #include <cvc4/cvc4.h>
 
 #include <cassert>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -113,11 +114,11 @@ namespace smt {
   struct solver {
     CVC4::SmtEngine smt;
     solver(context& ctx) : smt(&ctx.em) {
-      smt.setOption("finite-model-find", true);
       if (!ctx.been_set) {
         smt.setOption("produce-models", true);
         ctx.been_set = true;
       }
+      smt.setOption("finite-model-find", true);
     }
 
     void enable_models() {
@@ -228,14 +229,14 @@ namespace smt {
       std::string const& name,
       sort so)
   {
-    return expr(em.mkVar(name.c_str(), so.ty));
+    return expr(em.mkVar(name, so.ty));
   }
 
   inline expr context::bound_var(
       std::string const& name,
       sort so)
   {
-    return expr(em.mkBoundVar(name.c_str(), so.ty));
+    return expr(em.mkBoundVar(name, so.ty));
   }
 
   inline bool func_decl_eq(func_decl a, func_decl b) {

@@ -610,8 +610,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
       value candidate = candidate0->reduce_quants();
 
-      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+      //auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
+      //auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
                 module, options, ctx, bmc, false,
                 v_and(found_invs), candidate);
@@ -772,8 +772,6 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
       value candidate = candidate0->reduce_quants();
 
-      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-      auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
       Counterexample cex = get_counterexample_simple(
                 module, options, ctx, bmc, false /* check_implies_conj */,
                 v_and(filtered_simplified_strengthened_invs), candidate);

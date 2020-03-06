@@ -17,6 +17,7 @@ bool been_set = false;
 
 bool solver::check_sat()
 {
+  //cout << "check_sat" << endl;
   //auto t1 = now();
   CVC4::Result::Sat res = smt.checkSat().isSat();
   //auto t2 = now();
@@ -27,11 +28,13 @@ bool solver::check_sat()
   //}
 
   assert (res == CVC4::Result::SAT || res == CVC4::Result::UNSAT);
+  //cout << "res is " << (res == CVC4::Result::SAT ? "true" : "false") << endl;
   return res == CVC4::Result::SAT;
 }
 
 bool solver::is_sat_or_unknown()
 {
+  //cout << "is_sat_or_unknown" << endl;
   //auto t1 = now();
   CVC4::Result::Sat res = smt.checkSat().isSat();
   //auto t2 = now();
@@ -46,6 +49,7 @@ bool solver::is_sat_or_unknown()
 
 bool solver::is_unsat_or_unknown()
 {
+  //cout << "is_unsat_or_unknown" << endl;
   //auto t1 = now();
   CVC4::Result::Sat res = smt.checkSat().isSat();
   //auto t2 = now();

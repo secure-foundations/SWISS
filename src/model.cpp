@@ -677,9 +677,9 @@ shared_ptr<Model> Model::extract_model_from_z3(
   CVC4::SmtEngine& smt = solver.smt;
 
   CVC4::Model* cvc4_model = smt.getModel();
+  CVC4::SmtScopeContainer smt_scope_container(cvc4_model);
 
-  std::cout << *cvc4_model << endl;
-  std::cout << "death " << endl;
+  //std::cout << *cvc4_model << endl;
 
   map<string, vector<CVC4::Expr>> universes;
 
@@ -687,9 +687,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
   for (auto p : e.ctx->sorts) {
     string name = p.first;
     CVC4::Type ty = p.second.ty;
-    std::cout << "hi " << name << endl;
     vector<CVC4::Expr> exprs = cvc4_model->getDomainElements(ty);
-    std::cout << "meh" << endl;
     assert (exprs.size() > 0);
     universes.insert(make_pair(name, exprs));
     SortInfo si;
@@ -724,6 +722,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
       } else {
         assert (false);
       }
+      assert(domain_sizes[i] > 0);
     }
 
     vector<object_value> args;
@@ -743,7 +742,7 @@ shared_ptr<Model> Model::extract_model_from_z3(
         } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(domain[i].get())) {
           auto it = universes.find(us->name);
           assert (it != universes.end());
-          assert (0 <= args[i] < it->second.size());
+          assert (0 <= args[i] && args[i] < it->second.size());
           args_exprs.push_back(it->second[args[i]]);
         } else {
           assert (false);

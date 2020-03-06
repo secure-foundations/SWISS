@@ -737,7 +737,7 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    smt::context ctx;
+    //smt::context ctx;
 
     //auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
     //auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
