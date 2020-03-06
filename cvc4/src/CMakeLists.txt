@@ -942,6 +942,7 @@ install(FILES
           smt/command.h
           smt/logic_exception.h
           smt/smt_engine.h
+          smt/model.h
         DESTINATION
           ${INCLUDE_INSTALL_DIR}/cvc4/smt)
 install(FILES

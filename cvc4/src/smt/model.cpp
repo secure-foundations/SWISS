@@ -51,4 +51,9 @@ const Command* Model::getCommand(size_t i) const {
   }
 }
 
+SmtScopeContainer::SmtScopeContainer(Model* m)
+{
+  ss.reset(new smt::SmtScope(&m->d_smt));
+}
+
 }/* CVC4 namespace */

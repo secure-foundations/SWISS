@@ -12,7 +12,7 @@
  ** \brief Model class
  **/
 
-#include "cvc4_private.h"
+#include "cvc4_public.h"
 
 #ifndef CVC4__MODEL_H
 #define CVC4__MODEL_H
@@ -35,10 +35,11 @@ class Model {
   friend std::ostream& operator<<(std::ostream&, const Model&);
   friend class SmtEngine;
 
- protected:
+ public:
   /** The SmtEngine we're associated with */
   SmtEngine& d_smt;
 
+ protected:
   /** construct the base class; users cannot do this, only CVC4 internals */
   Model();
 
@@ -125,6 +126,15 @@ public:
   virtual ~ModelBuilder() { }
   virtual bool buildModel(Model* m) = 0;
 };/* class ModelBuilder */
+
+namespace smt {
+  class SmtScope;
+}
+
+struct SmtScopeContainer {
+  std::shared_ptr<smt::SmtScope> ss;
+  SmtScopeContainer(Model*);
+};
 
 }/* CVC4 namespace */
 

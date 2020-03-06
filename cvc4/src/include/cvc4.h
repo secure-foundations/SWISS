@@ -28,6 +28,7 @@
 #include <cvc4/parser/parser_builder.h>
 #include <cvc4/smt/command.h>
 #include <cvc4/smt/smt_engine.h>
+#include <cvc4/smt/model.h>
 #include <cvc4/util/integer.h>
 #include <cvc4/util/rational.h>
 
