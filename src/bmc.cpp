@@ -19,18 +19,18 @@ FixedBMCContext::FixedBMCContext(smt::context& z3ctx, shared_ptr<Module> module,
   }
 
   // Add the axioms
-  /*for (shared_ptr<Value> axiom : module->axioms) {
+  for (shared_ptr<Value> axiom : module->axioms) {
     ctx->solver.add(this->e1->value2expr(axiom, std::unordered_map<iden, smt::expr> {}));
-  }*/
+  }
 
   // Add the inits
-  /*if (!from_safety) {
+  if (!from_safety) {
     for (shared_ptr<Value> init : module->inits) {
       ctx->solver.add(this->e1->value2expr(init));
     }
   } else {
     ctx->solver.add(this->e2->value2expr(v_not(v_and(module->conjectures))));
-  }*/
+  }
 }
 
 bool FixedBMCContext::is_exactly_k_invariant(value v) {
@@ -85,7 +85,9 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation_maybe(value v, boo
   shared_ptr<Model> ans;
   if (!res) {
     if (get_minimal) {
+      //cout << "get_k_invariance_violation_maybe " << k << endl;
       ans = Model::extract_minimal_models_from_z3(ctx->ctx, solver, module, {e2}, /* hint */ v)[0];
+      //cout << "done get_k_invariance_violation_maybe" << endl;
     } else {
       ans = Model::extract_model_from_z3(ctx->ctx, solver, module, *e2);
     }

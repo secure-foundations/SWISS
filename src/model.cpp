@@ -676,10 +676,31 @@ shared_ptr<Model> Model::extract_model_from_z3(
   CVC4::ExprManager& em = ctx.em;
   CVC4::SmtEngine& smt = solver.smt;
 
+  // The cvc4 API, at least at the time of writing, does
+  // not appear to expose any way of accessing the model.
+  // We use a version with some modifications I made to expose
+  // the Model interface.
+  // Since the Model interface isn't intended to be exposed,
+  // it's a little hard to use, and it segfaults if you don't
+  // create an SmtScope object (whatever that is), which took
+  // me a while to figure out. The SmtScope object *also* isn't
+  // exposed, so I also modified the library by adding this
+  // SmtScopeContainer object which handles the SmtScope for us.
+  //
+  // tl;dr
+  // Make sure you're using the fork of the cvc4 lib which
+  // is checked in to this repo.
+
   CVC4::Model* cvc4_model = smt.getModel();
   CVC4::SmtScopeContainer smt_scope_container(cvc4_model);
 
+  //std::cout << endl;
+  //std::cout << endl;
+  //std::cout << endl;
   //std::cout << *cvc4_model << endl;
+  //std::cout << endl;
+  //std::cout << endl;
+  //std::cout << endl;
 
   map<string, vector<CVC4::Expr>> universes;
 
@@ -700,6 +721,8 @@ shared_ptr<Model> Model::extract_model_from_z3(
   for (VarDecl decl : module->functions) {
     iden name = decl.name;
     smt::func_decl fd = e.getFunc(name);
+
+    //cout << "doing " << iden_to_string(name) << endl;
 
     function_info.insert(make_pair(name, FunctionInfo()));
     FunctionInfo& fi = function_info.find(name)->second;
@@ -809,7 +832,9 @@ shared_ptr<Model> Model::extract_model_from_z3(
     }
   }
 
-  return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
+  auto result = shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
+  //result->dump();
+  return result;
 }
 #else
 shared_ptr<Model> Model::extract_model_from_z3(
