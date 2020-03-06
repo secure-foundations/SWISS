@@ -136,9 +136,9 @@ namespace smt {
     void pop() { smt.pop(); }
     void add(expr e) { smt.assertFormula(e.ex); }
 
-    //void log_smtlib(
-    //    long long ms,
-    //    z3::check_result res);
+    void log_smtlib(
+        long long ms,
+        std::string const& res);
   };
 
   inline expr forall(expr_vector args, expr body) {
