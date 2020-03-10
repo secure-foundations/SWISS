@@ -799,7 +799,9 @@ shared_ptr<Model> Model::extract_model_from_z3(
 
       if (fi.table == nullptr) {
         fi.table = unique_ptr<FunctionTable>(new FunctionTable());
-        fi.table->children.resize(domain_sizes[0]);
+        if (0 < domain_sizes.size()) {
+          fi.table->children.resize(domain_sizes[0]);
+        }
       }
       FunctionTable* ft = fi.table.get();
       for (int i = 0; i < (int)domain.size(); i++) {
