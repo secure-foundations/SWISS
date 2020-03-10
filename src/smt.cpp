@@ -155,8 +155,7 @@ void solver::log_smtlib(
 
   #ifdef SMT_CVC4
   smt.setInfo("smt-lib-version", 2);
-  assert(false && "not implemented");
-  //myfile << smt << endl;
+  myfile << "not implemented" << endl;
   #else
   myfile << z3_solver << endl;
   #endif

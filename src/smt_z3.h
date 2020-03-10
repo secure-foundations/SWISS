@@ -69,7 +69,11 @@ namespace smt {
         std::string const& name,
         sort range);
 
-    inline expr constant(
+    inline expr var(
+        std::string const& name,
+        sort so);
+
+    inline expr bound_var(
         std::string const& name,
         sort so);
   };
@@ -107,7 +111,7 @@ namespace smt {
 
     void log_smtlib(
         long long ms,
-        z3::check_result res);
+        std::string const& res);
   };
 
   inline expr forall(expr_vector args, expr body) {
@@ -157,7 +161,14 @@ namespace smt {
     return ctx.function(name.c_str(), 0, 0, range.so);
   }
 
-  inline expr context::constant(
+  inline expr context::var(
+      std::string const& name,
+      sort so)
+  {
+    return expr(ctx.constant(name.c_str(), so.so));
+  }
+
+  inline expr context::bound_var(
       std::string const& name,
       sort so)
   {

@@ -4,7 +4,7 @@
 #ifdef SMT_CVC4
 #include "smt_cvc4.h"
 #else
-#include "smt_cvc4.h"
+#include "smt_z3.h"
 #endif
 
 #endif

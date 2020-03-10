@@ -7,10 +7,6 @@
 #include "top_quantifier_desc.h"
 #include "bitset_eval_result.h"
 
-//#ifdef SMT_CVC4
-//#include "cvc4_model.h"
-//#endif
-
 using namespace std;
 using namespace json11;
 
