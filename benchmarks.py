@@ -79,6 +79,9 @@ BENCHMARKS = {
 "naive-breadth-paxos-exist-1" :
   Benchmark("benchmarks/paxos_epr_existential_1.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --whole-space --start-with-existing-conjectures"),
 
+"naive-full-paxos-exist-1" :
+  Benchmark("benchmarks/paxos_epr_existential_1.ivy", "--enum-naive --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --with-conjs"),
+
 # note: this one is a lot easier than naive-breadth-paxos-exist-1
 "naive-breadth-paxos-exist-2" :
   Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --whole-space"),

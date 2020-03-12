@@ -27,16 +27,16 @@ Counterexample get_bmc_counterexample(
     bool minimal)
 {
   shared_ptr<Model> model = bmc.get_k_invariance_violation_maybe(candidate, minimal);
-  if (model) {
+  /*if (model) {
     printf("counterexample type: INIT (after some steps)\n");
     Counterexample cex;
     cex.is_true = model;
     return cex;
-  } else {
+  } else {*/
     Counterexample cex;
     cex.none = true;
     return cex;
-  }
+  //}
 }
 
 Counterexample get_counterexample_simple(
@@ -285,7 +285,7 @@ void cex_stats(Counterexample cex) {
 
 Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex,
     BMCContext& bmc) {
-  if (cex.hypothesis) {
+  /*if (cex.hypothesis) {
     if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
         bmc.is_reachable_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
@@ -295,16 +295,16 @@ Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample c
     }
 
     return cex;
-  } else {
+  } else {*/
     return cex;
-  }
+  //}
 }
 
 
 Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     BMCContext& bmc,
     BMCContext& antibmc) {
-  if (cex.hypothesis) {
+  /*if (cex.hypothesis) {
     if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
         bmc.is_reachable_exact_steps_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
@@ -322,9 +322,9 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     }
 
     return cex;
-  } else {
+  } else {*/
     return cex;
-  }
+  //}
 }
 
 struct Transcript {
