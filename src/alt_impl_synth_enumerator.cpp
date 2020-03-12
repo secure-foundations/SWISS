@@ -308,7 +308,7 @@ value AltImplCandidateSolver::getNext() {
         }
       }
       else if (cexes[i].is_false) {
-        setup_abe1(abes[i].second, cex_results[i], cur_indices);
+        setup_abe1(abes[i].first, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
         //assert (res == cexes[i].is_false->eval_predicate(sanity_v));
         if (res) {
@@ -317,7 +317,7 @@ value AltImplCandidateSolver::getNext() {
         }
       }
       else {
-        setup_abe1(abes[i].second, cex_results[i], cur_indices);
+        setup_abe1(abes[i].first, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
         //assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
         if (res) {

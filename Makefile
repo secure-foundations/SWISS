@@ -39,7 +39,8 @@ endif
 
 DEP_DIR = bin/deps
 
-CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable -DSMT_CVC4
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable
+#-DSMT_CVC4
 
 all: synthesis
 

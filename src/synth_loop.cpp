@@ -39,6 +39,131 @@ Counterexample get_bmc_counterexample(
   //}
 }
 
+Counterexample get_counterexample_stuff(
+    shared_ptr<Module> module,
+    Options const& options,
+    smt::context& ctx,
+    value cur_invariant,
+    value candidate,
+    vector<value> conjectures)
+{
+  Benchmarking bench;
+
+  Counterexample cex;
+  cex.none = false;
+
+  bool use_minimal = true;
+
+  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+  smt::solver& init_solver = initctx->ctx->solver;
+  init_solver.push();
+  init_solver.add(initctx->e->value2expr(v_not(candidate)));
+  bench.start("init-check");
+  init_solver.set_log_info("init-check");
+  bool init_res = init_solver.check_sat();
+  bench.end();
+
+  if (init_res) {
+    if (use_minimal) {
+      bench.start("init-minimization");
+      cex.is_true = Model::extract_minimal_models_from_z3(
+          initctx->ctx->ctx,
+          init_solver, module, {initctx->e}, /* hint */ candidate)[0];
+      bench.end();
+    } else {
+      cex.is_true = Model::extract_model_from_z3(
+          initctx->ctx->ctx,
+          init_solver, module, *initctx->e);
+    }
+
+    printf("counterexample type: INIT\n");
+    //cex.is_true->dump();
+
+    init_solver.pop();
+    bench.dump();
+    return cex;
+  } else {
+    init_solver.pop();
+  } 
+
+  for (int j = 0; j < (int)module->actions.size(); j++) {
+    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
+    smt::solver& solver = indctx->ctx->solver;
+    if (cur_invariant) {
+      solver.add(indctx->e1->value2expr(cur_invariant));
+    }
+    solver.add(indctx->e1->value2expr(candidate));
+    for (value conj : conjectures) {
+      solver.add(indctx->e1->value2expr(conj));
+    }
+
+    for (int k = 0; k < (int)conjectures.size(); k++) {
+      solver.push();
+      solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
+
+      bench.start("inductivity-check-with-conj");
+      solver.set_log_info(
+          "inductivity-check-with-conj: " + module->action_names[j]);
+      bool res = solver.check_sat();
+      bench.end();
+
+      if (res) {
+        if (use_minimal) {
+          bench.start("inductivity-check-with-conj-minimization");
+          auto ms = Model::extract_minimal_models_from_z3(
+              indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
+          bench.end();
+          cex.is_false = ms[0];
+        } else {
+          cex.is_false = Model::extract_model_from_z3(
+              indctx->ctx->ctx, solver, module, *indctx->e1);
+        }
+
+        printf("counterexample type: SAFETY\n");
+
+        bench.dump();
+        return cex;
+      }
+
+      solver.pop();
+    }
+
+    solver.add(indctx->e2->value2expr(v_not(candidate)));
+
+    bench.start("inductivity-check");
+    solver.set_log_info(
+        "inductivity-check: " + module->action_names[j]);
+    bool res = solver.check_sat();
+    bench.end();
+
+    if (res) {
+      if (use_minimal) {
+        bench.start("inductivity-minimization");
+        auto ms = Model::extract_minimal_models_from_z3(
+            indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+        bench.end();
+        cex.hypothesis = ms[0];
+        cex.conclusion = ms[1];
+      } else {
+        cex.hypothesis = Model::extract_model_from_z3(
+            indctx->ctx->ctx, solver, module, *indctx->e1);
+        cex.conclusion = Model::extract_model_from_z3(
+            indctx->ctx->ctx, solver, module, *indctx->e2);
+      }
+
+      printf("counterexample type: INDUCTIVE\n");
+
+      bench.dump();
+      return cex;
+    }
+  }
+
+  cex.none = true;
+
+  bench.dump();
+  return cex;
+}
+
 Counterexample get_counterexample_simple(
     shared_ptr<Module> module,
     Options const& options,
@@ -458,6 +583,14 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     printf("done\n");
   }*/
 
+  vector<value> cur_invariants;
+  vector<value> conjectures;
+  for (int i = 0; i < (int)module->conjectures.size(); i++) {
+    if (i == 0) conjectures.push_back(module->conjectures[i]);
+    else cur_invariants.push_back(module->conjectures[i]);
+  }
+  value cur_invariant = v_and(cur_invariants);
+
   Benchmarking total_bench;
   Transcript transcript;
 
@@ -482,7 +615,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     cout << "candidate: " << candidate->to_string() << endl;
 
     Counterexample cex;
-    if (options.with_conjs) {
+    /*if (options.with_conjs) {
       //cout << "getting counterexample ..." << endl;
       cout.flush();
       cex = get_counterexample(module, ctx, candidate);
@@ -494,7 +627,10 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     } else {
       cex = get_counterexample_simple(module, options, ctx, bmc, true, nullptr, candidate);
       cex = simplify_cex(module, cex, bmc, antibmc);
-    }
+    }*/
+    cex = get_counterexample_stuff(
+        module, options, ctx, cur_invariant,
+        candidate, conjectures);
     if (cex.none) {
       // Extra verification:
       if (is_complete_invariant(module, candidate)) {
