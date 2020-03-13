@@ -516,9 +516,12 @@ struct CexStats {
   }
 };
 
-void dump_stats(long long progress, CexStats const& cs) {
+void dump_stats(long long progress, CexStats const& cs,
+    std::chrono::time_point<std::chrono::high_resolution_clock> init) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
+  cout << "total time running so far: " << as_ms(now() - init)
+       << " ms" << endl;
   cs.dump();
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
@@ -527,6 +530,8 @@ void dump_stats(long long progress, CexStats const& cs) {
 
 void synth_loop(shared_ptr<Module> module, Options const& options)
 {
+  auto t_init = now();
+
   assert(module->templates.size() == 1);
 
   smt::context ctx;
@@ -610,11 +615,11 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     cs->addCounterexample(cex, candidate);
     //transcript.entries.push_back(make_pair(cex, candidate));
 
-    dump_stats(cs->getProgress(), cexstats);
+    dump_stats(cs->getProgress(), cexstats, t_init);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats);
+  dump_stats(cs->getProgress(), cexstats, t_init);
 }
 
 /*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
