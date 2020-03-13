@@ -18,6 +18,9 @@ public:
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
 
+  long long getProgress() { return -1; }
+  long long getSpaceSize() { assert(false); }
+
 //private:
   vector<value> existingInvariants;
 

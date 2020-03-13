@@ -21,6 +21,10 @@ public:
   void addExistingInvariant(value inv);
   void dump_cur_indices();
 
+  long long getProgress() { return progress; }
+  long long getSpaceSize() { assert(false); }
+  long long progress;
+
   shared_ptr<Module> module;
   bool ensure_nonredundant;
   vector<bool> values_usable;
@@ -129,6 +133,10 @@ public:
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
 
+  long long getProgress() { return progress; }
+  long long getSpaceSize() { assert(false); }
+  long long progress;
+
 //private:
   shared_ptr<Module> module;
   int conj_arity;
@@ -145,7 +153,8 @@ public:
 };
 
 ConjunctCandidateSolver::ConjunctCandidateSolver(shared_ptr<Module> module, int conj_arity, int disj_arity)
-  : module(module)
+  : progress(0)
+  , module(module)
   , conj_arity(conj_arity)
 {
   cout << "Using ConjunctCandidateSolver" << endl;
@@ -254,10 +263,12 @@ value ConjunctCandidateSolver::getNext()
       value v = v_and(conjuncts);
 
       increment();
+      progress++;
 
       return v;
     } else {
       increment();
+      progress++;
     }
   }
   assert(false);

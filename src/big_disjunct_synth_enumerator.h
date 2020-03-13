@@ -14,6 +14,10 @@ public:
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
 
+  long long getProgress() { return progress; }
+  long long getSpaceSize();
+  long long progress;
+
 //private:
   std::shared_ptr<Module> module;
   int disj_arity;

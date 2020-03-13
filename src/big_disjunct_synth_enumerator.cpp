@@ -6,7 +6,8 @@
 using namespace std;
 
 BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
-  : module(module)
+  : progress(0)
+  , module(module)
   , disj_arity(disj_arity)
   , tqd(module->templates[0])
 {
@@ -180,6 +181,7 @@ value BigDisjunctCandidateSolver::getNext() {
 
   while (true) {
     increment();
+    progress++;
     if (done) {
       return nullptr;
     }
@@ -341,4 +343,8 @@ body_end:
     t--;
     goto call_end;
   }
+}
+
+long long BigDisjunctCandidateSolver::getSpaceSize() {
+  assert(false);
 }

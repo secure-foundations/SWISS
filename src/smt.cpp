@@ -1,6 +1,7 @@
 #include "smt.h"
 
 #include <fstream> 
+#include <map> 
 
 #include "benchmarking.h"
 
@@ -11,13 +12,42 @@ extern int run_id;
 
 namespace smt {
 
+map<string, pair<long long, long long>> stats;
+
 void log_to_stdout(long long ms, string const& log_info, string const& res) {
+  string l;
+  if (log_info == "") {
+    l = "[???]";
+  } else {
+    l = "[" + log_info + "]";
+  }
+
   #ifdef SMT_CVC4
-  cout << "SMT result (cvc4) '";
+  cout << "SMT result (cvc4) ";
+  string key = "cvc4 ";
   #else
-  cout << "SMT result (z3) '";
+  cout << "SMT result (z3) ";
+  string key = "z3 ";
   #endif
-  cout << log_info << "' : " << res << " " << ms << " ms" << endl;
+  cout << l << " : " << res << " " << ms << " ms" << endl;
+
+  key += l + " " + res;
+  while (key.size() < 58) key += " ";
+  if (stats.find(key) == stats.end()) {
+    stats.insert(make_pair(key, make_pair(0, 0)));
+  }
+  stats[key].first++;
+  stats[key].second += ms;
+}
+
+void dump_smt_stats() {
+  for (auto& p : stats) {
+    long long num = p.second.first;
+    long long ms = p.second.second;
+    long long avg = ms / num;
+    cout << p.first << " total " << ms << " ms over " << num
+         << " ops, average is " << avg << " ms" << endl;
+  }
 }
 
 #ifdef SMT_CVC4

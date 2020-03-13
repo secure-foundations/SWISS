@@ -6,7 +6,8 @@
 using namespace std;
 
 AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
-  : module(module)
+  : progress(0)
+  , module(module)
   , disj_arity(disj_arity)
   , taqd(module->templates[0])
 {
@@ -200,6 +201,7 @@ value AltDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
 value AltDisjunctCandidateSolver::getNext() {
   while (true) {
     increment();
+    progress++;
     if (done) {
       return nullptr;
     }

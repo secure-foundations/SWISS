@@ -287,7 +287,7 @@ Counterexample get_counterexample_simple(
   return cex;
 }
 
-void cex_stats(Counterexample cex) {
+/*void cex_stats(Counterexample cex) {
   shared_ptr<Model> model;
   if (cex.is_true) {
     model = cex.is_true;
@@ -303,7 +303,7 @@ void cex_stats(Counterexample cex) {
   }
 
   model->dump_sizes();
-}
+}*/
 
 Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex, Options const& options,
     BMCContext& bmc) {
@@ -492,6 +492,39 @@ void split_into_invariants_conjectures(
   }
 }
 
+struct CexStats {
+  int count_true;
+  int count_false;
+  int count_ind;
+
+  CexStats() : count_true(0), count_false(0), count_ind(0) { }
+
+  void add(Counterexample const& cex) {
+    if (cex.is_true) {
+      count_true++;
+    } else if (cex.is_false) {
+      count_false++;
+    } else {
+      count_ind++;
+    }
+  }
+
+  void dump() const {
+    cout << "Counterexamples of type TRUE:       " << count_true << endl;
+    cout << "Counterexamples of type FALSE:      " << count_false << endl;
+    cout << "Counterexamples of type TRANSITION: " << count_ind << endl;
+  }
+};
+
+void dump_stats(long long progress, CexStats const& cs) {
+  cout << "================= Stats =================" << endl;
+  cout << "progress: " << progress << endl;
+  cs.dump();
+  smt::dump_smt_stats();
+  cout << "=========================================" << endl;
+  cout.flush();
+}
+
 void synth_loop(shared_ptr<Module> module, Options const& options)
 {
   assert(module->templates.size() == 1);
@@ -523,10 +556,15 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
   split_into_invariants_conjectures(module, cur_invariants /* output */, conjectures /* output */);
   value cur_invariant = v_and(cur_invariants);
 
-  Benchmarking total_bench;
-  Transcript transcript;
+  //Transcript transcript;
+
+  CexStats cexstats;
 
   shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, false, Shape::SHAPE_CONJ_DISJ);
+  if (options.get_space_size) {
+    cout << "space size: " << cs->getSpaceSize() << endl;
+    exit(0);
+  }
 
   while (true) {
     num_iterations++;
@@ -555,6 +593,8 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
       cex = simplify_cex(module, cex, options, bmc, antibmc);
     }
 
+    cexstats.add(cex);
+
     if (cex.none) {
       // Extra verification:
       if (is_complete_invariant(module, candidate)) {
@@ -568,11 +608,13 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     //cex_stats(cex);
     cs->addCounterexample(cex, candidate);
-    transcript.entries.push_back(make_pair(cex, candidate));
+    //transcript.entries.push_back(make_pair(cex, candidate));
+
+    dump_stats(cs->getProgress(), cexstats);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  total_bench.dump();
+  dump_stats(cs->getProgress(), cexstats);
 }
 
 /*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
@@ -619,8 +661,6 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   bmcctx.set_timeout(15000); // 15 seconds
 
   int num_iterations_total = 0;
-
-  Benchmarking total_bench;
 
   std::vector<std::pair<Counterexample, value>> cexes;
 
@@ -724,7 +764,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
         break;
       } else {
-        cex_stats(cex);
+        //cex_stats(cex);
 
         Benchmarking add_cex_bench;
         add_cex_bench.start("add_counterexample");
@@ -760,8 +800,6 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   printf("total invariants found: %d\n", (int)found_invs.size());
   benchmarking_dump_totals();
   printf("\n");
-  total_bench.dump();
-  printf("\n");
 }
 
 void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
@@ -795,8 +833,6 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
   int num_iterations_total = 0;
   int num_iterations_outer = 0;
-
-  Benchmarking total_bench;
 
   while (true) {
     num_iterations_outer++;
@@ -887,7 +923,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
           cs->addExistingInvariant(strengthened_inv);
         }
       } else {
-        cex_stats(cex);
+        //cex_stats(cex);
         cs->addCounterexample(cex, candidate0);
       }
     }

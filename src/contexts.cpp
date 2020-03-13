@@ -762,6 +762,7 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value c
     InitContext initctx(ctx, module);
     smt::solver& init_solver = initctx.ctx->solver;
     init_solver.add(initctx.e->value2expr(v_not(candidate)));
+    init_solver.set_log_info("is_invariant_wrt init");
     if (init_solver.check_sat()) {
       return false;
     }
@@ -770,6 +771,7 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value c
   for (int i = 0; i < (int)module->actions.size(); i++) {
     InductionContext indctx(ctx, module, i);
     smt::solver& solver = indctx.ctx->solver;
+    solver.set_log_info("is_invariant_wrt inductiveness");
     solver.add(indctx.e1->value2expr(invariant_so_far));
     solver.add(indctx.e1->value2expr(candidate));
     solver.add(indctx.e2->value2expr(v_not(candidate)));

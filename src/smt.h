@@ -7,4 +7,8 @@
 #include "smt_z3.h"
 #endif
 
+namespace smt {
+  void dump_smt_stats();
+}
+
 #endif

@@ -589,6 +589,7 @@ int main(int argc, char* argv[]) {
   options.start_with_existing_conjectures = false;
   options.pre_bmc = false;
   options.post_bmc = false;
+  options.get_space_size = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -680,6 +681,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--post-bmc")) {
       options.post_bmc = true;
+    }
+    else if (argv[i] == string("--get-space-size")) {
+      options.get_space_size = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

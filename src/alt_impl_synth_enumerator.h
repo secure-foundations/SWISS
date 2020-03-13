@@ -13,12 +13,15 @@ public:
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
+  long long getProgress() { return progress; }
+  long long getSpaceSize();
 
 //private:
   std::shared_ptr<Module> module;
   int arity1;
   int arity2;
   int total_arity;
+  long long progress;
 
   TopAlternatingQuantifierDesc taqd;
 

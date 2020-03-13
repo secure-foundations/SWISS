@@ -10,6 +10,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
   : module(module)
   , arity1(disj_arity)
   , arity2(disj_arity)
+  , progress(0)
   , taqd(module->templates[0])
 {
   cout << "Using AltImplCandidateSolver" << endl;
@@ -23,7 +24,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
   values->init_simp();
   pieces = values->values;
 
-  cout << "Using " << pieces.size() << " terms" << endl;
+  //cout << "Using " << pieces.size() << " terms" << endl;
   //for (value p : pieces) {
   //  cout << "piece: " << p->to_string() << endl;
   //}
@@ -255,6 +256,7 @@ int t = 0;
 value AltImplCandidateSolver::getNext() {
   while (true) {
     increment();
+    progress++;
     if (done) {
       return nullptr;
     }
@@ -476,5 +478,19 @@ void AltImplCandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
   }
   for (int i = 0; i < arity1; i++) {
     abe.add_disj(cex_result[cur_indices[i]].second);
+  }
+}
+
+long long AltImplCandidateSolver::getSpaceSize() {
+  while (true) {
+    increment();
+    progress++;
+    if (progress % 500000 == 0) {
+      cout << progress << endl;
+      dump_cur_indices();
+    }
+    if (done) {
+      return progress;
+    }
   }
 }

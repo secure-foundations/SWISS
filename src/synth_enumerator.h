@@ -10,6 +10,8 @@ struct Options {
   bool enum_sat;
   bool enum_naive;
 
+  bool get_space_size;
+
   // If true, generate X such that X & conj is invariant
   // otherwise, generate X such X is invariant and X ==> conj
   bool with_conjs;
@@ -65,6 +67,8 @@ public:
   virtual value getNext() = 0;
   virtual void addCounterexample(Counterexample cex, value candidate) = 0;
   virtual void addExistingInvariant(value inv) = 0;
+  virtual long long getProgress() = 0;
+  virtual long long getSpaceSize() = 0;
 };
 
 std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
