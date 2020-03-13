@@ -60,15 +60,24 @@ struct AlternationBitsetEvaluator {
   bool final_conj;
   int final_num_full_words_64;
   uint64_t final_last_bits;
+  uint64_t last_bits;
 
   static AlternationBitsetEvaluator make_evaluator(
       std::shared_ptr<Model> model, value v);
+
+  void dump(int k) {
+    for (int i = 0; i < k; i++) {
+      int b = (int)((scratch[i / 64] >> (i % 64)) & 1);
+      std::cout << b;
+    }
+    std::cout << std::endl;
+  }
 
   void reset_for_conj() {
     for (int i = 0; i < (int)scratch.size(); i++) {
       scratch[i] = ~(uint64_t)0;
     }
-    scratch[scratch.size() - 1] = final_last_bits;
+    scratch[scratch.size() - 1] = last_bits;
   }
   void reset_for_disj() {
     for (int i = 0; i < (int)scratch.size(); i++) {
@@ -170,6 +179,9 @@ struct AlternationBitsetEvaluator {
   }
 
   bool evaluate() {
+    //std::cout << "yooo" << std::endl;
+    //dump(128);
+    
     for (int i = 0; i < (int)levels.size(); i++) {
       BitsetLevel& level = levels[i];
       if (level.conj) {
@@ -181,8 +193,13 @@ struct AlternationBitsetEvaluator {
           block_disj(j * level.block_size, level.block_size);
         }
       }
+      //dump(level.num_blocks * level.block_size);
     }
-    return final_answer();
+
+    //std::cout << "mooo" << std::endl;
+    bool res = final_answer();
+    //std::cout << "res = " << res << std::endl;
+    return res;
   }
 };
 

@@ -1605,6 +1605,12 @@ AlternationBitsetEvaluator AlternationBitsetEvaluator::make_evaluator(
     abe.final_last_bits = (((uint64_t)1) << (sizes[0] % 64)) - 1;
   }
 
+  if (p % 64 == 0) {
+    abe.last_bits = (uint64_t)(-1);
+  } else {
+    abe.last_bits = (((uint64_t)1) << (p % 64)) - 1;
+  }
+
   return abe;
 }
 
@@ -1655,7 +1661,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_alternating_quantifiers(
     }
 
     int i;
-    for (i = 0; i < (int)decls.size(); i++) {
+    for (i = (int)decls.size() - 1; i >= 0; i--) {
       var_values[i]++;
       if (var_values[i] == max_sizes[i]) {
         var_values[i] = 0;
@@ -1663,7 +1669,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_alternating_quantifiers(
         break;
       }
     }
-    if (i == (int)decls.size()) {
+    if (i == -1) {
       break;
     }
   }

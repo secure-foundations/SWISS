@@ -304,7 +304,16 @@ value AltImplCandidateSolver::getNext() {
       if (cexes[i].is_true) {
         setup_abe2(abes[i].second, cex_results[i], cur_indices);
         bool res = abes[i].second.evaluate();
-        //assert (res == cexes[i].is_true->eval_predicate(sanity_v));
+        /*if (res != cexes[i].is_true->eval_predicate(sanity_v)) {
+          cexes[i].is_true->dump();
+          cout << sanity_v->to_string() << endl;
+          cout << "result shoudl be " << cexes[i].is_true->eval_predicate(sanity_v) << endl;
+          for (int k = 0; k < arity1 + arity2; k++) {
+            cex_results[i][cur_indices[k]].second.dump();
+          }
+
+          assert(false);
+        }*/
         if (!res) {
           failed = true;
           break;
