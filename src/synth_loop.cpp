@@ -54,8 +54,6 @@ Counterexample get_counterexample_test_with_conjs(
     value candidate,
     vector<value> conjectures)
 {
-  Benchmarking bench;
-
   Counterexample cex;
   cex.none = false;
 
@@ -65,18 +63,14 @@ Counterexample get_counterexample_test_with_conjs(
   smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  bench.start("init-check");
   init_solver.set_log_info("init-check");
   bool init_res = init_solver.check_sat();
-  bench.end();
 
   if (init_res) {
     if (use_minimal) {
-      bench.start("init-minimization");
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
           init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-      bench.end();
     } else {
       cex.is_true = Model::extract_model_from_z3(
           initctx->ctx->ctx,
@@ -87,7 +81,6 @@ Counterexample get_counterexample_test_with_conjs(
     //cex.is_true->dump();
 
     init_solver.pop();
-    bench.dump();
     return cex;
   } else {
     init_solver.pop();
@@ -108,18 +101,14 @@ Counterexample get_counterexample_test_with_conjs(
       solver.push();
       solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
 
-      bench.start("inductivity-check-with-conj");
       solver.set_log_info(
           "inductivity-check-with-conj: " + module->action_names[j]);
       bool res = solver.check_sat();
-      bench.end();
 
       if (res) {
         if (use_minimal) {
-          bench.start("inductivity-check-with-conj-minimization");
           auto ms = Model::extract_minimal_models_from_z3(
               indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
-          bench.end();
           cex.is_false = ms[0];
         } else {
           cex.is_false = Model::extract_model_from_z3(
@@ -128,7 +117,6 @@ Counterexample get_counterexample_test_with_conjs(
 
         printf("counterexample type: SAFETY\n");
 
-        bench.dump();
         return cex;
       }
 
@@ -137,18 +125,14 @@ Counterexample get_counterexample_test_with_conjs(
 
     solver.add(indctx->e2->value2expr(v_not(candidate)));
 
-    bench.start("inductivity-check");
     solver.set_log_info(
         "inductivity-check: " + module->action_names[j]);
     bool res = solver.check_sat();
-    bench.end();
 
     if (res) {
       if (use_minimal) {
-        bench.start("inductivity-minimization");
         auto ms = Model::extract_minimal_models_from_z3(
             indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        bench.end();
         cex.hypothesis = ms[0];
         cex.conclusion = ms[1];
       } else {
@@ -160,14 +144,12 @@ Counterexample get_counterexample_test_with_conjs(
 
       printf("counterexample type: INDUCTIVE\n");
 
-      bench.dump();
       return cex;
     }
   }
 
   cex.none = true;
 
-  bench.dump();
   return cex;
 }
 
@@ -180,8 +162,6 @@ Counterexample get_counterexample_simple(
     value cur_invariant,
     value candidate)
 {
-  Benchmarking bench;
-
   bool use_minimal = true;
   bool use_minimal_only_for_safety = true;
 
@@ -192,18 +172,14 @@ Counterexample get_counterexample_simple(
   smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
   init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  bench.start("init-check");
   init_solver.set_log_info("init-check");
   bool init_res = init_solver.check_sat();
-  bench.end();
 
   if (init_res) {
     if (use_minimal) {
-      bench.start("init-minimization");
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
           init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-      bench.end();
     } else {
       cex.is_true = Model::extract_model_from_z3(
           initctx->ctx->ctx,
@@ -214,7 +190,6 @@ Counterexample get_counterexample_simple(
     //cex.is_true->dump();
 
     init_solver.pop();
-    bench.dump();
     return cex;
   } else {
     init_solver.pop();
@@ -229,18 +204,14 @@ Counterexample get_counterexample_simple(
       conj_solver.add(conjctx->e->value2expr(cur_invariant));
     }
     conj_solver.add(conjctx->e->value2expr(candidate));
-    bench.start("conj-check");
     conj_solver.set_log_info("conj-check");
     bool conj_res = conj_solver.check_sat();
-    bench.end();
 
     if (conj_res) {
       if (use_minimal || use_minimal_only_for_safety) {
-        bench.start("conj-minimization");
         cex.is_false = Model::extract_minimal_models_from_z3(
             conjctx->ctx->ctx,
             conj_solver, module, {conjctx->e}, /* hint */ candidate)[0];
-        bench.end();
       } else {
         cex.is_false = Model::extract_model_from_z3(
             conjctx->ctx->ctx,
@@ -251,7 +222,6 @@ Counterexample get_counterexample_simple(
       //cex.is_false->dump();
 
       conj_solver.pop();
-      bench.dump();
       return cex;
     } else {
       conj_solver.pop();
@@ -259,11 +229,8 @@ Counterexample get_counterexample_simple(
   }
 
   if (options.pre_bmc) {
-    bench.start("bmc-attempt-1");
     Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, options, use_minimal);
-    bench.end();
     if (!bmc_cex.none) {
-      bench.dump();
       return bmc_cex;
     }
   }
@@ -278,18 +245,14 @@ Counterexample get_counterexample_simple(
     solver.add(indctx->e1->value2expr(candidate));
     solver.add(indctx->e2->value2expr(v_not(candidate)));
 
-    bench.start("inductivity-check");
     solver.set_log_info(
         "inductivity-check: " + module->action_names[j]);
     bool res = solver.check_sat();
-    bench.end();
 
     if (res) {
       if (use_minimal) {
-        bench.start("inductivity-minimization");
         auto ms = Model::extract_minimal_models_from_z3(
             indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        bench.end();
         cex.hypothesis = ms[0];
         cex.conclusion = ms[1];
       } else {
@@ -303,14 +266,12 @@ Counterexample get_counterexample_simple(
 
       printf("counterexample type: INDUCTIVE\n");
 
-      bench.dump();
       return cex;
     }
   }
 
   cex.none = true;
 
-  bench.dump();
   return cex;
 }
 

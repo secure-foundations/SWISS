@@ -17,7 +17,7 @@ void log_to_stdout(long long ms, string const& log_info, string const& res) {
   #else
   cout << "SMT result (z3) '";
   #endif
-  cout << log_info << "' : " << res << " " << ms << endl;
+  cout << log_info << "' : " << res << " " << ms << " ms" << endl;
 }
 
 #ifdef SMT_CVC4
