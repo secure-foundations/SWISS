@@ -86,6 +86,8 @@ Counterexample get_counterexample_test_with_conjs(
     init_solver.pop();
   } 
 
+  vector<shared_ptr<InductionContext>> indctxs;
+
   for (int j = 0; j < (int)module->actions.size(); j++) {
     auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
     smt::solver& solver = indctx->ctx->solver;
@@ -96,8 +98,14 @@ Counterexample get_counterexample_test_with_conjs(
     for (value conj : conjectures) {
       solver.add(indctx->e1->value2expr(conj));
     }
+    indctxs.push_back(indctx);
+  }
 
-    for (int k = 0; k < (int)conjectures.size(); k++) {
+  for (int k = 0; k < (int)conjectures.size(); k++) {
+    for (int j = 0; j < (int)module->actions.size(); j++) {
+      auto indctx = indctxs[j];
+      smt::solver& solver = indctx->ctx->solver;
+
       solver.push();
       solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
 
@@ -122,6 +130,11 @@ Counterexample get_counterexample_test_with_conjs(
 
       solver.pop();
     }
+  }
+
+  for (int j = 0; j < (int)module->actions.size(); j++) {
+    auto indctx = indctxs[j];
+    smt::solver& solver = indctx->ctx->solver;
 
     solver.add(indctx->e2->value2expr(v_not(candidate)));
 
@@ -149,7 +162,6 @@ Counterexample get_counterexample_test_with_conjs(
   }
 
   cex.none = true;
-
   return cex;
 }
 
