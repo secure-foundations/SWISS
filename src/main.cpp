@@ -590,6 +590,7 @@ int main(int argc, char* argv[]) {
   options.pre_bmc = false;
   options.post_bmc = false;
   options.get_space_size = false;
+  options.minimal_models = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -684,6 +685,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--get-space-size")) {
       options.get_space_size = true;
+    }
+    else if (argv[i] == string("--minimal-models")) {
+      options.minimal_models = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

@@ -23,6 +23,7 @@ struct Options {
 
   bool pre_bmc;
   bool post_bmc;
+  bool minimal_models;
 
   // SAT solving
   int arity;

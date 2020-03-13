@@ -24,8 +24,7 @@ using namespace json11;
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
     value candidate,
-    Options const& options,
-    bool minimal)
+    Options const& options)
 {
   if (!options.pre_bmc) {
     Counterexample cex;
@@ -33,7 +32,7 @@ Counterexample get_bmc_counterexample(
     return cex;
   }
 
-  shared_ptr<Model> model = bmc.get_k_invariance_violation_maybe(candidate, minimal);
+  shared_ptr<Model> model = bmc.get_k_invariance_violation_maybe(candidate, options.minimal_models);
   if (model) {
     printf("counterexample type: INIT (after some steps)\n");
     Counterexample cex;
@@ -57,8 +56,6 @@ Counterexample get_counterexample_test_with_conjs(
   Counterexample cex;
   cex.none = false;
 
-  bool use_minimal = true;
-
   auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
   smt::solver& init_solver = initctx->ctx->solver;
   init_solver.push();
@@ -67,7 +64,7 @@ Counterexample get_counterexample_test_with_conjs(
   bool init_res = init_solver.check_sat();
 
   if (init_res) {
-    if (use_minimal) {
+    if (options.minimal_models) {
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
           init_solver, module, {initctx->e}, /* hint */ candidate)[0];
@@ -75,6 +72,7 @@ Counterexample get_counterexample_test_with_conjs(
       cex.is_true = Model::extract_model_from_z3(
           initctx->ctx->ctx,
           init_solver, module, *initctx->e);
+      cex.is_true->dump_sizes();
     }
 
     printf("counterexample type: INIT\n");
@@ -114,13 +112,14 @@ Counterexample get_counterexample_test_with_conjs(
       bool res = solver.check_sat();
 
       if (res) {
-        if (use_minimal) {
+        if (options.minimal_models) {
           auto ms = Model::extract_minimal_models_from_z3(
               indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
           cex.is_false = ms[0];
         } else {
           cex.is_false = Model::extract_model_from_z3(
               indctx->ctx->ctx, solver, module, *indctx->e1);
+          cex.is_false->dump_sizes();
         }
 
         printf("counterexample type: SAFETY\n");
@@ -143,7 +142,7 @@ Counterexample get_counterexample_test_with_conjs(
     bool res = solver.check_sat();
 
     if (res) {
-      if (use_minimal) {
+      if (options.minimal_models) {
         auto ms = Model::extract_minimal_models_from_z3(
             indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
         cex.hypothesis = ms[0];
@@ -153,6 +152,7 @@ Counterexample get_counterexample_test_with_conjs(
             indctx->ctx->ctx, solver, module, *indctx->e1);
         cex.conclusion = Model::extract_model_from_z3(
             indctx->ctx->ctx, solver, module, *indctx->e2);
+        cex.hypothesis->dump_sizes();
       }
 
       printf("counterexample type: INDUCTIVE\n");
@@ -174,9 +174,6 @@ Counterexample get_counterexample_simple(
     value cur_invariant,
     value candidate)
 {
-  bool use_minimal = true;
-  bool use_minimal_only_for_safety = true;
-
   Counterexample cex;
   cex.none = false;
 
@@ -188,7 +185,7 @@ Counterexample get_counterexample_simple(
   bool init_res = init_solver.check_sat();
 
   if (init_res) {
-    if (use_minimal) {
+    if (options.minimal_models) {
       cex.is_true = Model::extract_minimal_models_from_z3(
           initctx->ctx->ctx,
           init_solver, module, {initctx->e}, /* hint */ candidate)[0];
@@ -196,6 +193,7 @@ Counterexample get_counterexample_simple(
       cex.is_true = Model::extract_model_from_z3(
           initctx->ctx->ctx,
           init_solver, module, *initctx->e);
+      cex.is_true->dump_sizes();
     }
 
     printf("counterexample type: INIT\n");
@@ -220,7 +218,7 @@ Counterexample get_counterexample_simple(
     bool conj_res = conj_solver.check_sat();
 
     if (conj_res) {
-      if (use_minimal || use_minimal_only_for_safety) {
+      if (options.minimal_models) {
         cex.is_false = Model::extract_minimal_models_from_z3(
             conjctx->ctx->ctx,
             conj_solver, module, {conjctx->e}, /* hint */ candidate)[0];
@@ -228,6 +226,7 @@ Counterexample get_counterexample_simple(
         cex.is_false = Model::extract_model_from_z3(
             conjctx->ctx->ctx,
             conj_solver, module, *conjctx->e);
+        cex.is_false->dump_sizes();
       }
 
       printf("counterexample type: SAFETY\n");
@@ -241,7 +240,7 @@ Counterexample get_counterexample_simple(
   }
 
   if (options.pre_bmc) {
-    Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, options, use_minimal);
+    Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, options);
     if (!bmc_cex.none) {
       return bmc_cex;
     }
@@ -262,7 +261,7 @@ Counterexample get_counterexample_simple(
     bool res = solver.check_sat();
 
     if (res) {
-      if (use_minimal) {
+      if (options.minimal_models) {
         auto ms = Model::extract_minimal_models_from_z3(
             indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
         cex.hypothesis = ms[0];
@@ -272,6 +271,7 @@ Counterexample get_counterexample_simple(
             indctx->ctx->ctx, solver, module, *indctx->e1);
         cex.conclusion = Model::extract_model_from_z3(
             indctx->ctx->ctx, solver, module, *indctx->e2);
+        cex.hypothesis->dump_sizes();
       }
 
       solver.pop();
