@@ -602,7 +602,15 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
     if (cex.none) {
       // Extra verification:
-      if (is_complete_invariant(module, candidate)) {
+      bool is_inv;
+      if (options.with_conjs) {
+        vector<value> conjs = module->conjectures;
+        conjs.push_back(candidate);
+        is_inv = is_itself_invariant(module, conjs);
+      } else {
+        is_inv = is_complete_invariant(module, candidate);
+      }
+      if (is_inv) {
         printf("found invariant: %s\n", candidate->to_string().c_str());
       } else {
         printf("ERROR: invariant is not actually invariant");
@@ -620,6 +628,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
   //cout << transcript.to_json().dump() << endl;
   dump_stats(cs->getProgress(), cexstats, t_init);
+  cout << "complete!" << endl;
 }
 
 /*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)

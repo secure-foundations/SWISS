@@ -34,6 +34,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
 
   //cur_indices = {0, 103, 105, 0, 1, 2};
   //cur_incides = {3, 4, 5, 11, 23, 97};
+  //cur_indices = {28, 55, 61, 2, 15, 70};
   cur_indices = {};
   done = false;
 
