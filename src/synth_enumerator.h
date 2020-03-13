@@ -10,12 +10,17 @@ struct Options {
   bool enum_sat;
   bool enum_naive;
 
+  // If true, generate X such that X & conj is invariant
+  // otherwise, generate X such X is invariant and X ==> conj
   bool with_conjs;
 
   bool filter_redundant;
 
   bool whole_space;
   bool start_with_existing_conjectures;
+
+  bool pre_bmc;
+  bool post_bmc;
 
   // SAT solving
   int arity;

@@ -24,22 +24,29 @@ using namespace json11;
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
     value candidate,
+    Options const& options,
     bool minimal)
 {
+  if (!options.pre_bmc) {
+    Counterexample cex;
+    cex.none = true;
+    return cex;
+  }
+
   shared_ptr<Model> model = bmc.get_k_invariance_violation_maybe(candidate, minimal);
-  /*if (model) {
+  if (model) {
     printf("counterexample type: INIT (after some steps)\n");
     Counterexample cex;
     cex.is_true = model;
     return cex;
-  } else {*/
+  } else {
     Counterexample cex;
     cex.none = true;
     return cex;
-  //}
+  }
 }
 
-Counterexample get_counterexample_stuff(
+Counterexample get_counterexample_test_with_conjs(
     shared_ptr<Module> module,
     Options const& options,
     smt::context& ctx,
@@ -177,7 +184,6 @@ Counterexample get_counterexample_simple(
 
   bool use_minimal = true;
   bool use_minimal_only_for_safety = true;
-  bool use_bmc = true;
 
   Counterexample cex;
   cex.none = false;
@@ -252,9 +258,9 @@ Counterexample get_counterexample_simple(
     }
   }
 
-  if (use_bmc) {
+  if (options.pre_bmc) {
     bench.start("bmc-attempt-1");
-    Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, use_minimal);
+    Counterexample bmc_cex = get_bmc_counterexample(bmc, candidate, options, use_minimal);
     bench.end();
     if (!bmc_cex.none) {
       bench.dump();
@@ -308,88 +314,6 @@ Counterexample get_counterexample_simple(
   return cex;
 }
 
-Counterexample get_counterexample(
-    shared_ptr<Module> module,
-    smt::context& ctx,
-    value candidate)
-{
-  Counterexample cex;
-  cex.none = false;
-
-  //cout << "starting init check ..." << endl; cout.flush();
-
-  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-
-  smt::solver& init_solver = initctx->ctx->solver;
-  init_solver.push();
-  init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  init_solver.set_log_info("init-check");
-  bool init_res = init_solver.check_sat();
-
-  if (init_res) {
-    //cout << "got SAT, starting minimize..." << endl; cout.flush();
-    cex.is_true = Model::extract_minimal_models_from_z3(
-        initctx->ctx->ctx,
-        init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-    //cout << "done minimize..." << endl; cout.flush();
-
-    printf("counterexample type: INIT\n");
-    //cex.is_true->dump();
-    return cex;
-  }
-
-  value full_conj = v_and(module->conjectures);
-  value full_candidate = v_and({candidate, full_conj});
-
-  for (int i = 0; i <= (int)module->conjectures.size(); i++) {
-    //cout << "starting inductive check " << i << endl; cout.flush();
-
-    for (int j = 0; j < (int)module->actions.size(); j++) {
-      auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
-
-      smt::solver& solver = indctx->ctx->solver;
-      solver.add(indctx->e1->value2expr(full_candidate));
-
-      bool testing_candidate = (i == (int)module->conjectures.size());
-
-      solver.push();
-      solver.add(indctx->e2->value2expr(v_not(testing_candidate ? candidate : module->conjectures[i])));
-
-      solver.set_log_info("get_counterexample");
-      bool res = solver.check_sat();
-
-      if (res) {
-        //cout << "got SAT, starting minimize" << endl; cout.flush();
-        auto m1_and_m2 = Model::extract_minimal_models_from_z3(
-              indctx->ctx->ctx,
-              solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        //cout << "done minimize" << endl; cout.flush();
-        shared_ptr<Model> m1 = m1_and_m2[0];
-        shared_ptr<Model> m2 = m1_and_m2[1];
-
-        if (testing_candidate) {
-          printf("counterexample type: INDUCTIVE\n");
-          cex.hypothesis = m1;
-          cex.conclusion = m2;
-        } else {
-          printf("counterexample type: SAFETY\n");
-          cex.is_false = m1;
-        }
-
-        //cout << "done evaluating" << endl; cout.flush();
-
-        return cex;
-      }
-    }
-  }
-
-  //cout << "returning no counterexample" << endl; cout.flush();
-
-  cex.none = true;
-  return cex;
-}
-
-
 void cex_stats(Counterexample cex) {
   shared_ptr<Model> model;
   if (cex.is_true) {
@@ -408,9 +332,13 @@ void cex_stats(Counterexample cex) {
   model->dump_sizes();
 }
 
-Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex,
+Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex, Options const& options,
     BMCContext& bmc) {
-  /*if (cex.hypothesis) {
+  if (!options.post_bmc) {
+    return cex;
+  }
+
+  if (cex.hypothesis) {
     if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
         bmc.is_reachable_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
@@ -420,16 +348,20 @@ Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample c
     }
 
     return cex;
-  } else {*/
+  } else {
     return cex;
-  //}
+  }
 }
 
 
-Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
+Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex, Options const& options,
     BMCContext& bmc,
     BMCContext& antibmc) {
-  /*if (cex.hypothesis) {
+  if (!options.post_bmc) {
+    return cex;
+  }
+
+  if (cex.hypothesis) {
     if (bmc.is_reachable_returning_false_if_unknown(cex.conclusion) ||
         bmc.is_reachable_exact_steps_returning_false_if_unknown(cex.hypothesis)) {
       Counterexample res;
@@ -447,9 +379,9 @@ Counterexample simplify_cex(shared_ptr<Module> module, Counterexample cex,
     }
 
     return cex;
-  } else {*/
+  } else {
     return cex;
-  //}
+  }
 }
 
 struct Transcript {
@@ -557,6 +489,36 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vec
   return res;
 }
 
+void split_into_invariants_conjectures(
+    shared_ptr<Module> module,
+    vector<value>& invs,
+    vector<value>& conjs)
+{
+  invs.clear();
+  conjs = module->conjectures;
+  while (true) {
+    bool change = false;
+    for (int i = 0; i < (int)conjs.size(); i++) {
+      if (is_invariant_wrt(module, v_and(invs), conjs[i])) {
+        invs.push_back(conjs[i]);
+        conjs.erase(conjs.begin() + i);
+        i--;
+        change = true;
+      }
+    }
+    if (!change) {
+      break;
+    }
+  }
+
+  for (value v : invs) {
+    cout << "[invariant] " << v->to_string() << endl;
+  }
+  for (value v : conjs) {
+    cout << "[conjecture] " << v->to_string() << endl;
+  }
+}
+
 void synth_loop(shared_ptr<Module> module, Options const& options)
 {
   assert(module->templates.size() == 1);
@@ -585,10 +547,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
   vector<value> cur_invariants;
   vector<value> conjectures;
-  for (int i = 0; i < (int)module->conjectures.size(); i++) {
-    if (i == 0) conjectures.push_back(module->conjectures[i]);
-    else cur_invariants.push_back(module->conjectures[i]);
-  }
+  split_into_invariants_conjectures(module, cur_invariants /* output */, conjectures /* output */);
   value cur_invariant = v_and(cur_invariants);
 
   Benchmarking total_bench;
@@ -615,22 +574,14 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
     cout << "candidate: " << candidate->to_string() << endl;
 
     Counterexample cex;
-    /*if (options.with_conjs) {
-      //cout << "getting counterexample ..." << endl;
-      cout.flush();
-      cex = get_counterexample(module, ctx, candidate);
-      //cout << "counterexample obtained" << endl;
-      cout.flush();
-      cex = simplify_cex_nosafety(module, cex, bmc);
-      //cout << "simplify_cex done" << endl;
-      cout.flush();
+    if (options.with_conjs) {
+      cex = get_counterexample_test_with_conjs(module, options, ctx, cur_invariant, candidate, conjectures);
+      cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
       cex = get_counterexample_simple(module, options, ctx, bmc, true, nullptr, candidate);
-      cex = simplify_cex(module, cex, bmc, antibmc);
-    }*/
-    cex = get_counterexample_stuff(
-        module, options, ctx, cur_invariant,
-        candidate, conjectures);
+      cex = simplify_cex(module, cex, options, bmc, antibmc);
+    }
+
     if (cex.none) {
       // Extra verification:
       if (is_complete_invariant(module, candidate)) {
@@ -754,7 +705,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
       Benchmarking bench2;
       bench2.start("simplification");
-      cex = simplify_cex_nosafety(module, cex, bmc);
+      cex = simplify_cex_nosafety(module, cex, options, bmc);
       bench2.end();
       bench2.dump();
 
@@ -914,7 +865,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
       Benchmarking bench2;
       bench2.start("simplification");
-      cex = simplify_cex_nosafety(module, cex, bmc);
+      cex = simplify_cex_nosafety(module, cex, options, bmc);
       bench2.end();
       bench2.dump();
 

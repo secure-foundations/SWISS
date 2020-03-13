@@ -11,6 +11,15 @@ extern int run_id;
 
 namespace smt {
 
+void log_to_stdout(long long ms, string const& log_info, string const& res) {
+  #ifdef SMT_CVC4
+  cout << "SMT result (cvc4) '";
+  #else
+  cout << "SMT result (z3) '";
+  #endif
+  cout << log_info << "' : " << res << " " << ms << endl;
+}
+
 #ifdef SMT_CVC4
 
 bool been_set = false;
@@ -34,8 +43,9 @@ bool solver::check_sat()
   CVC4::Result::Sat res = smt.checkSat().isSat();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 
@@ -51,8 +61,9 @@ bool solver::is_sat_or_unknown()
   CVC4::Result::Sat res = smt.checkSat().isSat();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 
@@ -66,8 +77,9 @@ bool solver::is_unsat_or_unknown()
   CVC4::Result::Sat res = smt.checkSat().isSat();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 
@@ -94,8 +106,9 @@ bool solver::check_sat()
   z3::check_result res = z3_solver.check();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 
@@ -109,8 +122,9 @@ bool solver::is_sat_or_unknown()
   z3::check_result res = z3_solver.check();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 
@@ -124,8 +138,9 @@ bool solver::is_unsat_or_unknown()
   z3::check_result res = z3_solver.check();
   auto t2 = now();
 
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
   if (enable_smt_logging) {
-    long long ms = as_ms(t2 - t1);
     log_smtlib(ms, res_to_string(res));
   }
 

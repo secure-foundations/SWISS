@@ -587,6 +587,8 @@ int main(int argc, char* argv[]) {
   options.strat_alt = false;
   options.whole_space = false;
   options.start_with_existing_conjectures = false;
+  options.pre_bmc = false;
+  options.post_bmc = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -672,6 +674,12 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--log-smt-files")) {
       enable_smt_logging = true;
+    }
+    else if (argv[i] == string("--pre-bmc")) {
+      options.pre_bmc = true;
+    }
+    else if (argv[i] == string("--post-bmc")) {
+      options.post_bmc = true;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;
