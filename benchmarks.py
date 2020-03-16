@@ -87,7 +87,7 @@ BENCHMARKS = {
 
 # note: this one is a lot easier than naive-breadth-paxos-exist-1
 "naive-breadth-paxos-exist-2" :
-  Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --whole-space"),
+  Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --whole-space --start-with-existing-conjectures"),
 
 "sat-breadth-paxos-3" : 
   Benchmark("benchmarks/paxos_epr_3.ivy", "--enum-sat --breadth --arity 3 --depth 3 --whole-space"),
