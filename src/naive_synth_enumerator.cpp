@@ -34,7 +34,8 @@ public:
 };
 
 SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, int k, bool ensure_nonredundant)
-  : module(module)
+  : progress(0)
+  , module(module)
   , ensure_nonredundant(ensure_nonredundant)
 {
   cout << "Using SimpleCandidateSolver" << endl;
@@ -102,6 +103,8 @@ void SimpleCandidateSolver::dump_cur_indices()
 value SimpleCandidateSolver::getNext()
 {
   while (true) {
+    progress++;
+
     if (cur_idx >= (int)values->values.size()) {
       return nullptr;
     }
@@ -235,6 +238,8 @@ value ConjunctCandidateSolver::getNext()
     if ((int)cur_indices.size() > this->conj_arity) {
       return nullptr;
     }
+
+    progress++;
 
     bool failed = false;
 

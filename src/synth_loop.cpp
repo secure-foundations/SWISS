@@ -517,12 +517,15 @@ struct CexStats {
 };
 
 void dump_stats(long long progress, CexStats const& cs,
-    std::chrono::time_point<std::chrono::high_resolution_clock> init) {
+    std::chrono::time_point<std::chrono::high_resolution_clock> init,
+    int num_redundant) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
   cout << "total time running so far: " << as_ms(now() - init)
        << " ms" << endl;
   cs.dump();
+  cout << "number of redundant invariants found: "
+       << num_redundant << endl;
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
   cout.flush();
@@ -616,18 +619,21 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
         printf("ERROR: invariant is not actually invariant");
         assert(false);
       }
-      break;
+
+      if (!options.whole_space) {
+        break;
+      }
+    } else {
+      //cex_stats(cex);
+      cs->addCounterexample(cex, candidate);
+      //transcript.entries.push_back(make_pair(cex, candidate));
     }
 
-    //cex_stats(cex);
-    cs->addCounterexample(cex, candidate);
-    //transcript.entries.push_back(make_pair(cex, candidate));
-
-    dump_stats(cs->getProgress(), cexstats, t_init);
+    dump_stats(cs->getProgress(), cexstats, t_init, 0);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats, t_init);
+  dump_stats(cs->getProgress(), cexstats, t_init, 0);
   cout << "complete!" << endl;
 }
 
@@ -656,6 +662,8 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
 void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 {
+  auto t_init = now();
+
   smt::context ctx;
   smt::context bmcctx;
 
@@ -675,8 +683,11 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   bmcctx.set_timeout(15000); // 15 seconds
 
   int num_iterations_total = 0;
+  int num_redundant = 0;
 
   std::vector<std::pair<Counterexample, value>> cexes;
+
+  CexStats cexstats;
 
   while (true) {
     shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
@@ -738,6 +749,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
       assert(cex.is_false == nullptr);
 
+      cexstats.add(cex);
+
       if (cex.none) {
         value simplified_inv;
         if (options.enum_sat) {
@@ -776,6 +789,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
         benchmarking_dump_totals();
 
+        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
+
         break;
       } else {
         //cex_stats(cex);
@@ -790,12 +805,16 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
       per_inner_loop_bench.end();
       per_inner_loop_bench.dump();
+
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
     }
 
     assert(is_itself_invariant(module, found_invs));
 
     if (!options.whole_space && is_invariant_with_conjectures(module, found_invs)) {
       printf("invariant implies safety condition, done!\n");
+
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
       break;
     }
 
@@ -818,6 +837,8 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
 
 void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
 {
+  auto t_init = now();
+
   smt::context ctx;
   smt::context bmcctx;
 
@@ -847,6 +868,9 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
   int num_iterations_total = 0;
   int num_iterations_outer = 0;
+  int num_redundant = 0;
+
+  CexStats cexstats;
 
   while (true) {
     num_iterations_outer++;
@@ -894,6 +918,8 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
       assert(cex.is_false == nullptr);
 
+      cexstats.add(cex);
+
       if (cex.none) {
         //Benchmarking bench_strengthen;
         //bench_strengthen.start("strengthen");
@@ -925,10 +951,12 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
           if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
+            dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
             return;
           }
         } else {
           cout << "invariant is redundant" << endl;
+          num_redundant++;
         }
 
         if (options.enum_sat) {
@@ -940,7 +968,11 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
         //cex_stats(cex);
         cs->addCounterexample(cex, candidate0);
       }
+
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
     }
+
+    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
 
     if (!any_formula_synthesized_this_round) {
       cout << "unable to synthesize any formula" << endl;
