@@ -102,44 +102,22 @@ export go2
 export commit
 export abort
 
-#conjecture abort_flag | alive(A)
-#conjecture abort_flag | ~vote_no(A)
-#conjecture go_abort(A) -> go_abort(B)
-#conjecture decide_abort(A) | ~vote_no(A)
-#conjecture go_commit(A) -> go_commit(B)
-#conjecture decide_commit(A) -> go_commit(A)
-#conjecture go_commit(A) -> ~go_abort(A)
-#conjecture vote_yes(A) | ~go_commit(A)
-#conjecture ~vote_yes(A) | ~vote_no(A)
-#conjecture go_abort(A) -> abort_flag
-#conjecture decide_abort(A) -> abort_flag
-
-#conjecture decide_commit(N) -> go_commit(N)
-#conjecture go_commit(N) -> ~go_abort(N2)
-#conjecture decide_abort(N) -> go_abort(N)
-#conjecture ~go_abort(N) -> ~decide_abort(N)
-
-#conjecture abort_flag -> (exists N. vote_no(N) | ~alive(N))
+template forall A: node, B: node, C: node . WILD
 
 # Generated from I4
-conjecture ~((~(alive(N0)) & ~(abort_flag))) 
-conjecture ~((~(abort_flag) & vote_no(N0))) 
-conjecture ~((~(abort_flag) & go_abort(N0))) 
-
-conjecture ~((~(go_abort(N0)) & decide_abort(N0) & vote_yes(N0))) 
-conjecture ~((~(go_abort(N5)) & decide_abort(N5) & vote_yes(N5))) 
-conjecture (N1 ~= N5) -> ~((~(go_abort(N5)) & go_abort(N1))) 
-
-conjecture ~((~(go_commit(N5)) & decide_commit(N5))) 
-conjecture (N0 ~= N5) -> ~((~(go_commit(N5)) & go_commit(N0))) 
-
-conjecture (N0 ~= N5) -> ~((~(go_commit(N5)) & decide_commit(N0))) 
-
-
-conjecture (N4 ~= N5) -> ~((~(vote_yes(N4)) & go_commit(N5))) 
-conjecture ~((~(vote_yes(N5)) & go_commit(N5))) 
-conjecture (N0 ~= N5) -> ~((go_commit(N5) & go_abort(N0))) 
-conjecture ~((go_commit(N5) & go_abort(N5))) 
+#conjecture ~((~(alive(N0)) & ~(abort_flag))) 
+#conjecture ~((~(abort_flag) & vote_no(N0))) 
+#conjecture ~((~(abort_flag) & go_abort(N0))) 
+#conjecture ~((~(go_abort(N0)) & decide_abort(N0) & vote_yes(N0))) 
+#conjecture ~((~(go_abort(N5)) & decide_abort(N5) & vote_yes(N5))) 
+#conjecture (N1 ~= N5) -> ~((~(go_abort(N5)) & go_abort(N1))) 
+#conjecture ~((~(go_commit(N5)) & decide_commit(N5))) 
+#conjecture (N0 ~= N5) -> ~((~(go_commit(N5)) & go_commit(N0))) 
+#conjecture (N0 ~= N5) -> ~((~(go_commit(N5)) & decide_commit(N0))) 
+#conjecture (N4 ~= N5) -> ~((~(vote_yes(N4)) & go_commit(N5))) 
+#conjecture ~((~(vote_yes(N5)) & go_commit(N5))) 
+#conjecture (N0 ~= N5) -> ~((go_commit(N5) & go_abort(N0))) 
+#conjecture ~((go_commit(N5) & go_abort(N5))) 
 
 # the safety properties:
 conjecture (decide_commit(N) -> ~decide_abort(N2))

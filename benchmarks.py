@@ -13,6 +13,9 @@ BENCHMARKS = {
 "naive-breadth-lock-server" :
   Benchmark("benchmarks/lock_server.ivy", "--enum-naive --breadth --strat2 --conj-arity 1 --disj-arity 2"),
 
+"naive-breadth-2pc" :
+  Benchmark("benchmarks/2PC.ivy", "--enum-naive --breadth --strat2 --conj-arity 1 --disj-arity 3"),
+
 "naive-leader-election" :
   Benchmark("benchmarks/leader-election.ivy", "--enum-naive --conj-arity 3 --disj-arity 3 --whole-space"),
 
