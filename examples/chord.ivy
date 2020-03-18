@@ -80,6 +80,8 @@ init reach(X) -> (X = org)
 init (X = org) -> reach(X)
 init ~error(X)
 
+#axiom ~error(N)
+
 action join = {
   local x : node, y : node {
     assume ~a(x);
@@ -221,7 +223,7 @@ conjecture (a(Y) | in_s2(X) | ~a(X) | ~s1(X, Y))
 conjecture p(A,B) -> a(A)
 
 conjecture a(X) & p(Y,X) & s1(X,Y) -> a(Y)
-conjecture (~btw(X, org, Y) | ~s1(X, Y)) 
+#conjecture (~btw(X, org, Y) | ~s1(X, Y)) 
 #conjecture ~(s1(V0, V1) & V1 ~= org & s2(V0, V2) & btw(V0, org, V2))
 
 # safety condition:

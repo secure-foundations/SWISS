@@ -80,6 +80,8 @@ init reach(X) -> (X = org)
 init (X = org) -> reach(X)
 init ~error(X)
 
+axiom ~error(X)
+
 action join = {
   local x : node, y : node {
     assume ~a(x);
