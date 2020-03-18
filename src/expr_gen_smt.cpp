@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <set>
 
+using namespace std;
 
 void SMT::generatePermutations(int a[], int size, int n, std::vector<std::vector<int>>& permutation){ 
     // if size becomes 1 then prints the obtained 
@@ -165,7 +166,13 @@ value SMT::nodeToValue(Node const& node) {
       }
     }
   } else {
-    return v_const(string_to_iden(func), function_sort);
+    if (func[0] == '~') {
+      return v_not(
+        v_const(string_to_iden(func.substr(1)), function_sort)
+      );
+    } else {
+      return v_const(string_to_iden(func), function_sort);
+    }
   }
 }
 

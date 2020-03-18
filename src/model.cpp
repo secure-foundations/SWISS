@@ -108,7 +108,10 @@ EvalExpr Model::value_to_eval_expr(
   }
   else if (Const* value = dynamic_cast<Const*>(v.get())) {
     auto iter = function_info.find(value->name);
-    assert(iter != function_info.end());
+    if (iter == function_info.end()) {
+      cout << "could not find " << iden_to_string(value->name) << endl;
+      assert(false);
+    }
     FunctionInfo const& finfo = iter->second;
     FunctionTable* ftable = finfo.table.get();
     int val = ftable == NULL ? finfo.else_value : ftable->value;
