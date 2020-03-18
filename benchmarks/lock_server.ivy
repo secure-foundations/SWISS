@@ -1,0 +1,33 @@
+#lang ivy1.5
+
+type client
+type server
+
+relation link(X:client, Y:server)
+relation semaphore(X:server)
+
+init semaphore(W)
+init ~link(X,Y)
+
+action connect = {
+ local x:client, y:server {
+    assume semaphore(y);
+    link(x,y) := true;
+    semaphore(y) := false
+  }
+}
+
+action disconnect = {
+  local x:client, y:server {
+    assume link(x,y);
+    link(x,y) := false;
+    semaphore(y) := true
+  }
+}
+
+template forall A:client . forall B:server . WILD
+
+#conjecture link(X, Y) -> ~semaphore(Y)
+
+# safety condition:
+conjecture link(C1, S) & link(C2, S) -> C1 = C2
