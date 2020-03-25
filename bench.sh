@@ -2,7 +2,7 @@
 
 set -e
 
-ARGS=$(python print_benchmark_args.py "$1")
+ARGS=$(python print_benchmark_args.py "$@")
 shift
-echo "./save.sh $ARGS $@"
-./save.sh $ARGS "$@"
+echo "./save.sh $ARGS"
+./save.sh $ARGS
