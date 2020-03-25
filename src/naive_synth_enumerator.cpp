@@ -331,11 +331,11 @@ public:
   }
 
   void addExistingInvariant(value inv) {
-    //for (int i = idx; i < (int)solvers.size(); i++) {
-    //  solvers[i]->addExistingInvariant(inv);
-    //}
-    assert (idx < (int)solvers.size());
-    solvers[idx]->addExistingInvariant(inv);
+    for (int i = idx; i < (int)solvers.size(); i++) {
+      solvers[i]->addExistingInvariant(inv);
+    }
+    //assert (idx < (int)solvers.size());
+    //solvers[idx]->addExistingInvariant(inv);
   }
 
   long long getProgress() {

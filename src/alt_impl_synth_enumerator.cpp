@@ -114,6 +114,11 @@ void AltImplCandidateSolver::existing_invariants_append(
 
 void AltImplCandidateSolver::addExistingInvariant(value inv)
 {
+  inv = taqd.rename_into(inv);
+  if (!inv) {
+    return;
+  }
+
   auto indices = get_indices_of_value(inv);
   existing_invariants_append(indices);
 

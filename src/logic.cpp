@@ -2261,6 +2261,76 @@ value TemplateHole::replace_const_with_var(map<iden, iden> const& x) const {
   return v_template_hole();
 }
 
+value Forall::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_forall(decls, body->replace_var_with_var(x)); 
+}
+
+value NearlyForall::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_nearlyforall(decls, body->replace_var_with_var(x)); 
+}
+
+value Exists::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_exists(decls, body->replace_var_with_var(x)); 
+}
+
+value Var::replace_var_with_var(map<iden, iden> const& x) const {
+  auto it = x.find(name);
+  if (it != x.end()) {
+    return v_var(it->second, sort);
+  } else {
+    return v_var(name, sort);
+  }
+}
+
+value Const::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_const(name, sort);
+}
+
+value Eq::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_eq(left->replace_var_with_var(x), right->replace_var_with_var(x));
+}
+
+value Not::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_not(this->val->replace_var_with_var(x));
+}
+
+value Implies::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_implies(left->replace_var_with_var(x), right->replace_var_with_var(x));
+}
+
+value IfThenElse::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_if_then_else(cond->replace_var_with_var(x), then_value->replace_var_with_var(x), else_value->replace_var_with_var(x));
+}
+
+value Apply::replace_var_with_var(map<iden, iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_var_with_var(x));
+  }
+  return v_apply(func->replace_var_with_var(x), move(new_args));
+}
+
+value And::replace_var_with_var(map<iden, iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_var_with_var(x));
+  }
+  return v_and(move(new_args));
+}
+
+value Or::replace_var_with_var(map<iden, iden> const& x) const {
+  vector<value> new_args;
+  for (value const& arg : args) {
+    new_args.push_back(arg->replace_var_with_var(x));
+  }
+  return v_or(move(new_args));
+}
+
+value TemplateHole::replace_var_with_var(map<iden, iden> const& x) const {
+  return v_template_hole();
+}
+
+
 template <typename A>
 vector<A> concat_vector(vector<A> const& a, vector<A> const& b) {
   vector<A> res = a;

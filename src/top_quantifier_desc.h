@@ -35,6 +35,8 @@ public:
 
   value with_body(value body) const;
   int weighted_sort_count(std::string sort) const;
+
+  value rename_into(value);
  
 private:
   std::vector<std::pair<QType, std::vector<VarDecl>>> d;
@@ -65,11 +67,15 @@ public:
   std::vector<QSRange> grouped_by_sort() const;
 
   TopAlternatingQuantifierDesc replace_exists_with_forall() const;
+  
+  value rename_into(value);
 
 private:
   std::vector<Alternation> alts;
 
   TopAlternatingQuantifierDesc() { }
+
+  friend value rename_into(std::vector<Alternation> const& alts, value v);
 };
 
 #endif

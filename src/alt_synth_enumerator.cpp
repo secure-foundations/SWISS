@@ -97,6 +97,11 @@ void AltDisjunctCandidateSolver::existing_invariants_append(std::vector<int> con
 
 void AltDisjunctCandidateSolver::addExistingInvariant(value inv)
 {
+  inv = taqd.rename_into(inv);
+  if (!inv) {
+    return;
+  }
+
   vector<int> indices = get_indices_of_value(inv);
   existing_invariants_append(indices);
 

@@ -2,6 +2,7 @@
 
 #include <set>
 #include <cassert>
+#include <iostream>
 
 using namespace std;
 
@@ -296,5 +297,92 @@ TopAlternatingQuantifierDesc TopAlternatingQuantifierDesc::
 
   TopAlternatingQuantifierDesc res;
   res.alts.push_back(bigalt); 
+  return res;
+}
+
+value rename_into(vector<Alternation> const& alts, value v)
+{
+  int alt_idx = 0;
+  int inner_idx = 0;
+
+  TopAlternatingQuantifierDesc atqd(v);
+  vector<Alternation>& alts1 = atqd.alts;
+  int alt_idx1 = 0;
+  int inner_idx1 = 0;
+
+  map<iden, iden> var_map;
+
+  while (alt_idx1 < (int)alts1.size()) {
+    while (inner_idx1 < (int)alts1[alt_idx1].decls.size()) {
+      if (alt_idx == (int)alts.size()) {
+        return nullptr;
+      }
+      if (inner_idx == (int)alts[alt_idx].decls.size()) {
+        inner_idx = 0;
+        alt_idx++;
+      } else {
+        if (alts[alt_idx].altType == alts1[alt_idx1].altType
+          && sorts_eq(
+            alts[alt_idx].decls[inner_idx].sort,
+            alts1[alt_idx1].decls[inner_idx1].sort))
+        {
+          var_map.insert(make_pair(
+            alts1[alt_idx1].decls[inner_idx1].name,
+            alts[alt_idx].decls[inner_idx].name));
+          inner_idx1++;
+        }
+        inner_idx++;
+      }
+    }
+    inner_idx1 = 0;
+    alt_idx1++;
+  }
+
+  value substed = v->replace_var_with_var(var_map);
+
+  TopAlternatingQuantifierDesc new_taqd;
+  new_taqd.alts = alts;
+  return new_taqd.with_body(substed);
+}
+
+value TopQuantifierDesc::rename_into(value v)
+{
+  cout << "Top rename_into " << v->to_string() << endl;
+  v = remove_unneeded_quants(v.get());
+  cout << "removed unneeded " << v->to_string() << endl;
+
+  vector<Alternation> alts;
+  alts.resize(d.size());
+  for (int i = 0; i < (int)d.size(); i++) {
+    assert (d[i].first == QType::Forall);
+    alts[i].decls = d[i].second;
+    alts[i].altType = AltType::Forall;
+  }
+
+  value res = ::rename_into(alts, v);
+
+  if (res) {
+    cout << "result " << res->to_string() << endl;
+  } else {
+    cout << "result null" << endl;
+  }
+
+  return res;
+}
+
+value TopAlternatingQuantifierDesc::rename_into(value v)
+{
+  cout << "Alt rename_into " << v->to_string() << endl;
+  v = remove_unneeded_quants(v.get());
+  cout << "removed unneeded " << v->to_string() << endl;
+
+  value res = ::rename_into(alts, v);
+
+  if (res) {
+    cout << "result " << res->to_string() << endl;
+  } else {
+    cout << "result null" << endl;
+  }
+
   return res;
 }
