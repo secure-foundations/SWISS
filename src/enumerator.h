@@ -29,9 +29,9 @@ struct ValueList {
 };
 
 std::shared_ptr<ValueList> cached_get_filtered_values(
-    std::shared_ptr<Module> module, int k = 3);
+    std::shared_ptr<Module> module, value templ, int k = 3);
 
 std::shared_ptr<ValueList> cached_get_unfiltered_values(
-    std::shared_ptr<Module> module, int k = 3);
+    std::shared_ptr<Module> module, value templ, int k = 3);
 
 #endif

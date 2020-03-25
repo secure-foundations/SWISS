@@ -8,7 +8,7 @@
 
 class BigDisjunctCandidateSolver : public CandidateSolver {
 public:
-  BigDisjunctCandidateSolver(std::shared_ptr<Module>, int disj_arity);
+  BigDisjunctCandidateSolver(std::shared_ptr<Module>, value templ, int disj_arity);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);

@@ -535,8 +535,6 @@ void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_optio
 {
   auto t_init = now();
 
-  assert(module->templates.size() == 1);
-
   smt::context ctx;
   smt::context bmcctx;
 
@@ -666,8 +664,6 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 
   smt::context ctx;
   smt::context bmcctx;
-
-  assert(module->templates.size() >= 1);
 
   vector<value> all_found_invs;
   vector<value> found_invs;
@@ -843,8 +839,6 @@ SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector
 
   smt::context ctx;
   smt::context bmcctx;
-
-  assert(module->templates.size() >= 1);
 
   vector<value> starter_invariants;
   vector<value> conjectures;

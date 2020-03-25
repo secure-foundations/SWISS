@@ -6,21 +6,19 @@
 
 using namespace std;
 
-AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int disj_arity)
+AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, value templ, int disj_arity)
   : module(module)
   , arity1(disj_arity)
   , arity2(disj_arity)
   , progress(0)
-  , taqd(module->templates[0])
+  , taqd(templ)
 {
   cout << "Using AltImplCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
   total_arity = arity1 + arity2;
 
-  assert(module->templates.size() == 1);
-
-  auto values = cached_get_unfiltered_values(module, 1);
+  auto values = cached_get_unfiltered_values(module, templ, 1);
   values->init_simp();
   pieces = values->values;
 
@@ -39,13 +37,13 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, int di
   done = false;
 
   var_index_states.resize(total_arity + 2);
-  var_index_states[0] = get_var_index_init_state(module->templates[0]);
+  var_index_states[0] = get_var_index_init_state(templ);
   for (int i = 1; i < (int)var_index_states.size(); i++) {
     var_index_states[i] = var_index_states[0];
   }
 
   var_index_transitions =
-      get_var_index_transitions(module->templates[0], pieces);
+      get_var_index_transitions(templ, pieces);
 
   assert (arity2 <= 3);
   existing_invariant_tries.resize(1 +

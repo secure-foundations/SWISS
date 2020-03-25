@@ -599,6 +599,9 @@ public:
       templates(templates),
       actions(actions),
       action_names(action_names) { }
+
+  std::shared_ptr<Module> add_conjectures(std::vector<std::shared_ptr<Value>> const& values);
+  int get_template_idx(std::shared_ptr<Value> templ);
 };
 
 std::shared_ptr<Module> parse_module(std::string const& src);

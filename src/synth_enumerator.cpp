@@ -11,7 +11,7 @@ using namespace std;
 
 class SatCandidateSolver : public CandidateSolver {
 public:
-  SatCandidateSolver(shared_ptr<Module>, EnumOptions const&,
+  SatCandidateSolver(shared_ptr<Module>, value templ, EnumOptions const&,
       bool ensure_nonredundant);
 
   value getNext();
@@ -31,6 +31,8 @@ public:
   shared_ptr<SketchModel> sm;
 
   TopQuantifierDesc tqd;
+  value templ;
+
   SatSolver ss;
   SketchFormula sf;
 
@@ -41,7 +43,10 @@ shared_ptr<CandidateSolver> make_sat_candidate_solver(
     shared_ptr<Module> module, EnumOptions const& options,
       bool ensure_nonredundant)
 {
-  return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, options, ensure_nonredundant));
+  assert (0 <= options.template_idx && options.template_idx < (int)module->templates.size());
+  value templ = module->templates[options.template_idx];
+
+  return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, templ, options, ensure_nonredundant));
 }
 
 sat_expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
@@ -145,11 +150,12 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   }
 }
 
-SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, EnumOptions const& options, bool ensure_nonredundant)
+SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, value templ, EnumOptions const& options, bool ensure_nonredundant)
   : module(module)
   , options(options)
   , ensure_nonredundant(ensure_nonredundant)
-  , tqd(module->templates[0])
+  , tqd(templ)
+  , templ(templ)
   , sf(ss, tqd, module, options.arity, options.depth)
 {
   init_constraints();
@@ -172,7 +178,7 @@ value SatCandidateSolver::getNext()
   }
 
   value candidate_inner = sf.to_value();
-  value candidate = fill_holes_in_value(module->templates[0], {candidate_inner});
+  value candidate = fill_holes_in_value(templ, {candidate_inner});
   candidate = candidate->simplify();
   return candidate;
 }

@@ -522,41 +522,45 @@ pair<vector<value>, vector<value>> enumerate_for_template(
   return res;
 }*/
 
-map<pair<shared_ptr<Module>, int>, shared_ptr<ValueList>> cache_filtered;
-map<pair<shared_ptr<Module>, int>, shared_ptr<ValueList>> cache_unfiltered;
+map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_filtered;
+map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_unfiltered;
 
-void populate(shared_ptr<Module> module, int k) {
-  assert(module->templates.size() == 1);
+void populate(shared_ptr<Module> module, value templ, int k) {
+  int l = module->get_template_idx(templ);
 
-  auto p = enumerate_for_template(module, module->templates[0], k);
+  auto p = enumerate_for_template(module, templ, k);
 
   shared_ptr<ValueList> v1 { new ValueList() };
   shared_ptr<ValueList> v2 { new ValueList() };
   v1->values_unsimplified = move(p.first);
   v2->values_unsimplified = move(p.second);
 
-  cache_filtered.insert(make_pair(make_pair(module, k), v1));
-  cache_unfiltered.insert(make_pair(make_pair(module, k), v2));
+  cache_filtered.insert(make_pair(make_pair(module, make_pair(k, l)), v1));
+  cache_unfiltered.insert(make_pair(make_pair(module, make_pair(k, l)), v2));
 }
 
-std::shared_ptr<ValueList> cached_get_filtered_values(std::shared_ptr<Module> module, int k)
+std::shared_ptr<ValueList> cached_get_filtered_values(std::shared_ptr<Module> module, value templ, int k)
 {
-  auto key = make_pair(module, k);
+  int l = module->get_template_idx(templ);
+
+  auto key = make_pair(module, make_pair(k, l));
   auto iter = cache_filtered.find(key);
   if (iter == cache_filtered.end()) {
-    populate(module, k);
+    populate(module, templ, k);
     return cache_filtered[key];
   } else {
     return iter->second;
   }
 }
 
-std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> module, int k)
+std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> module, value templ, int k)
 {
-  auto key = make_pair(module, k);
+  int l = module->get_template_idx(templ);
+
+  auto key = make_pair(module, make_pair(k, l));
   auto iter = cache_unfiltered.find(key);
   if (iter == cache_unfiltered.end()) {
-    populate(module, k);
+    populate(module, templ, k);
     return cache_unfiltered[key];
   } else {
     return iter->second;

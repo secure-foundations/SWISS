@@ -8,7 +8,7 @@
 
 class AltImplCandidateSolver : public CandidateSolver {
 public:
-  AltImplCandidateSolver(std::shared_ptr<Module>, int disj_arity);
+  AltImplCandidateSolver(std::shared_ptr<Module>, value templ, int disj_arity);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);

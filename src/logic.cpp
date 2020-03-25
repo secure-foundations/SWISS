@@ -1494,6 +1494,12 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     return 0;
   }
 
+  if (TemplateHole* a = dynamic_cast<TemplateHole*>(a_.get())) {
+    TemplateHole* b = dynamic_cast<TemplateHole*>(b_.get());
+    assert(b != NULL);
+    return 0;
+  }
+
   assert(false);
 }
 
@@ -2368,4 +2374,23 @@ vector<value> aggressively_split_into_conjuncts(value v)
   else {
     assert(false && "aggressively_split_into_conjuncts does not support this case");
   }
+}
+
+std::shared_ptr<Module> Module::add_conjectures(std::vector<std::shared_ptr<Value>> const& values)
+{
+  vector<value> new_conjectures = conjectures;
+  for (value v : values) {
+    new_conjectures.push_back(v);
+  }
+  return shared_ptr<Module>(new Module(sorts, functions, axioms, inits, new_conjectures, templates, actions, action_names));
+}
+
+int Module::get_template_idx(std::shared_ptr<Value> templ)
+{
+  for (int i = 0; i < (int)templates.size(); i++) {
+    if (values_equal(templates[i], templ)) {
+      return i;
+    }
+  }
+  assert(false);
 }

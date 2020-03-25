@@ -111,6 +111,7 @@ struct Strategy {
     inc = false;
     breadth = false;
 
+    enum_options.template_idx = 0;
     enum_options.arity = -1;
     enum_options.depth = -1;
     enum_options.conj = false;
@@ -287,6 +288,13 @@ int main(int argc, char* argv[]) {
       else if (argv[i] == string("--breadth")) {
         break;
       }
+      else if (argv[i] == string("--template")) {
+        assert(i + 1 < argc);
+        strat.enum_options.template_idx = atoi(argv[i+1]);
+        assert(0 <= strat.enum_options.template_idx
+            && strat.enum_options.template_idx < (int)module->templates.size());
+        i++;
+      }
       else if (argv[i] == string("--arity")) {
         assert(i + 1 < argc);
         strat.enum_options.arity = atoi(argv[i+1]);
@@ -367,9 +375,7 @@ int main(int argc, char* argv[]) {
         return 0;
       }
 
-      for (value v : synres.new_values) {
-        module->conjectures.push_back(v);
-      }
+      module = module->add_conjectures(synres.new_values);
     } else {
       idx = 0;
     }

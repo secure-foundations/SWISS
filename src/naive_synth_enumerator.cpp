@@ -14,7 +14,7 @@ using namespace std;
 
 class SimpleCandidateSolver : public CandidateSolver {
 public:
-  SimpleCandidateSolver(shared_ptr<Module>, int k, bool ensure_nonredundant);
+  SimpleCandidateSolver(shared_ptr<Module>, value templ, int k, bool ensure_nonredundant);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
@@ -33,14 +33,14 @@ public:
   int cur_idx;
 };
 
-SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, int k, bool ensure_nonredundant)
+SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, value templ, int k, bool ensure_nonredundant)
   : progress(0)
   , module(module)
   , ensure_nonredundant(ensure_nonredundant)
 {
   cout << "Using SimpleCandidateSolver" << endl;
 
-  values = cached_get_filtered_values(module, k);
+  values = cached_get_filtered_values(module, templ, k);
 
   values->init_simp();
   if (ensure_nonredundant) {
@@ -129,7 +129,7 @@ value SimpleCandidateSolver::getNext()
 
 class ConjunctCandidateSolver : public CandidateSolver {
 public:
-  ConjunctCandidateSolver(shared_ptr<Module>,
+  ConjunctCandidateSolver(shared_ptr<Module>, value templ,
       int conj_arity, int disj_arity);
 
   value getNext();
@@ -155,14 +155,14 @@ public:
   void dump_cur_indices();
 };
 
-ConjunctCandidateSolver::ConjunctCandidateSolver(shared_ptr<Module> module, int conj_arity, int disj_arity)
+ConjunctCandidateSolver::ConjunctCandidateSolver(shared_ptr<Module> module, value templ, int conj_arity, int disj_arity)
   : progress(0)
   , module(module)
   , conj_arity(conj_arity)
 {
   cout << "Using ConjunctCandidateSolver" << endl;
 
-  values = cached_get_filtered_values(module, disj_arity);
+  values = cached_get_filtered_values(module, templ, disj_arity);
   values->init_simp();
 
   cout << "Using " << values->values.size() << " values that are a disjunction of at most " << disj_arity << " terms." << endl;
@@ -282,20 +282,24 @@ value ConjunctCandidateSolver::getNext()
 std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
     std::shared_ptr<Module> module, EnumOptions const& options)
 {
+  assert (0 <= options.template_idx && options.template_idx < (int)module->templates.size());
+  value templ = module->templates[options.template_idx];
+  cout << "selecting template " << templ->to_string() << endl;
+
   //if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && !options.strat_alt) {
   //  return shared_ptr<CandidateSolver>(new SimpleCandidateSolver(module, options.disj_arity, ensure_nonredundant));
   //}
   if (options.conj_arity == 1 && !options.impl_shape && !options.strat_alt) {
-    return shared_ptr<CandidateSolver>(new BigDisjunctCandidateSolver(module, options.disj_arity));
+    return shared_ptr<CandidateSolver>(new BigDisjunctCandidateSolver(module, templ, options.disj_arity));
   }
   else if (options.conj_arity == 1 && !options.impl_shape && options.strat_alt) {
-    return shared_ptr<CandidateSolver>(new AltDisjunctCandidateSolver(module, options.disj_arity));
+    return shared_ptr<CandidateSolver>(new AltDisjunctCandidateSolver(module, templ, options.disj_arity));
   }
   else if (options.conj_arity == 1 && options.impl_shape && options.strat_alt) {
-    return shared_ptr<CandidateSolver>(new AltImplCandidateSolver(module, options.disj_arity));
+    return shared_ptr<CandidateSolver>(new AltImplCandidateSolver(module, templ, options.disj_arity));
   }
   else if (!options.impl_shape && !options.strat_alt) {
-    return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, options.conj_arity, options.disj_arity));
+    return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, templ, options.conj_arity, options.disj_arity));
   }
   assert(false);
 }

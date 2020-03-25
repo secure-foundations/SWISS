@@ -7,6 +7,8 @@
 #include "sketch.h"
 
 struct EnumOptions {
+  int template_idx;
+
   // SAT solving
   int arity;
   int depth;

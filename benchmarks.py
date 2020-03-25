@@ -123,4 +123,11 @@ BENCHMARKS = {
 "sat-breadth-paxos-4-r3" : 
   Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-sat",
       "--breadth --arity 4 --depth 3"),
+
+"full-paxos" :
+  Benchmark("benchmarks/paxos_epr_full.ivy",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
+
 }

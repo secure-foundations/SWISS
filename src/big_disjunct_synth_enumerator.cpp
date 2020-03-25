@@ -5,18 +5,16 @@
 
 using namespace std;
 
-BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module, int disj_arity)
+BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module, value templ, int disj_arity)
   : progress(0)
   , module(module)
   , disj_arity(disj_arity)
-  , tqd(module->templates[0])
+  , tqd(templ)
 {
   cout << "Using BigDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
-  assert(module->templates.size() == 1);
-
-  auto values = cached_get_unfiltered_values(module, 1);
+  auto values = cached_get_unfiltered_values(module, templ, 1);
   values->init_simp();
   pieces = values->values;
 
@@ -32,13 +30,13 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   done = false;
 
   var_index_states.resize(disj_arity + 2);
-  var_index_states[0] = get_var_index_init_state(module->templates[0]);
+  var_index_states[0] = get_var_index_init_state(templ);
   for (int i = 1; i < (int)var_index_states.size(); i++) {
     var_index_states[i] = var_index_states[0];
   }
 
   var_index_transitions =
-      get_var_index_transitions(module->templates[0], pieces);
+      get_var_index_transitions(templ, pieces);
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
