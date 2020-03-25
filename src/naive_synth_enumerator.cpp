@@ -354,3 +354,19 @@ std::shared_ptr<CandidateSolver> compose_candidate_solvers(
 {
   return shared_ptr<CandidateSolver>(new ComposedCandidateSolver(solvers));
 }
+
+std::shared_ptr<CandidateSolver> make_candidate_solver(
+    std::shared_ptr<Module> module, bool enum_sat, 
+    vector<EnumOptions> const& options,
+    bool ensure_nonredundant)
+{
+  vector<shared_ptr<CandidateSolver>> solvers;
+  for (EnumOptions const& enum_options : options) {
+    cout << endl;
+    cout << "--- Initializing enumerator ---" << endl;
+    solvers.push_back(make_candidate_solver(
+        module, enum_sat, enum_options, ensure_nonredundant));
+  }
+  cout << endl;
+  return compose_candidate_solvers(solvers);
+}

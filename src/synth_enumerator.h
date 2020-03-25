@@ -87,7 +87,12 @@ inline std::shared_ptr<CandidateSolver> make_candidate_solver(
   }
 }
 
+std::shared_ptr<CandidateSolver> make_candidate_solver(
+    std::shared_ptr<Module> module, bool enum_sat, 
+    std::vector<EnumOptions> const& options,
+    bool ensure_nonredundant);
+
 std::shared_ptr<CandidateSolver> compose_candidate_solvers(
-  std::vector<std::shared_ptr<CandidateSolver>> solvers);
+  std::vector<std::shared_ptr<CandidateSolver>> const& solvers);
 
 #endif

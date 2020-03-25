@@ -531,7 +531,7 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
-void synth_loop(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
+void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -660,7 +660,7 @@ void synth_loop(shared_ptr<Module> module, EnumOptions const& enum_options, Opti
   bench.dump();
 }*/
 
-void synth_loop_incremental(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
+SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -674,7 +674,7 @@ void synth_loop_incremental(shared_ptr<Module> module, EnumOptions const& enum_o
   vector<value> all_found_invs_unsimplified;
   if (is_invariant_with_conjectures(module, v_true())) {
     printf("already invariant, done\n");
-    return;
+    return SynthesisResult(true, {});
   }
 
   int bmc_depth = 4;
@@ -833,9 +833,11 @@ void synth_loop_incremental(shared_ptr<Module> module, EnumOptions const& enum_o
   printf("total invariants found: %d\n", (int)found_invs.size());
   benchmarking_dump_totals();
   printf("\n");
+
+  return SynthesisResult(false, found_invs);
 }
 
-void synth_loop_incremental_breadth(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
+SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -852,7 +854,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, EnumOptions const
 
   if (conjectures.size() == 0) {
     cout << "already invariant, done" << endl;
-    return;
+    return SynthesisResult(true, {});
   }
 
   vector<value> raw_invs;
@@ -951,7 +953,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, EnumOptions const
           if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
             dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
-            return;
+            return SynthesisResult(true, filtered_simplified_strengthened_invs);
           }
         } else {
           cout << "invariant is redundant" << endl;
@@ -978,4 +980,6 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, EnumOptions const
       break;
     }
   }
+
+  return SynthesisResult(false, filtered_simplified_strengthened_invs);
 }

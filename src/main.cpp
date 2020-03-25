@@ -100,6 +100,28 @@ void print_wpr(shared_ptr<Module> module, int count)
 int run_id;
 extern bool enable_smt_logging;
 
+struct Strategy {
+  bool finisher;
+  bool inc;
+  bool breadth;
+  EnumOptions enum_options;
+
+  Strategy() {
+    finisher = false;
+    inc = false;
+    breadth = false;
+
+    enum_options.arity = -1;
+    enum_options.depth = -1;
+    enum_options.conj = false;
+    enum_options.conj_arity = -1;
+    enum_options.disj_arity = -1;
+    enum_options.impl_shape = false;
+    //options.strat2 = false;
+    enum_options.strat_alt = false;
+  }
+};
+
 int main(int argc, char* argv[]) {
   std::istreambuf_iterator<char> begin(std::cin), end;
   std::string json_src(begin, end);
@@ -122,27 +144,16 @@ int main(int argc, char* argv[]) {
   options.post_bmc = false;
   options.get_space_size = false;
   options.minimal_models = false;
-
-  EnumOptions enum_options;
-  enum_options.arity = -1;
-  enum_options.depth = -1;
-  enum_options.conj = false;
-  enum_options.conj_arity = -1;
-  enum_options.disj_arity = -1;
-  enum_options.impl_shape = false;
-  //options.strat2 = false;
-  enum_options.strat_alt = false;
-
+  
   int seed = 1234;
   bool check_inductiveness = false;
   bool check_rel_inductiveness = false;
   bool check_implication = false;
-  bool incremental = false;
-  bool breadth = false;
-  bool finisher = false;
   bool wpr = false;
   int wpr_index = 0;
-  for (int i = 1; i < argc; i++) {
+
+  int i;
+  for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
       seed = (int)time(NULL);
     }
@@ -167,54 +178,22 @@ int main(int argc, char* argv[]) {
       check_implication = true;
     }
     else if (argv[i] == string("--finisher")) {
-      finisher = true;
+      break;
     }
     else if (argv[i] == string("--incremental")) {
-      incremental = true;
+      break;
     }
     else if (argv[i] == string("--breadth")) {
-      breadth = true;
+      break;
     }
     else if (argv[i] == string("--whole-space")) {
       options.whole_space = true;
     }
-    else if (argv[i] == string("--arity")) {
-      assert(i + 1 < argc);
-      enum_options.arity = atoi(argv[i+1]);
-      i++;
-    }
-    else if (argv[i] == string("--depth")) {
-      assert(i + 1 < argc);
-      enum_options.depth = atoi(argv[i+1]);
-      i++;
-    }
-    else if (argv[i] == string("--conj")) {
-      enum_options.conj = true;
-    }
-    else if (argv[i] == string("--conj-arity")) {
-      assert(i + 1 < argc);
-      enum_options.conj_arity = atoi(argv[i+1]);
-      i++;
-    }
-    else if (argv[i] == string("--disj-arity")) {
-      assert(i + 1 < argc);
-      enum_options.disj_arity = atoi(argv[i+1]);
-      i++;
-    }
     else if (argv[i] == string("--enum-sat")) {
       options.enum_sat = true;
     }
-    else if (argv[i] == string("--impl-shape")) {
-      enum_options.impl_shape = true;
-    }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
-    }
-    //else if (argv[i] == string("--strat2")) {
-    //  options.strat2 = true;
-    //}
-    else if (argv[i] == string("--strat-alt")) {
-      enum_options.strat_alt = true;
     }
     else if (argv[i] == string("--log-smt-files")) {
       enable_smt_logging = true;
@@ -267,7 +246,6 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-
   if (check_implication) {
     printf("just checking inductiveness...\n");
     vector<value> vs;
@@ -283,29 +261,129 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
+  vector<Strategy> strats;
+  while (i < argc) {
+    Strategy strat;
+    if (argv[i] == string("--finisher")) {
+      strat.finisher = true;
+    }
+    else if (argv[i] == string("--incremental")) {
+      strat.inc = true;
+    }
+    else if (argv[i] == string("--breadth")) {
+      strat.breadth = true;
+    }
+    else {
+      assert (false);
+    }
+
+    for (i++; i < argc; i++) {
+      if (argv[i] == string("--finisher")) {
+        break;
+      }
+      else if (argv[i] == string("--incremental")) {
+        break;
+      }
+      else if (argv[i] == string("--breadth")) {
+        break;
+      }
+      else if (argv[i] == string("--arity")) {
+        assert(i + 1 < argc);
+        strat.enum_options.arity = atoi(argv[i+1]);
+        i++;
+      }
+      else if (argv[i] == string("--depth")) {
+        assert(i + 1 < argc);
+        strat.enum_options.depth = atoi(argv[i+1]);
+        i++;
+      }
+      else if (argv[i] == string("--conj")) {
+        strat.enum_options.conj = true;
+      }
+      else if (argv[i] == string("--conj-arity")) {
+        assert(i + 1 < argc);
+        strat.enum_options.conj_arity = atoi(argv[i+1]);
+        i++;
+      }
+      else if (argv[i] == string("--disj-arity")) {
+        assert(i + 1 < argc);
+        strat.enum_options.disj_arity = atoi(argv[i+1]);
+        i++;
+      }
+      else if (argv[i] == string("--impl-shape")) {
+        strat.enum_options.impl_shape = true;
+      }
+      else if (argv[i] == string("--strat-alt")) {
+        strat.enum_options.strat_alt = true;
+      }
+      else {
+        cout << "unreocgnized enum_options argument " << argv[i] << endl;
+        return 1;
+      }
+    }
+
+    strats.push_back(strat);
+  }
+
+  if (strats.size() == 0) {
+    cout << "No strategy given ???" << endl;
+    return 1;
+  }
+
   printf("random seed = %d\n", seed);
   srand(seed);
 
-  assert(!(breadth && incremental));
-  assert(!(breadth && finisher));
-  assert(!(incremental && finisher));
-
-  if (finisher) {
-    printf("strategy: finisher\n");
-  } else if (incremental) {
-    printf("strategy: incremental\n");
-  } else {
-    printf("strategy: breadth\n");
-  }
-
   try {
-    assert(argc >= 3);
+    int idx;
+    if (strats[0].inc || strats[0].breadth) {
+      vector<EnumOptions> enum_options;
+      int i;
+      for (i = 0; i < (int)strats.size(); i++) {
+        if (strats[i].inc || strats[i].breadth) {
+          assert (strats[0].inc == strats[i].inc);
+          assert (strats[0].breadth == strats[i].breadth);
+          enum_options.push_back(strats[i].enum_options);
+        } else {
+          break;
+        }
+      }
+      idx = i;
 
-    if (breadth) {
-      synth_loop_incremental_breadth(module, enum_options, options);
-    } else if (incremental) {
-      synth_loop_incremental(module, enum_options, options);
+      SynthesisResult synres;
+      if (strats[0].inc) {
+        cout << endl;
+        cout << ">>>>>>>>>>>>>> Starting incremental algorithm" << endl;
+        cout << endl;
+        synres = synth_loop_incremental(module, enum_options, options);
+      } else {
+        cout << endl;
+        cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
+        cout << endl;
+        synres = synth_loop_incremental_breadth(module, enum_options, options);
+      }
+
+      if (synres.done) {
+        cout << "Synthesis success!" << endl;
+        return 0;
+      }
+
+      for (value v : synres.new_values) {
+        module->conjectures.push_back(v);
+      }
     } else {
+      idx = 0;
+    }
+
+    if (idx < (int)strats.size()) {
+      vector<EnumOptions> enum_options;
+      for (int i = idx; i < (int)strats.size(); i++) {
+        assert (strats[i].finisher);
+        enum_options.push_back(strats[i].enum_options);
+      }
+
+      cout << endl;
+      cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
+      cout << endl;
       synth_loop(module, enum_options, options);
     }
 
