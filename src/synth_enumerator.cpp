@@ -11,8 +11,8 @@ using namespace std;
 
 class SatCandidateSolver : public CandidateSolver {
 public:
-  SatCandidateSolver(shared_ptr<Module>, Options const&,
-      bool ensure_nonredundant, Shape shape);
+  SatCandidateSolver(shared_ptr<Module>, EnumOptions const&,
+      bool ensure_nonredundant);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
@@ -25,8 +25,7 @@ public:
   vector<value> existingInvariants;
 
   shared_ptr<Module> module;
-  Shape shape;
-  Options options;
+  EnumOptions options;
   bool ensure_nonredundant;
 
   shared_ptr<SketchModel> sm;
@@ -39,10 +38,10 @@ public:
 };
 
 shared_ptr<CandidateSolver> make_sat_candidate_solver(
-    shared_ptr<Module> module, Options const& options,
-      bool ensure_nonredundant, Shape shape)
+    shared_ptr<Module> module, EnumOptions const& options,
+      bool ensure_nonredundant)
 {
-  return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, options, ensure_nonredundant, shape));
+  return shared_ptr<CandidateSolver>(new SatCandidateSolver(module, options, ensure_nonredundant));
 }
 
 sat_expr is_something(shared_ptr<Module> module, SketchFormula& sf, shared_ptr<Model> model,
@@ -146,9 +145,8 @@ void add_counterexample(shared_ptr<Module> module, SketchFormula& sf, Counterexa
   }
 }
 
-SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, Options const& options, bool ensure_nonredundant, Shape shape)
+SatCandidateSolver::SatCandidateSolver(shared_ptr<Module> module, EnumOptions const& options, bool ensure_nonredundant)
   : module(module)
-  , shape(shape)
   , options(options)
   , ensure_nonredundant(ensure_nonredundant)
   , tqd(module->templates[0])
@@ -195,14 +193,9 @@ void SatCandidateSolver::addExistingInvariant(value inv)
 
 void SatCandidateSolver::init_constraints()
 {
-  switch (shape) {
-    case Shape::SHAPE_DISJ:
-      sf.constrain_disj_form();
-      break;
-    case Shape::SHAPE_CONJ_DISJ:
-      sf.constrain_conj_disj_form();
-      break;
-    default:
-      assert(false);
+  if (options.conj) {
+    sf.constrain_conj_disj_form();
+  } else {
+    sf.constrain_disj_form();
   }
 }

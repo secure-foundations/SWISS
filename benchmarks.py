@@ -7,103 +7,91 @@ BENCHMARKS = {
 
 ### Leader election
 
-"naive-lock-server" :
-  Benchmark("benchmarks/lock_server.ivy", "--enum-naive --conj-arity 1 --disj-arity 2 --with-conjs"),
+"lock-server" :
+  Benchmark("benchmarks/lock_server.ivy", "--finisher --conj-arity 1 --disj-arity 2 --with-conjs"),
 
-"naive-breadth-lock-server" :
-  Benchmark("benchmarks/lock_server.ivy", "--enum-naive --breadth --strat2 --conj-arity 1 --disj-arity 2"),
+"breadth-lock-server" :
+  Benchmark("benchmarks/lock_server.ivy", "--breadth --conj-arity 1 --disj-arity 2"),
 
-"naive-breadth-2pc" :
-  Benchmark("benchmarks/2PC.ivy", "--enum-naive --breadth --strat2 --conj-arity 1 --disj-arity 3"),
+"breadth-2pc" :
+  Benchmark("benchmarks/2PC.ivy", "--breadth --conj-arity 1 --disj-arity 3"),
 
-"naive-leader-election" :
-  Benchmark("benchmarks/leader-election.ivy", "--enum-naive --conj-arity 3 --disj-arity 3 --whole-space"),
+"leader-election" :
+  Benchmark("benchmarks/leader-election.ivy", "--finisher --conj-arity 3 --disj-arity 3"),
 
-"naive-inc-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--incremental --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
+"inc-leader-election" : 
+  Benchmark("benchmarks/leader-election.ivy", "--incremental --conj-arity 1 --disj-arity 3"),
 
-"naive-breadth-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
-
-"naive-strat2-breadth-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --strat2 --whole-space"),
+"breadth-leader-election" : 
+  Benchmark("benchmarks/leader-election.ivy", "--breadth --conj-arity 1 --disj-arity 3"),
 
 "sat-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--enum-sat --arity 3 --depth 4 --whole-space"),
+  Benchmark("benchmarks/leader-election.ivy", "--finisher --enum-sat --arity 3 --depth 4 --conj"),
 
 "sat-inc-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--incremental --enum-sat --arity 3 --depth 3 --whole-space"),
+  Benchmark("benchmarks/leader-election.ivy", "--incremental --enum-sat --arity 3 --depth 3"),
 
 "sat-breadth-leader-election" : 
-  Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-sat --arity 3 --depth 3 --whole-space"),
+  Benchmark("benchmarks/leader-election.ivy", "--breadth --enum-sat --arity 3 --depth 3"),
 
 ### Learning switch
 
 "sat-inc-learning-switch" : 
-  Benchmark("benchmarks/learning-switch.ivy", "--incremental --enum-sat --arity 3 --depth 3 --whole-space"),
+  Benchmark("benchmarks/learning-switch.ivy", "--incremental --enum-sat --arity 3 --depth 3"),
 
 "sat-breadth-learning-switch" : 
-  Benchmark("benchmarks/learning-switch.ivy", "--breadth --enum-sat --arity 3 --depth 3 --whole-space"),
+  Benchmark("benchmarks/learning-switch.ivy", "--breadth --enum-sat --arity 3 --depth 3"),
 
-"naive-inc-learning-switch" : 
-  Benchmark("benchmarks/learning-switch.ivy", "--incremental --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
+"inc-learning-switch" : 
+  Benchmark("benchmarks/learning-switch.ivy", "--incremental --conj-arity 1 --disj-arity 3"),
 
-"naive-breadth-learning-switch" : 
-  Benchmark("benchmarks/learning-switch.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --whole-space"),
-
-"naive-strat2-breadth-learning-switch" : 
-  Benchmark("benchmarks/learning-switch.ivy", "--breadth --enum-naive --conj-arity 1 --disj-arity 3 --strat2 --whole-space"),
+"breadth-learning-switch" : 
+  Benchmark("benchmarks/learning-switch.ivy", "--breadth --conj-arity 1 --disj-arity 3"),
 
 ### Chord
 
 "sat-breadth-chord" : 
-  Benchmark("benchmarks/chord.ivy", "--enum-sat --breadth --arity 4 --depth 3 --whole-space"),
+  Benchmark("benchmarks/chord.ivy", "--enum-sat --breadth --arity 4 --depth 3"),
 
-"naive-breadth-chord-size3" : 
-  Benchmark("benchmarks/chord.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --whole-space"),
+"breadth-chord-size3" : 
+  Benchmark("benchmarks/chord.ivy", "--breadth --conj-arity 1 --disj-arity 3"),
 
-"naive-inc-chord-size3" : 
-  Benchmark("benchmarks/chord.ivy", "--enum-naive --incremental --conj-arity 1 --disj-arity 3 --whole-space"),
+"inc-chord-size3" : 
+  Benchmark("benchmarks/chord.ivy", "--incremental --conj-arity 1 --disj-arity 3"),
 
-"naive-strat2-breadth-chord" : 
-  Benchmark("benchmarks/chord.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2 --whole-space"),
+"breadth-chord" : 
+  Benchmark("benchmarks/chord.ivy", "--breadth --conj-arity 1 --disj-arity 4"),
 
 ### Paxos
 
-"naive-paxos-missing1" : 
-  Benchmark("benchmarks/paxos_epr_missing1.ivy", "--enum-naive --impl-shape --disj-arity 3 --with-conjs  --whole-space"),
-
 "sat-inc-paxos" : 
-  Benchmark("benchmarks/paxos_epr.ivy", "--enum-sat --incremental --arity 4 --depth 3 --whole-space"),
+  Benchmark("benchmarks/paxos_epr.ivy", "--enum-sat --incremental --arity 4 --depth 3"),
 
-"naive-strat2-breadth-paxos-3" : 
-  Benchmark("benchmarks/paxos_epr_3.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat2 --whole-space"),
+"breadth-paxos-3" : 
+  Benchmark("benchmarks/paxos_epr_3.ivy", "--breadth --conj-arity 1 --disj-arity 3"),
 
-"naive-strat2-breadth-paxos-4-r2" : 
-  Benchmark("benchmarks/paxos_epr_4_r2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2 --whole-space"),
+"breadth-paxos-4-r2" : 
+  Benchmark("benchmarks/paxos_epr_4_r2.ivy", "--breadth --conj-arity 1 --disj-arity 4"),
 
-"naive-strat2-breadth-paxos-4-r3" : 
-  Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 4 --strat2 --whole-space"),
+"breadth-paxos-4-r3" : 
+  Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--breadth --conj-arity 1 --disj-arity 4"),
 
-"naive-breadth-paxos-exist-1" :
-  Benchmark("benchmarks/paxos_epr_existential_1.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --whole-space --start-with-existing-conjectures"),
+"breadth-paxos-exist-1" :
+  Benchmark("benchmarks/paxos_epr_existential_1.ivy", "--breadth --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --start-with-existing-conjectures"),
 
-"naive-full-paxos-exist-1" :
-  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy", "--enum-naive --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --with-conjs --whole-space"),
+"finisher-paxos-exist-1" :
+  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy", "--finisher --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --with-conjs"),
 
-"naive-full-paxos-exist-1-solve" :
-  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy", "--enum-naive --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape --with-conjs"),
-
-# note: this one is a lot easier than naive-breadth-paxos-exist-1
-"naive-breadth-paxos-exist-2" :
-  Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--enum-naive --breadth --conj-arity 1 --disj-arity 3 --strat-alt --whole-space --start-with-existing-conjectures"),
+# note: this one is a lot easier than breadth-paxos-exist-1
+"breadth-paxos-exist-2" :
+  Benchmark("benchmarks/paxos_epr_existential_2.ivy", "--breadth --conj-arity 1 --disj-arity 3 --strat-alt --start-with-existing-conjectures"),
 
 "sat-breadth-paxos-3" : 
-  Benchmark("benchmarks/paxos_epr_3.ivy", "--enum-sat --breadth --arity 3 --depth 3 --whole-space"),
+  Benchmark("benchmarks/paxos_epr_3.ivy", "--enum-sat --breadth --arity 3 --depth 3"),
 
 "sat-breadth-paxos-4-r2" : 
-  Benchmark("benchmarks/paxos_epr_4_r2.ivy", "--enum-sat --breadth --arity 4 --depth 3 --whole-space"),
+  Benchmark("benchmarks/paxos_epr_4_r2.ivy", "--enum-sat --breadth --arity 4 --depth 3"),
 
 "sat-breadth-paxos-4-r3" : 
-  Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-sat --breadth --arity 4 --depth 3 --whole-space"),
+  Benchmark("benchmarks/paxos_epr_4_r3.ivy", "--enum-sat --breadth --arity 4 --depth 3"),
 }

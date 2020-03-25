@@ -6,9 +6,22 @@
 #include "top_quantifier_desc.h"
 #include "sketch.h"
 
+struct EnumOptions {
+  // SAT solving
+  int arity;
+  int depth;
+  bool conj;
+
+  // Naive solving
+  int disj_arity;
+  int conj_arity;
+  bool impl_shape;
+  //bool strat2;
+  bool strat_alt;
+};
+
 struct Options {
   bool enum_sat;
-  bool enum_naive;
 
   bool get_space_size;
 
@@ -19,27 +32,10 @@ struct Options {
   bool filter_redundant;
 
   bool whole_space;
-  bool start_with_existing_conjectures;
 
   bool pre_bmc;
   bool post_bmc;
   bool minimal_models;
-
-  // SAT solving
-  int arity;
-  int depth;
-
-  // Naive solving
-  int disj_arity;
-  int conj_arity;
-  bool impl_shape;
-  bool strat2;
-  bool strat_alt;
-};
-
-enum class Shape {
-  SHAPE_DISJ,
-  SHAPE_CONJ_DISJ
 };
 
 struct Counterexample {
@@ -73,24 +69,25 @@ public:
 };
 
 std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
-    std::shared_ptr<Module> module, Options const& options,
-      bool ensure_nonredundant, Shape shape);
+    std::shared_ptr<Module> module, EnumOptions const& options,
+      bool ensure_nonredundant);
 
 std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
-    std::shared_ptr<Module> module, Options const& options,
-      bool ensure_nonredundant, Shape shape);
+    std::shared_ptr<Module> module, EnumOptions const& options);
 
 inline std::shared_ptr<CandidateSolver> make_candidate_solver(
-    std::shared_ptr<Module> module, Options const& options,
-      bool ensure_nonredundant, Shape shape)
+    std::shared_ptr<Module> module, bool enum_sat, 
+    EnumOptions const& options,
+    bool ensure_nonredundant)
 {
-  assert (options.enum_sat ^ options.enum_naive);
-
-  if (options.enum_sat) {
-    return make_sat_candidate_solver(module, options, ensure_nonredundant, shape);
+  if (enum_sat) {
+    return make_sat_candidate_solver(module, options, ensure_nonredundant);
   } else {
-    return make_naive_candidate_solver(module, options, ensure_nonredundant, shape);
+    return make_naive_candidate_solver(module, options);
   }
 }
+
+std::shared_ptr<CandidateSolver> compose_candidate_solvers(
+  std::vector<std::shared_ptr<CandidateSolver>> solvers);
 
 #endif

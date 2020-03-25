@@ -115,22 +115,23 @@ int main(int argc, char* argv[]) {
   run_id = rand();
 
   Options options;
-  options.arity = -1;
-  options.depth = -1;
-  options.conj_arity = -1;
-  options.disj_arity = -1;
   options.enum_sat = false;
-  options.enum_naive = false;
-  options.impl_shape = false;
   options.with_conjs = false;
-  options.strat2 = false;
-  options.strat_alt = false;
   options.whole_space = false;
-  options.start_with_existing_conjectures = false;
   options.pre_bmc = false;
   options.post_bmc = false;
   options.get_space_size = false;
   options.minimal_models = false;
+
+  EnumOptions enum_options;
+  enum_options.arity = -1;
+  enum_options.depth = -1;
+  enum_options.conj = false;
+  enum_options.conj_arity = -1;
+  enum_options.disj_arity = -1;
+  enum_options.impl_shape = false;
+  //options.strat2 = false;
+  enum_options.strat_alt = false;
 
   int seed = 1234;
   bool check_inductiveness = false;
@@ -138,6 +139,7 @@ int main(int argc, char* argv[]) {
   bool check_implication = false;
   bool incremental = false;
   bool breadth = false;
+  bool finisher = false;
   bool wpr = false;
   int wpr_index = 0;
   for (int i = 1; i < argc; i++) {
@@ -164,6 +166,9 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--check-implication")) {
       check_implication = true;
     }
+    else if (argv[i] == string("--finisher")) {
+      finisher = true;
+    }
     else if (argv[i] == string("--incremental")) {
       incremental = true;
     }
@@ -175,44 +180,41 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--arity")) {
       assert(i + 1 < argc);
-      options.arity = atoi(argv[i+1]);
+      enum_options.arity = atoi(argv[i+1]);
       i++;
     }
     else if (argv[i] == string("--depth")) {
       assert(i + 1 < argc);
-      options.depth = atoi(argv[i+1]);
+      enum_options.depth = atoi(argv[i+1]);
       i++;
+    }
+    else if (argv[i] == string("--conj")) {
+      enum_options.conj = true;
     }
     else if (argv[i] == string("--conj-arity")) {
       assert(i + 1 < argc);
-      options.conj_arity = atoi(argv[i+1]);
+      enum_options.conj_arity = atoi(argv[i+1]);
       i++;
     }
     else if (argv[i] == string("--disj-arity")) {
       assert(i + 1 < argc);
-      options.disj_arity = atoi(argv[i+1]);
+      enum_options.disj_arity = atoi(argv[i+1]);
       i++;
     }
     else if (argv[i] == string("--enum-sat")) {
       options.enum_sat = true;
     }
-    else if (argv[i] == string("--enum-naive")) {
-      options.enum_naive = true;
-    }
     else if (argv[i] == string("--impl-shape")) {
-      options.impl_shape = true;
+      enum_options.impl_shape = true;
     }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
     }
-    else if (argv[i] == string("--strat2")) {
-      options.strat2 = true;
-    }
+    //else if (argv[i] == string("--strat2")) {
+    //  options.strat2 = true;
+    //}
     else if (argv[i] == string("--strat-alt")) {
-      options.strat_alt = true;
-    }
-    else if (argv[i] == string("--start-with-existing-conjectures")) {
-      options.start_with_existing_conjectures = true;
+      enum_options.strat_alt = true;
     }
     else if (argv[i] == string("--log-smt-files")) {
       enable_smt_logging = true;
@@ -234,8 +236,6 @@ int main(int argc, char* argv[]) {
       return 1;
     }
   }
-
-  assert(!(breadth && incremental));
 
   if (wpr) {
     print_wpr(module, wpr_index);
@@ -286,21 +286,27 @@ int main(int argc, char* argv[]) {
   printf("random seed = %d\n", seed);
   srand(seed);
 
-  if (incremental) {
-    printf("doing incremental\n");
+  assert(!(breadth && incremental));
+  assert(!(breadth && finisher));
+  assert(!(incremental && finisher));
+
+  if (finisher) {
+    printf("strategy: finisher\n");
+  } else if (incremental) {
+    printf("strategy: incremental\n");
   } else {
-    printf("doing non-incremental\n");
+    printf("strategy: breadth\n");
   }
 
   try {
     assert(argc >= 3);
 
     if (breadth) {
-      synth_loop_incremental_breadth(module, options);
+      synth_loop_incremental_breadth(module, enum_options, options);
     } else if (incremental) {
-      synth_loop_incremental(module, options);
+      synth_loop_incremental(module, enum_options, options);
     } else {
-      synth_loop(module, options);
+      synth_loop(module, enum_options, options);
     }
 
     return 0;

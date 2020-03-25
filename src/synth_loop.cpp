@@ -531,7 +531,7 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
-void synth_loop(shared_ptr<Module> module, Options const& options)
+void synth_loop(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -568,7 +568,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
 
   CexStats cexstats;
 
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, false, Shape::SHAPE_CONJ_DISJ);
+  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
   if (options.get_space_size) {
     cout << "space size: " << cs->getSpaceSize() << endl;
     exit(0);
@@ -660,7 +660,7 @@ void synth_loop(shared_ptr<Module> module, Options const& options)
   bench.dump();
 }*/
 
-void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
+void synth_loop_incremental(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -690,7 +690,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   CexStats cexstats;
 
   while (true) {
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, true);
     if (options.enum_sat) {
       for (value inv : found_invs) {
         cs->addExistingInvariant(inv);
@@ -835,7 +835,7 @@ void synth_loop_incremental(shared_ptr<Module> module, Options const& options)
   printf("\n");
 }
 
-void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& options)
+void synth_loop_incremental_breadth(shared_ptr<Module> module, EnumOptions const& enum_options, Options const& options)
 {
   auto t_init = now();
 
@@ -844,22 +844,21 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
 
   assert(module->templates.size() >= 1);
 
-  vector<value> raw_invs;
-  vector<value> strengthened_invs;
-  vector<value> filtered_simplified_strengthened_invs;
-  if (!options.start_with_existing_conjectures &&
-      is_invariant_with_conjectures(module, v_true())) {
-    printf("already invariant, done\n");
+  vector<value> starter_invariants;
+  vector<value> conjectures;
+  split_into_invariants_conjectures(module,
+      starter_invariants /* output */,
+      conjectures /* output */);
+
+  if (conjectures.size() == 0) {
+    cout << "already invariant, done" << endl;
     return;
   }
 
-  if (options.start_with_existing_conjectures) {
-    if (!is_invariant_with_conjectures(module, v_true())) {
-      cout << "error: starting conjectures are not invariant" << endl;
-      return;
-    }
-    filtered_simplified_strengthened_invs = module->conjectures;
-  }
+  vector<value> raw_invs;
+  vector<value> strengthened_invs;
+  vector<value> filtered_simplified_strengthened_invs = 
+        starter_invariants;
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -875,7 +874,7 @@ void synth_loop_incremental_breadth(shared_ptr<Module> module, Options const& op
   while (true) {
     num_iterations_outer++;
 
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options, true, Shape::SHAPE_DISJ);
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, true);
     if (options.enum_sat) {
       for (value inv : filtered_simplified_strengthened_invs) {
         cs->addExistingInvariant(inv);

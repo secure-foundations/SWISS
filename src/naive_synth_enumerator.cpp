@@ -280,23 +280,77 @@ value ConjunctCandidateSolver::getNext()
 }
 
 std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
-    std::shared_ptr<Module> module, Options const& options,
-      bool ensure_nonredundant, Shape shape)
+    std::shared_ptr<Module> module, EnumOptions const& options)
 {
-  if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && !options.strat_alt) {
-    return shared_ptr<CandidateSolver>(new SimpleCandidateSolver(module, options.disj_arity, ensure_nonredundant));
-  }
-  else if (options.conj_arity == 1 && !options.impl_shape && options.strat2 && !options.strat_alt) {
+  //if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && !options.strat_alt) {
+  //  return shared_ptr<CandidateSolver>(new SimpleCandidateSolver(module, options.disj_arity, ensure_nonredundant));
+  //}
+  if (options.conj_arity == 1 && !options.impl_shape && !options.strat_alt) {
     return shared_ptr<CandidateSolver>(new BigDisjunctCandidateSolver(module, options.disj_arity));
   }
-  else if (options.conj_arity == 1 && !options.impl_shape && !options.strat2 && options.strat_alt) {
+  else if (options.conj_arity == 1 && !options.impl_shape && options.strat_alt) {
     return shared_ptr<CandidateSolver>(new AltDisjunctCandidateSolver(module, options.disj_arity));
   }
   else if (options.conj_arity == 1 && options.impl_shape && options.strat_alt) {
     return shared_ptr<CandidateSolver>(new AltImplCandidateSolver(module, options.disj_arity));
   }
-  else if (!options.impl_shape && !ensure_nonredundant && !options.strat2 && !options.strat_alt) {
+  else if (!options.impl_shape && !options.strat_alt) {
     return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, options.conj_arity, options.disj_arity));
   }
   assert(false);
+}
+
+class ComposedCandidateSolver : public CandidateSolver {
+public:
+  vector<shared_ptr<CandidateSolver>> solvers;
+  int idx;
+
+  ComposedCandidateSolver(vector<shared_ptr<CandidateSolver>> const& solvers)
+    : solvers(solvers), idx(0) { }
+
+  value getNext() {
+    while (idx < (int)solvers.size()) {
+      value next = solvers[idx]->getNext();
+      if (next != nullptr) {
+        return next;
+      } else {
+        idx++;
+      }
+    }
+    return nullptr;
+  }
+
+  void addCounterexample(Counterexample cex, value candidate) {
+    for (int i = idx; i < (int)solvers.size(); i++) {
+      solvers[i]->addCounterexample(cex, candidate);
+    }
+  }
+
+  void addExistingInvariant(value inv) {
+    for (int i = idx; i < (int)solvers.size(); i++) {
+      solvers[i]->addExistingInvariant(inv);
+    }
+  }
+
+  long long getProgress() {
+    long long prog = 0;
+    for (int i = 0; i <= idx; i++) {
+      prog += solvers[i]->getProgress();
+    }
+    return prog;
+  }
+
+  long long getSpaceSize() {
+    long long res = 0;
+    for (int i = 0; i < (int)solvers.size(); i++) {
+      res += solvers[i]->getSpaceSize();
+    }
+    return res;
+  }
+};
+
+std::shared_ptr<CandidateSolver> compose_candidate_solvers(
+  std::vector<std::shared_ptr<CandidateSolver>> const& solvers)
+{
+  return shared_ptr<CandidateSolver>(new ComposedCandidateSolver(solvers));
 }
