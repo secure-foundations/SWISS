@@ -334,7 +334,7 @@ public:
 
   long long getProgress() {
     long long prog = 0;
-    for (int i = 0; i <= idx; i++) {
+    for (int i = 0; i <= idx && i < (int)solvers.size(); i++) {
       prog += solvers[i]->getProgress();
     }
     return prog;
