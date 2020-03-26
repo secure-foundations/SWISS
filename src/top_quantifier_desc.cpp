@@ -300,7 +300,7 @@ TopAlternatingQuantifierDesc TopAlternatingQuantifierDesc::
   return res;
 }
 
-value rename_into(vector<Alternation> const& alts, value v)
+/*value rename_into(vector<Alternation> const& alts, value v)
 {
   int alt_idx = 0;
   int inner_idx = 0;
@@ -338,7 +338,7 @@ value rename_into(vector<Alternation> const& alts, value v)
     alt_idx1++;
   }
 
-  value substed = v->replace_var_with_var(var_map);
+  value substed = v->replace_var_with_var(TopAlternatingQuantifierDesc::get_body(var_map));
 
   TopAlternatingQuantifierDesc new_taqd;
   new_taqd.alts = alts;
@@ -385,4 +385,101 @@ value TopAlternatingQuantifierDesc::rename_into(value v)
   }
 
   return res;
+}*/
+
+
+void TopAlternatingQuantifierDesc::rename_into_all_possibilities_rec(
+    TopAlternatingQuantifierDesc const& v_taqd,
+    int v_idx,
+    int v_inner_idx,
+    int this_idx,
+    int this_inner_idx,
+    value const& body,
+    map<iden, iden>& var_map,
+    vector<value>& results)
+{
+  if (v_idx == (int)v_taqd.alts.size()) {
+    results.push_back(this->with_body(body->replace_var_with_var(var_map)));
+    return;
+  }
+
+  if (v_inner_idx == (int)v_taqd.alts[v_idx].decls.size()) {
+    rename_into_all_possibilities_rec(
+        v_taqd,
+        v_idx + 1, 0,
+        this_idx, this_inner_idx,
+        body, var_map, results);
+    return;
+  }
+
+  if (this_idx == (int)this->alts.size()) {
+    return;
+  }
+
+  if (this_inner_idx == (int)this->alts[this_idx].decls.size()) {
+    rename_into_all_possibilities_rec(
+        v_taqd,
+        v_idx, v_inner_idx,
+        this_idx + 1, 0,
+        body, var_map, results);
+    return;
+  }
+
+  if (v_taqd.alts[v_idx].altType != this->alts[this_idx].altType) {
+    rename_into_all_possibilities_rec(
+        v_taqd,
+        v_idx, v_inner_idx,
+        this_idx + 1, 0,
+        body, var_map, results);
+    return;
+  }
+
+  rename_into_all_possibilities_rec(
+      v_taqd,
+      v_idx, v_inner_idx,
+      this_idx, this_inner_idx + 1,
+      body, var_map, results);
+
+  if (sorts_eq(
+    v_taqd.alts[v_idx].decls[v_inner_idx].sort,
+    this->alts[this_idx].decls[this_inner_idx].sort))
+  {
+    var_map[v_taqd.alts[v_idx].decls[v_inner_idx].name] =
+        this->alts[this_idx].decls[this_inner_idx].name;
+    rename_into_all_possibilities_rec(v_taqd, v_idx, v_inner_idx + 1, this_idx, this_inner_idx + 1, body, var_map, results);
+  }
+}
+    
+std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(value v) {
+  cout << "rename_into_all_possibilities " << v->to_string() << endl;
+
+  v = remove_unneeded_quants(v.get());
+
+  TopAlternatingQuantifierDesc taqd(v);
+  vector<value> results;
+  map<iden, iden> var_map;
+  rename_into_all_possibilities_rec(taqd, 0, 0, 0, 0,
+      TopAlternatingQuantifierDesc::get_body(v),
+      var_map,
+      results);
+
+  for (value res : results) {
+    cout << "result: " << res->to_string() << endl;
+  }
+
+  return results;
+}
+
+std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
+  vector<Alternation> alts;
+  alts.resize(d.size());
+  for (int i = 0; i < (int)d.size(); i++) {
+    assert (d[i].first == QType::Forall);
+    alts[i].decls = d[i].second;
+    alts[i].altType = AltType::Forall;
+  }
+ 
+  TopAlternatingQuantifierDesc taqd;
+  taqd.alts = alts;
+  return taqd.rename_into_all_possibilities(v);
 }

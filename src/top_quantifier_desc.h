@@ -36,7 +36,9 @@ public:
   value with_body(value body) const;
   int weighted_sort_count(std::string sort) const;
 
-  value rename_into(value);
+  //value rename_into(value);
+
+  std::vector<value> rename_into_all_possibilities(value);
  
 private:
   std::vector<std::pair<QType, std::vector<VarDecl>>> d;
@@ -68,14 +70,33 @@ public:
 
   TopAlternatingQuantifierDesc replace_exists_with_forall() const;
   
-  value rename_into(value);
+  //value rename_into(value);
+  // Given this = forall A: node, B: node, C: node ...
+  // and value = forall X: node, Y: node . f(X) & g(Y)
+  // returns {
+  //    forall A: node, B: node, C: node . f(A) & g(B)
+  //    forall A: node, B: node, C: node . f(A) & g(C)
+  //    forall A: node, B: node, C: node . f(B) & g(C)
+  // }
+  std::vector<value> rename_into_all_possibilities(value);
 
 private:
   std::vector<Alternation> alts;
 
   TopAlternatingQuantifierDesc() { }
 
-  friend value rename_into(std::vector<Alternation> const& alts, value v);
+  //friend value rename_into(std::vector<Alternation> const& alts, value v);
+  friend class TopQuantifierDesc;
+
+  void rename_into_all_possibilities_rec(
+    TopAlternatingQuantifierDesc const& v_taqd,
+    int v_idx,
+    int v_inner_idx,
+    int this_idx,
+    int this_inner_idx,
+    value const& body,
+    std::map<iden, iden>& var_map,
+    std::vector<value>& results);
 };
 
 #endif

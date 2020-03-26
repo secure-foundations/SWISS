@@ -102,13 +102,12 @@ BENCHMARKS = {
       "--start-with-existing-conjectures",
       "--breadth --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
 
-"finisher-paxos-exist-1" :
+"finisher-paxos-exist-1" : # the hard one
   Benchmark("benchmarks/paxos_epr_full_existential_1.ivy",
       "--with-conjs",
       "--finisher --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
 
-# note: this one is a lot easier than breadth-paxos-exist-1
-"breadth-paxos-exist-2" :
+"breadth-paxos-exist-2" : # the easy one
   Benchmark("benchmarks/paxos_epr_existential_2.ivy", 
       "--breadth --conj-arity 1 --disj-arity 3 --strat-alt"),
 

@@ -73,18 +73,15 @@ void BigDisjunctCandidateSolver::existing_invariants_append(std::vector<int> con
   existing_invariant_trie.insert(indices);
 }
 
-void BigDisjunctCandidateSolver::addExistingInvariant(value inv)
+void BigDisjunctCandidateSolver::addExistingInvariant(value inv0)
 {
-  inv = tqd.rename_into(inv);
-  if (!inv) {
-    return;
+  for (value inv : tqd.rename_into_all_possibilities(inv0)) {
+    vector<int> indices = get_indices_of_value(inv);
+    existing_invariants_append(indices);
+
+    value norm = inv->totally_normalize();
+    existing_invariant_set.insert(ComparableValue(norm));
   }
-
-  vector<int> indices = get_indices_of_value(inv);
-  existing_invariants_append(indices);
-
-  value norm = inv->totally_normalize();
-  existing_invariant_set.insert(ComparableValue(norm));
 }
 
 bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
