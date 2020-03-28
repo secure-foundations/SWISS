@@ -124,7 +124,7 @@ BENCHMARKS = {
       "--breadth --arity 4 --depth 3"),
 
 "full-paxos" :
-  Benchmark("benchmarks/paxos_epr_full.ivy",
+  Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
       "--breadth --template 0 --conj-arity 1 --disj-arity 4",
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
       "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
