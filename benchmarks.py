@@ -129,4 +129,17 @@ BENCHMARKS = {
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
       "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
 
+"full-multi-paxos" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
+
+"full-flexible-paxos" :
+  Benchmark("benchmarks/paxos_flexible_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
+
+
 }
