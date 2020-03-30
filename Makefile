@@ -47,7 +47,7 @@ all: synthesis
 glucoselib: $(LIBS)
 
 synthesis: $(OBJECTS) $(LIBS)
-	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3 -lcvc4
+	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3 -lcvc4 -lpthread
 
 bin/lib_glucose_release.a:
 	@mkdir -p $(basename $@)
