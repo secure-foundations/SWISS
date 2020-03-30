@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <streambuf>
+#include <thread>
 
 #include "lib/json11/json11.hpp"
 
@@ -17,6 +18,7 @@
 #include "strengthen_invariant.h"
 #include "filter.h"
 #include "synth_enumerator.h"
+#include "thread_safe_queue.h"
 
 using namespace std;
 using namespace json11;
@@ -531,7 +533,10 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
-void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
+void synth_loop_main(shared_ptr<Module> module,
+  shared_ptr<CandidateSolver> cs,
+  Options const& options,
+  ThreadSafeQueue* tsq)
 {
   auto t_init = now();
 
@@ -566,10 +571,15 @@ void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_optio
 
   CexStats cexstats;
 
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
   if (options.get_space_size) {
     cout << "space size: " << cs->getSpaceSize() << endl;
     exit(0);
+  }
+
+  if (tsq) {
+    SpaceChunk* sc = tsq->getNextSpace();
+    assert (sc != NULL);
+    cs->setSpaceChunk(*sc);
   }
 
   while (true) {
@@ -583,7 +593,17 @@ void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_optio
     std::cout.flush();
 
     value candidate = cs->getNext();
+
     if (!candidate) {
+      if (tsq) {
+        SpaceChunk* sc = tsq->getNextSpace();
+        if (sc != NULL) {
+          cs->setSpaceChunk(*sc);
+          cout << "NEW CHUNK" << endl;
+          continue;
+        }
+      }
+
       printf("unable to synthesize any formula\n");
       break;
     }
@@ -634,6 +654,40 @@ void synth_loop(shared_ptr<Module> module, vector<EnumOptions> const& enum_optio
   dump_stats(cs->getProgress(), cexstats, t_init, 0);
   cout << "complete!" << endl;
 }
+
+void synth_loop_thread_starter(
+  shared_ptr<Module> module,
+  vector<EnumOptions> enum_options,
+  Options options,
+  ThreadSafeQueue *tsq)
+{
+  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
+  synth_loop_main(module, cs, options, tsq);
+}
+
+void synth_loop(
+  shared_ptr<Module> module,
+  vector<EnumOptions> const& enum_options,
+  Options const& options)
+{
+  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
+//  if (options.threads == 1) {
+//    synth_loop_main(module, cs, options, NULL);
+//  } else {
+    ThreadSafeQueue tsq;
+    cs->getSpaceChunk(tsq.q /* output */);
+
+    vector<std::thread> threads;
+    for (int i = 0; i < options.threads; i++) {
+      // Start a new thread
+      threads.emplace_back(synth_loop_thread_starter, module, enum_options, options, &tsq);
+    }
+    for (int i = 0; i < (int)threads.size(); i++) {
+      threads[i].join();
+    }
+//  }
+}
+
 
 /*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
 {

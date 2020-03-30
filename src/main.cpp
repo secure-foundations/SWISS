@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
   options.post_bmc = false;
   options.get_space_size = false;
   options.minimal_models = false;
+  options.threads = 1;
   
   int seed = 1234;
   bool check_inductiveness = false;
@@ -210,6 +211,11 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--minimal-models")) {
       options.minimal_models = true;
+    }
+    else if (argv[i] == string("--threads")) {
+      assert(i + 1 < argc);
+      options.threads = atoi(argv[i+1]);
+      i++;
     }
     else {
       cout << "unreocgnized argument " << argv[i] << endl;

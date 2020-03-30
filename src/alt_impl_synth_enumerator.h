@@ -62,6 +62,9 @@ public:
   void setup_abe2(AlternationBitsetEvaluator& abe, 
       std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
       std::vector<int> const& cur_indices);
+
+  void setSpaceChunk(SpaceChunk const&) { assert(false); }
+  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
 };
 
 #endif

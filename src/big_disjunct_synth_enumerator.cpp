@@ -10,6 +10,9 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   , module(module)
   , disj_arity(disj_arity)
   , tqd(templ)
+  , start_from(-1)
+  , done_cutoff(0)
+  , finish_at_cutoff(false)
 {
   cout << "Using BigDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
@@ -294,8 +297,14 @@ void BigDisjunctCandidateSolver::skipAhead(int upTo)
 void BigDisjunctCandidateSolver::increment()
 {
   int n = pieces.size();
-
   int t = cur_indices.size();
+
+  if (start_from != -1) {
+    t = start_from;
+    start_from = -1;
+    goto body_start;
+  }
+
   goto body_end;
 
 level_size_top:
@@ -337,7 +346,11 @@ call_end:
   goto loop_start;
 
 body_end:
-  if (t == 0) {
+  if (t == done_cutoff) {
+    if (finish_at_cutoff) {
+      done = true;
+      return;
+    }
     goto level_size_top;
   } else {
     t--;
@@ -347,4 +360,62 @@ body_end:
 
 long long BigDisjunctCandidateSolver::getSpaceSize() {
   assert(false);
+}
+
+void BigDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)
+{
+  //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
+  assert (sc.size > 0);
+  cur_indices.resize(sc.size);
+  assert ((int)sc.nums.size() <= sc.size);
+  for (int i = 0; i < (int)sc.nums.size(); i++) {
+    cur_indices[i] = sc.nums[i];
+  }
+  for (int i = 1; i <= (int)sc.nums.size(); i++) {
+    var_index_do_transition(
+      var_index_states[i-1],
+      var_index_transitions[cur_indices[i-1]].res,
+      var_index_states[i]);
+  }
+  start_from = sc.nums.size();
+  done_cutoff = sc.nums.size();
+  done = false;
+  finish_at_cutoff = true;
+}
+
+void getSpaceChunk_rec(vector<SpaceChunk>& res,
+  vector<int>& indices, int i, VarIndexState const& vis,
+  vector<value> const& pieces,
+  vector<VarIndexTransition> const& var_index_transitions, int sz)
+{
+  if (i == (int)indices.size()) {
+    SpaceChunk sc;
+    sc.size = sz;
+    sc.nums = indices;
+    res.push_back(move(sc));
+    return;
+  }
+  int t = (i == 0 ? 0 : indices[i-1] + 1);
+  for (int j = t; j < (int)pieces.size(); j++) {
+    if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
+      VarIndexState next;
+      var_index_do_transition(vis, var_index_transitions[j].res, next);
+      indices[i] = j;
+      getSpaceChunk_rec(res, indices, i+1, next,
+          pieces, var_index_transitions, sz);
+    }
+  }
+}
+
+void BigDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
+{
+  int k = 2;
+  for (int sz = 1; sz <= disj_arity; sz++) {
+    int j = k < sz ? sz - k : 0;
+    VarIndexState vis = var_index_states[0];
+    vector<int> indices;
+    indices.resize(j);
+    getSpaceChunk_rec(res, indices, 0, vis,
+        pieces, var_index_transitions, sz);
+  }
 }

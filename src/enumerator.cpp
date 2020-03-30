@@ -522,8 +522,8 @@ pair<vector<value>, vector<value>> enumerate_for_template(
   return res;
 }*/
 
-map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_filtered;
-map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_unfiltered;
+thread_local map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_filtered;
+thread_local map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_unfiltered;
 
 void populate(shared_ptr<Module> module, value templ, int k) {
   int l = module->get_template_idx(templ);

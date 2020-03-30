@@ -38,6 +38,14 @@ struct Options {
   bool pre_bmc;
   bool post_bmc;
   bool minimal_models;
+
+  int threads;
+};
+
+struct SpaceChunk {
+  int major_idx;
+  int size;
+  std::vector<int> nums;
 };
 
 struct Counterexample {
@@ -68,6 +76,9 @@ public:
   virtual void addExistingInvariant(value inv) = 0;
   virtual long long getProgress() = 0;
   virtual long long getSpaceSize() = 0;
+
+  virtual void setSpaceChunk(SpaceChunk const&) = 0;
+  virtual void getSpaceChunk(std::vector<SpaceChunk>&) = 0;
 };
 
 std::shared_ptr<CandidateSolver> make_sat_candidate_solver(

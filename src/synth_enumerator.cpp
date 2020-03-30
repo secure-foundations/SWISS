@@ -37,6 +37,9 @@ public:
   SketchFormula sf;
 
   void init_constraints();
+
+  void setSpaceChunk(SpaceChunk const&) { assert(false); }
+  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
 };
 
 shared_ptr<CandidateSolver> make_sat_candidate_solver(

@@ -50,6 +50,9 @@ public:
   int get_index_of_piece(value p);
   void init_piece_to_index();
   void existing_invariants_append(std::vector<int> const& indices);
+
+  void setSpaceChunk(SpaceChunk const&) { assert(false); }
+  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
 };
 
 #endif

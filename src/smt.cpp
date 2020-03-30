@@ -12,7 +12,7 @@ extern int run_id;
 
 namespace smt {
 
-map<string, pair<long long, long long>> stats;
+thread_local map<string, pair<long long, long long>> stats;
 
 void log_to_stdout(long long ms, string const& log_info, string const& res) {
   string l;

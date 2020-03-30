@@ -31,6 +31,9 @@ public:
   shared_ptr<ValueList> values;
 
   int cur_idx;
+
+  void setSpaceChunk(SpaceChunk const&) { assert(false); }
+  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
 };
 
 SimpleCandidateSolver::SimpleCandidateSolver(shared_ptr<Module> module, value templ, int k, bool ensure_nonredundant)
@@ -153,6 +156,9 @@ public:
 
   void increment();
   void dump_cur_indices();
+
+  void setSpaceChunk(SpaceChunk const&) { assert(false); }
+  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
 };
 
 ConjunctCandidateSolver::ConjunctCandidateSolver(shared_ptr<Module> module, value templ, int conj_arity, int disj_arity)
@@ -308,9 +314,10 @@ class ComposedCandidateSolver : public CandidateSolver {
 public:
   vector<shared_ptr<CandidateSolver>> solvers;
   int idx;
+  bool doing_chunks;
 
   ComposedCandidateSolver(vector<shared_ptr<CandidateSolver>> const& solvers)
-    : solvers(solvers), idx(0) { }
+    : solvers(solvers), idx(0), doing_chunks(false) { }
 
   value getNext() {
     while (idx < (int)solvers.size()) {
@@ -318,6 +325,9 @@ public:
       if (next != nullptr) {
         return next;
       } else {
+        if (doing_chunks) {
+          return nullptr;
+        }
         idx++;
       }
     }
@@ -325,20 +335,35 @@ public:
   }
 
   void addCounterexample(Counterexample cex, value candidate) {
-    for (int i = idx; i < (int)solvers.size(); i++) {
-      solvers[i]->addCounterexample(cex, candidate);
+    if (doing_chunks) {
+      for (int i = 0; i < (int)solvers.size(); i++) {
+        solvers[i]->addCounterexample(cex, candidate);
+      }
+    } else {
+      for (int i = idx; i < (int)solvers.size(); i++) {
+        solvers[i]->addCounterexample(cex, candidate);
+      }
     }
   }
 
   void addExistingInvariant(value inv) {
-    for (int i = idx; i < (int)solvers.size(); i++) {
-      solvers[i]->addExistingInvariant(inv);
+    if (doing_chunks) {
+      for (int i = 0; i < (int)solvers.size(); i++) {
+        solvers[i]->addExistingInvariant(inv);
+      }
+    } else {
+      for (int i = idx; i < (int)solvers.size(); i++) {
+        solvers[i]->addExistingInvariant(inv);
+      }
     }
     //assert (idx < (int)solvers.size());
     //solvers[idx]->addExistingInvariant(inv);
   }
 
   long long getProgress() {
+    if (doing_chunks) {
+      return -1;
+    }
     long long prog = 0;
     for (int i = 0; i <= idx && i < (int)solvers.size(); i++) {
       prog += solvers[i]->getProgress();
@@ -352,6 +377,22 @@ public:
       res += solvers[i]->getSpaceSize();
     }
     return res;
+  }
+
+  void setSpaceChunk(SpaceChunk const& sc) {
+    assert(0 <= sc.major_idx && sc.major_idx < (int)solvers.size());
+    solvers[sc.major_idx]->setSpaceChunk(sc);
+    idx = sc.major_idx;
+  }
+
+  void getSpaceChunk(std::vector<SpaceChunk>& res) {
+    for (int i = 0; i < (int)solvers.size(); i++) {
+      int cur = res.size();
+      solvers[i]->getSpaceChunk(res);
+      for (int j = cur; j < (int)res.size(); j++) {
+        res[j].major_idx = cur;
+      }
+    }
   }
 };
 
