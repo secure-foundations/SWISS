@@ -35,6 +35,7 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
 
       all_procs[run_id] = proc
       if killing:
+        print("run " + run_id + " stopped")
         proc.kill()
         return
 
@@ -45,12 +46,16 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
 
       seconds = str(int(t2 - t1))
 
-      if ret != 0:
-        print("run " + run_id + " failed (" + seconds + " seconds)")
-        sys.exit(1)
-      else:
-        print("complete " + run_id + " (" + seconds + " seconds)")
+      if killing:
+        print("run " + run_id + " stopped (" + seconds + " seconds)")
         sys.stdout.flush()
+      else:
+        if ret != 0:
+          print("run " + run_id + " failed (" + seconds + " seconds)")
+          sys.exit(1)
+        else:
+          print("complete " + run_id + " (" + seconds + " seconds)")
+          sys.stdout.flush()
     if q != None:
       q.put(run_id)
   except Exception:
