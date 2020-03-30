@@ -13,6 +13,7 @@ all_procs = {}
 killing = False
 
 def kill_all_procs():
+  global killing
   killing = True
   keys = all_procs.keys()
   for k in keys:
@@ -47,11 +48,11 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
       seconds = str(int(t2 - t1))
 
       if killing:
-        print("run " + run_id + " stopped (" + seconds + " seconds)")
+        print("stopped " + run_id + " (" + seconds + " seconds)")
         sys.stdout.flush()
       else:
         if ret != 0:
-          print("run " + run_id + " failed (" + seconds + " seconds)")
+          print("failed " + run_id + " (" + seconds + " seconds)")
           sys.exit(1)
         else:
           print("complete " + run_id + " (" + seconds + " seconds)")
