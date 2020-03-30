@@ -23,6 +23,12 @@ struct ThreadSafeQueue {
     }
     return &q[j];
   }
+
+  void clear() {
+    m.lock();
+    this->i = q.size();
+    m.unlock();
+  }
 };
 
 #endif

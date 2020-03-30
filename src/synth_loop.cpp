@@ -622,7 +622,13 @@ void synth_loop_main(shared_ptr<Module> module,
     cexstats.add(cex);
 
     if (cex.none) {
+      if (tsq) {
+        tsq->clear();
+      }
+
       // Extra verification:
+      // (If we get here, then it should definitely be invariant,
+      // this is just a sanity check that our code is right.)
       bool is_inv;
       if (options.with_conjs) {
         vector<value> conjs = module->conjectures;

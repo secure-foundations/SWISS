@@ -383,7 +383,7 @@ void BigDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)
   finish_at_cutoff = true;
 }
 
-void getSpaceChunk_rec(vector<SpaceChunk>& res,
+static void getSpaceChunk_rec(vector<SpaceChunk>& res,
   vector<int>& indices, int i, VarIndexState const& vis,
   vector<value> const& pieces,
   vector<VarIndexTransition> const& var_index_transitions, int sz)
