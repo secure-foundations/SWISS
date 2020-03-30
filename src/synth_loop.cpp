@@ -533,11 +533,14 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
-void synth_loop_main(shared_ptr<Module> module,
+SynthesisResult synth_loop_main(shared_ptr<Module> module,
   shared_ptr<CandidateSolver> cs,
   Options const& options,
   ThreadSafeQueue* tsq)
 {
+  SynthesisResult synres;
+  synres.done = false;
+
   auto t_init = now();
 
   smt::context ctx;
@@ -639,6 +642,8 @@ void synth_loop_main(shared_ptr<Module> module,
       }
       if (is_inv) {
         printf("found invariant: %s\n", candidate->to_string().c_str());
+        synres.done = true;
+        synres.new_values.push_back(candidate);
       } else {
         printf("ERROR: invariant is not actually invariant");
         assert(false);
@@ -659,19 +664,21 @@ void synth_loop_main(shared_ptr<Module> module,
   //cout << transcript.to_json().dump() << endl;
   dump_stats(cs->getProgress(), cexstats, t_init, 0);
   cout << "complete!" << endl;
+
+  return synres;
 }
 
-void synth_loop_thread_starter(
+/*void synth_loop_thread_starter(
   shared_ptr<Module> module,
   vector<EnumOptions> enum_options,
   Options options,
   ThreadSafeQueue *tsq)
 {
   shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
-  synth_loop_main(module, cs, options, tsq);
-}
+  return synth_loop_main(module, cs, options, tsq);
+}*/
 
-void synth_loop(
+SynthesisResult synth_loop(
   shared_ptr<Module> module,
   vector<EnumOptions> const& enum_options,
   Options const& options,
@@ -682,9 +689,9 @@ void synth_loop(
   if (use_input_chunks) {
     ThreadSafeQueue tsq;
     tsq.q = chunks;
-    synth_loop_main(module, cs, options, &tsq);
+    return synth_loop_main(module, cs, options, &tsq);
   } else {
-    synth_loop_main(module, cs, options, NULL);
+    return synth_loop_main(module, cs, options, NULL);
   }
 }
 
@@ -887,7 +894,12 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
   return SynthesisResult(false, found_invs);
 }
 
-SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
+SynthesisResult synth_loop_incremental_breadth(
+    shared_ptr<Module> module,
+    vector<EnumOptions> const& enum_options,
+    Options const& options,
+    bool use_input_chunks,
+    vector<SpaceChunk> const& chunks)
 {
   auto t_init = now();
 
@@ -921,6 +933,12 @@ SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector
 
   CexStats cexstats;
 
+  unique_ptr<ThreadSafeQueue> tsq;
+  if (use_input_chunks) {
+    tsq.reset(new ThreadSafeQueue());
+    tsq->q = chunks;
+  }
+
   while (true) {
     num_iterations_outer++;
 
@@ -938,6 +956,12 @@ SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector
     int num_iterations = 0;
     bool any_formula_synthesized_this_round = false;
 
+    if (tsq) {
+      SpaceChunk* sc = tsq->getNextSpace();
+      assert (sc != NULL);
+      cs->setSpaceChunk(*sc);
+    }
+
     while (true) {
       num_iterations++;
       num_iterations_total++;
@@ -947,6 +971,15 @@ SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector
       value candidate0 = cs->getNext();
 
       if (!candidate0) {
+        if (tsq) {
+          SpaceChunk* sc = tsq->getNextSpace();
+          if (sc != NULL) {
+            cs->setSpaceChunk(*sc);
+            cout << "NEW CHUNK" << endl;
+            continue;
+          }
+        }
+
         break;
       }
 
@@ -1023,7 +1056,7 @@ SynthesisResult synth_loop_incremental_breadth(shared_ptr<Module> module, vector
 
     dump_stats(cs->getProgress(), cexstats, t_init, num_redundant);
 
-    if (!any_formula_synthesized_this_round) {
+    if (!any_formula_synthesized_this_round || use_input_chunks) {
       cout << "unable to synthesize any formula" << endl;
       break;
     }

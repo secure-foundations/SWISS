@@ -10,12 +10,14 @@
 #include "synth_loop.h"
 #include "sat_solver.h"
 #include "wpr.h"
+#include "filter.h"
 
 #include <iostream>
 #include <iterator>
 #include <string>
 #include <cstdlib>
 #include <cstdio>
+#include <fstream>
 
 using namespace std;
 
@@ -176,6 +178,35 @@ void output_chunks_mult(
   }
 }
 
+void read_formulas(string const& filename, vector<value>& res)
+{
+  ifstream f;
+  f.open(filename);
+  std::istreambuf_iterator<char> begin(f), end;
+  std::string json_src(begin, end);
+  FormulaDump fd = parse_formula_dump(json_src);
+  for (value v : fd.formulas) {
+    res.push_back(v);
+  }
+}
+
+void write_formulas(string const& filename, FormulaDump const& fd)
+{
+  ofstream f;
+  f.open(filename);
+  string s = marshall_formula_dump(fd);
+  f << s;
+  f << endl;
+}
+
+void augment_fd(FormulaDump& fd, SynthesisResult const& synres)
+{
+  if (synres.done) fd.success = true;
+  for (value v : synres.new_values) {
+    fd.formulas.push_back(v);
+  }
+}
+
 int main(int argc, char* argv[]) {
   std::istreambuf_iterator<char> begin(std::cin), end;
   std::string json_src(begin, end);
@@ -202,6 +233,9 @@ int main(int argc, char* argv[]) {
 
   vector<string> output_chunk_files;
   string input_chunk_file;
+
+  vector<string> input_formula_files;
+  string output_formula_file;
   
   int seed = 1234;
   bool check_inductiveness = false;
@@ -209,6 +243,8 @@ int main(int argc, char* argv[]) {
   bool check_implication = false;
   bool wpr = false;
   int wpr_index = 0;
+
+  bool coalesce = false;
 
   int i;
   for (i = 1; i < argc; i++) {
@@ -265,6 +301,9 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--get-space-size")) {
       options.get_space_size = true;
     }
+    else if (argv[i] == string("--coalesce")) {
+      coalesce = true;
+    }
     else if (argv[i] == string("--minimal-models")) {
       options.minimal_models = true;
     }
@@ -275,7 +314,19 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--input-chunk-file")) {
       assert(i + 1 < argc);
+      assert(input_chunk_file == "");
       input_chunk_file = argv[i+1];
+      i++;
+    }
+    else if (argv[i] == string("--output-formula-file")) {
+      assert(i + 1 < argc);
+      assert(output_formula_file == "");
+      output_formula_file = argv[i+1];
+      i++;
+    }
+    else if (argv[i] == string("--input-formula-file")) {
+      assert(i + 1 < argc);
+      input_formula_files.push_back(argv[i+1]);
       i++;
     }
     /*else if (argv[i] == string("--threads")) {
@@ -331,6 +382,20 @@ int main(int argc, char* argv[]) {
     } else{
       printf("first IS implied by the rest\n");
     }
+    return 0;
+  }
+
+  if (coalesce) {
+    vector<value> values;
+    for (string const& filename : input_formula_files) {
+      read_formulas(filename, values);
+    }
+    values = filter_redundant_formulas(module, values);
+    FormulaDump fd;
+    fd.success = false;
+    fd.formulas = values;
+    assert (output_formula_file != "");
+    write_formulas(output_formula_file, fd);
     return 0;
   }
 
@@ -410,6 +475,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  vector<value> extra_inputs;
+  for (string const& filename : input_formula_files)
+  {
+    cout << "Reading in formulas from " << filename << endl;
+    read_formulas(filename, extra_inputs /* output */);
+  }
+  module = module->add_conjectures(extra_inputs);
+
   if (output_chunk_files.size() || input_chunk_file != "") {
     for (int i = 1; i < (int)strats.size(); i++) {
       assert (strats[0].inc == strats[i].inc);
@@ -438,6 +511,9 @@ int main(int argc, char* argv[]) {
     use_input_chunks = true;
   }
 
+  FormulaDump output_fd;
+  output_fd.success = false;
+
   printf("random seed = %d\n", seed);
   srand(seed);
 
@@ -462,17 +538,21 @@ int main(int argc, char* argv[]) {
         cout << endl;
         cout << ">>>>>>>>>>>>>> Starting incremental algorithm" << endl;
         cout << endl;
+        assert (!(use_input_chunks));
         synres = synth_loop_incremental(module, enum_options, options);
       } else {
         cout << endl;
         cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
         cout << endl;
-        synres = synth_loop_incremental_breadth(module, enum_options, options);
+        synres = synth_loop_incremental_breadth(module, enum_options, options,
+            use_input_chunks, chunks);
       }
+
+      augment_fd(output_fd, synres);
 
       if (synres.done) {
         cout << "Synthesis success!" << endl;
-        return 0;
+        goto finish;
       }
 
       module = module->add_conjectures(synres.new_values);
@@ -490,8 +570,23 @@ int main(int argc, char* argv[]) {
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
       cout << endl;
-      synth_loop(module, enum_options, options,
+      SynthesisResult synres = synth_loop(module, enum_options, options,
           use_input_chunks, chunks);
+
+      augment_fd(output_fd, synres);
+
+      if (synres.done) {
+        cout << "Finisher algorithm: Synthesis success!" << endl;
+      } else {
+        cout << "Finisher algorithm unable to find invariant." << endl;
+      }
+    }
+
+    finish:
+
+    if (output_formula_file != "") {
+      cout << "Writing result to " << output_formula_file << endl;
+      write_formulas(output_formula_file, output_fd);
     }
 
     return 0;

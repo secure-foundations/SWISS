@@ -704,4 +704,12 @@ std::vector<value> aggressively_split_into_conjuncts(value);
 
 value remove_unneeded_quants(Value const * v);
 
+struct FormulaDump {
+  std::vector<value> formulas;
+  bool success;
+};
+
+FormulaDump parse_formula_dump(std::string const& src);
+std::string marshall_formula_dump(FormulaDump const& fd);
+
 #endif

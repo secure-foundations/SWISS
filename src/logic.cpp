@@ -323,6 +323,27 @@ Json TemplateHole::to_json() const {
   return Json(vector<Json>{Json("__wild")});
 }
 
+FormulaDump parse_formula_dump(std::string const& src) {
+  string err;
+  Json j = Json::parse(src, err);
+  assert(j.is_object());
+  Json succ = j["success"];
+  assert(succ.is_bool());
+
+  FormulaDump fd;
+  fd.success = succ.bool_value();
+  fd.formulas = json2value_array(j["formulas"]);
+  return fd;
+}
+
+std::string marshall_formula_dump(FormulaDump const& fd) {
+  map<string, Json> m;
+  m["success"] = Json(fd.success);
+  m["formulas"] = value_array_2_json(fd.formulas);
+  Json j(m);
+  return j.dump();
+}
+
 string BooleanSort::to_string() const {
   return "bool";
 }
