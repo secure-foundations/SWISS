@@ -15,6 +15,7 @@
 #include <iterator>
 #include <string>
 #include <cstdlib>
+#include <cstdio>
 
 using namespace std;
 
@@ -123,6 +124,58 @@ struct Strategy {
   }
 };
 
+void input_chunks(string const& filename, vector<SpaceChunk>& chunks)
+{
+  FILE* f = fopen(filename.c_str(), "r");
+  assert(f != NULL);
+  int num;
+  fscanf(f, "%d", &num);
+  for (int i = 0; i < num; i++) {
+    int major_idx, size, count;
+    fscanf(f, "%d", &major_idx);
+    fscanf(f, "%d", &size);
+    fscanf(f, "%d", &count);
+    SpaceChunk sc;
+    sc.major_idx = major_idx;
+    sc.size = size;
+    for (int j = 0; j < count; j++) {
+      int x;
+      fscanf(f, "%d", &x);
+      sc.nums.push_back(x);
+    }
+    chunks.push_back(sc);
+  }
+  fclose(f);
+}
+
+void output_chunks(string const& filename, vector<SpaceChunk> const& chunks)
+{
+  FILE* f = fopen(filename.c_str(), "w");
+  fprintf(f, "%d\n", (int)chunks.size());
+  for (SpaceChunk const& sc : chunks) {
+    fprintf(f, "%d %d %d", sc.major_idx, sc.size, (int)sc.nums.size());
+    for (int j : sc.nums) {
+      fprintf(f, " %d", j);
+    }
+    fprintf(f, "\n");
+  }
+  fclose(f);
+}
+
+void output_chunks_mult(
+  vector<string> const& output_chunk_files,
+  vector<SpaceChunk> const& chunks)
+{
+  for (int i = 0; i < (int)output_chunk_files.size(); i++) {
+    vector<SpaceChunk> slice;
+    for (int j = i; j < (int)chunks.size(); j += output_chunk_files.size())
+    {
+      slice.push_back(chunks[j]);
+    }
+    output_chunks(output_chunk_files[i], slice);
+  }
+}
+
 int main(int argc, char* argv[]) {
   std::istreambuf_iterator<char> begin(std::cin), end;
   std::string json_src(begin, end);
@@ -145,7 +198,10 @@ int main(int argc, char* argv[]) {
   options.post_bmc = false;
   options.get_space_size = false;
   options.minimal_models = false;
-  options.threads = 1;
+  //options.threads = 1;
+
+  vector<string> output_chunk_files;
+  string input_chunk_file;
   
   int seed = 1234;
   bool check_inductiveness = false;
@@ -212,11 +268,21 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--minimal-models")) {
       options.minimal_models = true;
     }
-    else if (argv[i] == string("--threads")) {
+    else if (argv[i] == string("--output-chunk-file")) {
+      assert(i + 1 < argc);
+      output_chunk_files.push_back(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--input-chunk-file")) {
+      assert(i + 1 < argc);
+      input_chunk_file = argv[i+1];
+      i++;
+    }
+    /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
       options.threads = atoi(argv[i+1]);
       i++;
-    }
+    }*/
     else {
       cout << "unreocgnized argument " << argv[i] << endl;
       return 1;
@@ -344,6 +410,34 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  if (output_chunk_files.size() || input_chunk_file != "") {
+    for (int i = 1; i < (int)strats.size(); i++) {
+      assert (strats[0].inc == strats[i].inc);
+      assert (strats[0].breadth == strats[i].breadth);
+      assert (strats[0].finisher == strats[i].finisher);
+    }
+  }
+
+  if (output_chunk_files.size() > 0) {
+    vector<EnumOptions> enum_options;
+    for (Strategy const& strat : strats) {
+      enum_options.push_back(strat.enum_options);
+    }
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(
+        module, options.enum_sat, enum_options, !strats[0].finisher);
+    vector<SpaceChunk> chunks;
+    cs->getSpaceChunk(chunks /* output */);
+    output_chunks_mult(output_chunk_files, chunks);
+    return 0;
+  }
+
+  vector<SpaceChunk> chunks;
+  bool use_input_chunks = false;
+  if (input_chunk_file != "") {
+    input_chunks(input_chunk_file, chunks);
+    use_input_chunks = true;
+  }
+
   printf("random seed = %d\n", seed);
   srand(seed);
 
@@ -396,7 +490,8 @@ int main(int argc, char* argv[]) {
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
       cout << endl;
-      synth_loop(module, enum_options, options);
+      synth_loop(module, enum_options, options,
+          use_input_chunks, chunks);
     }
 
     return 0;

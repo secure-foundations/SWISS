@@ -674,24 +674,18 @@ void synth_loop_thread_starter(
 void synth_loop(
   shared_ptr<Module> module,
   vector<EnumOptions> const& enum_options,
-  Options const& options)
+  Options const& options,
+  bool use_input_chunks,
+  vector<SpaceChunk> const& chunks)
 {
   shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
-//  if (options.threads == 1) {
-//    synth_loop_main(module, cs, options, NULL);
-//  } else {
+  if (use_input_chunks) {
     ThreadSafeQueue tsq;
-    cs->getSpaceChunk(tsq.q /* output */);
-
-    vector<std::thread> threads;
-    for (int i = 0; i < options.threads; i++) {
-      // Start a new thread
-      threads.emplace_back(synth_loop_thread_starter, module, enum_options, options, &tsq);
-    }
-    for (int i = 0; i < (int)threads.size(); i++) {
-      threads[i].join();
-    }
-//  }
+    tsq.q = chunks;
+    synth_loop_main(module, cs, options, &tsq);
+  } else {
+    synth_loop_main(module, cs, options, NULL);
+  }
 }
 
 

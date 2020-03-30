@@ -390,7 +390,7 @@ public:
       int cur = res.size();
       solvers[i]->getSpaceChunk(res);
       for (int j = cur; j < (int)res.size(); j++) {
-        res[j].major_idx = cur;
+        res[j].major_idx = i;
       }
     }
   }

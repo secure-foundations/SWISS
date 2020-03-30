@@ -39,7 +39,7 @@ struct Options {
   bool post_bmc;
   bool minimal_models;
 
-  int threads;
+  //int threads;
 };
 
 struct SpaceChunk {

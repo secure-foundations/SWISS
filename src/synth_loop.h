@@ -19,7 +19,9 @@ struct SynthesisResult {
 void synth_loop(
   std::shared_ptr<Module> module,
   std::vector<EnumOptions> const& enum_options,
-  Options const& options);
+  Options const& options,
+  bool use_input_chunks,
+  std::vector<SpaceChunk> const& chunks);
 
 SynthesisResult synth_loop_incremental(
   std::shared_ptr<Module> module,
