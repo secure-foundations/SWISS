@@ -9,6 +9,15 @@ import traceback
 import json
 import time
 
+all_procs = {}
+killing = False
+
+def kill_all_procs():
+  killing = True
+  keys = all_procs.keys()
+  for k in keys:
+    all_procs[k].kill()
+
 def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
   try:
     logfilename = logfile_base + "." + run_id
@@ -23,6 +32,12 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
           stdin=subprocess.PIPE,
           stdout=logfile,
           stderr=logfile)
+
+      all_procs[run_id] = proc
+      if killing:
+        proc.kill()
+        return
+
       out, err = proc.communicate(jsonfile)
       ret = proc.wait()
 
@@ -133,6 +148,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile):
     if this_has_any:
       has_any = True
     if success:
+      kill_all_procs()
       return (True, has_any, None)
 
   new_output_file = tempfile.mktemp()
@@ -181,6 +197,7 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile):
   for i in range(nthreads):
     key = q.get()
     if parse_output_file(output_files[key]):
+      kill_all_procs()
       return True
 
 def parse_args(args):
