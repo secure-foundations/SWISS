@@ -25,7 +25,12 @@ public:
   TopAlternatingQuantifierDesc taqd;
 
   std::vector<value> pieces;
+
   std::vector<int> cur_indices;
+  std::vector<VarIndexState> var_index_states;
+  int start_from;
+  int done_cutoff;
+  bool finish_at_cutoff;
   bool done;
 
   std::vector<Counterexample> cexes;
@@ -39,7 +44,6 @@ public:
 
   std::map<ComparableValue, int> piece_to_index;
 
-  std::vector<VarIndexState> var_index_states;
   std::vector<VarIndexTransition> var_index_transitions;
 
   void increment();
@@ -51,8 +55,8 @@ public:
   void init_piece_to_index();
   void existing_invariants_append(std::vector<int> const& indices);
 
-  void setSpaceChunk(SpaceChunk const&) { assert(false); }
-  void getSpaceChunk(std::vector<SpaceChunk>&) { assert(false); }
+  void setSpaceChunk(SpaceChunk const&);
+  void getSpaceChunk(std::vector<SpaceChunk>&);
 };
 
 #endif

@@ -81,7 +81,15 @@ def unpack_args(args):
         li.append(arg)
   assert li != None
   iter_arg_lists.append(li)
-  return (main_args, iter_arg_lists)
+
+  t = []
+  for li in iter_arg_lists:
+    if len(t) > 0 and t[-1][0] == li[0]:
+      t[-1] = t[-1] + li
+    else:
+      t.append(li)
+
+  return (main_args, t)
 
 def do_threading(logfile, nthreads, jsonfile, args):
   main_args, iter_arg_lists = unpack_args(args)

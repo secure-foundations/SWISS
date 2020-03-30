@@ -330,6 +330,8 @@ body_start:
 
   cur_indices[t] = (t == 0 ? 0 : cur_indices[t-1] + 1);
 
+  goto loop_start_before_check;
+
 loop_start:
   if (var_index_is_valid_transition(
       var_index_states[t],
@@ -340,7 +342,8 @@ loop_start:
 
 call_end:
   cur_indices[t]++;
-  if (cur_indices[t] >= n + t - (int)cur_indices.size() + 1) {
+loop_start_before_check:
+  if (cur_indices[t] >= n) {
     goto body_end;
   }
   goto loop_start;
