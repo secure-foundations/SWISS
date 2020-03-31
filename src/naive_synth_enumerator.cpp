@@ -380,6 +380,7 @@ public:
   }
 
   void setSpaceChunk(SpaceChunk const& sc) {
+    doing_chunks = true;
     assert(0 <= sc.major_idx && sc.major_idx < (int)solvers.size());
     solvers[sc.major_idx]->setSpaceChunk(sc);
     idx = sc.major_idx;
