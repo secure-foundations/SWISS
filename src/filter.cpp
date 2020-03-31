@@ -41,7 +41,6 @@ vector<value> filter_redundant_formulas(
   smt::context ctx;
 
   for (int i = 0; i < (int)values.size(); i++) {
-    cout << i << " / " << values.size() << endl;
     if (!is_necessary(ctx, module, values, i)) {
       for (int j = i; j < (int)values.size() - 1; j++) {
         values[j] = values[j+1];
@@ -51,7 +50,5 @@ vector<value> filter_redundant_formulas(
     }
   }
 
-  for (value v : values) cout << v->to_string() << endl;
-  cout << values.size() << endl;
   return values;
 }

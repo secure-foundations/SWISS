@@ -386,7 +386,6 @@ int main(int argc, char* argv[]) {
   }
 
   if (coalesce) {
-    cout << "yo" << endl;
     vector<value> values;
     for (string const& filename : input_formula_files) {
       read_formulas(filename, values);
