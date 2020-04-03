@@ -214,7 +214,8 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile):
 
   for i in range(nthreads):
     key = q.get()
-    if parse_output_file(output_files[key]):
+    success, this_has_any = parse_output_file(output_files[key])
+    if success:
       kill_all_procs()
       return True
 
