@@ -79,6 +79,10 @@ BENCHMARKS = {
   Benchmark("benchmarks/chord.ivy",
       "--breadth --conj-arity 1 --disj-arity 4"),
 
+"finisher-chord-last-2" : 
+  Benchmark("benchmarks/chord-last-2.ivy",
+      "--finisher --depth2-shape --disj-arity 4"),
+
 ### Paxos
 
 "sat-inc-paxos" : 
