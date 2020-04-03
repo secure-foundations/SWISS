@@ -58,17 +58,17 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False
 
       t2 = time.time()
 
-      seconds = str(int(t2 - t1))
+      seconds = int(t2 - t1)
 
       if killing:
-        print("stopped " + run_id + " (" + seconds + " seconds)")
+        print("stopped " + run_id + " (" + str(seconds) + " seconds)")
         sys.stdout.flush()
       else:
         if ret != 0:
-          print("failed " + run_id + " (" + seconds + " seconds)")
+          print("failed " + run_id + " (" + str(seconds) + " seconds)")
           sys.exit(1)
         else:
-          print("complete " + run_id + " (" + seconds + " seconds)")
+          print("complete " + run_id + " (" + str(seconds) + " seconds)")
           sys.stdout.flush()
     if q != None:
       q.put(RunSynthesisResult(run_id, seconds, killing, logfilename))
@@ -153,6 +153,8 @@ def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
       return False, invfile
 
 def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, iteration_num, stats):
+  t1 = time.time()
+
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -187,14 +189,14 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   any_success = False
   for i in range(nthreads):
     syn_res = q.get()
-    stats.add_inc_log(iteration_num, syn_res.logfile)
+    stats.add_inc_log(iteration_num, syn_res.logfile, syn_res.seconds)
     if not syn_res.stopped:
       key = syn_res.run_id
       success, this_has_any = parse_output_file(output_files[key])
       if this_has_any:
         has_any = True
       if success:
-        stats.add_inc_result(iteration_num, output_files[key])
+        stats.add_inc_result(iteration_num, output_files[key], int(time.time() - t1))
         kill_all_procs()
         any_success = True
 
@@ -211,11 +213,13 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
     coalesce_file_args.append(output_files[key])
   run_synthesis(logfile, iterkey+".coalesce", jsonfile, coalesce_file_args)
 
-  stats.add_inc_result(iteration_num, new_output_file)
+  stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
 
   return (False, has_any, new_output_file)
 
 def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
+  t1 = time.time()
+
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -250,15 +254,15 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
   for i in range(nthreads):
     synres = q.get()
     key = synres.run_id
-    stats.add_finisher_log(synres.logfile)
+    stats.add_finisher_log(synres.logfile, synres.seconds)
     if not synres.stopped:
       success, this_has_any = parse_output_file(output_files[key])
       if success:
         any_success = True
-        stats.add_finisher_result(output_files[key])
+        stats.add_finisher_result(output_files[key], int(time.time() - t1))
         kill_all_procs()
   if not any_success:
-    stats.add_finisher_result(iterkey+".thread.0")
+    stats.add_finisher_result(iterkey+".thread.0", int(time.time() - t1))
 
 def parse_args(args):
   nthreads = None
