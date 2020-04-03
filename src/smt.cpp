@@ -31,13 +31,18 @@ void log_to_stdout(long long ms, string const& log_info, string const& res) {
   #endif
   cout << l << " : " << res << " " << ms << " ms" << endl;
 
-  key += l + " " + res;
-  while (key.size() < 58) key += " ";
-  if (stats.find(key) == stats.end()) {
-    stats.insert(make_pair(key, make_pair(0, 0)));
+  for (int i = 0; i < 2; i++) {
+    string newkey;
+    if (i == 0) newkey = key + l + " " + res;
+    else newkey = key + "TOTAL" + " " + res;
+
+    while (newkey.size() < 58) newkey += " ";
+    if (stats.find(newkey) == stats.end()) {
+      stats.insert(make_pair(newkey, make_pair(0, 0)));
+    }
+    stats[newkey].first++;
+    stats[newkey].second += ms;
   }
-  stats[key].first++;
-  stats[key].second += ms;
 }
 
 void dump_smt_stats() {

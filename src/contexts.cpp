@@ -614,6 +614,7 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
     InitContext initctx(ctx, module);
     smt::solver& init_solver = initctx.ctx->solver;
     init_solver.add(initctx.e->value2expr(v_not(candidate)));
+    init_solver.set_log_info("is_complete_invariant-init");
     if (init_solver.check_sat()) {
       return false;
     }
@@ -623,6 +624,7 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
     ConjectureContext conjctx(ctx, module);
     smt::solver& conj_solver = conjctx.ctx->solver;
     conj_solver.add(conjctx.e->value2expr(candidate));
+    conj_solver.set_log_info("is_complete_invariant-conj");
     if (conj_solver.check_sat()) {
       return false;
     }
@@ -633,6 +635,7 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
     smt::solver& solver = indctx.ctx->solver;
     solver.add(indctx.e1->value2expr(candidate));
     solver.add(indctx.e2->value2expr(v_not(candidate)));
+    solver.set_log_info("is_complete_invariant-ind");
     if (solver.check_sat()) {
       return false;
     }

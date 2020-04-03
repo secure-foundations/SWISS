@@ -8,16 +8,25 @@ import threading
 import traceback
 import json
 import time
+from stats import Stats
 
 all_procs = {}
 killing = False
 
 def kill_all_procs():
   global killing
-  killing = True
-  keys = all_procs.keys()
-  for k in keys:
-    all_procs[k].kill()
+  if not killing:
+    killing = True
+    keys = all_procs.keys()
+    for k in keys:
+      all_procs[k].kill()
+
+class RunSynthesisResult(object):
+  def __init__(self, run_id, seconds, stopped, logfile):
+    self.run_id = run_id
+    self.seconds = seconds
+    self.stopped = stopped
+    self.logfile = logfile
 
 def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False):
   try:
@@ -62,7 +71,7 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False
           print("complete " + run_id + " (" + seconds + " seconds)")
           sys.stdout.flush()
     if q != None:
-      q.put(run_id)
+      q.put(RunSynthesisResult(run_id, seconds, killing, logfilename))
   except Exception:
     traceback.print_exc()
     sys.stderr.flush()
@@ -95,21 +104,36 @@ def unpack_args(args):
 
   return (main_args, t)
 
-def do_threading(logfile, nthreads, jsonfile, args):
+def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args):
+  print(ivy_filename)
+  print("json: ", json_filename)
+
+  stats = Stats(nthreads, args, ivy_filename, json_filename)
+
   main_args, iter_arg_lists = unpack_args(args)
   invfile = None
   i = 0
   for iter_arg_list in iter_arg_lists:
     i += 1
     if iter_arg_list[0] == "--finisher":
-      success = do_finisher("finisher."+str(i), logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile)
+      success = do_finisher("finisher", logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile, stats)
     elif iter_arg_list[0] == "--breadth":
-      success, invfile = do_breadth("iteration."+str(i), logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile)
+      success, invfile = do_breadth("iteration", logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile, stats)
     else:
       assert False
     if success:
       print("Invariant success!")
       break
+  
+  statfile = logfile + ".summary"
+  stats.print_stats(statfile)
+  print("")
+  print(statfile)
+  print("")
+  print("======== Summary ========")
+  print("")
+  with open(statfile, "r") as f:
+    print(f.read())
 
 def parse_output_file(filename):
   with open(filename) as f:
@@ -117,18 +141,18 @@ def parse_output_file(filename):
     j = json.loads(src)
     return (j["success"], len(j["formulas"]) > 0)
 
-def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile):
+def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
   i = 0
   while True:
     i += 1
     success, hasany, invfile = do_breadth_single(iterkey+"."+str(i),
-          logfile, nthreads, jsonfile, args, invfile)
+          logfile, nthreads, jsonfile, args, invfile, i-1, stats)
     if success:
       return True, invfile
     if not hasany:
       return False, invfile
 
-def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile):
+def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, iteration_num, stats):
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -160,15 +184,23 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile):
     threads.append(t)
 
   has_any = False
+  any_success = False
   for i in range(nthreads):
-    key = q.get()
-    success, this_has_any = parse_output_file(output_files[key])
-    if this_has_any:
-      has_any = True
-    if success:
-      kill_all_procs()
-      return (True, has_any, None)
+    syn_res = q.get()
+    stats.add_inc_log(iteration_num, syn_res.logfile)
+    if not syn_res.stopped:
+      key = syn_res.run_id
+      success, this_has_any = parse_output_file(output_files[key])
+      if this_has_any:
+        has_any = True
+      if success:
+        stats.add_inc_result(iteration_num, output_files[key])
+        kill_all_procs()
+        any_success = True
 
+  if any_success:
+    return (True, has_any, None)
+  
   new_output_file = tempfile.mktemp()
   coalesce_file_args = ["--coalesce", "--output-formula-file", new_output_file]
   if invfile != None:
@@ -179,9 +211,11 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile):
     coalesce_file_args.append(output_files[key])
   run_synthesis(logfile, iterkey+".coalesce", jsonfile, coalesce_file_args)
 
+  stats.add_inc_result(iteration_num, new_output_file)
+
   return (False, has_any, new_output_file)
 
-def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile):
+def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -212,12 +246,19 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile):
     t.start()
     threads.append(t)
 
+  any_success = False
   for i in range(nthreads):
-    key = q.get()
-    success, this_has_any = parse_output_file(output_files[key])
-    if success:
-      kill_all_procs()
-      return True
+    synres = q.get()
+    key = synres.run_id
+    stats.add_finisher_log(synres.logfile)
+    if not synres.stopped:
+      success, this_has_any = parse_output_file(output_files[key])
+      if success:
+        any_success = True
+        stats.add_finisher_result(output_files[key])
+        kill_all_procs()
+  if not any_success:
+    stats.add_finisher_result(iterkey+".thread.0")
 
 def parse_args(args):
   nthreads = None
@@ -246,17 +287,18 @@ def parse_args(args):
   return nthreads, logfile, new_args, use_stdout
 
 def main():
-  filename = sys.argv[1]
+  ivy_filename = sys.argv[1]
+  json_filename = sys.argv[2]
 
-  with open(filename, "rb") as f:
+  with open(json_filename, "rb") as f:
     jsonfile = f.read()
 
-  args = sys.argv[2:]
+  args = sys.argv[3:]
   nthreads, logfile, args, use_stdout = parse_args(args)
   if nthreads == None:
     run_synthesis(logfile, "main", jsonfile, args, use_stdout=use_stdout)
   else:
-    do_threading(logfile, nthreads, jsonfile, args)
+    do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
 
 if __name__ == "__main__":
   main()
