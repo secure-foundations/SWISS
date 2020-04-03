@@ -165,8 +165,9 @@ value AltDepth2CandidateSolver::getNext() {
     }*/
 
     // TODO comment this
-    value sanity_v = get_current_value();
-    cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
+    //dump_cur_indices();
+    //value sanity_v = get_current_value();
+    //cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
 
     bool failed = false;
 
@@ -192,7 +193,7 @@ value AltDepth2CandidateSolver::getNext() {
       if (cexes[i].is_true) {
         setup_abe2(abes[i].second, cex_results[i], cur_indices);
         bool res = abes[i].second.evaluate();
-        if (res != cexes[i].is_true->eval_predicate(sanity_v)) {
+        //if (res != cexes[i].is_true->eval_predicate(sanity_v)) {
           /*cexes[i].is_true->dump();
           cout << sanity_v->to_string() << endl;
           cout << "result shoudl be " << cexes[i].is_true->eval_predicate(sanity_v) << endl;
@@ -200,8 +201,8 @@ value AltDepth2CandidateSolver::getNext() {
             cex_results[i][cur_indices[k]].second.dump();
           }*/
 
-          assert(false);
-        }
+         // assert(false);
+        //}
         if (!res) {
           failed = true;
           break;
@@ -210,7 +211,7 @@ value AltDepth2CandidateSolver::getNext() {
       else if (cexes[i].is_false) {
         setup_abe1(abes[i].first, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
-        assert (res == cexes[i].is_false->eval_predicate(sanity_v));
+        //assert (res == cexes[i].is_false->eval_predicate(sanity_v));
         if (res) {
           failed = true;
           break;
@@ -219,11 +220,11 @@ value AltDepth2CandidateSolver::getNext() {
       else {
         setup_abe1(abes[i].first, cex_results[i], cur_indices);
         bool res = abes[i].first.evaluate();
-        assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
+        //assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
         if (res) {
           setup_abe2(abes[i].second, cex_results[i], cur_indices);
           bool res2 = abes[i].second.evaluate();
-          assert (res2 == cexes[i].conclusion->eval_predicate(sanity_v));
+          //assert (res2 == cexes[i].conclusion->eval_predicate(sanity_v));
           if (!res2) {
             failed = true;
             break;
@@ -281,16 +282,19 @@ level_size_top:
     this->done = true;
     return;
   }
+  cout << "moving to tree " << tree_shapes[tree_shape_idx].to_string() << endl;
   cur_indices.resize(tree_shapes[tree_shape_idx].total);
   t = 0;
 
   goto body_start;
 
 body_start:
-  if (is_normalized_for_tree_shape(tree_shapes[tree_shape_idx], cur_indices)) {
-    return;
-  } else {
-    goto body_end;
+  if (t == (int)cur_indices.size()) {
+    if (is_normalized_for_tree_shape(tree_shapes[tree_shape_idx], cur_indices)) {
+      return;
+    } else {
+      goto body_end;
+    }
   }
 
   if (t > 0) {
@@ -301,7 +305,7 @@ body_start:
   }
 
   {
-    SymmEdge& symm_edge = tree_shapes[tree_shape_idx].symmetry_back_edges[t];
+    SymmEdge const& symm_edge = tree_shapes[tree_shape_idx].symmetry_back_edges[t];
     cur_indices[t] = symm_edge.idx == -1 ? 0 :
         cur_indices[symm_edge.idx] + symm_edge.inc;
   }
@@ -366,6 +370,7 @@ void AltDepth2CandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe,
         } else {
           ber.apply_conj(cex_result[cur_indices[k]].first);
         }
+        k++;
       }
       if (ts.top_level_is_conj) {
         abe.add_conj(ber);
@@ -405,6 +410,7 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
         } else {
           ber.apply_conj(cex_result[cur_indices[k]].second);
         }
+        k++;
       }
       if (ts.top_level_is_conj) {
         abe.add_conj(ber);
@@ -432,9 +438,11 @@ long long AltDepth2CandidateSolver::getSpaceSize() {
 void AltDepth2CandidateSolver::setSpaceChunk(SpaceChunk const& sc)
 {
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
-  /*assert (sc.size > 0);
-  cur_indices.resize(sc.size);
-  assert ((int)sc.nums.size() <= sc.size);
+  assert (0 <= sc.tree_idx && sc.tree_idx < (int)tree_shapes.size());
+  tree_shape_idx = sc.tree_idx;
+  TreeShape const& ts = tree_shapes[tree_shape_idx];
+  cur_indices.resize(ts.total);
+  assert (sc.nums.size() <= cur_indices.size());
   for (int i = 0; i < (int)sc.nums.size(); i++) {
     cur_indices[i] = sc.nums[i];
   }
@@ -447,45 +455,51 @@ void AltDepth2CandidateSolver::setSpaceChunk(SpaceChunk const& sc)
   start_from = sc.nums.size();
   done_cutoff = sc.nums.size();
   done = false;
-  finish_at_cutoff = true;*/
-  assert(false);
+  finish_at_cutoff = true;
 }
 
-/*static void getSpaceChunk_rec(vector<SpaceChunk>& res,
+static void getSpaceChunk_rec(vector<SpaceChunk>& res,
+  int tree_shape_idx, TreeShape const& ts,
   vector<int>& indices, int i, VarIndexState const& vis,
   vector<value> const& pieces,
   vector<VarIndexTransition> const& var_index_transitions, int sz)
 {
   if (i == (int)indices.size()) {
     SpaceChunk sc;
-    sc.size = sz;
+    sc.tree_idx = tree_shape_idx;
     sc.nums = indices;
     res.push_back(move(sc));
     return;
   }
-  int t = (i == 0 ? 0 : indices[i-1] + 1);
+  SymmEdge const& symm_edge = ts.symmetry_back_edges[i];
+  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
   for (int j = t; j < (int)pieces.size(); j++) {
     if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
       VarIndexState next;
       var_index_do_transition(vis, var_index_transitions[j].res, next);
       indices[i] = j;
-      getSpaceChunk_rec(res, indices, i+1, next,
+      getSpaceChunk_rec(res, tree_shape_idx, ts, indices, i+1, next,
           pieces, var_index_transitions, sz);
     }
   }
-}*/
+}
 
 void AltDepth2CandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
 {
-  assert(false);
-  /*
-  int k = arity2;
-  int sz = arity1 + arity2;
-  int j = k < sz ? sz - k : 0;
-  VarIndexState vis = var_index_states[0];
-  vector<int> indices;
-  indices.resize(j);
-  getSpaceChunk_rec(res, indices, 0, vis,
-      pieces, var_index_transitions, sz);
-  */
+  for (int i = 0; i < (int)tree_shapes.size(); i++) {
+    //cout << tree_shapes[i].to_string() << endl;
+    int sz = tree_shapes[i].total;
+
+    int k;
+    if (sz > 4) k = sz - 2;
+    else k = 2;
+
+    int j = k < sz ? sz - k : 0;
+    VarIndexState vis = var_index_states[0];
+    vector<int> indices;
+    indices.resize(j);
+    getSpaceChunk_rec(res, i, tree_shapes[i], indices, 0, vis,
+        pieces, var_index_transitions, sz);
+  }
+  //cout << "done" << endl;
 }
