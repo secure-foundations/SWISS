@@ -35,6 +35,18 @@ struct BitsetEvalResult {
     return true;
   }
 
+  void apply_disj(BitsetEvalResult const& ber) {
+    for (int i = 0; i < (int)v.size(); i++) {
+      v[i] |= ber.v[i];
+    }
+  }
+
+  void apply_conj(BitsetEvalResult const& ber) {
+    for (int i = 0; i < (int)v.size(); i++) {
+      v[i] &= ber.v[i];
+    }
+  }
+
   void dump() {
     for (int i = 0; i < (int)v.size(); i++) {
       for (int j = 0; j < 64; j++) {

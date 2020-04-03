@@ -19,7 +19,7 @@ def kill_all_procs():
   for k in keys:
     all_procs[k].kill()
 
-def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
+def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False):
   try:
     logfilename = logfile_base + "." + run_id
 
@@ -29,10 +29,14 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None):
     with open(logfilename, "w") as logfile:
       t1 = time.time()
 
-      proc = subprocess.Popen(cmd,
-          stdin=subprocess.PIPE,
-          stdout=logfile,
-          stderr=logfile)
+      if use_stdout:
+        proc = subprocess.Popen(cmd,
+            stdin=subprocess.PIPE)
+      else:
+        proc = subprocess.Popen(cmd,
+            stdin=subprocess.PIPE,
+            stdout=logfile,
+            stderr=logfile)
 
       all_procs[run_id] = proc
       if killing:
@@ -218,6 +222,7 @@ def parse_args(args):
   nthreads = None
   logfile = ""
   new_args = []
+  use_stdout = False
   i = 0
   while i < len(args):
     if args[i] == "--threads":
@@ -226,6 +231,8 @@ def parse_args(args):
     elif args[i] == "--logfile":
       logfile = args[i+1]
       i += 1
+    elif args[i] == "--stdout":
+      use_stdout = True
     else:
       new_args.append(args[i])
     i += 1
@@ -235,7 +242,7 @@ def parse_args(args):
       rstr += str(random.randint(0, 9))
     logfile = ("logs/log." + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
         + "-" + rstr)
-  return nthreads, logfile, new_args
+  return nthreads, logfile, new_args, use_stdout
 
 def main():
   filename = sys.argv[1]
@@ -244,9 +251,9 @@ def main():
     jsonfile = f.read()
 
   args = sys.argv[2:]
-  nthreads, logfile, args = parse_args(args)
+  nthreads, logfile, args, use_stdout = parse_args(args)
   if nthreads == None:
-    run_synthesis(logfile, "main", jsonfile, args)
+    run_synthesis(logfile, "main", jsonfile, args, use_stdout=use_stdout)
   else:
     do_threading(logfile, nthreads, jsonfile, args)
 

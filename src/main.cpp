@@ -121,6 +121,7 @@ struct Strategy {
     enum_options.conj_arity = -1;
     enum_options.disj_arity = -1;
     enum_options.impl_shape = false;
+    enum_options.depth2_shape = false;
     //options.strat2 = false;
     enum_options.strat_alt = false;
   }
@@ -133,12 +134,14 @@ void input_chunks(string const& filename, vector<SpaceChunk>& chunks)
   int num;
   fscanf(f, "%d", &num);
   for (int i = 0; i < num; i++) {
-    int major_idx, size, count;
+    int major_idx, size, tree_idx, count;
     fscanf(f, "%d", &major_idx);
     fscanf(f, "%d", &size);
+    fscanf(f, "%d", &tree_idx);
     fscanf(f, "%d", &count);
     SpaceChunk sc;
     sc.major_idx = major_idx;
+    sc.tree_idx = tree_idx;
     sc.size = size;
     for (int j = 0; j < count; j++) {
       int x;
@@ -155,7 +158,7 @@ void output_chunks(string const& filename, vector<SpaceChunk> const& chunks)
   FILE* f = fopen(filename.c_str(), "w");
   fprintf(f, "%d\n", (int)chunks.size());
   for (SpaceChunk const& sc : chunks) {
-    fprintf(f, "%d %d %d", sc.major_idx, sc.size, (int)sc.nums.size());
+    fprintf(f, "%d %d %d %d", sc.major_idx, sc.size, sc.tree_idx, (int)sc.nums.size());
     for (int j : sc.nums) {
       fprintf(f, " %d", j);
     }
@@ -457,6 +460,9 @@ int main(int argc, char* argv[]) {
       }
       else if (argv[i] == string("--impl-shape")) {
         strat.enum_options.impl_shape = true;
+      }
+      else if (argv[i] == string("--depth2-shape")) {
+        strat.enum_options.depth2_shape = true;
       }
       else if (argv[i] == string("--strat-alt")) {
         strat.enum_options.strat_alt = true;
