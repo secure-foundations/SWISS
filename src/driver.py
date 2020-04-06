@@ -9,9 +9,18 @@ import traceback
 import json
 import time
 from stats import Stats
+import random
 
 all_procs = {}
 killing = False
+
+random.seed(1234)
+
+def set_seed(seed):
+  random.seed(seed)
+
+def args_add_seed(args):
+  return ["--seed", str(random.randint(1, 10**6))] + args
 
 def kill_all_procs():
   global killing
@@ -163,7 +172,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
     chunk_file_args.append("--output-chunk-file")
     chunk_file_args.append(chunk)
 
-  run_synthesis(logfile, iterkey+".chunkify", jsonfile, chunk_file_args + args)
+  run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
 
   q = queue.Queue()
   threads = [ ]
@@ -179,9 +188,9 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
       args_with_file = args
 
     t = threading.Thread(target=run_synthesis, args=
-        (logfile, key, jsonfile,
+        (logfile, key, jsonfile, args_add_seed(
           ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + args_with_file, q))
+           "--output-formula-file", output_file] + args_with_file), q))
     t.start()
     threads.append(t)
 
@@ -211,7 +220,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   for key in output_files:
     coalesce_file_args.append("--input-formula-file")
     coalesce_file_args.append(output_files[key])
-  run_synthesis(logfile, iterkey+".coalesce", jsonfile, coalesce_file_args)
+  run_synthesis(logfile, iterkey+".coalesce", jsonfile, args_add_seed(coalesce_file_args))
 
   stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
 
@@ -228,7 +237,7 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
     chunk_file_args.append("--output-chunk-file")
     chunk_file_args.append(chunk)
 
-  run_synthesis(logfile, iterkey+".chunkify", jsonfile, chunk_file_args + args)
+  run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
 
   q = queue.Queue()
   threads = [ ]
@@ -244,9 +253,9 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
       args_with_file = args
 
     t = threading.Thread(target=run_synthesis, args=
-        (logfile, key, jsonfile,
+        (logfile, key, jsonfile, args_add_seed(
           ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + args_with_file, q))
+           "--output-formula-file", output_file] + args_with_file, q)))
     t.start()
     threads.append(t)
 
@@ -277,6 +286,10 @@ def parse_args(args):
     elif args[i] == "--logfile":
       logfile = args[i+1]
       i += 1
+    elif args[i] == "--seed":
+      seed = int(args[i+1])
+      set_seed(seed)
+      i += 1
     elif args[i] == "--stdout":
       use_stdout = True
     else:
@@ -300,7 +313,7 @@ def main():
   args = sys.argv[3:]
   nthreads, logfile, args, use_stdout = parse_args(args)
   if nthreads == None:
-    run_synthesis(logfile, "main", jsonfile, args, use_stdout=use_stdout)
+    run_synthesis(logfile, "main", jsonfile, args_add_seed(args), use_stdout=use_stdout)
   else:
     do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
 
