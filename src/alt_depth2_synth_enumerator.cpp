@@ -353,6 +353,11 @@ void AltDepth2CandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe,
   }
 
   int k = 0;
+
+  if (evaluator_buf.size() < cex_result[cur_indices[k]].first.v.size()) {
+    evaluator_buf.resize(cex_result[cur_indices[k]].first.v.size());
+  }
+
   for (int i = 0; i < (int)ts.parts.size(); i++) {
     if (ts.parts[i] == 1) {
       if (ts.top_level_is_conj) {
@@ -362,20 +367,20 @@ void AltDepth2CandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe,
       }
       k++;
     } else {
-      BitsetEvalResult ber = cex_result[cur_indices[k]].first;
+      vec_copy_ber(evaluator_buf, cex_result[cur_indices[k]].first);
       k++;
       for (int j = 1; j < (int)ts.parts[i]; j++) {
         if (ts.top_level_is_conj) {
-          ber.apply_disj(cex_result[cur_indices[k]].first);
+          vec_apply_disj(evaluator_buf, cex_result[cur_indices[k]].first);
         } else {
-          ber.apply_conj(cex_result[cur_indices[k]].first);
+          vec_apply_conj(evaluator_buf, cex_result[cur_indices[k]].first);
         }
         k++;
       }
       if (ts.top_level_is_conj) {
-        abe.add_conj(ber);
+        abe.add_conj(evaluator_buf);
       } else {
-        abe.add_disj(ber);
+        abe.add_disj(evaluator_buf);
       }
     }
   }
@@ -393,6 +398,11 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
   }
 
   int k = 0;
+
+  if (evaluator_buf.size() < cex_result[cur_indices[k]].second.v.size()) {
+    evaluator_buf.resize(cex_result[cur_indices[k]].second.v.size());
+  }
+
   for (int i = 0; i < (int)ts.parts.size(); i++) {
     if (ts.parts[i] == 1) {
       if (ts.top_level_is_conj) {
@@ -402,20 +412,20 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
       }
       k++;
     } else {
-      BitsetEvalResult ber = cex_result[cur_indices[k]].second;
+      vec_copy_ber(evaluator_buf, cex_result[cur_indices[k]].second);
       k++;
       for (int j = 1; j < (int)ts.parts[i]; j++) {
         if (ts.top_level_is_conj) {
-          ber.apply_disj(cex_result[cur_indices[k]].second);
+          vec_apply_disj(evaluator_buf, cex_result[cur_indices[k]].second);
         } else {
-          ber.apply_conj(cex_result[cur_indices[k]].second);
+          vec_apply_conj(evaluator_buf, cex_result[cur_indices[k]].second);
         }
         k++;
       }
       if (ts.top_level_is_conj) {
-        abe.add_conj(ber);
+        abe.add_conj(evaluator_buf);
       } else {
-        abe.add_disj(ber);
+        abe.add_disj(evaluator_buf);
       }
     }
   }

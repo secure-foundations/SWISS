@@ -108,6 +108,17 @@ struct AlternationBitsetEvaluator {
     }
   }
 
+  void add_conj(std::vector<uint64_t> const& v) {
+    for (int i = 0; i < (int)scratch.size(); i++) {
+      scratch[i] &= v[i];
+    }
+  }
+  void add_disj(std::vector<uint64_t> const& v) {
+    for (int i = 0; i < (int)scratch.size(); i++) {
+      scratch[i] |= v[i];
+    }
+  }
+
   static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "this requires little endian");
 
   // scratch[0 .. len] := scratch[0 .. len] & scratch[start .. start + len]
@@ -214,5 +225,24 @@ struct AlternationBitsetEvaluator {
     return res;
   }
 };
+
+inline void vec_copy_ber(std::vector<uint64_t>& v, BitsetEvalResult const& ber) {
+  for (int i = 0; i < (int)ber.v.size(); i++) {
+    v[i] = ber.v[i];
+  }
+}
+
+inline void vec_apply_disj(std::vector<uint64_t>& v, BitsetEvalResult const& ber) {
+  for (int i = 0; i < (int)ber.v.size(); i++) {
+    v[i] |= ber.v[i];
+  }
+}
+
+inline void vec_apply_conj(std::vector<uint64_t>& v, BitsetEvalResult const& ber) {
+  for (int i = 0; i < (int)ber.v.size(); i++) {
+    v[i] &= ber.v[i];
+  }
+}
+
 
 #endif

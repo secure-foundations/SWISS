@@ -58,6 +58,8 @@ public:
 
   void setSpaceChunk(SpaceChunk const&);
   void getSpaceChunk(std::vector<SpaceChunk>&);
+
+  std::vector<uint64_t> evaluator_buf;
 };
 
 #endif
