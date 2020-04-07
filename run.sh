@@ -8,4 +8,4 @@ shift
 TEMP=$(mktemp)
 python file_to_json.py $IVY_FILE > $TEMP
 #./synthesis "$@" < $TEMP
-python3 src/driver.py "$IVY_FILE" "$TEMP" "$@"
+python3 scripts/driver.py "$IVY_FILE" "$TEMP" "$@"
