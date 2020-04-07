@@ -113,7 +113,7 @@ def log(f, *args):
   print(*args, file=f)
 
 class Stats(object):
-  def __init__(self, num_threads, all_args, ivy_filename, json_filename):
+  def __init__(self, num_threads, all_args, ivy_filename, json_filename, logfile):
     self.num_threads = num_threads
     self.all_args = all_args
     self.inc_logs = []
@@ -130,6 +130,8 @@ class Stats(object):
 
     self.inc_results = []
     self.finisher_result = None
+
+    self.logfile_base = logfile
 
   def add_inc_log(self, iternum, log, seconds):
     while len(self.inc_logs) <= iternum:
@@ -255,6 +257,8 @@ class Stats(object):
   def print_stats(self, filename):
     self.read_result_files()
     with open(filename, "w") as f:
+      log(f, "logs", self.logfile_base)
+      log(f, "")
       log(f, "Protocol:", self.ivy_filename)
       log(f, "Args:", " ".join(self.all_args))
       log(f, "Number of threads:", self.num_threads)

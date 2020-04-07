@@ -117,7 +117,7 @@ def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
   print(ivy_filename)
   print("json: ", json_filename)
 
-  stats = Stats(nthreads, args, ivy_filename, json_filename)
+  stats = Stats(nthreads, args, ivy_filename, json_filename, logfile)
 
   main_args, iter_arg_lists = unpack_args(args)
   invfile = None
@@ -137,7 +137,7 @@ def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
   statfile = logfile + ".summary"
   stats.print_stats(statfile)
   print("")
-  print(statfile)
+  print("statfile: " + statfile)
   print("")
   print("======== Summary ========")
   print("")

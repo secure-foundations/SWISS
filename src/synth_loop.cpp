@@ -520,7 +520,7 @@ struct CexStats {
 
 void dump_stats(long long progress, CexStats const& cs,
     std::chrono::time_point<std::chrono::high_resolution_clock> init,
-    int num_redundant, long long filtering_ms) {
+    int num_redundant, long long filtering_ms, long long num_finishers_found) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
   cout << "total time running so far: " << as_ms(now() - init)
@@ -529,6 +529,8 @@ void dump_stats(long long progress, CexStats const& cs,
   cs.dump();
   cout << "number of redundant invariants found: "
        << num_redundant << endl;
+  cout << "number of finisher invariants found: "
+       << num_finishers_found << endl;
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
   cout.flush();
@@ -588,6 +590,8 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
 
   long long filtering_ms = 0;
 
+  long long num_finishers_found = 0;
+
   while (true) {
     num_iterations++;
 
@@ -630,7 +634,9 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     cexstats.add(cex);
 
     if (cex.none) {
-      if (tsq) {
+      num_finishers_found++;
+
+      if (tsq && !options.whole_space) {
         tsq->clear();
       }
 
@@ -663,11 +669,11 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
       //transcript.entries.push_back(make_pair(cex, candidate));
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ms);
+    dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ms, num_finishers_found);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ms);
+  dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ms, num_finishers_found);
   cout << "complete!" << endl;
 
   return synres;
@@ -855,7 +861,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 
         benchmarking_dump_totals();
 
-        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
 
         break;
       } else {
@@ -872,7 +878,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
       per_inner_loop_bench.end();
       per_inner_loop_bench.dump();
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
     }
 
     assert(is_itself_invariant(module, found_invs));
@@ -880,7 +886,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
     if (!options.whole_space && is_invariant_with_conjectures(module, found_invs)) {
       printf("invariant implies safety condition, done!\n");
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
       break;
     }
 
@@ -1047,7 +1053,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
           if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
-            dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+            dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
             return SynthesisResult(true, new_filtered_simplified_strengthened_invs);
           }
         } else {
@@ -1065,10 +1071,10 @@ SynthesisResult synth_loop_incremental_breadth(
         cs->addCounterexample(cex, candidate0);
       }
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms);
+    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
 
     if (!any_formula_synthesized_this_round || use_input_chunks) {
       cout << "unable to synthesize any formula" << endl;

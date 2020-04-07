@@ -1,3 +1,9 @@
+import sys
+import os
+import subprocess
+import shutil
+from pathlib import Path
+
 class PaperBench(object):
   def __init__(self, name, args):
     self.name = name
@@ -46,3 +52,43 @@ for postbmc in (False, True):
       benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads 20"+args))
       benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))
       benches.append(PaperBenchname+("2pc", "breadth-2pc --threads 1"+args))
+
+all_names = [b.name for b in benches]
+assert len(all_names) == len(list(set(all_names))) # check uniqueness
+
+def get_statfile(out):
+  for line in out.split('\n'):
+    if line.startswith("statfile: "):
+      t = line.split()
+      assert len(t) == 2
+      return t[1]
+  assert False
+
+def run(directory, bench):
+  result_filename = os.path.join(directory, bench.name)
+  if os.path.exists(result_filename):
+    print(bench.name + " already done")
+    return
+
+  print("doing " + bench.name) 
+  sys.stdout.flush()
+
+  proc = subprocess.Popen(["./bench.sh"] + bench.args.split(),
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ret = proc.wait()
+  assert ret == 0
+
+  statfile = get_statfile(out)
+  shutil.copy(statfile, result_filename)
+
+def main():
+  assert len(sys.argv) == 2
+  directory = sys.argv[1]
+  Path(directory).mkdir(parents=True, exist_ok=True)
+  for b in benches:
+    run(b)
+
+if __name__ == "__main__":
+  main()
