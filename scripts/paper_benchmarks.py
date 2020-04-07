@@ -12,7 +12,9 @@ class PaperBench(object):
 
 benches = [ ]
 
-for i in range(20, 0, -1):
+THREADS = 14
+
+for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
       "paxos_breadth_t" + str(i),
       "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
@@ -22,7 +24,7 @@ for i in range(20, 0, -1):
 #      "paxos_finisher_t" + str(i),
 #      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
-for i in range(20, 0, -1):
+for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
       "paxos_implshape_finisher_t" + str(i),
       "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
@@ -30,12 +32,12 @@ for i in range(20, 0, -1):
 for seed in range(1, 15):
   benches.append(PaperBench(
       "learning_switch_seed_" + str(seed),
-      "breadth-learning-switch --minimal-models --threads 20 --seed " + str(seed)))
+      "breadth-learning-switch --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
       "paxos_seed_" + str(seed),
-      "full-paxos-depth2 --minimal-models --threads 20 --seed " + str(seed)))
+      "full-paxos-depth2 --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for postbmc in (False, True):
   for prebmc in (False, True):
@@ -53,9 +55,9 @@ for postbmc in (False, True):
         args += " --minimal-models"
       benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads 1"+args))
       benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads 4"+args))
-      benches.append(PaperBench(name+"learning_switch", "full-paxos-depth2 --threads 20"+args))
-      benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads 20"+args))
-      benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads 20"+args))
+      benches.append(PaperBench(name+"learning_switch", "full-paxos-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))
       benches.append(PaperBench(name+"2pc", "breadth-2pc --threads 1"+args))
 
