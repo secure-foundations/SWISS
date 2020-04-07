@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import shutil
+import time
 from pathlib import Path
 
 class PaperBench(object):
@@ -16,20 +17,25 @@ for i in range(20, 0, -1):
       "paxos_breadth_t" + str(i),
       "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
 
+#for i in range(20, 0, -1):
+#  benches.append(PaperBench(
+#      "paxos_finisher_t" + str(i),
+#      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
+
 for i in range(20, 0, -1):
   benches.append(PaperBench(
-      "paxos_finisher_t" + str(i),
-      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
+      "paxos_implshape_finisher_t" + str(i),
+      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
-      "learning_switch_seed_" + int(seed),
-      "breadth-learning-switch --minimal-models --threads 20 --seed " + int(seed)))
+      "learning_switch_seed_" + str(seed),
+      "breadth-learning-switch --minimal-models --threads 20 --seed " + str(seed)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
-      "paxos_seed_" + int(seed),
-      "full-paxos-depth2 --minimal-models --threads 20 --seed " + int(seed)))
+      "paxos_seed_" + str(seed),
+      "full-paxos-depth2 --minimal-models --threads 20 --seed " + str(seed)))
 
 for postbmc in (False, True):
   for prebmc in (False, True):
@@ -73,12 +79,18 @@ def run(directory, bench):
   print("doing " + bench.name) 
   sys.stdout.flush()
 
+  t1 = time.time()
+
   proc = subprocess.Popen(["./bench.sh"] + bench.args.split(),
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
   ret = proc.wait()
   assert ret == 0
+
+  t2 = time.time()
+  seconds = t2 - t1
+  print("done (" + str(seconds) + " seconds)")
 
   statfile = get_statfile(out)
   shutil.copy(statfile, result_filename)
