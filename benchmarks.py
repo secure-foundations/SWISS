@@ -23,6 +23,10 @@ BENCHMARKS = {
   Benchmark("benchmarks/leader-election.ivy",
       "--finisher --conj-arity 3 --disj-arity 3"),
 
+"leader-election-depth2" :
+  Benchmark("benchmarks/leader-election.ivy",
+      "--finisher --disj-arity 5 --depth2-shape"),
+
 "inc-leader-election" : 
   Benchmark("benchmarks/leader-election.ivy",
       "--incremental --conj-arity 1 --disj-arity 3"),
@@ -151,5 +155,10 @@ BENCHMARKS = {
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
 
+"full-flexible-paxos-depth2" :
+  Benchmark("benchmarks/paxos_flexible_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --depth2-shape"),
 
 }
