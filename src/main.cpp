@@ -181,6 +181,32 @@ void output_chunks_mult(
   }
 }
 
+template <typename T>
+void random_sort(vector<T>& v, int a, int b)
+{
+  for (int i = a; i < b-1; i++) {
+    int j = i + (rand() % (b - i));
+    T tmp = v[i];
+    v[i] = v[j];
+    v[j] = tmp;
+  }
+}
+
+void randomize_chunks(vector<SpaceChunk>& chunks)
+{
+  // Randomly sort the chunks, but make sure they stay
+  // nondecreasing in size.
+  int a = 0;
+  while (a < (int)chunks.size()) {
+    int b = a+1;
+    while (b < (int)chunks.size() && chunks[b].size == chunks[a].size) {
+      b++;
+    }
+    random_sort(chunks, a, b);
+    a = b;
+  }
+}
+
 void read_formulas(string const& filename, vector<value>& res)
 {
   ifstream f;
@@ -506,6 +532,7 @@ int main(int argc, char* argv[]) {
         module, options.enum_sat, enum_options, !strats[0].finisher);
     vector<SpaceChunk> chunks;
     cs->getSpaceChunk(chunks /* output */);
+    randomize_chunks(chunks);
     output_chunks_mult(output_chunk_files, chunks);
     return 0;
   }

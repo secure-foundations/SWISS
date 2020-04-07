@@ -477,6 +477,7 @@ static void getSpaceChunk_rec(vector<SpaceChunk>& res,
   if (i == (int)indices.size()) {
     SpaceChunk sc;
     sc.tree_idx = tree_shape_idx;
+    sc.size = ts.total;
     sc.nums = indices;
     res.push_back(move(sc));
     return;
