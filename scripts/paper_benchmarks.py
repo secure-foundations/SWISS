@@ -51,14 +51,14 @@ for postbmc in (False, True):
       benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads 20"+args))
       benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads 20"+args))
       benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))
-      benches.append(PaperBenchname+("2pc", "breadth-2pc --threads 1"+args))
+      benches.append(PaperBench(name+"2pc", "breadth-2pc --threads 1"+args))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
 
 def get_statfile(out):
-  for line in out.split('\n'):
-    if line.startswith("statfile: "):
+  for line in out.split(b'\n'):
+    if line.startswith(b"statfile: "):
       t = line.split()
       assert len(t) == 2
       return t[1]
@@ -88,7 +88,7 @@ def main():
   directory = sys.argv[1]
   Path(directory).mkdir(parents=True, exist_ok=True)
   for b in benches:
-    run(b)
+    run(directory, b)
 
 if __name__ == "__main__":
   main()
