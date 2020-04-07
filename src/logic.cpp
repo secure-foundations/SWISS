@@ -1515,7 +1515,7 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     return 0;
   }
 
-  if (TemplateHole* a = dynamic_cast<TemplateHole*>(a_.get())) {
+  if (dynamic_cast<TemplateHole*>(a_.get())) {
     TemplateHole* b = dynamic_cast<TemplateHole*>(b_.get());
     assert(b != NULL);
     return 0;
