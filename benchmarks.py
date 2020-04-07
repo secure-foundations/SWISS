@@ -115,6 +115,11 @@ BENCHMARKS = {
       "--with-conjs",
       "--finisher --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
 
+"finisher-paxos-exist-1-depth2" : # the hard one
+  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy",
+      "--with-conjs",
+      "--finisher --conj-arity 1 --disj-arity 3 --strat-alt --depth2-shape"),
+
 "breadth-paxos-exist-2" : # the easy one
   Benchmark("benchmarks/paxos_epr_existential_2.ivy", 
       "--breadth --conj-arity 1 --disj-arity 3 --strat-alt"),

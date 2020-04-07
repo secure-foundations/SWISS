@@ -1,0 +1,48 @@
+class PaperBench(object):
+  def __init__(self, name, args):
+    self.name = name
+    self.args = args
+
+benches = [ ]
+
+for i in range(20, 0, -1):
+  benches.append(PaperBench(
+      "paxos_breadth_t" + str(i),
+      "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
+
+for i in range(20, 0, -1):
+  benches.append(PaperBench(
+      "paxos_finisher_t" + str(i),
+      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
+
+for seed in range(1, 15):
+  benches.append(PaperBench(
+      "learning_switch_seed_" + int(seed),
+      "breadth-learning-switch --minimal-models --threads 20 --seed " + int(seed)))
+
+for seed in range(1, 15):
+  benches.append(PaperBench(
+      "paxos_seed_" + int(seed),
+      "full-paxos-depth2 --minimal-models --threads 20 --seed " + int(seed)))
+
+for postbmc in (False, True):
+  for prebmc in (False, True):
+    for minmodels in (True, False):
+      name = ""
+      args = ""
+      if postbmc:
+        name += "postbmc_"
+        args += " --post-bmc"
+      if prebmc:
+        name += "prebmc_"
+        args += " --pre-bmc"
+      if minmodels:
+        name += "mm_"
+        args += " --minimal-models"
+      benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads 1"+args))
+      benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads 4"+args))
+      benches.append(PaperBench(name+"learning_switch", "full-paxos-depth2 --threads 20"+args))
+      benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads 20"+args))
+      benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads 20"+args))
+      benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))
+      benches.append(PaperBenchname+("2pc", "breadth-2pc --threads 1"+args))

@@ -255,7 +255,7 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
     t = threading.Thread(target=run_synthesis, args=
         (logfile, key, jsonfile, args_add_seed(
           ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + args_with_file, q)))
+           "--output-formula-file", output_file] + args_with_file), q))
     t.start()
     threads.append(t)
 
