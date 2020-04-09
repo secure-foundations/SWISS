@@ -202,11 +202,17 @@ class Stats(object):
   def get_breadth_cpu_time(self, i):
     return sum(self.inc_individual_times[i])
 
+  def get_breadth_individual_times_string(self, i):
+    return " ".join(str(x) for x in self.inc_individual_times[i])
+
   def get_finisher_time(self):
     return self.finisher_time
 
   def get_finisher_cpu_time(self):
     return sum(self.finisher_individual_times)
+
+  def get_finisher_individual_times_string(self):
+    return " ".join(str(x) for x in self.finisher_individual_times)
 
   def get_total_time(self):
     t = 0
@@ -272,11 +278,13 @@ class Stats(object):
       for i in range(len(self.inc_results)):
         log(f, "BREADTH iteration", i,
             "time:", self.get_breadth_time(i), "seconds;",
-            "cpu time:", self.get_breadth_cpu_time(i), "seconds")
+            "cpu time:", self.get_breadth_cpu_time(i), "seconds;",
+            "thread times: ", self.get_breadth_individual_times_string(i))
       if self.finisher_result:
         log(f, "FINISHER",
             "time:", self.get_finisher_time(), "seconds;",
-            "cpu time:", self.get_finisher_cpu_time(), "seconds")
+            "cpu time:", self.get_finisher_cpu_time(), "seconds",
+            "thread times:", self.get_finisher_individual_times_string())
       log(f, "total time:", self.get_total_time(), "seconds;",
           "total cpu time:", self.get_total_cpu_time(), "seconds")
 
