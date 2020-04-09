@@ -160,32 +160,44 @@ Counterexample get_counterexample_test_with_conjs(
   }
 
   for (int j = 0; j < (int)module->actions.size(); j++) {
-    auto indctx = indctxs[j];
-    smt::solver& solver = indctx->ctx->solver;
+    int num_fails = 0;
+    while (true) {
+      auto indctx = indctxs[j];
+      smt::solver& solver = indctx->ctx->solver;
 
-    solver.add(indctx->e2->value2expr(v_not(candidate)));
+      solver.add(indctx->e2->value2expr(v_not(candidate)));
 
-    solver.set_log_info(
-        "inductivity-check: " + module->action_names[j]);
-    bool res = solver.check_sat();
+      solver.set_log_info(
+          "inductivity-check: " + module->action_names[j]);
+      smt::SolverResult res = solver.check_result();
 
-    if (res) {
-      if (options.minimal_models) {
-        auto ms = Model::extract_minimal_models_from_z3(
-            indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        cex.hypothesis = ms[0];
-        cex.conclusion = ms[1];
+      if (res == smt::SolverResult::Sat) {
+        if (options.minimal_models) {
+          auto ms = Model::extract_minimal_models_from_z3(
+              indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+          cex.hypothesis = ms[0];
+          cex.conclusion = ms[1];
+        } else {
+          cex.hypothesis = Model::extract_model_from_z3(
+              indctx->ctx->ctx, solver, module, *indctx->e1);
+          cex.conclusion = Model::extract_model_from_z3(
+              indctx->ctx->ctx, solver, module, *indctx->e2);
+          cex.hypothesis->dump_sizes();
+        }
+
+        printf("counterexample type: INDUCTIVE\n");
+
+        return cex;
+      } else if (res == smt::SolverResult::Unsat) {
+        break;
       } else {
-        cex.hypothesis = Model::extract_model_from_z3(
-            indctx->ctx->ctx, solver, module, *indctx->e1);
-        cex.conclusion = Model::extract_model_from_z3(
-            indctx->ctx->ctx, solver, module, *indctx->e2);
-        cex.hypothesis->dump_sizes();
+        num_fails++;
+        assert(num_fails < 20);
+        cout << "failure encountered, retrying" << endl;
+
+        indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
+            module, options, ctx, cur_invariant, candidate, conjectures, j);
       }
-
-      printf("counterexample type: INDUCTIVE\n");
-
-      return cex;
     }
   }
 
