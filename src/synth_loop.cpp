@@ -81,33 +81,38 @@ Counterexample get_counterexample_test_with_conjs(
   Counterexample cex;
   cex.none = false;
 
-  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-  smt::solver& init_solver = initctx->ctx->solver;
-  init_solver.push();
-  init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  init_solver.set_log_info("init-check");
-  bool init_res = init_solver.check_sat();
+  int num_fails = 0;
+  while (true) {
+    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+    smt::solver& init_solver = initctx->ctx->solver;
+    init_solver.push();
+    init_solver.add(initctx->e->value2expr(v_not(candidate)));
+    init_solver.set_log_info("init-check");
+    smt::SolverResult res = init_solver.check_result();
 
-  if (init_res) {
-    if (options.minimal_models) {
-      cex.is_true = Model::extract_minimal_models_from_z3(
-          initctx->ctx->ctx,
-          init_solver, module, {initctx->e}, /* hint */ candidate)[0];
+    if (res == smt::SolverResult::Sat) {
+      if (options.minimal_models) {
+        cex.is_true = Model::extract_minimal_models_from_z3(
+            initctx->ctx->ctx,
+            init_solver, module, {initctx->e}, /* hint */ candidate)[0];
+      } else {
+        cex.is_true = Model::extract_model_from_z3(
+            initctx->ctx->ctx,
+            init_solver, module, *initctx->e);
+        cex.is_true->dump_sizes();
+      }
+
+      printf("counterexample type: INIT\n");
+      //cex.is_true->dump();
+      return cex;
+    } else if (res == smt::SolverResult::Unsat) {
+      break;
     } else {
-      cex.is_true = Model::extract_model_from_z3(
-          initctx->ctx->ctx,
-          init_solver, module, *initctx->e);
-      cex.is_true->dump_sizes();
+      num_fails++;
+      assert(num_fails < 20);
+      cout << "failure encountered, retrying" << endl;
     }
-
-    printf("counterexample type: INIT\n");
-    //cex.is_true->dump();
-
-    init_solver.pop();
-    return cex;
-  } else {
-    init_solver.pop();
-  } 
+  }
 
   vector<shared_ptr<InductionContext>> indctxs;
 
@@ -586,7 +591,11 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   auto t_init = now();
 
   smt::context ctx;
-  if (options.smt_retries) {
+  if (options.smt_retries && options.with_conjs) {
+    // TODO support for !options.with_conjs
+    int timeout = 45 * 1000;
+    cout << "using SMT timeout " << timeout
+         << " for inductivity checks" << endl;
     ctx.set_timeout(45 * 1000);
   }
   smt::context bmcctx;
