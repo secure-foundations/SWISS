@@ -135,6 +135,23 @@ string res_to_string(z3::check_result res) {
   }
 }
 
+SolverResult solver::check_result()
+{
+  auto t1 = now();
+  z3::check_result res = z3_solver.check();
+  auto t2 = now();
+
+  long long ms = as_ms(t2 - t1);
+  log_to_stdout(ms, log_info, res_to_string(res));
+  if (enable_smt_logging) {
+    log_smtlib(ms, res_to_string(res));
+  }
+
+  if (res == z3::sat) return SolverResult::Sat;
+  else if (res == z3::unsat) return SolverResult::Unsat;
+  return SolverResult::Unknown;
+}
+
 bool solver::check_sat()
 {
   auto t1 = now();

@@ -94,6 +94,12 @@ namespace smt {
     expr operator[] (int i) { return ex_vec[i]; }
   };
 
+  enum class SolverResult {
+    Sat,
+    Unsat,
+    Unknown
+  };
+
   struct solver {
     z3::solver z3_solver;
     solver(context& ctx) : z3_solver(ctx.ctx) { }
@@ -101,6 +107,7 @@ namespace smt {
     std::string log_info;
     void set_log_info(std::string const& s) { log_info = s; }
 
+    SolverResult check_result();
     bool check_sat();
     bool is_sat_or_unknown();
     bool is_unsat_or_unknown();

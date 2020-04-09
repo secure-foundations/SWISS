@@ -42,6 +42,8 @@ struct Options {
   bool post_bmc;
   bool minimal_models;
 
+  bool smt_retries;
+
   //int threads;
 };
 

@@ -23,6 +23,8 @@
 using namespace std;
 using namespace json11;
 
+int numRetries = 0;
+
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
     value candidate,
@@ -45,6 +47,27 @@ Counterexample get_bmc_counterexample(
     cex.none = true;
     return cex;
   }
+}
+
+shared_ptr<InductionContext> get_counterexample_test_with_conjs_make_indctx(
+    shared_ptr<Module> module,
+    Options const& options,
+    smt::context& ctx,
+    value cur_invariant,
+    value candidate,
+    vector<value> conjectures,
+    int j)
+{
+  auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
+  smt::solver& solver = indctx->ctx->solver;
+  if (cur_invariant) {
+    solver.add(indctx->e1->value2expr(cur_invariant));
+  }
+  solver.add(indctx->e1->value2expr(candidate));
+  for (value conj : conjectures) {
+    solver.add(indctx->e1->value2expr(conj));
+  }
+  return indctx;
 }
 
 Counterexample get_counterexample_test_with_conjs(
@@ -89,47 +112,50 @@ Counterexample get_counterexample_test_with_conjs(
   vector<shared_ptr<InductionContext>> indctxs;
 
   for (int j = 0; j < (int)module->actions.size(); j++) {
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
-    smt::solver& solver = indctx->ctx->solver;
-    if (cur_invariant) {
-      solver.add(indctx->e1->value2expr(cur_invariant));
-    }
-    solver.add(indctx->e1->value2expr(candidate));
-    for (value conj : conjectures) {
-      solver.add(indctx->e1->value2expr(conj));
-    }
-    indctxs.push_back(indctx);
+    indctxs.push_back(get_counterexample_test_with_conjs_make_indctx(
+        module, options, ctx, cur_invariant, candidate, conjectures, j));
   }
 
   for (int k = 0; k < (int)conjectures.size(); k++) {
     for (int j = 0; j < (int)module->actions.size(); j++) {
-      auto indctx = indctxs[j];
-      smt::solver& solver = indctx->ctx->solver;
+      int num_fails = 0;
+      while (true) {
+        auto indctx = indctxs[j];
+        smt::solver& solver = indctx->ctx->solver;
 
-      solver.push();
-      solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
+        solver.push();
+        solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
 
-      solver.set_log_info(
-          "inductivity-check-with-conj: " + module->action_names[j]);
-      bool res = solver.check_sat();
+        solver.set_log_info(
+            "inductivity-check-with-conj: " + module->action_names[j]);
+        smt::SolverResult res = solver.check_result();
 
-      if (res) {
-        if (options.minimal_models) {
-          auto ms = Model::extract_minimal_models_from_z3(
-              indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
-          cex.is_false = ms[0];
+        if (res == smt::SolverResult::Sat) {
+          if (options.minimal_models) {
+            auto ms = Model::extract_minimal_models_from_z3(
+                indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
+            cex.is_false = ms[0];
+          } else {
+            cex.is_false = Model::extract_model_from_z3(
+                indctx->ctx->ctx, solver, module, *indctx->e1);
+            cex.is_false->dump_sizes();
+          }
+
+          printf("counterexample type: SAFETY\n");
+
+          return cex;
+        } else if (res == smt::SolverResult::Unsat) {
+          solver.pop();
+          break;
         } else {
-          cex.is_false = Model::extract_model_from_z3(
-              indctx->ctx->ctx, solver, module, *indctx->e1);
-          cex.is_false->dump_sizes();
+          num_fails++;
+          assert(num_fails < 20);
+          cout << "failure encountered, retrying" << endl;
+
+          indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
+              module, options, ctx, cur_invariant, candidate, conjectures, j);
         }
-
-        printf("counterexample type: SAFETY\n");
-
-        return cex;
       }
-
-      solver.pop();
     }
   }
 
@@ -531,6 +557,7 @@ void dump_stats(long long progress, CexStats const& cs,
        << num_redundant << endl;
   cout << "number of finisher invariants found: "
        << num_finishers_found << endl;
+  cout << "number of retries: " << numRetries << endl;
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
   cout.flush();
@@ -547,6 +574,9 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   auto t_init = now();
 
   smt::context ctx;
+  if (options.smt_retries) {
+    ctx.set_timeout(45 * 1000);
+  }
   smt::context bmcctx;
 
   int bmc_depth = 4;

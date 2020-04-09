@@ -258,6 +258,7 @@ int main(int argc, char* argv[]) {
   options.post_bmc = false;
   options.get_space_size = false;
   options.minimal_models = false;
+  options.smt_retries = true;
   //options.threads = 1;
 
   vector<string> output_chunk_files;
@@ -311,6 +312,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--whole-space")) {
       options.whole_space = true;
+    }
+    else if (argv[i] == string("--no-smt-retries")) {
+      options.smt_retries = false;
     }
     else if (argv[i] == string("--enum-sat")) {
       options.enum_sat = true;
