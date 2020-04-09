@@ -6,6 +6,8 @@
 #include "top_quantifier_desc.h"
 #include "sketch.h"
 
+#include <string>
+
 struct EnumOptions {
   int template_idx;
 
@@ -50,6 +52,18 @@ struct SpaceChunk {
   std::vector<int> nums;
 
   SpaceChunk() : major_idx(-1), tree_idx(-1), size(-1) { }
+
+  std::string to_string() {
+    std::string s = std::to_string(major_idx) + " "
+        + std::to_string(size) + " "
+        + std::to_string(tree_idx) + " "
+        + std::to_string(nums.size());
+    for (int i = 0; i < (int)nums.size(); i++) {
+      if (i > 0) s += " ";
+      s += std::to_string(nums[i]);
+    }
+    return s;
+  }
 };
 
 struct Counterexample {

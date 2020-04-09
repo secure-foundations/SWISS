@@ -611,7 +611,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
         SpaceChunk* sc = tsq->getNextSpace();
         if (sc != NULL) {
           cs->setSpaceChunk(*sc);
-          cout << "NEW CHUNK" << endl;
+          cout << "NEW CHUNK " << sc->to_string() << endl;
           continue;
         }
       }
@@ -994,7 +994,7 @@ SynthesisResult synth_loop_incremental_breadth(
           SpaceChunk* sc = tsq->getNextSpace();
           if (sc != NULL) {
             cs->setSpaceChunk(*sc);
-            cout << "NEW CHUNK" << endl;
+            cout << "NEW CHUNK" << sc->to_string() << endl;
             continue;
           }
         }

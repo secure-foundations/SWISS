@@ -255,7 +255,8 @@ void AltDepth2CandidateSolver::dump_cur_indices()
   for (int i : cur_indices) {
     cout << " " << i;
   }
-  cout << " / " << pieces.size() << " in tree shape "
+  cout << " / " << pieces.size() << " in tree shape (idx = "
+      << tree_shape_idx << ") "
       << tree_shapes[tree_shape_idx].to_string() << endl;
 }
 
