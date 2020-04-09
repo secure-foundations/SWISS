@@ -61,7 +61,7 @@ struct SpaceChunk {
         + std::to_string(tree_idx) + " "
         + std::to_string(nums.size());
     for (int i = 0; i < (int)nums.size(); i++) {
-      s += std::to_string(nums[i]);
+      s += " " + std::to_string(nums[i]);
     }
     return s;
   }

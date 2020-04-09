@@ -619,7 +619,19 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
         continue;
       }
       new_sizes = sizes;
-      int sz_to_try = (hint_sizes.size() > 0 && lower_bound_size < hint_sizes[sort_idx] && hint_sizes[sort_idx] < sizes[sort_idx] ? hint_sizes[sort_idx] : (lower_bound_size + sizes[sort_idx]) / 2);
+      int sz_to_try;
+      if (hint_sizes.size() > 0
+              && lower_bound_size < hint_sizes[sort_idx]
+              && hint_sizes[sort_idx] < sizes[sort_idx]) {
+        sz_to_try = hint_sizes[sort_idx];
+      } else {
+        int dumbBound = 9;
+        if (lower_bound_size < dumbBound && dumbBound * 2 < sizes[sort_idx]) {
+          sz_to_try = dumbBound;
+        } else {
+          sz_to_try = (lower_bound_size + sizes[sort_idx]) / 2;
+        }
+      }
       new_sizes[sort_idx] = sz_to_try;
     }
 
@@ -641,9 +653,9 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
     }
 
     solver.set_log_info("extract minimal");
-    bool res = solver.is_unsat_or_unknown();
+    smt::SolverResult res = solver.check_result();
 
-    if (!res) {
+    if (res == smt::SolverResult::Sat) {
       all_models.clear();
       for (auto e : es) {
         all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
@@ -655,7 +667,13 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       if (try_hint_sizes) {
         try_hint_sizes = false;
       } else {
-        lower_bound_size = new_sizes[sort_idx];
+        if (res == smt::SolverResult::Unknown) {
+          // Stop trying to decrease the size of this domain,
+          // it's unlikely to be worth it.
+          lower_bound_size = sizes[sort_idx] - 1;
+        } else {
+          lower_bound_size = new_sizes[sort_idx];
+        }
       }
     }
 
