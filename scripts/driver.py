@@ -31,10 +31,11 @@ def kill_all_procs():
       all_procs[k].kill()
 
 class RunSynthesisResult(object):
-  def __init__(self, run_id, seconds, stopped, logfile):
+  def __init__(self, run_id, seconds, stopped, failed, logfile):
     self.run_id = run_id
     self.seconds = seconds
     self.stopped = stopped
+    self.failed = failed
     self.logfile = logfile
 
 def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False):
@@ -75,12 +76,14 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False
       else:
         if ret != 0:
           print("failed " + run_id + " (" + str(seconds) + " seconds)")
-          sys.exit(1)
+          sys.stdout.flush()
         else:
           print("complete " + run_id + " (" + str(seconds) + " seconds)")
           sys.stdout.flush()
     if q != None:
-      q.put(RunSynthesisResult(run_id, seconds, killing, logfilename))
+      q.put(RunSynthesisResult(run_id, seconds, killing, ret != 0, logfilename))
+    
+    return ret == 0
   except Exception:
     traceback.print_exc()
     sys.stderr.flush()
@@ -172,7 +175,8 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
     chunk_file_args.append("--output-chunk-file")
     chunk_file_args.append(chunk)
 
-  run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
+  succ = run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
+  assert succ, "breadth chunkify failed"
 
   q = queue.Queue()
   threads = [ ]
@@ -198,16 +202,20 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   any_success = False
   for i in range(nthreads):
     syn_res = q.get()
-    stats.add_inc_log(iteration_num, syn_res.logfile, syn_res.seconds)
-    if not syn_res.stopped:
-      key = syn_res.run_id
-      success, this_has_any = parse_output_file(output_files[key])
-      if this_has_any:
-        has_any = True
-      if success:
-        stats.add_inc_result(iteration_num, output_files[key], int(time.time() - t1))
-        kill_all_procs()
-        any_success = True
+    if syn_res.failed:
+      kill_all_procs()
+      assert False, "breadth proper failed"
+    else:
+      stats.add_inc_log(iteration_num, syn_res.logfile, syn_res.seconds)
+      if not syn_res.stopped:
+        key = syn_res.run_id
+        success, this_has_any = parse_output_file(output_files[key])
+        if this_has_any:
+          has_any = True
+        if success:
+          stats.add_inc_result(iteration_num, output_files[key], int(time.time() - t1))
+          kill_all_procs()
+          any_success = True
 
   if any_success:
     return (True, has_any, None)
@@ -220,7 +228,8 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   for key in output_files:
     coalesce_file_args.append("--input-formula-file")
     coalesce_file_args.append(output_files[key])
-  run_synthesis(logfile, iterkey+".coalesce", jsonfile, args_add_seed(coalesce_file_args))
+  succ = run_synthesis(logfile, iterkey+".coalesce", jsonfile, args_add_seed(coalesce_file_args))
+  assert succ, "breadth coalesce failed"
 
   stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
 
@@ -237,7 +246,8 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
     chunk_file_args.append("--output-chunk-file")
     chunk_file_args.append(chunk)
 
-  run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
+  succ = run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
+  assert succ, "finisher chunkify failed"
 
   q = queue.Queue()
   threads = [ ]
@@ -261,17 +271,21 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
 
   any_success = False
   for i in range(nthreads):
-    synres = q.get()
-    key = synres.run_id
-    stats.add_finisher_log(synres.logfile, synres.seconds)
-    if not synres.stopped:
-      success, this_has_any = parse_output_file(output_files[key])
-      if success:
-        any_success = True
-        stats.add_finisher_result(output_files[key], int(time.time() - t1))
-        kill_all_procs()
-  if not any_success:
-    stats.add_finisher_result(iterkey+".thread.0", int(time.time() - t1))
+    if synres.failed:
+      kill_all_procs()
+      assert False, "finisher proper failed"
+    else:
+      synres = q.get()
+      key = synres.run_id
+      stats.add_finisher_log(synres.logfile, synres.seconds)
+      if not synres.stopped:
+        success, this_has_any = parse_output_file(output_files[key])
+        if success:
+          any_success = True
+          stats.add_finisher_result(output_files[key], int(time.time() - t1))
+          kill_all_procs()
+    if not any_success:
+      stats.add_finisher_result(iterkey+".thread.0", int(time.time() - t1))
 
 def parse_args(args):
   nthreads = None

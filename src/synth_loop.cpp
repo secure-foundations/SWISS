@@ -587,6 +587,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
 {
   SynthesisResult synres;
   synres.done = false;
+  assert(false);
 
   auto t_init = now();
 
