@@ -3,6 +3,7 @@
 #include "wpr.h"
 
 #include <cstdlib>
+#include <iostream>
 
 using namespace std;
 using smt::expr;
@@ -24,7 +25,7 @@ string name(string basename) {
 
 BackgroundContext::BackgroundContext(smt::context& ctx, std::shared_ptr<Module> module)
     : ctx(ctx),
-      solver(ctx)
+      solver(ctx.make_solver())
 {
   for (string sort : module->sorts) {
     this->sorts.insert(make_pair(sort, ctx.uninterpreted_sort(sort)));

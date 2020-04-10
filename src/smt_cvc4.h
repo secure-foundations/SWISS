@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace smt {
+namespace smt_cvc4 {
 
   extern bool been_set;
 

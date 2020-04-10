@@ -6,7 +6,7 @@
 #include <cassert>
 #include <string>
 
-namespace smt {
+namespace smt_z3 {
 
   struct sort {
     z3::sort so;

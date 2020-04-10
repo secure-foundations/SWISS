@@ -36,7 +36,7 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, value 
   //cur_indices = {0, 103, 105, 0, 1, 2};
   //cur_incides = {3, 4, 5, 11, 23, 97};
   //cur_indices = {28, 55, 61, 2, 15, 70};
-  cur_indices = {};
+  //cur_indices = {};
   done = false;
 
   var_index_states.resize(total_arity + 2);
@@ -259,7 +259,9 @@ int t = 0;
 
 value AltImplCandidateSolver::getNext() {
   while (true) {
-    increment();
+    //increment();
+    assert(cur_indices.size() == 0);
+    cur_indices = {11, 19, 34, 15, 56, 63};
     progress++;
     if (done) {
       return nullptr;
