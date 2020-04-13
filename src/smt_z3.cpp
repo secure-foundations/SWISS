@@ -180,7 +180,7 @@ namespace smt_z3 {
       return shared_ptr<_expr>(new expr(z3::mk_and(ex_vec)));
     }
     std::shared_ptr<_expr> mk_or() override {
-      return shared_ptr<_expr>(new expr(z3::mk_and(ex_vec)));
+      return shared_ptr<_expr>(new expr(z3::mk_or(ex_vec)));
     }
   };
 
