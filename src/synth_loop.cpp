@@ -611,7 +611,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     int timeout = 45 * 1000;
     cout << "using SMT timeout " << timeout
          << " for inductivity checks" << endl;
-    ctx.set_timeout(45 * 1000);
+    ctx.set_timeout(timeout);
   }
   smt::context bmcctx(smt::Backend::z3);
 

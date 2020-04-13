@@ -14,7 +14,7 @@
 
 class BackgroundContext {
 public:
-  smt::context& ctx;
+  smt::context ctx;
   smt::solver solver;
   std::unordered_map<std::string, smt::sort> sorts;
 
