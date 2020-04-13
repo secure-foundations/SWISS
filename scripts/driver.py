@@ -201,14 +201,15 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   has_any = False
   any_success = False
   for i in range(nthreads):
-    syn_res = q.get()
-    if syn_res.failed:
-      kill_all_procs()
-      assert False, "breadth proper failed"
+    synres = q.get()
+    if synres.failed:
+      if not synres.stopped:
+        kill_all_procs()
+        assert False, "breadth proper failed"
     else:
-      stats.add_inc_log(iteration_num, syn_res.logfile, syn_res.seconds)
-      if not syn_res.stopped:
-        key = syn_res.run_id
+      stats.add_inc_log(iteration_num, synres.logfile, synres.seconds)
+      if not synres.stopped:
+        key = synres.run_id
         success, this_has_any = parse_output_file(output_files[key])
         if this_has_any:
           has_any = True
@@ -271,11 +272,12 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
 
   any_success = False
   for i in range(nthreads):
+    synres = q.get()
     if synres.failed:
-      kill_all_procs()
-      assert False, "finisher proper failed"
+      if not synres.stopped:
+        kill_all_procs()
+        assert False, "finisher proper failed"
     else:
-      synres = q.get()
       key = synres.run_id
       stats.add_finisher_log(synres.logfile, synres.seconds)
       if not synres.stopped:

@@ -590,7 +590,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
 
   auto t_init = now();
 
-  smt::context ctx;
+  smt::context ctx(smt::Backend::z3);
   if (options.smt_retries && options.with_conjs) {
     // TODO support for !options.with_conjs
     int timeout = 45 * 1000;
@@ -598,7 +598,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
          << " for inductivity checks" << endl;
     ctx.set_timeout(45 * 1000);
   }
-  smt::context bmcctx;
+  smt::context bmcctx(smt::Backend::z3);
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -786,8 +786,8 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 {
   auto t_init = now();
 
-  smt::context ctx;
-  smt::context bmcctx;
+  smt::context ctx(smt::Backend::z3);
+  smt::context bmcctx(smt::Backend::z3);
 
   vector<value> all_found_invs;
   vector<value> found_invs;
@@ -970,8 +970,8 @@ SynthesisResult synth_loop_incremental_breadth(
 {
   auto t_init = now();
 
-  smt::context ctx;
-  smt::context bmcctx;
+  smt::context ctx(smt::Backend::z3);
+  smt::context bmcctx(smt::Backend::z3);
 
   vector<value> starter_invariants;
   vector<value> conjectures;

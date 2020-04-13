@@ -80,10 +80,10 @@ shared_ptr<Model> FixedBMCContext::get_k_invariance_violation_maybe(value v, boo
     solver.add(this->e1->value2expr(v_not(v)));
   }
   solver.set_log_info("bmc: " + to_string(k));
-  bool res = solver.is_unsat_or_unknown();
+  smt::SolverResult res = solver.check_result();
 
   shared_ptr<Model> ans;
-  if (!res) {
+  if (res == smt::SolverResult::Sat) {
     if (get_minimal) {
       //cout << "get_k_invariance_violation_maybe " << k << endl;
       ans = Model::extract_minimal_models_from_z3(ctx->ctx, solver, module, {e2}, /* hint */ v)[0];
@@ -122,9 +122,9 @@ bool FixedBMCContext::is_reachable_returning_false_if_unknown(shared_ptr<Model> 
   }
 
   solver.set_log_info("bmc: " + to_string(k));
-  bool res = solver.is_unsat_or_unknown();
+  smt::SolverResult res = solver.check_result();
   solver.pop();
-  return !res;
+  return res == smt::SolverResult::Sat;
 }
 
 BMCContext::BMCContext(smt::context& ctx, shared_ptr<Module> module, int k, bool from_safety) {

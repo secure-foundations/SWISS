@@ -196,7 +196,7 @@ namespace smt {
     std::string log_info;
     void set_log_info(std::string const& s) { log_info = s; }
     void log_smtlib(long long ms, std::string const& res);
-    virtual void dump(std::ofstream& of);
+    virtual void dump(std::ofstream& of) = 0;
 
     virtual SolverResult check_result() = 0;
     bool check_sat() {
@@ -296,6 +296,8 @@ namespace smt {
   void log_to_stdout(long long ms, bool is_cvc4,
     std::string const& log_info, std::string const& res);
 
+  bool is_z3_context(context&);
+  void dump_smt_stats();
 }
 
 #endif

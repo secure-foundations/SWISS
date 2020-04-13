@@ -38,7 +38,7 @@ vector<value> filter_redundant_formulas(
     }
   }
 
-  smt::context ctx;
+  smt::context ctx(smt::Backend::z3);
 
   for (int i = 0; i < (int)values.size(); i++) {
     if (!is_necessary(ctx, module, values, i)) {

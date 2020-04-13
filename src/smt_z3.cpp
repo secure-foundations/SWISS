@@ -3,6 +3,7 @@
 #include "z3++.h"
 
 #include "benchmarking.h"
+#include "model.h"
 
 using namespace std;
 
@@ -253,6 +254,235 @@ namespace smt_z3 {
       ctx.constant(name.c_str(), so->so)));
   }
 
+  std::shared_ptr<_solver> context::make_solver() {
+    return shared_ptr<_solver>(new solver(*this));
+  }
+
+  std::shared_ptr<_expr_vector> context::new_expr_vector() {
+    return shared_ptr<_expr_vector>(new expr_vector(*this));
+  }
+
+  std::shared_ptr<_sort_vector> context::new_sort_vector() {
+    return shared_ptr<_sort_vector>(new sort_vector(*this));
+  }
+}
+
+namespace smt {
+  bool is_z3_context(smt::context& ctx)
+  {
+    return dynamic_cast<smt_z3::context*>(ctx.p.get()) != NULL;
+  }
+
+  std::shared_ptr<_context> make_z3_context()
+  {
+    return shared_ptr<_context>(new smt_z3::context());
+  }
+}
+
+////////////////////
+///// Model stuff
+
+shared_ptr<Model> Model::extract_z3(
+    smt::context& smt_ctx,
+    smt::solver& smt_solver,
+    std::shared_ptr<Module> module,
+    ModelEmbedding const& e)
+{
+  smt_z3::context& ctx = *dynamic_cast<smt_z3::context*>(smt_ctx.p.get());
+  smt_z3::solver& solver = *dynamic_cast<smt_z3::solver*>(smt_solver.p.get());
+
+  std::unordered_map<std::string, SortInfo> sort_info;
+  std::unordered_map<iden, FunctionInfo> function_info;
+
+  z3::model z3model = solver.z3_solver.get_model();
+
+  map<string, z3::expr_vector> universes;
+
+  for (auto p : e.ctx->sorts) {
+    string name = p.first;
+    z3::sort s = dynamic_cast<smt_z3::sort*>(p.second.p.get())->so;
+
+    // The C++ api doesn't seem to have the functionality we need.
+    // Go down to the C API.
+    Z3_ast_vector c_univ = Z3_model_get_sort_universe(ctx.ctx, z3model, s);
+    int len;
+    if (c_univ) {
+      z3::expr_vector univ(ctx.ctx, c_univ);
+      universes.insert(make_pair(name, univ));
+      len = univ.size();
+    } else {
+      z3::expr_vector univ(ctx.ctx);
+      univ.push_back(ctx.ctx.constant(::name("whatever").c_str(), s));
+      universes.insert(make_pair(name, univ));
+      len = univ.size();
+    }
+
+    SortInfo sinfo;
+    sinfo.domain_size = len;
+    sort_info[name] = sinfo;
+  }
+
+  auto get_value = [&z3model, &ctx, &universes](
+        Sort* sort, z3::expr expression1) -> object_value {
+    z3::expr expression = z3model.eval(expression1, true);
+    if (dynamic_cast<BooleanSort*>(sort)) {
+      if (z3::eq(expression, ctx.ctx.bool_val(true))) {
+        return 1;
+      } else if (z3::eq(expression, ctx.ctx.bool_val(false))) {
+        return 0;
+      } else {
+        assert(false);
+      }
+    } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(sort)) {
+      auto iter = universes.find(usort->name);
+      assert(iter != universes.end());
+      z3::expr_vector& vec = iter->second;
+      for (object_value i = 0; i < vec.size(); i++) {
+        if (z3::eq(expression, vec[i])) {
+          return i;
+        }
+      }
+      assert(false);
+    } else {
+      assert(false && "expected boolean sort or uninterpreted sort");
+    }
+  };
+
+  auto get_expr = [&ctx, &universes](
+        Sort* sort, object_value v) -> z3::expr {
+    if (dynamic_cast<BooleanSort*>(sort)) {
+      if (v == 0) {
+        return ctx.ctx.bool_val(false);
+      } else if (v == 1) {
+        return ctx.ctx.bool_val(true);
+      } else {
+        assert(false);
+      }
+    } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(sort)) {
+      auto iter = universes.find(usort->name);
+      assert(iter != universes.end());
+      z3::expr_vector& vec = iter->second;
+      assert (0 <= v && v < vec.size());
+      return vec[v];
+    } else {
+      assert(false && "expected boolean sort or uninterpreted sort");
+    }
+  };
+
+  for (VarDecl decl : module->functions) {
+    iden name = decl.name;
+    z3::func_decl fdecl = dynamic_cast<smt_z3::func_decl*>(e.getFunc(name).p.get())->fd;
+
+    int num_args;
+    Sort* range_sort;
+    vector<Sort*> domain_sorts;
+    vector<int> domain_sort_sizes;
+    if (FunctionSort* functionSort = dynamic_cast<FunctionSort*>(decl.sort.get())) {
+      num_args = functionSort->domain.size();
+      range_sort = functionSort->range.get();
+      for (auto ptr : functionSort->domain) {
+        Sort* argsort = ptr.get();
+        domain_sorts.push_back(argsort);
+        size_t sz;
+        if (dynamic_cast<BooleanSort*>(argsort)) {
+          sz = 2;
+        } else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(argsort)) {
+          sz = sort_info[usort->name].domain_size;
+        } else {
+          assert(false && "expected boolean sort or uninterpreted sort");
+        }
+        domain_sort_sizes.push_back(sz);
+      }
+    } else {
+      num_args = 0;
+      range_sort = decl.sort.get();
+    }
+
+    function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& finfo = function_info[name];
+
+    if (z3model.has_interp(fdecl)) {
+      if (fdecl.is_const()) {
+        z3::expr e = z3model.get_const_interp(fdecl);
+        finfo.else_value = 0;
+        finfo.table.reset(new FunctionTable());
+        finfo.table->value = get_value(range_sort, e);
+      } else {
+        z3::func_interp finterp = z3model.get_func_interp(fdecl);
+
+        vector<object_value> args;
+        for (int i = 0; i < num_args; i++) {
+          args.push_back(0);
+        }
+        while (true) {
+          z3::expr_vector args_exprs(ctx.ctx);
+          unique_ptr<FunctionTable>* table = &finfo.table;
+          for (int argnum = 0; argnum < num_args; argnum++) {
+            object_value argvalue = args[argnum];
+            args_exprs.push_back(get_expr(domain_sorts[argnum], argvalue));
+            if (!table->get()) {
+              table->reset(new FunctionTable());
+              (*table)->children.resize(domain_sort_sizes[argnum]);
+            }
+            assert(0 <= argvalue && (int)argvalue < domain_sort_sizes[argnum]);
+            table = &(*table)->children[argvalue];
+          }
+          object_value result_value =
+              get_value(range_sort, finterp.else_value().substitute(args_exprs));
+
+          assert (table != NULL);
+          if (!table->get()) {
+            table->reset(new FunctionTable());
+          }
+          (*table)->value = result_value;
+
+          int i;
+          for (i = num_args - 1; i >= 0; i--) {
+            args[i]++;
+            if ((int)args[i] == domain_sort_sizes[i]) {
+              args[i] = 0;
+            } else {
+              break;
+            }
+          }
+          if (i == -1) {
+            break;
+          }
+        }
+
+        for (size_t i = 0; i < finterp.num_entries(); i++) {
+          z3::func_entry fentry = finterp.entry(i);
+          
+          unique_ptr<FunctionTable>* table = &finfo.table;
+          for (int argnum = 0; argnum < num_args; argnum++) {
+            object_value argvalue = get_value(domain_sorts[argnum], fentry.arg(argnum));
+
+            if (!table->get()) {
+              table->reset(new FunctionTable());
+              (*table)->children.resize(domain_sort_sizes[argnum]);
+            }
+            assert(0 <= argvalue && (int)argvalue < domain_sort_sizes[argnum]);
+            table = &(*table)->children[argvalue];
+          }
+
+          (*table)->value = get_value(range_sort, fentry.value());
+        }
+      }
+    } else {
+      finfo.else_value = 0;
+    }
+  }
+
+  return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
+}
+
+extern bool enable_smt_logging;
+
+namespace smt_z3 {
+
+  //////////////////////
+  ///// solving
+
   string res_to_string(z3::check_result res) {
     if (res == z3::sat) {
       return "sat";
@@ -264,8 +494,6 @@ namespace smt_z3 {
       assert(false);
     }
   }
-
-  extern bool enable_smt_logging;
 
   smt::SolverResult solver::check_result()
   {

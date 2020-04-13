@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "benchmarking.h"
+#include "model.h"
+
 using namespace std;
 
 using smt::_sort;
@@ -338,5 +341,244 @@ namespace smt_cvc4 {
     sort* so = dynamic_cast<sort*>(_so);
     assert (so != NULL);
     return shared_ptr<_expr>(new expr(em.mkBoundVar(name, so->ty)));
+  }
+
+  std::shared_ptr<_solver> context::make_solver() {
+    return shared_ptr<_solver>(new solver(*this));
+  }
+
+  std::shared_ptr<_expr_vector> context::new_expr_vector() {
+    return shared_ptr<_expr_vector>(new expr_vector(*this));
+  }
+
+  std::shared_ptr<_sort_vector> context::new_sort_vector() {
+    return shared_ptr<_sort_vector>(new sort_vector(*this));
+  }
+}
+
+namespace smt {
+  std::shared_ptr<_context> make_cvc4_context()
+  {
+    return shared_ptr<_context>(new smt_cvc4::context());
+  }
+}
+
+////////////////////
+///// Model stuff
+
+shared_ptr<Model> Model::extract_cvc4(
+  smt::context& smt_ctx,
+  smt::solver& smt_solver,
+  std::shared_ptr<Module> module,
+  ModelEmbedding const& e)
+{
+  smt_cvc4::context& ctx = *dynamic_cast<smt_cvc4::context*>(smt_ctx.p.get());
+  smt_cvc4::solver& solver = *dynamic_cast<smt_cvc4::solver*>(smt_solver.p.get());
+
+  CVC4::ExprManager& em = ctx.em;
+  CVC4::SmtEngine& smt = solver.smt;
+
+  // The cvc4 API, at least at the time of writing, does
+  // not appear to expose any way of accessing the model.
+  // We use a version with some modifications I made to expose
+  // the Model interface.
+  // Since the Model interface isn't intended to be exposed,
+  // it's a little hard to use, and it segfaults if you don't
+  // create an SmtScope object (whatever that is), which took
+  // me a while to figure out. The SmtScope object *also* isn't
+  // exposed, so I also modified the library by adding this
+  // SmtScopeContainer object which handles the SmtScope for us.
+  //
+  // tl;dr
+  // Make sure you're using the fork of the cvc4 lib which
+  // is checked in to this repo.
+
+  CVC4::Model* cvc4_model = smt.getModel();
+  CVC4::SmtScopeContainer smt_scope_container(cvc4_model);
+
+  //std::cout << endl;
+  //std::cout << endl;
+  //std::cout << endl;
+  //std::cout << *cvc4_model << endl;
+  //std::cout << endl;
+  //std::cout << endl;
+  //std::cout << endl;
+
+  map<string, vector<CVC4::Expr>> universes;
+
+  std::unordered_map<std::string, SortInfo> sort_info;
+  for (auto p : e.ctx->sorts) {
+    string name = p.first;
+    CVC4::Type ty = dynamic_cast<smt_cvc4::sort*>(p.second.p.get())->ty;
+    vector<CVC4::Expr> exprs = cvc4_model->getDomainElements(ty);
+    assert (exprs.size() > 0);
+    universes.insert(make_pair(name, exprs));
+    SortInfo si;
+    si.domain_size = exprs.size();
+    sort_info.insert(make_pair(name, si));
+  }
+
+  std::unordered_map<iden, FunctionInfo> function_info;
+
+  for (VarDecl decl : module->functions) {
+    iden name = decl.name;
+    smt::func_decl fd = e.getFunc(name);
+
+    //cout << "doing " << iden_to_string(name) << endl;
+
+    function_info.insert(make_pair(name, FunctionInfo()));
+    FunctionInfo& fi = function_info.find(name)->second;
+    fi.else_value = 0;
+
+    vector<shared_ptr<Sort>> domain =
+        decl.sort->get_domain_as_function();
+
+    shared_ptr<Sort> range =
+        decl.sort->get_range_as_function();
+
+    vector<size_t> domain_sizes;
+    for (int i = 0; i < (int)domain.size(); i++) {
+      if (dynamic_cast<BooleanSort*>(domain[i].get())) {
+        domain_sizes.push_back(2);
+      } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(domain[i].get())) {
+        auto it = universes.find(us->name);
+        assert (it != universes.end());
+        domain_sizes.push_back(it->second.size());
+      } else {
+        assert (false);
+      }
+      assert(domain_sizes[i] > 0);
+    }
+
+    vector<object_value> args;
+    args.resize(domain.size());
+    for (int i = 0; i < (int)domain.size(); i++) {
+      args[i] = 0;
+    }
+
+    CVC4::Expr const_true = em.mkConst(true);
+    CVC4::Expr const_false = em.mkConst(false);
+
+    while (true) {
+      smt_cvc4::expr_vector args_exprs(ctx);
+      for (int i = 0; i < (int)domain.size(); i++) {
+        if (dynamic_cast<BooleanSort*>(domain[i].get())) {
+          args_exprs.ex_vec.push_back(args[i] == 0 ? const_false : const_true);
+        } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(domain[i].get())) {
+          auto it = universes.find(us->name);
+          assert (it != universes.end());
+          assert (0 <= args[i] && args[i] < it->second.size());
+          args_exprs.ex_vec.push_back(it->second[args[i]]);
+        } else {
+          assert (false);
+        }
+      }
+
+      auto c = dynamic_cast<smt_cvc4::func_decl*>(fd.p.get())->call(&args_exprs);
+      CVC4::Expr result_expr =
+          cvc4_model->getValue(dynamic_cast<smt_cvc4::expr*>(c.get())->ex);
+      object_value result;
+
+      if (dynamic_cast<BooleanSort*>(range.get())) {
+        if (result_expr == const_true) {
+          result = 1;
+        } else if (result_expr == const_false) {
+          result = 0;
+        } else {
+          assert (false);
+        }
+      } else if (UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(range.get())) {
+        auto it = universes.find(us->name);
+        assert (it != universes.end());
+        vector<CVC4::Expr>& univ = it->second;
+        bool found = false;
+        for (int j = 0; j < (int)univ.size(); j++) {
+          if (univ[j] == result_expr) {
+            result = j;
+            found = true;
+            break;
+          }
+        }
+        assert (found);
+      } else {
+        assert (false);
+      }
+
+      if (fi.table == nullptr) {
+        fi.table = unique_ptr<FunctionTable>(new FunctionTable());
+        if (0 < domain_sizes.size()) {
+          fi.table->children.resize(domain_sizes[0]);
+        }
+      }
+      FunctionTable* ft = fi.table.get();
+      for (int i = 0; i < (int)domain.size(); i++) {
+        if (ft->children[args[i]] == nullptr) {
+          ft->children[args[i]] = unique_ptr<FunctionTable>(new FunctionTable());
+          if (i + 1 < (int)domain.size()) {
+            ft->children[args[i]]->children.resize(domain_sizes[i+1]);
+          }
+        }
+        ft = ft->children[args[i]].get();
+      }
+      ft->value = result;
+
+      int i;
+      for (i = 0; i < (int)domain.size(); i++) {
+        args[i]++;
+        if (args[i] == domain_sizes[i]) {
+          args[i] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == (int)domain.size()) {
+        break;
+      }
+    }
+  }
+
+  auto result = shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
+  //result->dump();
+  return result;
+}
+
+extern bool enable_smt_logging;
+
+namespace smt_cvc4 {
+  //////////////////////
+  ///// solving
+
+  string res_to_string(CVC4::Result::Sat res) {
+    if (res == CVC4::Result::SAT) {
+      return "sat";
+    } else if (res == CVC4::Result::UNSAT) {
+      return "unsat";
+    } else if (res == CVC4::Result::SAT_UNKNOWN) {
+      return "timeout/unknown";
+    } else {
+      assert(false);
+    }
+  }
+
+  smt::SolverResult solver::check_result()
+  {
+    //cout << "check_sat" << endl;
+    auto t1 = now();
+    CVC4::Result::Sat res = smt.checkSat().isSat();
+    auto t2 = now();
+
+    long long ms = as_ms(t2 - t1);
+    smt::log_to_stdout(ms, true, log_info, res_to_string(res));
+    if (enable_smt_logging) {
+      log_smtlib(ms, res_to_string(res));
+    }
+
+    if (res == CVC4::Result::SAT) return smt::SolverResult::Sat;
+    else if (res == CVC4::Result::UNSAT) return smt::SolverResult::Unsat;
+    return smt::SolverResult::Unknown;
+  }
+
+  void solver::dump(ofstream& of) {
+    of << "solver::dump not implemented for cvc4" << endl;
   }
 }
