@@ -83,7 +83,12 @@ Counterexample get_counterexample_test_with_conjs(
 
   int num_fails = 0;
   while (true) {
-    auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
+    auto my_ctx = ctx;
+    if (num_fails % 2 == 1) {
+      my_ctx = smt::context(smt::Backend::cvc4);
+    }
+
+    auto initctx = shared_ptr<InitContext>(new InitContext(my_ctx, module));
     smt::solver& init_solver = initctx->ctx->solver;
     init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
@@ -157,8 +162,13 @@ Counterexample get_counterexample_test_with_conjs(
           assert(num_fails < 20);
           cout << "failure encountered, retrying" << endl;
 
+          auto my_ctx = ctx;
+          if (num_fails % 2 == 1) {
+            my_ctx = smt::context(smt::Backend::cvc4);
+          }
+
           indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
-              module, options, ctx, cur_invariant, candidate, conjectures, j);
+              module, options, my_ctx, cur_invariant, candidate, conjectures, j);
         }
       }
     }
@@ -200,8 +210,13 @@ Counterexample get_counterexample_test_with_conjs(
         assert(num_fails < 20);
         cout << "failure encountered, retrying" << endl;
 
+        auto my_ctx = ctx;
+        if (num_fails % 2 == 1) {
+          my_ctx = smt::context(smt::Backend::cvc4);
+        }
+
         indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
-            module, options, ctx, cur_invariant, candidate, conjectures, j);
+            module, options, my_ctx, cur_invariant, candidate, conjectures, j);
       }
     }
   }

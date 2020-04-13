@@ -141,6 +141,8 @@ class Stats(object):
     self.inc_individual_times[-1].append(seconds)
 
   def add_inc_result(self, iternum, log, seconds):
+    print("inc_result_filenames", self.inc_result_filenames)
+    print("iternum", iternum)
     assert len(self.inc_result_filenames) == iternum
     self.inc_result_filenames.append(log)
     self.inc_times.append(seconds)
