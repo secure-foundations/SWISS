@@ -29,6 +29,8 @@ OBJECTS = $(addprefix bin/,\
 	alt_impl_synth_enumerator.o \
 	alt_depth2_synth_enumerator.o \
 	smt.o \
+	smt_z3.o \
+	smt_cvc4.o \
 	tree_shapes.o \
 	lib/json11/json11.o \
 )

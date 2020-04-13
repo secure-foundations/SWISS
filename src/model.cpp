@@ -4,6 +4,10 @@
 #include <map>
 #include <algorithm>
 
+#include <cvc4/cvc4.h>
+#include "z3++.h"
+#include "smt_internals.h"
+
 #include "top_quantifier_desc.h"
 #include "bitset_eval_result.h"
 
@@ -683,15 +687,27 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
   return all_models;
 }
 
-#ifdef SMT_CVC4
 shared_ptr<Model> Model::extract_model_from_z3(
     smt::context& ctx,
     smt::solver& solver,
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
-  CVC4::ExprManager& em = ctx.em;
-  CVC4::SmtEngine& smt = solver.smt;
+  if (is_z3_context(ctx)) {
+    return extract_z3(ctx, solver, module, e);
+  } else {
+    return extract_cvc4(ctx, solver, module, e);
+  }
+}
+
+shared_ptr<Model> Model::extract_cvc4(
+    smt::context& ctx,
+    smt::solver& solver,
+    std::shared_ptr<Module> module,
+    ModelEmbedding const& e)
+{
+  CVC4::ExprManager& em = smt::get_expr_manager(ctx);
+  CVC4::SmtEngine& smt = smt::get_smt_engine(solver);
 
   // The cvc4 API, at least at the time of writing, does
   // not appear to expose any way of accessing the model.
@@ -855,10 +871,10 @@ shared_ptr<Model> Model::extract_model_from_z3(
   //result->dump();
   return result;
 }
-#else
-shared_ptr<Model> Model::extract_model_from_z3(
-    smt::context& ctx,
-    smt::solver& solver,
+
+shared_ptr<Model> Model::extract_z3(
+    smt_z3::context& ctx,
+    smt_z3::solver& solver,
     std::shared_ptr<Module> module,
     ModelEmbedding const& e)
 {
@@ -1046,7 +1062,6 @@ shared_ptr<Model> Model::extract_model_from_z3(
 
   return shared_ptr<Model>(new Model(module, move(sort_info), move(function_info)));
 }
-#endif
 
 void Model::dump_sizes() const {
   cout << "Model sizes: ";

@@ -1,13 +1,15 @@
 #ifndef SMT_H
 #define SMT_H
 
-//#include "smt_cvc4.h"
-//#include "smt_z3.h"
-
-#include <variant>
+#include <memory>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <cassert>
 
 namespace smt {
   struct _sort {
+    virtual ~_sort() { }
   };
 
   struct sort {
@@ -17,6 +19,7 @@ namespace smt {
   };
 
   struct _expr {
+    virtual ~_expr() { }
     virtual std::shared_ptr<_expr> equals(_expr* a) const = 0;
     virtual std::shared_ptr<_expr> not_equals(_expr* a) const = 0;
     virtual std::shared_ptr<_expr> logic_negate() const = 0;
@@ -48,12 +51,14 @@ namespace smt {
   struct _solver;
 
   struct _func_decl {
+    virtual ~_func_decl() { }
     virtual size_t arity() = 0;
     virtual std::shared_ptr<_sort> domain(int i) = 0;
     virtual std::shared_ptr<_sort> range() = 0;
-    virtual std::shared_ptr<_expr> call(expr_vector args) = 0;
+    virtual std::shared_ptr<_expr> call(_expr_vector* args) = 0;
     virtual std::shared_ptr<_expr> call() = 0;
     virtual std::string get_name() = 0;
+    virtual bool eq(_func_decl*) = 0;
   };
 
   struct func_decl {
@@ -74,6 +79,7 @@ namespace smt {
   };
 
   struct _context {
+    virtual ~_context() { }
     virtual void set_timeout(int ms) = 0;
     virtual std::shared_ptr<_sort> bool_sort() = 0;
     virtual std::shared_ptr<_expr> bool_val(bool) = 0;
@@ -91,6 +97,8 @@ namespace smt {
     virtual std::shared_ptr<_expr> bound_var(
         std::string const& name,
         _sort* so) = 0;
+    virtual std::shared_ptr<_expr_vector> new_expr_vector() = 0;
+    virtual std::shared_ptr<_sort_vector> new_sort_vector() = 0;
 
     virtual std::shared_ptr<_solver> make_solver() = 0;
   };
@@ -140,6 +148,7 @@ namespace smt {
   };
 
   struct _sort_vector {
+    virtual ~_sort_vector() { }
     virtual void push_back(_sort* s) = 0;
     virtual size_t size() = 0;
     virtual std::shared_ptr<_sort> get_at(int i) = 0;
@@ -147,7 +156,7 @@ namespace smt {
 
   struct sort_vector {
     std::shared_ptr<_sort_vector> p;
-    sort_vector(std::shared_ptr<_sort_vector> p) : p(p) { }
+    sort_vector(context& ctx) : p(ctx.p->new_sort_vector()) { }
 
     void push_back(sort s) { p->push_back(s.p.get()); }
     size_t size() { return p->size(); }
@@ -155,6 +164,7 @@ namespace smt {
   };
 
   struct _expr_vector {
+    virtual ~_expr_vector() { }
     virtual void push_back(_expr* e) = 0;
     virtual size_t size() = 0;
     virtual std::shared_ptr<_expr> get_at(int i) = 0;
@@ -167,7 +177,7 @@ namespace smt {
 
   struct expr_vector {
     std::shared_ptr<_expr_vector> p;
-    expr_vector(std::shared_ptr<_expr_vector> p) : p(p) { }
+    expr_vector(context& ctx) : p(ctx.p->new_expr_vector()) { }
 
     void push_back(expr s) { p->push_back(s.p.get()); }
     size_t size() { return p->size(); }
@@ -181,13 +191,19 @@ namespace smt {
   };
 
   struct _solver {
+    virtual ~_solver() { }
+
     std::string log_info;
     void set_log_info(std::string const& s) { log_info = s; }
+    void log_smtlib(long long ms, std::string const& res);
+    virtual void dump(std::ofstream& of);
 
     virtual SolverResult check_result() = 0;
-    virtual bool check_sat() = 0;
-    virtual bool is_sat_or_unknown() = 0;
-    virtual bool is_unsat_or_unknown() = 0;
+    bool check_sat() {
+      SolverResult res = check_result();
+      assert (res == SolverResult::Sat || res == SolverResult::Unsat);
+      return res == SolverResult::Sat;
+    }
 
     virtual void push() = 0;
     virtual void pop() = 0;
@@ -197,6 +213,8 @@ namespace smt {
   struct solver {
     std::shared_ptr<_solver> p;
     solver(std::shared_ptr<_solver> p) : p(p) { }
+
+    void set_log_info(std::string const& s) { p->set_log_info(s); }
     
     SolverResult check_result() { return p->check_result(); }
     bool check_sat() { return p->check_sat(); }
@@ -230,13 +248,12 @@ namespace smt {
     return a.p->implies(b.p.get());
   }
 
-  /*
   inline expr func_decl::call(expr_vector args) {
-    return expr(fd(args.ex_vec));
+    return this->p->call(args.p.get());
   }
 
   inline expr func_decl::call() {
-    return expr(fd());
+    return this->p->call();
   }
 
   inline func_decl context::function(
@@ -244,34 +261,41 @@ namespace smt {
       sort_vector domain,
       sort range)
   {
-    return ctx.function(name.c_str(), domain.so_vec, range.so);
+    return p->function(name, domain.p.get(), range.p.get());
   }
 
   inline func_decl context::function(
       std::string const& name,
       sort range)
   {
-    return ctx.function(name.c_str(), 0, 0, range.so);
+    return p->function(name, range.p.get());
   }
 
   inline expr context::var(
       std::string const& name,
       sort so)
   {
-    return expr(ctx.constant(name.c_str(), so.so));
+    return p->var(name, so.p.get());
   }
 
   inline expr context::bound_var(
       std::string const& name,
       sort so)
   {
-    return expr(ctx.constant(name.c_str(), so.so));
+    return p->bound_var(name, so.p.get());
   }
 
   inline bool func_decl_eq(func_decl a, func_decl b) {
-    return a.fd.name() == b.fd.name();
+    return a.p->eq(b.p.get());
   }
-  */
+
+  inline solver context::make_solver() {
+    return p->make_solver();
+  }
+
+  void log_to_stdout(long long ms, bool is_cvc4,
+    std::string const& log_info, std::string const& res);
+
 }
 
 #endif

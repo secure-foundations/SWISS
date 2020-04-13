@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 using smt::expr;
@@ -601,7 +602,7 @@ InvariantsContext::InvariantsContext(
 
 bool is_satisfiable(shared_ptr<Module> module, value candidate)
 {
-  smt::context ctx;  
+  smt::context ctx(smt::Backend::z3);
   BasicContext basicctx(ctx, module);
   smt::solver& solver = basicctx.ctx->solver;
   solver.add(basicctx.e->value2expr(candidate));
@@ -609,7 +610,7 @@ bool is_satisfiable(shared_ptr<Module> module, value candidate)
 }
 
 bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
-  smt::context ctx;  
+  smt::context ctx(smt::Backend::z3);
 
   {
     InitContext initctx(ctx, module);
@@ -646,7 +647,7 @@ bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
 }
 
 bool is_itself_invariant(shared_ptr<Module> module, value candidate) {
-  smt::context ctx;  
+  smt::context ctx(smt::Backend::z3);
 
   {
     InitContext initctx(ctx, module);
@@ -686,7 +687,7 @@ bool is_invariant_with_conjectures(std::shared_ptr<Module> module, vector<value>
 bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
   //printf("is_itself_invariant\n");
 
-  smt::context ctx;  
+  smt::context ctx(smt::Backend::z3);
 
   value full = v_and(candidates);
 
@@ -738,7 +739,7 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
 }
 
 bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wprIter) {
-  smt::context ctx;
+  smt::context ctx(smt::Backend::z3);
 
   shared_ptr<Action> action = shared_ptr<Action>(new ChoiceAction(module->actions));
 
@@ -764,7 +765,7 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
 }
 
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
-  smt::context ctx;  
+  smt::context ctx(smt::Backend::z3);
 
   {
     InitContext initctx(ctx, module);

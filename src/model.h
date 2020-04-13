@@ -80,6 +80,19 @@ public:
       std::shared_ptr<Module> module,
       ModelEmbedding const& e);
 
+private:
+  static std::shared_ptr<Model> extract_z3(
+      smt::context& ctx,
+      smt::solver& solver,
+      std::shared_ptr<Module> module,
+      ModelEmbedding const& e);
+  static std::shared_ptr<Model> extract_cvc4(
+      smt::context& ctx,
+      smt::solver& solver,
+      std::shared_ptr<Module> module,
+      ModelEmbedding const& e);
+
+public:
   void dump() const;
   void dump_sizes() const;
   std::string obj_to_string(Sort*, object_value) const;
