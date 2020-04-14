@@ -114,6 +114,7 @@ Counterexample get_counterexample_test_with_conjs(
       break;
     } else {
       num_fails++;
+      numRetries++;
       assert(num_fails < 20);
       cout << "failure encountered, retrying" << endl;
     }
@@ -159,6 +160,7 @@ Counterexample get_counterexample_test_with_conjs(
           break;
         } else {
           num_fails++;
+          numRetries++;
           assert(num_fails < 20);
           cout << "failure encountered, retrying" << endl;
 
@@ -207,6 +209,7 @@ Counterexample get_counterexample_test_with_conjs(
         break;
       } else {
         num_fails++;
+        numRetries++;
         assert(num_fails < 20);
         cout << "failure encountered, retrying" << endl;
 
@@ -237,65 +240,89 @@ Counterexample get_counterexample_simple(
   Counterexample cex;
   cex.none = false;
 
-  auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-  smt::solver& init_solver = initctx->ctx->solver;
-  init_solver.push();
-  init_solver.add(initctx->e->value2expr(v_not(candidate)));
-  init_solver.set_log_info("init-check");
-  bool init_res = init_solver.check_sat();
-
-  if (init_res) {
-    if (options.minimal_models) {
-      cex.is_true = Model::extract_minimal_models_from_z3(
-          initctx->ctx->ctx,
-          init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-    } else {
-      cex.is_true = Model::extract_model_from_z3(
-          initctx->ctx->ctx,
-          init_solver, module, *initctx->e);
-      cex.is_true->dump_sizes();
+  int num_fails = 0;
+  while (true) {
+    auto my_ctx = ctx;
+    if (num_fails % 2 == 1) {
+      my_ctx = smt::context(smt::Backend::cvc4);
     }
 
-    printf("counterexample type: INIT\n");
-    //cex.is_true->dump();
+    auto initctx = shared_ptr<InitContext>(new InitContext(my_ctx, module));
+    smt::solver& init_solver = initctx->ctx->solver;
+    init_solver.push();
+    init_solver.add(initctx->e->value2expr(v_not(candidate)));
+    init_solver.set_log_info("init-check");
+    smt::SolverResult init_res = init_solver.check_result();
 
-    init_solver.pop();
-    return cex;
-  } else {
-    init_solver.pop();
+    if (init_res == smt::SolverResult::Sat) {
+      if (options.minimal_models) {
+        cex.is_true = Model::extract_minimal_models_from_z3(
+            initctx->ctx->ctx,
+            init_solver, module, {initctx->e}, /* hint */ candidate)[0];
+      } else {
+        cex.is_true = Model::extract_model_from_z3(
+            initctx->ctx->ctx,
+            init_solver, module, *initctx->e);
+        cex.is_true->dump_sizes();
+      }
+
+      printf("counterexample type: INIT\n");
+      //cex.is_true->dump();
+
+      return cex;
+    } else if (init_res == smt::SolverResult::Unsat) {
+      break;
+    } else {
+      num_fails++;
+      numRetries++;
+      assert(num_fails < 20);
+      cout << "failure encountered, retrying" << endl;
+    }
   }
 
   if (check_implies_conj) {
-    auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(ctx, module));
-
-    smt::solver& conj_solver = conjctx->ctx->solver;
-    conj_solver.push();
-    if (cur_invariant) {
-      conj_solver.add(conjctx->e->value2expr(cur_invariant));
-    }
-    conj_solver.add(conjctx->e->value2expr(candidate));
-    conj_solver.set_log_info("conj-check");
-    bool conj_res = conj_solver.check_sat();
-
-    if (conj_res) {
-      if (options.minimal_models) {
-        cex.is_false = Model::extract_minimal_models_from_z3(
-            conjctx->ctx->ctx,
-            conj_solver, module, {conjctx->e}, /* hint */ candidate)[0];
-      } else {
-        cex.is_false = Model::extract_model_from_z3(
-            conjctx->ctx->ctx,
-            conj_solver, module, *conjctx->e);
-        cex.is_false->dump_sizes();
+    int num_fails = 0;
+    while (true) {
+      auto my_ctx = ctx;
+      if (num_fails % 2 == 1) {
+        my_ctx = smt::context(smt::Backend::cvc4);
       }
 
-      printf("counterexample type: SAFETY\n");
-      //cex.is_false->dump();
+      auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(my_ctx, module));
 
-      conj_solver.pop();
-      return cex;
-    } else {
-      conj_solver.pop();
+      smt::solver& conj_solver = conjctx->ctx->solver;
+      conj_solver.push();
+      if (cur_invariant) {
+        conj_solver.add(conjctx->e->value2expr(cur_invariant));
+      }
+      conj_solver.add(conjctx->e->value2expr(candidate));
+      conj_solver.set_log_info("conj-check");
+      smt::SolverResult conj_res = conj_solver.check_result();
+
+      if (conj_res == smt::SolverResult::Sat) {
+        if (options.minimal_models) {
+          cex.is_false = Model::extract_minimal_models_from_z3(
+              conjctx->ctx->ctx,
+              conj_solver, module, {conjctx->e}, /* hint */ candidate)[0];
+        } else {
+          cex.is_false = Model::extract_model_from_z3(
+              conjctx->ctx->ctx,
+              conj_solver, module, *conjctx->e);
+          cex.is_false->dump_sizes();
+        }
+
+        printf("counterexample type: SAFETY\n");
+        //cex.is_false->dump();
+
+        return cex;
+      } else if (conj_res == smt::SolverResult::Unsat) {
+        break;
+      } else {
+        num_fails++;
+        numRetries++;
+        assert(num_fails < 20);
+        cout << "failure encountered, retrying" << endl;
+      }
     }
   }
 
@@ -307,38 +334,51 @@ Counterexample get_counterexample_simple(
   }
 
   for (int j = 0; j < (int)module->actions.size(); j++) {
-    auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
-    smt::solver& solver = indctx->ctx->solver;
-    solver.push();
-    if (cur_invariant) {
-      solver.add(indctx->e1->value2expr(cur_invariant));
-    }
-    solver.add(indctx->e1->value2expr(candidate));
-    solver.add(indctx->e2->value2expr(v_not(candidate)));
-
-    solver.set_log_info(
-        "inductivity-check: " + module->action_names[j]);
-    bool res = solver.check_sat();
-
-    if (res) {
-      if (options.minimal_models) {
-        auto ms = Model::extract_minimal_models_from_z3(
-            indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-        cex.hypothesis = ms[0];
-        cex.conclusion = ms[1];
-      } else {
-        cex.hypothesis = Model::extract_model_from_z3(
-            indctx->ctx->ctx, solver, module, *indctx->e1);
-        cex.conclusion = Model::extract_model_from_z3(
-            indctx->ctx->ctx, solver, module, *indctx->e2);
-        cex.hypothesis->dump_sizes();
+    int num_fails = 0;
+    while (true) {
+      auto my_ctx = ctx;
+      if (num_fails % 2 == 1) {
+        my_ctx = smt::context(smt::Backend::cvc4);
       }
 
-      solver.pop();
+      auto indctx = shared_ptr<InductionContext>(new InductionContext(my_ctx, module, j));
+      smt::solver& solver = indctx->ctx->solver;
+      solver.push();
+      if (cur_invariant) {
+        solver.add(indctx->e1->value2expr(cur_invariant));
+      }
+      solver.add(indctx->e1->value2expr(candidate));
+      solver.add(indctx->e2->value2expr(v_not(candidate)));
 
-      printf("counterexample type: INDUCTIVE\n");
+      solver.set_log_info(
+          "inductivity-check: " + module->action_names[j]);
+      smt::SolverResult res = solver.check_result();
 
-      return cex;
+      if (res == smt::SolverResult::Sat) {
+        if (options.minimal_models) {
+          auto ms = Model::extract_minimal_models_from_z3(
+              indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
+          cex.hypothesis = ms[0];
+          cex.conclusion = ms[1];
+        } else {
+          cex.hypothesis = Model::extract_model_from_z3(
+              indctx->ctx->ctx, solver, module, *indctx->e1);
+          cex.conclusion = Model::extract_model_from_z3(
+              indctx->ctx->ctx, solver, module, *indctx->e2);
+          cex.hypothesis->dump_sizes();
+        }
+
+        printf("counterexample type: INDUCTIVE\n");
+
+        return cex;
+      } else if (res == smt::SolverResult::Unsat) {
+        break;
+      } else {
+        num_fails++;
+        numRetries++;
+        assert(num_fails < 20);
+        cout << "failure encountered, retrying" << endl;
+      }
     }
   }
 
