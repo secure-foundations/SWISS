@@ -635,6 +635,8 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
+const int TIMEOUT = 45 * 1000;
+
 SynthesisResult synth_loop_main(shared_ptr<Module> module,
   shared_ptr<CandidateSolver> cs,
   Options const& options,
@@ -646,12 +648,10 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
-  if (options.smt_retries && options.with_conjs) {
-    // TODO support for !options.with_conjs
-    int timeout = 45 * 1000;
-    cout << "using SMT timeout " << timeout
+  if (options.smt_retries) {
+    cout << "using SMT timeout " << TIMEOUT
          << " for inductivity checks" << endl;
-    ctx.set_timeout(timeout);
+    ctx.set_timeout(TIMEOUT);
   }
   smt::context bmcctx(smt::Backend::z3);
 
@@ -842,6 +842,11 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
+  if (options.smt_retries) {
+    cout << "using SMT timeout " << TIMEOUT
+         << " for inductivity checks" << endl;
+    ctx.set_timeout(TIMEOUT);
+  }
   smt::context bmcctx(smt::Backend::z3);
 
   vector<value> all_found_invs;
@@ -1026,6 +1031,11 @@ SynthesisResult synth_loop_incremental_breadth(
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
+  if (options.smt_retries) {
+    cout << "using SMT timeout " << TIMEOUT
+         << " for inductivity checks" << endl;
+    ctx.set_timeout(TIMEOUT);
+  }
   smt::context bmcctx(smt::Backend::z3);
 
   vector<value> starter_invariants;
