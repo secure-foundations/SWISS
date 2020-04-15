@@ -164,6 +164,6 @@ BENCHMARKS = {
   Benchmark("benchmarks/paxos_flexible_full.ivy", "--with-conjs",
       "--breadth --template 0 --conj-arity 1 --disj-arity 4",
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
-      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --depth2-shape"),
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape"),
 
 }

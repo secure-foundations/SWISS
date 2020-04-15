@@ -284,8 +284,8 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
           any_success = True
           stats.add_finisher_result(output_files[key], int(time.time() - t1))
           kill_all_procs()
-    if not any_success:
-      stats.add_finisher_result(iterkey+".thread.0", int(time.time() - t1))
+  if not any_success:
+    stats.add_finisher_result(output_files[iterkey+".thread.0"], int(time.time() - t1))
 
 def parse_args(args):
   nthreads = None
