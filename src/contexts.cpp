@@ -764,29 +764,66 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
   return true;
 }
 
+extern const int TIMEOUT;
+extern int numRetries;
+
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
   smt::context ctx(smt::Backend::z3);
+  ctx.set_timeout(TIMEOUT);
 
   {
-    InitContext initctx(ctx, module);
-    smt::solver& init_solver = initctx.ctx->solver;
-    init_solver.add(initctx.e->value2expr(v_not(candidate)));
-    init_solver.set_log_info("is_invariant_wrt init");
-    if (init_solver.check_sat()) {
-      return false;
+    int num_fails = 0;
+    while (true) {
+      auto my_ctx = ctx;
+      if (num_fails % 2 == 1) {
+        my_ctx = smt::context(smt::Backend::cvc4);
+      }
+
+      InitContext initctx(my_ctx, module);
+      smt::solver& init_solver = initctx.ctx->solver;
+      init_solver.add(initctx.e->value2expr(v_not(candidate)));
+      init_solver.set_log_info("is_invariant_wrt init");
+      smt::SolverResult res = init_solver.check_result();
+      if (res == smt::SolverResult::Sat) {
+        return false;
+      } else if (res == smt::SolverResult::Unsat) {
+        break;
+      } else {
+        num_fails++;
+        numRetries++;
+        assert(num_fails < 20);
+        cout << "failure encountered, retrying" << endl;
+      }
     }
   }
 
   for (int i = 0; i < (int)module->actions.size(); i++) {
-    InductionContext indctx(ctx, module, i);
-    smt::solver& solver = indctx.ctx->solver;
-    solver.set_log_info("is_invariant_wrt inductiveness");
-    solver.add(indctx.e1->value2expr(invariant_so_far));
-    solver.add(indctx.e1->value2expr(candidate));
-    solver.add(indctx.e2->value2expr(v_not(candidate)));
+    int num_fails = 0;
+    while (true) {
+      auto my_ctx = ctx;
+      if (num_fails % 2 == 1) {
+        my_ctx = smt::context(smt::Backend::cvc4);
+      }
 
-    if (solver.check_sat()) {
-      return false;
+      InductionContext indctx(my_ctx, module, i);
+      smt::solver& solver = indctx.ctx->solver;
+      solver.set_log_info("is_invariant_wrt inductiveness");
+      solver.add(indctx.e1->value2expr(invariant_so_far));
+      solver.add(indctx.e1->value2expr(candidate));
+      solver.add(indctx.e2->value2expr(v_not(candidate)));
+
+      smt::SolverResult res = solver.check_result();
+
+      if (res == smt::SolverResult::Sat) {
+        return false;
+      } else if (res == smt::SolverResult::Unsat) {
+        break;
+      } else {
+        num_fails++;
+        numRetries++;
+        assert(num_fails < 20);
+        cout << "failure encountered, retrying" << endl;
+      }
     }
   }
 

@@ -635,7 +635,7 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
-const int TIMEOUT = 45 * 1000;
+extern const int TIMEOUT = 45 * 1000;
 
 SynthesisResult synth_loop_main(shared_ptr<Module> module,
   shared_ptr<CandidateSolver> cs,
