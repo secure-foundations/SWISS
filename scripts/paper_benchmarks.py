@@ -41,7 +41,7 @@ for seed in range(1, 15):
 
 for postbmc in (False, True):
   for prebmc in (False, True):
-    for minmodels in (True, False):
+    for minmodels in [True]: #(True, False):
       name = ""
       args = ""
       if postbmc:
@@ -75,7 +75,7 @@ def get_statfile(out):
 def run(directory, bench):
   result_filename = os.path.join(directory, bench.name)
   if os.path.exists(result_filename):
-    print(bench.name + " already done")
+    print("already done " + bench.name)
     return
 
   print("doing " + bench.name) 
