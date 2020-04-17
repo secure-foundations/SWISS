@@ -4,13 +4,13 @@ from pathlib import Path
 import sys
 import os
 
-def make_parallel_graph(ax, input_directory, name):
+def make_parallel_graph(ax, input_directory, name, include_smt_times):
   ax.set_title("parallel " + name)
-  make_segmented_graph(ax, input_directory, name, "_t", True, True)
+  make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times)
 
-def make_seed_graph(ax, input_directory, name):
+def make_seed_graph(ax, input_directory, name, include_smt_times):
   ax.set_title("seed " + name)
-  make_segmented_graph(ax, input_directory, name, "_seed_", True, True)
+  make_segmented_graph(ax, input_directory, name, "_seed_", True, include_smt_times)
 
 red = '#ff4040'
 lightred = '#ff8080'
@@ -120,32 +120,54 @@ def get_smt_time(input_directory, filename, iteration_key):
         ms += t
   return ms / 1000
   
+#def get_smt_times(input_directory, filename):
+#  with open(os.path.join(input_directory, filename)) as f:
+#    times = []
+#    cur = None
+#    for line in f:
+#      line = line.strip()
+#      if line == "-------------------------------------------------":
+#        if cur == None:
+#          cur = 0
+#        else:
+#          times.append(cur)
+#          cur = None
+#      elif cur != None:
+#        t = line.split('--->')
+#        key = t[0].strip()
+#        value = t[1].strip()
+#        if key in (
+#          'z3 TOTAL sat time',
+#          'z3 TOTAL unsat time',
+#          'cvc4 TOTAL sat time',
+#          'cvc4 TOTAL unsat time'):
+#          cur += int(value.split()[0])
+#  return [t/1000 for t in times]
 
-"""
-def get_smt_times(input_directory, filename):
+def get_total_time(input_directory, filename):
   with open(os.path.join(input_directory, filename)) as f:
-    times = []
-    cur = None
     for line in f:
-      line = line.strip()
-      if line == "-------------------------------------------------":
-        if cur == None:
-          cur = 0
-        else:
-          times.append(cur)
-          cur = None
-      elif cur != None:
-        t = line.split('--->')
-        key = t[0].strip()
-        value = t[1].strip()
-        if key in (
-          'z3 TOTAL sat time',
-          'z3 TOTAL unsat time',
-          'cvc4 TOTAL sat time',
-          'cvc4 TOTAL unsat time'):
-          cur += int(value.split()[0])
-  return [t/1000 for t in times]
-"""
+      if line.startswith("total time: "):
+        t = int(line.split()[2])
+        return t
+
+def make_opt_comparison_graph(ax, input_directory, large_ones):
+  opts = ['mm_', 'postbmc_mm_', 'prebmc_mm_', 'postbmc_prebmc_mm_']
+  if large_ones:
+    probs = ['flexible_paxos', 'learning_switch', 'paxos']
+  else:
+    probs = ['2pc', 'leader_election_breadth', 'leader_election_fin', 'lock_server']
+  idx = 0
+  for prob in probs:
+    idx += 1
+    opt_idx = -1
+    for opt in opts:
+      opt_idx += 1
+
+      name = opt + prob
+      t = get_total_time(input_directory, name)
+      ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
+          bottom=0, width=0.8/len(opts), color='black')
 
 def main():
   directory = sys.argv[1]
@@ -154,12 +176,20 @@ def main():
 
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=3, ncols=6, figsize=[6, 8])
+  fig, ax = plt.subplots(nrows=3, ncols=4, figsize=[6, 8])
 
-  make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth")
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher")
-  make_seed_graph(ax.flat[2], input_directory, "learning_switch")
-  make_seed_graph(ax.flat[3], input_directory, "paxos")
+  #make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
+  #make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
+  #make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
+  #make_seed_graph(ax.flat[3], input_directory, "paxos", False)
+
+  #make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", True)
+  #make_parallel_graph(ax.flat[5], input_directory, "paxos_implshape_finisher", True)
+  #make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
+  #make_seed_graph(ax.flat[7], input_directory, "paxos", True)
+
+  make_opt_comparison_graph(ax.flat[8], input_directory, False)
+  make_opt_comparison_graph(ax.flat[9], input_directory, True)
 
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
