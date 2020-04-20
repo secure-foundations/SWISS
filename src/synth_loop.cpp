@@ -1127,7 +1127,10 @@ SynthesisResult synth_loop_incremental_breadth(
 
       Counterexample cex = get_counterexample_simple(
                 module, options, ctx, bmc, false /* check_implies_conj */,
-                v_and(filtered_simplified_strengthened_invs), candidate);
+                v_and(options.non_accumulative
+                  ? starter_invariants
+                  : filtered_simplified_strengthened_invs),
+                candidate);
 
       Benchmarking bench2;
       bench2.start("simplification");

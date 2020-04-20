@@ -44,6 +44,8 @@ struct Options {
 
   bool smt_retries;
 
+  bool non_accumulative;
+
   //int threads;
 };
 
