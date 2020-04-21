@@ -9,11 +9,14 @@ struct Transcript;
 struct SynthesisResult {
   bool done;
   std::vector<value> new_values;
+  std::vector<value> all_values;
 
   SynthesisResult() { }
 
-  SynthesisResult(bool done, std::vector<value> const& new_values)
-    : done(done), new_values(new_values) { }
+  SynthesisResult(bool done,
+        std::vector<value> const& new_values,
+        std::vector<value> const& all_values)
+    : done(done), new_values(new_values), all_values(all_values) { }
 };
 
 SynthesisResult synth_loop(
@@ -33,7 +36,8 @@ SynthesisResult synth_loop_incremental_breadth(
   std::vector<EnumOptions> const& enum_options,
   Options const& options,
   bool use_input_chunks,
-  std::vector<SpaceChunk> const& chunks);
+  std::vector<SpaceChunk> const& chunks,
+  std::vector<value> const& init_all_invariants);
 
 //void synth_loop_from_transcript(std::shared_ptr<Module> module, int arity, int depth);
 

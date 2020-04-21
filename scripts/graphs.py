@@ -119,6 +119,23 @@ def make_table(input_directory):
     print("\\hline")
   print("\\end{tabular}")
 
+def get_files_with_prefix(input_directory, prefix):
+  files = []
+  for filename in os.listdir(input_directory):
+    if filename.startswith(prefix):
+      files.append(filename)
+  return files
+
+def make_nonacc_cmp_graph(ax, input_directory):
+  a = get_files_with_prefix(input_directory, "paxos_breadth_seed_")
+  b = get_files_with_prefix(input_directory, "nonacc_paxos_breadth_seed_")
+  columns = (
+    [(a[i], i+1) for i in range(len(a))] +
+    [(b[i], len(a) + 2 + i) for i in range(len(b))]
+  )
+  ax.set_title("accumulation (paxos)")
+  make_segmented_graph(ax, input_directory, "", "", columns=columns)
+
 def make_parallel_graph(ax, input_directory, name, include_smt_times):
   ax.set_title("parallel " + name)
   make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times)
@@ -144,10 +161,15 @@ def slightly_darken(color):
     return '#6060b0'
   assert False
 
-def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False):
-  for filename in os.listdir(input_directory):
-    if filename.startswith(name + suffix):
-      idx = int(filename[len(name + suffix) : ])
+def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False, columns=None):
+  if columns is None:
+    columns = []
+    for filename in os.listdir(input_directory):
+      if filename.startswith(name + suffix):
+        idx = int(filename[len(name + suffix) : ])
+        columns.append((filename, idx))
+
+  for (filename, idx) in columns:
       times = []
       thread_times = []
       colors = []
@@ -307,11 +329,13 @@ def main():
   make_opt_comparison_graph(ax.flat[8], input_directory, False)
   make_opt_comparison_graph(ax.flat[9], input_directory, True)
 
+  make_nonacc_cmp_graph(ax.flat[10], input_directory)
+
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
 
 if __name__ == '__main__':
-  directory = sys.argv[1]
-  input_directory = os.path.join("paperlogs", directory)
-  make_table(input_directory)
-  #main()
+  #directory = sys.argv[1]
+  #input_directory = os.path.join("paperlogs", directory)
+  #make_table(input_directory)
+  main()

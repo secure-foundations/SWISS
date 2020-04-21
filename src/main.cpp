@@ -207,7 +207,7 @@ void randomize_chunks(vector<SpaceChunk>& chunks)
   }
 }
 
-void read_formulas(string const& filename, vector<value>& res)
+void read_formulas(string const& filename, vector<value>& res, vector<value>& res2)
 {
   ifstream f;
   f.open(filename);
@@ -216,6 +216,9 @@ void read_formulas(string const& filename, vector<value>& res)
   FormulaDump fd = parse_formula_dump(json_src);
   for (value v : fd.formulas) {
     res.push_back(v);
+  }
+  for (value v : fd.all_formulas) {
+    res2.push_back(v);
   }
 }
 
@@ -424,13 +427,16 @@ int main(int argc, char* argv[]) {
 
   if (coalesce) {
     vector<value> values;
+    vector<value> all_values;
     for (string const& filename : input_formula_files) {
-      read_formulas(filename, values);
+      read_formulas(filename, values, all_values);
     }
     values = filter_redundant_formulas(module, values);
+    all_values = filter_unique_formulas(module, all_values);
     FormulaDump fd;
     fd.success = false;
     fd.formulas = values;
+    fd.all_formulas = all_values;
     assert (output_formula_file != "");
     write_formulas(output_formula_file, fd);
     return 0;
@@ -519,10 +525,11 @@ int main(int argc, char* argv[]) {
   }
 
   vector<value> extra_inputs;
+  vector<value> init_all_invariants;
   for (string const& filename : input_formula_files)
   {
     cout << "Reading in formulas from " << filename << endl;
-    read_formulas(filename, extra_inputs /* output */);
+    read_formulas(filename, extra_inputs /* output */, init_all_invariants /* output */);
   }
   module = module->add_conjectures(extra_inputs);
 
@@ -586,7 +593,7 @@ int main(int argc, char* argv[]) {
         cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
         cout << endl;
         synres = synth_loop_incremental_breadth(module, enum_options, options,
-            use_input_chunks, chunks);
+            use_input_chunks, chunks, init_all_invariants);
       }
 
       augment_fd(output_fd, synres);

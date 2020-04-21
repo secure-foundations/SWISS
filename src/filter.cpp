@@ -52,3 +52,21 @@ vector<value> filter_redundant_formulas(
 
   return values;
 }
+
+vector<value> filter_unique_formulas(
+  shared_ptr<Module> module,
+  vector<value> const& values0)
+{
+  vector<value> values;
+
+  set<ComparableValue> cvs;
+  for (int i = 0; i < (int)values0.size(); i++) {
+    ComparableValue cv(values0[i]);
+    if (cvs.find(cv) == cvs.end()) {
+      values.push_back(values0[i]);
+      cvs.insert(values0[i]);
+    }
+  }
+
+  return values;
+}

@@ -706,6 +706,7 @@ value remove_unneeded_quants(Value const * v);
 
 struct FormulaDump {
   std::vector<value> formulas;
+  std::vector<value> all_formulas;
   bool success;
 };
 
