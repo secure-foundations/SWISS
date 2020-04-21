@@ -510,6 +510,9 @@ int main(int argc, char* argv[]) {
     strats.push_back(strat);
   }
 
+  printf("random seed = %d\n", seed);
+  srand(seed);
+
   if (strats.size() == 0) {
     cout << "No strategy given ???" << endl;
     return 1;
@@ -554,9 +557,6 @@ int main(int argc, char* argv[]) {
 
   FormulaDump output_fd;
   output_fd.success = false;
-
-  printf("random seed = %d\n", seed);
-  srand(seed);
 
   try {
     int idx;
