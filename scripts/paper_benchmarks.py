@@ -41,7 +41,7 @@ for seed in range(1, 15):
 
 for seed in range(1, 5):
   benches.append(PaperBench(
-      "paxos_seed_" + str(seed),
+      "nonacc_paxos_seed_" + str(seed),
       "full-paxos-depth2 --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(200 + seed)))
 
 for postbmc in (False, True):
