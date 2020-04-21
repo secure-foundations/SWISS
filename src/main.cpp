@@ -237,6 +237,9 @@ void augment_fd(FormulaDump& fd, SynthesisResult const& synres)
   for (value v : synres.new_values) {
     fd.formulas.push_back(v);
   }
+  for (value v : synres.all_values) {
+    fd.all_formulas.push_back(v);
+  }
 }
 
 int main(int argc, char* argv[]) {
