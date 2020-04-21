@@ -64,7 +64,7 @@ for postbmc in (False, True):
         args += " --minimal-models"
       benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads 1"+args))
       benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads 4"+args))
-      benches.append(PaperBench(name+"learning_switch", "full-paxos-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"learning_switch", "breadth-learning-switch --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))

@@ -4,6 +4,121 @@ from pathlib import Path
 import sys
 import os
 
+class BasicStats(object):
+  def __init__(self, input_directory, name, filename):
+    self.name = name
+    with open(os.path.join(input_directory, filename)) as f:
+      doing_total = False
+      self.z3_sat_ops = 0
+      self.z3_sat_time = 0
+      self.z3_unsat_ops = 0
+      self.z3_unsat_time = 0
+      self.cvc4_sat_ops = 0
+      self.cvc4_sat_time = 0
+      self.cvc4_unsat_ops = 0
+      self.cvc4_unsat_time = 0
+      self.breadth_total_time_sec = 0
+      self.finisher_time_sec = 0
+      for line in f:
+        if line.strip() == "total":
+          doing_total = True
+        if line.startswith("total time: "):
+          self.total_time_sec = int(line.split()[2])
+        elif line.startswith("Number of threads: "):
+          self.num_threads = int(line.split()[3])
+        elif line.startswith("Number of invariants synthesized: "):
+          self.num_inv = int(line.split()[4])
+        elif line.startswith("Number of iterations of BREADTH: "):
+          self.num_breadth_iters = int(line.split()[5])
+        elif line.startswith("Number of iterations of FINISHER: "):
+          self.num_finisher_iters = int(line.split()[5])
+        elif line.startswith("FINISHER time: "):
+          self.finisher_time_sec= int(line.split()[2])
+        elif line.startswith("BREADTH iteration "):
+          self.breadth_total_time_sec += int(line.split()[4])
+        elif doing_total:
+          if line.startswith("Counterexamples of type FALSE"):
+            self.cex_false = int(line.split()[-1])
+          elif line.startswith("Counterexamples of type TRUE"):
+            self.cex_true = int(line.split()[-1])
+          elif line.startswith("Counterexamples of type TRANSITION"):
+            self.cex_trans = int(line.split()[-1])
+          elif line.startswith("number of redundant invariants found"):
+            self.num_redundant = int(line.split()[-1])
+          elif line.startswith("z3 TOTAL sat ops"):
+            self.z3_sat_ops = int(line.split()[-1])
+          elif line.startswith("z3 TOTAL sat time"):
+            self.z3_sat_time = int(line.split()[-2])
+          elif line.startswith("z3 TOTAL unsat ops"):
+            self.z3_unsat_ops = int(line.split()[-1])
+          elif line.startswith("z3 TOTAL unsat time"):
+            self.z3_unsat_time = int(line.split()[-2])
+          elif line.startswith("cvc4 TOTAL sat ops"):
+            self.cvc4_sat_ops = int(line.split()[-1])
+          elif line.startswith("cvc4 TOTAL sat time"):
+            self.cvc4_sat_time = int(line.split()[-2])
+          elif line.startswith("cvc4 TOTAL unsat ops"):
+            self.cvc4_unsat_ops = int(line.split()[-1])
+          elif line.startswith("cvc4 TOTAL unsat time"):
+            self.cvc4_unsat_time = int(line.split()[-2])
+
+    self.smt_time_sec = (self.z3_sat_time + self.z3_unsat_time + self.cvc4_sat_time + self.cvc4_unsat_time) // 1000
+    self.smt_ops = self.z3_sat_ops + self.z3_unsat_ops + self.cvc4_sat_ops + self.cvc4_unsat_ops
+
+    self.b_size = -1
+    self.f_size = -1
+    self.num_valid_finisher_candidates = -1
+
+def make_table(input_directory):
+  s = [
+    BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth"),
+    BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin"),
+    BasicStats(input_directory, "Two-phase commit", "mm_2pc"),
+    BasicStats(input_directory, "Lock server", "mm_lock_server"),
+    BasicStats(input_directory, "Learning switch", "mm_learning_switch"),
+    BasicStats(input_directory, "Paxos", "mm_paxos"),
+    BasicStats(input_directory, "Flexible Paxos", "mm_flexible_paxos"),
+  ]
+  columns = [
+    ('Benchmark', 'name'),
+    ('$t$', 'total_time_sec'),
+    ('$B_i$', 'num_breadth_iters'),
+    ('$F_i$', 'num_finisher_iters', 'checkmark'),
+    ('$|\\B|$', 'b_size', 'b_only'),
+    ('$|\\F|$', 'f_size', 'f_only'),
+    #('Breadth time (sec)', 'breadth_total_time_sec'),
+    #('Finisher time (sec)', 'finisher_time_sec'),
+    ('$B_t$', 'breadth_total_time_sec', 'b_only'),
+    ('$F_t$', 'finisher_time_sec', 'f_only'),
+    ('\\cextrue', 'cex_true'),
+    ('\\cexfalse', 'cex_false'),
+    ('\\cexind', 'cex_trans'),
+    ('$r$', 'num_redundant', 'b_only'),
+    ('SMT calls', 'smt_ops'),
+    ('SMT time (sec)', 'smt_time_sec'),
+    ('$m$', 'num_inv'),
+  ]
+  print("\\begin{tabular}{" + ('|l' * len(columns)) + "|}")
+  print("\\hline")
+  for i in range(len(columns)):
+    print(columns[i][0], "\\\\" if i == len(columns) - 1 else "&", end=" ")
+  print("")
+  print("\\hline")
+  for bench in s:
+    for i in range(len(columns)):
+      col = columns[i]
+      prop = str(getattr(bench, col[1]))
+      if len(col) >= 3 and col[2] == 'checkmark':
+        prop = ("$\\checkmark$" if prop == "1" else "")
+      if len(col) >= 3 and col[2] == 'b_only' and bench.num_breadth_iters == 0:
+        prop = ""
+      if len(col) >= 3 and col[2] == 'f_only' and bench.num_finisher_iters == 0:
+        prop = ""
+      print(prop, "\\\\" if i == len(columns) - 1 else "&", end=" ")
+    print("")
+    print("\\hline")
+  print("\\end{tabular}")
+
 def make_parallel_graph(ax, input_directory, name, include_smt_times):
   ax.set_title("parallel " + name)
   make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times)
@@ -168,6 +283,7 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       t = get_total_time(input_directory, name)
       ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
           bottom=0, width=0.8/len(opts), color='black')
+  
 
 def main():
   directory = sys.argv[1]
@@ -195,4 +311,7 @@ def main():
   plt.show()
 
 if __name__ == '__main__':
-  main()
+  directory = sys.argv[1]
+  input_directory = os.path.join("paperlogs", directory)
+  make_table(input_directory)
+  #main()
