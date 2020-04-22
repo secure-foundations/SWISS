@@ -17,17 +17,17 @@ THREADS = 7
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
       "paxos_breadth_t" + str(i),
-      "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
+      "breadth-paxos-4-r3 --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
       "learning_switch_seed_" + str(seed),
-      "breadth-learning-switch --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+      "breadth-learning-switch --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
       "paxos_seed_" + str(seed),
-      "full-paxos-depth2 --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+      "full-paxos-depth2 --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 5):
   benches.append(PaperBench(
