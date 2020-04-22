@@ -12,22 +12,12 @@ class PaperBench(object):
 
 benches = [ ]
 
-THREADS = 14
+THREADS = 7
 
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
       "paxos_breadth_t" + str(i),
       "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
-
-#for i in range(20, 0, -1):
-#  benches.append(PaperBench(
-#      "paxos_finisher_t" + str(i),
-#      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
-
-for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
-      "paxos_implshape_finisher_t" + str(i),
-      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
 
 for seed in range(1, 15):
   benches.append(PaperBench(
@@ -47,6 +37,18 @@ for seed in range(1, 8):
   benches.append(PaperBench(
       "paxos_breadth_seed_" + str(seed),
       "breadth-paxos-4-r3 --minimal-models --threads 1 --seed " + str(300 + seed)))
+
+
+#for i in range(20, 0, -1):
+#  benches.append(PaperBench(
+#      "paxos_finisher_t" + str(i),
+#      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(
+      "paxos_implshape_finisher_t" + str(i),
+      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
+
 
 for postbmc in (False, True):
   for prebmc in (False, True):
