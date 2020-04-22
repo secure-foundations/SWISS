@@ -1027,7 +1027,8 @@ SynthesisResult synth_loop_incremental_breadth(
     Options const& options,
     bool use_input_chunks,
     vector<SpaceChunk> const& chunks,
-    vector<value> const& init_all_invariants)
+    vector<value> const& all_invs,
+    vector<value> const& new_invs)
 {
   auto t_init = now();
 
@@ -1050,11 +1051,11 @@ SynthesisResult synth_loop_incremental_breadth(
     return SynthesisResult(true, {}, {});
   }
 
-  vector<value> strengthened_invs = init_all_invariants;
-  vector<value> filtered_simplified_strengthened_invs = starter_invariants;
-  vector<value> new_filtered_simplified_strengthened_invs;
+  vector<value> strengthened_invs = all_invs;
+  vector<value> filtered_simplified_strengthened_invs = new_invs;
 
-  cout << "starting with |all_invariants| = " << init_all_invariants.size() << endl;
+  cout << "starting with |all_invs| = " << all_invs.size() << endl;
+  cout << "starting with |new_invs| = " << new_invs.size() << endl;
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -1168,7 +1169,6 @@ SynthesisResult synth_loop_incremental_breadth(
           any_formula_synthesized_this_round = true;
 
           filtered_simplified_strengthened_invs.push_back(simplified_strengthened_inv);
-          new_filtered_simplified_strengthened_invs.push_back(simplified_strengthened_inv);
 
           cout << "\nfound new invariant! all so far:\n";
           for (value found_inv : filtered_simplified_strengthened_invs) {
@@ -1178,7 +1178,7 @@ SynthesisResult synth_loop_incremental_breadth(
           if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
             cout << "invariant implies safety condition, done!" << endl;
             dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
-            return SynthesisResult(true, new_filtered_simplified_strengthened_invs, strengthened_invs);
+            return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
           }
         } else {
           cout << "invariant is redundant" << endl;
@@ -1206,5 +1206,5 @@ SynthesisResult synth_loop_incremental_breadth(
     }
   }
 
-  return SynthesisResult(false, new_filtered_simplified_strengthened_invs, strengthened_invs);
+  return SynthesisResult(false, filtered_simplified_strengthened_invs, strengthened_invs);
 }

@@ -332,16 +332,18 @@ FormulaDump parse_formula_dump(std::string const& src) {
 
   FormulaDump fd;
   fd.success = succ.bool_value();
-  fd.formulas = json2value_array(j["formulas"]);
-  fd.all_formulas = json2value_array(j["all_formulas"]);
+  fd.base_invs = json2value_array(j["base_invs"]);
+  fd.new_invs = json2value_array(j["new_invs"]);
+  fd.all_invs = json2value_array(j["all_invs"]);
   return fd;
 }
 
 std::string marshall_formula_dump(FormulaDump const& fd) {
   map<string, Json> m;
   m["success"] = Json(fd.success);
-  m["formulas"] = value_array_2_json(fd.formulas);
-  m["all_formulas"] = value_array_2_json(fd.all_formulas);
+  m["base_invs"] = value_array_2_json(fd.base_invs);
+  m["new_invs"] = value_array_2_json(fd.new_invs);
+  m["all_invs"] = value_array_2_json(fd.all_invs);
   Json j(m);
   return j.dump();
 }

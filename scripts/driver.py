@@ -152,7 +152,7 @@ def parse_output_file(filename):
   with open(filename) as f:
     src = f.read()
     j = json.loads(src)
-    return (j["success"], len(j["formulas"]) > 0)
+    return (j["success"], len(j["new_invs"]) > 0)
 
 def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile, stats, by_size):
   i = 0
@@ -171,7 +171,6 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
   chunk_files = breadth_chunkify(iterkey, logfile, nthreads, jsonfile, args)
   if by_size:
     c_by_size = get_chunk_files_for_each_size(chunk_files)
-    output_inv_files = []
     total_has_any = False
     for (sz, chunks) in c_by_size:
       success, has_any, output_invfile = breadth_run_in_parallel(
@@ -182,11 +181,10 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
       if success:
         stats.add_inc_result(iteration_num, output_invfile, int(time.time() - t1))
         return success, total_has_any, output_invfile
-      invfile = new_file_with_all_invs(invfile, output_invfile)
-      output_inv_files.append(output_invfile) 
+      invfile = update_base_invs(output_invfile)
     success = False
     has_any = total_has_any
-    new_output_file = coalesce(logfile, jsonfile, iterkey+".size."+str(sz), output_inv_files)
+    new_output_file = invfile
   else:
     success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, jsonfile, args, invfile,
         iteration_num, stats, chunk_files)
@@ -195,15 +193,14 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
 
   return success, has_any, new_output_file
 
-def new_file_with_all_invs(a, b):
+def update_base_invs(a):
   if a == None:
-    j = { "all_formulas" : [], "formulas" : [], "success" : False }
+    j = { "all_invs" : [], "new_invs" : [], "base_invs" : False }
   else:
     with open(a) as f:
       j = json.loads(f.read())
-  with open(b) as f:
-    k = json.loads(f.read())
-  j["all_formulas"] = k["all_formulas"]
+  j["base_invs"] = j["base_invs"] + j["new_invs"]
+  j["new_invs"] = []
 
   c = tempfile.mktemp()
   with open(c, 'w') as f:
@@ -302,7 +299,6 @@ def breadth_run_in_parallel(iterkey, logfile, jsonfile, args, invfile, iteration
           success_file = output_files[key]
 
   if any_success:
-    assert False, "TODO # of invariants"
     return (True, has_any, success_file)
   
   new_output_file = coalesce(logfile, jsonfile, iterkey, 

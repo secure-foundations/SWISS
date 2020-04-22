@@ -184,7 +184,8 @@ class Stats(object):
 
   def total_number_of_invariants_incremental(self):
     if len(self.inc_results) > 0:
-      return len(self.inc_results[-1]["formulas"])
+      j = self.inc_results[-1]
+      return len(j["new_invs"] + j["base_invs"])
     else:
       return 0
 

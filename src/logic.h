@@ -705,8 +705,9 @@ std::vector<value> aggressively_split_into_conjuncts(value);
 value remove_unneeded_quants(Value const * v);
 
 struct FormulaDump {
-  std::vector<value> formulas;
-  std::vector<value> all_formulas;
+  std::vector<value> base_invs;
+  std::vector<value> new_invs;
+  std::vector<value> all_invs;
   bool success;
 };
 
