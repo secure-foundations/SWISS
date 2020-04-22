@@ -175,7 +175,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
     for (sz, chunks) in c_by_size:
       success, has_any, output_invfile = breadth_run_in_parallel(
         iterkey+".size."+str(sz), logfile, jsonfile,
-          ["--chunk-size-to-use", str(sz)] + args, invfile, iteration_num, stats, chunk_files)
+          ["--chunk-size-to-use", str(sz)] + args, invfile, iteration_num, stats, chunks)
       if has_any:
         total_has_any = True
       if success:
