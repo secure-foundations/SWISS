@@ -127,7 +127,7 @@ struct Strategy {
   }
 };
 
-void input_chunks(string const& filename, vector<SpaceChunk>& chunks)
+void input_chunks(string const& filename, vector<SpaceChunk>& chunks, int chunk_size_to_use)
 {
   FILE* f = fopen(filename.c_str(), "r");
   assert(f != NULL);
@@ -148,7 +148,9 @@ void input_chunks(string const& filename, vector<SpaceChunk>& chunks)
       fscanf(f, "%d", &x);
       sc.nums.push_back(x);
     }
-    chunks.push_back(sc);
+    if (chunk_size_to_use == -1 || sc.size == chunk_size_to_use) {
+      chunks.push_back(sc);
+    }
   }
   fclose(f);
 }
@@ -282,6 +284,7 @@ int main(int argc, char* argv[]) {
   int wpr_index = 0;
 
   bool coalesce = false;
+  int chunk_size_to_use = -1;
 
   int i;
   for (i = 1; i < argc; i++) {
@@ -370,6 +373,11 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--input-formula-file")) {
       assert(i + 1 < argc);
       input_formula_files.push_back(argv[i+1]);
+      i++;
+    }
+    else if (argv[i] == string("--chunk-size-to-use")) {
+      assert(i + 1 < argc);
+      chunk_size_to_use = atoi(argv[i+1]);
       i++;
     }
     /*else if (argv[i] == string("--threads")) {
@@ -561,7 +569,7 @@ int main(int argc, char* argv[]) {
   vector<SpaceChunk> chunks;
   bool use_input_chunks = false;
   if (input_chunk_file != "") {
-    input_chunks(input_chunk_file, chunks);
+    input_chunks(input_chunk_file, chunks, chunk_size_to_use);
     use_input_chunks = true;
   }
 

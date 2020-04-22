@@ -1147,7 +1147,9 @@ SynthesisResult synth_loop_incremental_breadth(
       if (cex.none) {
         //Benchmarking bench_strengthen;
         //bench_strengthen.start("strengthen");
-        value strengthened_inv = strengthen_invariant(module, v_and(filtered_simplified_strengthened_invs), candidate0);
+        value strengthened_inv = options.non_accumulative ? candidate0 :
+            strengthen_invariant(module,
+              v_and(filtered_simplified_strengthened_invs), candidate0);
         value simplified_strengthened_inv = strengthened_inv->simplify()->reduce_quants();
         //bench_strengthen.end();
         //bench_strengthen.dump();

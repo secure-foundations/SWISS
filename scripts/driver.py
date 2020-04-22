@@ -9,6 +9,7 @@ import traceback
 import json
 import time
 from stats import Stats
+import stats
 import random
 
 all_procs = {}
@@ -116,7 +117,7 @@ def unpack_args(args):
 
   return (main_args, t)
 
-def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args):
+def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args, by_size):
   print(ivy_filename)
   print("json: ", json_filename)
 
@@ -130,7 +131,7 @@ def do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
     if iter_arg_list[0] == "--finisher":
       success = do_finisher("finisher", logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile, stats)
     elif iter_arg_list[0] == "--breadth":
-      success, invfile = do_breadth("iteration", logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile, stats)
+      success, invfile = do_breadth("iteration", logfile, nthreads, jsonfile, main_args + iter_arg_list, invfile, stats, by_size)
     else:
       assert False
     if success:
@@ -153,20 +154,63 @@ def parse_output_file(filename):
     j = json.loads(src)
     return (j["success"], len(j["formulas"]) > 0)
 
-def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
+def do_breadth(iterkey, logfile, nthreads, jsonfile, args, invfile, stats, by_size):
   i = 0
   while True:
     i += 1
     success, hasany, invfile = do_breadth_single(iterkey+"."+str(i),
-          logfile, nthreads, jsonfile, args, invfile, i-1, stats)
+          logfile, nthreads, jsonfile, args, invfile, i-1, stats, by_size)
     if success:
       return True, invfile
     if not hasany:
       return False, invfile
 
-def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, iteration_num, stats):
+def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, iteration_num, stats, by_size):
   t1 = time.time()
 
+  chunk_files = breadth_chunkify(iterkey, logfile, nthreads, jsonfile, args)
+  if by_size:
+    c_by_size = get_chunk_files_for_each_size(chunk_files)
+    output_inv_files = []
+    total_has_any = False
+    for (sz, chunks) in c_by_size:
+      success, has_any, output_invfile = breadth_run_in_parallel(
+        iterkey+".size."+str(sz), logfile, jsonfile,
+          ["--chunk-size-to-use", str(sz)] + args, invfile, iteration_num, stats, chunk_files)
+      if has_any:
+        total_has_any = True
+      if success:
+        stats.add_inc_result(iteration_num, output_invfile, int(time.time() - t1))
+        return success, total_has_any, output_invfile
+      invfile = new_file_with_all_invs(invfile, output_invfile)
+      output_inv_files.append(output_invfile) 
+    success = False
+    has_any = total_has_any
+    new_output_file = coalesce(logfile, jsonfile, iterkey+".size."+str(sz), output_inv_files)
+  else:
+    success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, jsonfile, args, invfile,
+        iteration_num, stats, chunk_files)
+
+  stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
+
+  return success, has_any, new_output_file
+
+def new_file_with_all_invs(a, b):
+  if a == None:
+    j = { "all_formulas" : [], "formulas" : [], "success" : False }
+  else:
+    with open(a) as f:
+      j = json.loads(f.read())
+  with open(b) as f:
+    k = json.loads(f.read())
+  j["all_formulas"] = k["all_formulas"]
+
+  c = tempfile.mktemp()
+  with open(c, 'w') as f:
+    f.write(json.dumps(j))
+  return c
+
+def breadth_chunkify(iterkey, logfile, nthreads, jsonfile, args):
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -177,6 +221,46 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
 
   succ = run_synthesis(logfile, iterkey+".chunkify", jsonfile, args_add_seed(chunk_file_args + args))
   assert succ, "breadth chunkify failed"
+  return chunk_files
+
+def get_chunk_files_for_each_size(chunk_files):
+  sizes = []
+  for c in chunk_files:
+    sizes.append(sizes_mentioned_in_chunk_file(c))
+  sz = 0
+  res = []
+  while True:
+    sz += 1
+    files = [chunk_files[i] for i in range(len(chunk_files)) if sz in sizes[i]]
+    if len(files) == 0:
+      break
+    res.append((sz, files))
+  return res
+
+def sizes_mentioned_in_chunk_file(c):
+  res = set()
+  with open(c) as f:
+    i = 0
+    for l in f:
+      if i > 0:
+        sz = int(l.split()[1])
+        res.add(sz)
+      i += 1
+  return res
+
+def coalesce(logfile, jsonfile, iterkey, files):
+  new_output_file = tempfile.mktemp()
+  coalesce_file_args = ["--coalesce", "--output-formula-file", new_output_file]
+  for f in files:
+    coalesce_file_args.append("--input-formula-file")
+    coalesce_file_args.append(f)
+  succ = run_synthesis(logfile, iterkey+".coalesce", jsonfile, args_add_seed(coalesce_file_args))
+  assert succ, "breadth coalesce failed"
+  return new_output_file
+
+def breadth_run_in_parallel(iterkey, logfile, jsonfile, args, invfile, iteration_num, stats, chunk_files):
+
+  nthreads = len(chunk_files)
 
   q = queue.Queue()
   threads = [ ]
@@ -213,25 +297,16 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
         if this_has_any:
           has_any = True
         if success:
-          stats.add_inc_result(iteration_num, output_files[key], int(time.time() - t1))
           kill_all_procs()
           any_success = True
+          success_file = output_files[key]
 
   if any_success:
-    return (True, has_any, None)
+    assert False, "TODO # of invariants"
+    return (True, has_any, success_file)
   
-  new_output_file = tempfile.mktemp()
-  coalesce_file_args = ["--coalesce", "--output-formula-file", new_output_file]
-  if invfile != None:
-    coalesce_file_args.append("--input-formula-file")
-    coalesce_file_args.append(invfile)
-  for key in output_files:
-    coalesce_file_args.append("--input-formula-file")
-    coalesce_file_args.append(output_files[key])
-  succ = run_synthesis(logfile, iterkey+".coalesce", jsonfile, args_add_seed(coalesce_file_args))
-  assert succ, "breadth coalesce failed"
-
-  stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
+  new_output_file = coalesce(logfile, jsonfile, iterkey, 
+      ([] if invfile == None else [invfile]) + [output_files[key] for key in output_files])
 
   return (False, has_any, new_output_file)
 
@@ -292,6 +367,7 @@ def parse_args(args):
   logfile = ""
   new_args = []
   use_stdout = False
+  by_size = False
   i = 0
   while i < len(args):
     if args[i] == "--threads":
@@ -306,6 +382,8 @@ def parse_args(args):
       i += 1
     elif args[i] == "--stdout":
       use_stdout = True
+    elif args[i] == "--by-size":
+      by_size = True
     else:
       new_args.append(args[i])
     i += 1
@@ -315,7 +393,7 @@ def parse_args(args):
       rstr += str(random.randint(0, 9))
     logfile = ("logs/log." + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
         + "-" + rstr)
-  return nthreads, logfile, new_args, use_stdout
+  return nthreads, logfile, by_size, new_args, use_stdout
 
 def main():
   ivy_filename = sys.argv[1]
@@ -325,11 +403,11 @@ def main():
     jsonfile = f.read()
 
   args = sys.argv[3:]
-  nthreads, logfile, args, use_stdout = parse_args(args)
+  nthreads, logfile, by_size, args, use_stdout = parse_args(args)
   if nthreads == None:
     run_synthesis(logfile, "main", jsonfile, args_add_seed(args), use_stdout=use_stdout)
   else:
-    do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args)
+    do_threading(ivy_filename, json_filename, logfile, nthreads, jsonfile, args, by_size)
 
 if __name__ == "__main__":
   main()

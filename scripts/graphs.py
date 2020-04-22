@@ -326,8 +326,8 @@ def main():
   #make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
   #make_seed_graph(ax.flat[7], input_directory, "paxos", True)
 
-  make_opt_comparison_graph(ax.flat[8], input_directory, False)
-  make_opt_comparison_graph(ax.flat[9], input_directory, True)
+  #make_opt_comparison_graph(ax.flat[8], input_directory, False)
+  #make_opt_comparison_graph(ax.flat[9], input_directory, True)
 
   make_nonacc_cmp_graph(ax.flat[10], input_directory)
 
