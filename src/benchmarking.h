@@ -38,4 +38,9 @@ inline long long as_ms(std::chrono::high_resolution_clock::duration dur)
   return std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
 }
 
+inline long long as_ns(std::chrono::high_resolution_clock::duration dur)
+{
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
+}
+
 #endif
