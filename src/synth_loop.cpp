@@ -1086,6 +1086,7 @@ SynthesisResult synth_loop_incremental_breadth(
   }
 
   long long filtering_ns = 0;
+  long long addCounterexample_ns = 0;
 
   while (true) {
     num_iterations_outer++;
@@ -1203,11 +1204,12 @@ SynthesisResult synth_loop_incremental_breadth(
           cs->addExistingInvariant(strengthened_inv);
         }
       } else {
-        //cex_stats(cex);
-        //auto t1 = now();
+        cex_stats(cex);
+        auto t1 = now();
         cs->addCounterexample(cex, candidate0);
-        //auto t2 = now();
-        //addCounterexampleNs += as_ns(t2 - t1);
+        auto t2 = now();
+        addCounterexample_ns += as_ns(t2 - t1);
+        cout << "addCounterexample: " << addCounterexample_ns / 1000000 << endl;
       }
 
       dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
