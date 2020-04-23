@@ -4,15 +4,30 @@ import subprocess
 import shutil
 import time
 from pathlib import Path
+import queue
+import threading
+
+def get_num_threads(args):
+  args = args.split()
+  for i in range(len(args)):
+    if args[i] == '--threads':
+      return int(args[i+1])
+  assert False
 
 class PaperBench(object):
   def __init__(self, name, args):
     self.name = name
     self.args = args
+    self.threads = get_num_threads(args)
 
 benches = [ ]
 
 THREADS = 7
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(
+      "leader_election_t" + str(i),
+      "breadth-leader-election --minimal-models --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
@@ -81,11 +96,14 @@ def get_statfile(out):
       t = line.split()
       assert len(t) == 2
       return t[1]
-  assert False
+  return None
+
+def exists(directory, bench):
+  result_filename = os.path.join(directory, bench.name)
+  return os.path.exists(result_filename)
 
 def run(directory, bench):
-  result_filename = os.path.join(directory, bench.name)
-  if os.path.exists(result_filename):
+  if exists(directory, bench):
     print("already done " + bench.name)
     return
 
@@ -103,17 +121,80 @@ def run(directory, bench):
 
   t2 = time.time()
   seconds = t2 - t1
-  print("done (" + str(seconds) + " seconds)")
 
   statfile = get_statfile(out)
-  shutil.copy(statfile, result_filename)
+  if statfile is None:
+    print("failed " + bench.name + " (" + str(seconds) + " seconds)")
+    return False
+  else:
+    print("done " + bench.name + " (" + str(seconds) + " seconds)")
+    result_filename = os.path.join(directory, bench.name)
+    shutil.copy(statfile, result_filename)
+    return True
+
+def run_wrapper(directory, bench, idx, q):
+  run(directory, bench)
+  q.put(idx)
+
+def awesome_async_run(directory, benches, j):
+  for bench in benches:
+    assert bench.threads <= j
+
+  benches = sorted(benches, key = lambda b : -b.threads)
+  done = [False] * len(benches)
+  c = 0
+  for i in range(len(benches)):
+    if exists(directory, benches[i]):
+      print("already done " + benches[i].name)
+      done[i] = True
+      c += 1
+  t = 0
+
+  q = queue.Queue()
+
+  while c < len(benches):
+    cur = None
+    for i in range(len(benches)):
+      if not done[i] and benches[i].threads + t <= j:
+        cur = i
+        break
+    if cur is None:
+      idx = q.get()
+      done[idx] = True
+      c += 1
+      t -= benches[idx].threads
+    else:
+      thr = threading.Thread(target=run_wrapper, daemon=True,
+          args=(directory, benches[cur], cur, q))
+      thr.start()
+      t += benches[cur].threads
+
+def parse_args(args):
+  res = []
+  j = None
+  i = 0
+  while i < len(args):
+    if args[i] == '-j':
+      j = int(args[i+1])
+      i += 1
+    else:
+      res.append(args[i])
+    i += 1
+  return j, res
 
 def main():
-  assert len(sys.argv) == 2
-  directory = sys.argv[1]
+  args = sys.argv[1:]
+  j, args = parse_args(args)
+
+  assert len(args) == 1
+  directory = args[0]
   Path(directory).mkdir(parents=True, exist_ok=True)
-  for b in benches:
-    run(directory, b)
+
+  if j == None:
+    for b in benches:
+      run(directory, b)
+  else:
+    awesome_async_run(directory, benches, j)
 
 if __name__ == "__main__":
   main()
