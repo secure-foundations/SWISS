@@ -1204,7 +1204,7 @@ SynthesisResult synth_loop_incremental_breadth(
           cs->addExistingInvariant(strengthened_inv);
         }
       } else {
-        cex_stats(cex);
+        //cex_stats(cex);
         auto t1 = now();
         cs->addCounterexample(cex, candidate0);
         auto t2 = now();
