@@ -387,6 +387,17 @@ Counterexample get_counterexample_simple(
   return cex;
 }
 
+bool conjectures_inv(
+    shared_ptr<Module> module,
+    vector<value> const& filtered_simplified_strengthened_invs,
+    vector<value> const& conjectures)
+{
+  return is_invariant_wrt(
+      module,
+      v_and(filtered_simplified_strengthened_invs),
+      conjectures);
+}
+
 /*void cex_stats(Counterexample cex) {
   shared_ptr<Model> model;
   if (cex.is_true) {
@@ -1175,11 +1186,12 @@ SynthesisResult synth_loop_incremental_breadth(
             cout << "    " << found_inv->to_string() << endl;
           }
 
-          if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
+          //if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
+          /*if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
             cout << "invariant implies safety condition, done!" << endl;
             dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
             return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
-          }
+          }*/
         } else {
           cout << "invariant is redundant" << endl;
           num_redundant++;
@@ -1200,8 +1212,19 @@ SynthesisResult synth_loop_incremental_breadth(
 
     dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
 
-    if (!any_formula_synthesized_this_round || use_input_chunks) {
+    if (!any_formula_synthesized_this_round) {
       cout << "unable to synthesize any formula" << endl;
+      break;
+    }
+
+    if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
+      cout << "invariant implies safety condition, done!" << endl;
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ms, 0);
+      return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
+    }
+
+    if (use_input_chunks) {
+      cout << "terminating because of chunk mode" << endl;
       break;
     }
   }

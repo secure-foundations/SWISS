@@ -321,7 +321,7 @@ def main():
   #make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
   #make_seed_graph(ax.flat[3], input_directory, "paxos", False)
 
-  #make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", True)
+  make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", False)
   #make_parallel_graph(ax.flat[5], input_directory, "paxos_implshape_finisher", True)
   #make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
   #make_seed_graph(ax.flat[7], input_directory, "paxos", True)

@@ -15,7 +15,7 @@ string name(iden basename) {
       iden_to_string(basename) + "__" + to_string(name_counter++);
 }
 
-string name(string basename) {
+string name(string const& basename) {
   return "x" + to_string(rand()) + "_" +
       basename + "__" + to_string(name_counter++);
 }
@@ -768,10 +768,14 @@ extern const int TIMEOUT;
 extern int numRetries;
 
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
+  return is_invariant_wrt(module, invariant_so_far, vector<value>{candidate});
+}
+
+bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates) {
   smt::context ctx(smt::Backend::z3);
   ctx.set_timeout(TIMEOUT);
 
-  {
+  for (value candidate : candidates) {
     int num_fails = 0;
     while (true) {
       auto my_ctx = ctx;
@@ -797,32 +801,34 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value c
     }
   }
 
-  for (int i = 0; i < (int)module->actions.size(); i++) {
-    int num_fails = 0;
-    while (true) {
-      auto my_ctx = ctx;
-      if (num_fails % 2 == 1) {
-        my_ctx = smt::context(smt::Backend::cvc4);
-      }
+  for (value candidate : candidates) {
+    for (int i = 0; i < (int)module->actions.size(); i++) {
+      int num_fails = 0;
+      while (true) {
+        auto my_ctx = ctx;
+        if (num_fails % 2 == 1) {
+          my_ctx = smt::context(smt::Backend::cvc4);
+        }
 
-      InductionContext indctx(my_ctx, module, i);
-      smt::solver& solver = indctx.ctx->solver;
-      solver.set_log_info("is_invariant_wrt inductiveness");
-      solver.add(indctx.e1->value2expr(invariant_so_far));
-      solver.add(indctx.e1->value2expr(candidate));
-      solver.add(indctx.e2->value2expr(v_not(candidate)));
+        InductionContext indctx(my_ctx, module, i);
+        smt::solver& solver = indctx.ctx->solver;
+        solver.set_log_info("is_invariant_wrt inductiveness");
+        solver.add(indctx.e1->value2expr(invariant_so_far));
+        solver.add(indctx.e1->value2expr(v_and(candidates)));
+        solver.add(indctx.e2->value2expr(v_not(candidate)));
 
-      smt::SolverResult res = solver.check_result();
+        smt::SolverResult res = solver.check_result();
 
-      if (res == smt::SolverResult::Sat) {
-        return false;
-      } else if (res == smt::SolverResult::Unsat) {
-        break;
-      } else {
-        num_fails++;
-        numRetries++;
-        assert(num_fails < 20);
-        cout << "failure encountered, retrying" << endl;
+        if (res == smt::SolverResult::Sat) {
+          return false;
+        } else if (res == smt::SolverResult::Unsat) {
+          break;
+        } else {
+          num_fails++;
+          numRetries++;
+          assert(num_fails < 20);
+          cout << "failure encountered, retrying" << endl;
+        }
       }
     }
   }
