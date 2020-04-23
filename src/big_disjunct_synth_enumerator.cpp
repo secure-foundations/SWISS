@@ -197,6 +197,14 @@ value BigDisjunctCandidateSolver::getNext() {
     value v = disjunction_fuse(disjs);
     cout << "getNext: " << v->to_string() << endl;
     }*/
+    /*value sanity_v;
+    {
+      vector<value> disjs;
+      for (int i = 0; i < (int)cur_indices.size(); i++) {
+        disjs.push_back(pieces[cur_indices[i]]);
+      }
+      sanity_v = disjunction_fuse(disjs);
+    }*/
 
     bool failed = false;
 
@@ -222,6 +230,7 @@ value BigDisjunctCandidateSolver::getNext() {
           bers[j] = &cex_results[i][cur_indices[j]].second;
         }
         bool res = BitsetEvalResult::disj_is_true(bers);
+        //assert (res == cexes[i].is_true->eval_predicate(sanity_v));
         if (!res) {
           failed = true;
           break;
@@ -232,6 +241,7 @@ value BigDisjunctCandidateSolver::getNext() {
           bers[j] = &cex_results[i][cur_indices[j]].first;
         }
         bool res = BitsetEvalResult::disj_is_true(bers);
+        //assert (res == cexes[i].is_false->eval_predicate(sanity_v));
         if (res) {
           failed = true;
           break;
@@ -242,11 +252,13 @@ value BigDisjunctCandidateSolver::getNext() {
           bers[j] = &cex_results[i][cur_indices[j]].first;
         }
         bool res = BitsetEvalResult::disj_is_true(bers);
+        //assert (res == cexes[i].hypothesis->eval_predicate(sanity_v));
         if (res) {
           for (int j = 0; j < (int)cur_indices.size(); j++) {
             bers[j] = &cex_results[i][cur_indices[j]].second;
           }
           bool res2 = BitsetEvalResult::disj_is_true(bers);
+          //assert (res2 == cexes[i].conclusion->eval_predicate(sanity_v));
           if (!res2) {
             failed = true;
             break;

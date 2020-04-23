@@ -197,6 +197,7 @@ object_value eval(EvalExpr const& ee, int* var_values) {
       int q = ee.quantifier_domain_size;
       EvalExpr const& body = ee.args[0];
       for (int i = 0; i < q; i++) {
+        //cout << "yolo" << endl;
         var_values[idx] = i;
         if (!eval(body, var_values)) {
           return 0;
@@ -1176,13 +1177,15 @@ BitsetEvalResult BitsetEvalResult::eval_over_foralls(shared_ptr<Model> model, va
   //model->dump();
   //cout << "eval'ing for value: " << val->to_string() << endl;
 
-  TopQuantifierDesc tqd(val);
+  auto p = get_tqd_and_body(val);
+  TopQuantifierDesc const& tqd = p.first;
+  value bodyval = p.second;
   vector<VarDecl> decls = tqd.decls();
   vector<iden> names;
   for (VarDecl const& decl : decls) {
     names.push_back(decl.name);
   }
-  EvalExpr ee = model->value_to_eval_expr(val, names);
+  EvalExpr ee = model->value_to_eval_expr(bodyval, names);
 
   int n_vars = max(max_var(ee), (int)decls.size()) + 1;
   int* var_values = new int[n_vars];
@@ -1291,6 +1294,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_alternating_quantifiers(
   //cout << "eval'ing for value: " << val->to_string() << endl;
 
   TopAlternatingQuantifierDesc taqd(val);
+  value bodyval = taqd.get_body(val);
   vector<Alternation> alternations = taqd.alternations();
   vector<VarDecl> decls;
   for (int i = alternations.size() - 1; i >= 0; i--) {
@@ -1303,7 +1307,7 @@ BitsetEvalResult BitsetEvalResult::eval_over_alternating_quantifiers(
   for (VarDecl const& decl : decls) {
     names.push_back(decl.name);
   }
-  EvalExpr ee = model->value_to_eval_expr(val, names);
+  EvalExpr ee = model->value_to_eval_expr(bodyval, names);
 
   int n_vars = max(max_var(ee), (int)decls.size()) + 1;
   int* var_values = new int[n_vars];
