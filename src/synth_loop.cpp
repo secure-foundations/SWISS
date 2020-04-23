@@ -629,12 +629,17 @@ struct CexStats {
 
 void dump_stats(long long progress, CexStats const& cs,
     std::chrono::time_point<std::chrono::high_resolution_clock> init,
-    int num_redundant, long long filtering_ms, long long num_finishers_found) {
+    int num_redundant, long long filtering_ms, long long num_finishers_found,
+    long long addCounterexample_ms, long long addCounterexample_count) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
   cout << "total time running so far: " << as_ms(now() - init)
        << " ms" << endl;
   cout << "total time filtering: " << filtering_ms << " ms" << endl;
+  cout << "total time addCounterexample: " << addCounterexample_ms << " ms" << endl;
+  if (addCounterexample_count > 0) {
+    cout << "avg time addCounterexample: " << (addCounterexample_ms/addCounterexample_count) << " ops" << endl;
+  }
   cs.dump();
   cout << "number of redundant invariants found: "
        << num_redundant << endl;
@@ -787,11 +792,11 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
       //transcript.entries.push_back(make_pair(cex, candidate));
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found);
+    dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found, 0, 0);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found);
+  dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found, 0, 0);
   cout << "complete!" << endl;
 
   return synres;
@@ -984,7 +989,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 
         benchmarking_dump_totals();
 
-        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
 
         break;
       } else {
@@ -1001,7 +1006,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
       per_inner_loop_bench.end();
       per_inner_loop_bench.dump();
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
     }
 
     assert(is_itself_invariant(module, found_invs));
@@ -1009,7 +1014,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
     if (!options.whole_space && is_invariant_with_conjectures(module, found_invs)) {
       printf("invariant implies safety condition, done!\n");
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
       break;
     }
 
@@ -1087,6 +1092,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
   long long filtering_ns = 0;
   long long addCounterexample_ns = 0;
+  long long addCounterexample_count = 0;
 
   while (true) {
     num_iterations_outer++;
@@ -1209,13 +1215,14 @@ SynthesisResult synth_loop_incremental_breadth(
         cs->addCounterexample(cex, candidate0);
         auto t2 = now();
         addCounterexample_ns += as_ns(t2 - t1);
+        addCounterexample_count++;
         cout << "addCounterexample: " << addCounterexample_ns / 1000000 << endl;
       }
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
 
     if (!any_formula_synthesized_this_round) {
       cout << "unable to synthesize any formula" << endl;
@@ -1224,7 +1231,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
     if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
       cout << "invariant implies safety condition, done!" << endl;
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
       return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
     }
 
