@@ -181,13 +181,15 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
       if success:
         stats.add_inc_result(iteration_num, output_invfile, int(time.time() - t1))
         return success, total_has_any, output_invfile
-      invfile = update_base_invs(output_invfile)
+      invfile = output_invfile
     success = False
     has_any = total_has_any
     new_output_file = invfile
   else:
     success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, jsonfile, args, invfile,
         iteration_num, stats, chunk_files)
+
+  new_output_file = update_base_invs(new_output_file)
 
   stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
 
