@@ -150,6 +150,9 @@ lightred = '#ff8080'
 blue = '#4040ff'
 lightblue = '#8080ff'
 
+orange = '#ffa500'
+lightorange = '#ffd8b1'
+
 def slightly_darken(color):
   if color == red:
     return '#b02020'
@@ -159,7 +162,22 @@ def slightly_darken(color):
     return '#6060b0'
   if color == lightblue:
     return '#6060b0'
+  if color == orange:
+    return '#ff8000'
+  if color == lightorange:
+    return '#ffa060'
   assert False
+
+def group_by_thread(s):
+  res = []
+  a = 0
+  while a < len(s):
+    b = a + 1
+    while b < len(s) and s[b][0] == s[a][0]:
+      b += 1
+    res.append((s[a][0], sorted([s[i][2] for i in range(a, b)])))
+    a = b
+  return res
 
 def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False, columns=None):
   if columns is None:
@@ -170,29 +188,73 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
         columns.append((filename, idx))
 
   for (filename, idx) in columns:
+      with open(os.path.join(input_directory, filename)) as f:
+        logpath = None
+        for line in f:
+          if line.startswith("logs "):
+            logpath = line.split()[1]
+            break
+      assert logpath != None
+
       times = []
       thread_times = []
       colors = []
       smt_times = []
 
-      odd1 = True
       odd2 = True
-      iternum = 1
-      with open(os.path.join(input_directory, filename)) as f:
+      with open(os.path.join(logpath)) as f:
+        stuff = []
         for line in f:
-          if line.startswith("BREADTH iteration "):
-            times.append(int(line.split()[4]))
-            thread_times.append([int(x) for x in line.split()[12:]])
-            colors.append(red if odd1 else lightred)
-            odd1 = not odd1
+          if line.startswith("complete iteration."):
+            lsplit = line.split()
+            task_name = lsplit[1].split('.')
+            secs = lsplit[2]
+            assert secs[0] == '('
+            secs = int(secs[1:])
+
+            iternum = int(task_name[1])
+            if task_name[2] == 'size':
+              size = int(task_name[3])
+              if task_name[4] == 'thread':
+                thr = int(task_name[5])
+              else:
+                continue
+            elif task_name[2] == 'thread':
+              size = None
+              thr = int(task_name[3])
+            else:
+              continue
+
+            odd1 = iternum % 2 == 0
+            inner_odd = False if size == None else (size % 2 == 0)
+
+            stuff.append((('breadth', iternum, size), thr, secs))
+          elif line.startswith("complete finisher.thread."):
+            lsplit = line.split()
+            task_name = lsplit[1].split('.')
+            secs = lsplit[2]
+            assert secs[0] == '('
+            secs = int(secs[1:])
+            thr = int(task_name[2])
+            stuff.append((('finisher', None, None), thr, secs))
+        stuff = group_by_thread(stuff)
+        for (info, secs) in stuff:
+          times.append(max(secs))
+          thread_times.append(secs)
+          if info[0] == 'breadth':
+            iternum = info[1]
+            size = info[2]
+            odd1 = iternum % 2 == 0
+            inner_odd = False if size == None else size % 2 == 0
+            if odd1:
+              colors.append(red if inner_odd else lightred)
+            else:
+              colors.append(orange if inner_odd else lightorange)
             if include_smt_times:
-              smt_times.append(get_smt_time(input_directory, filename, "iteration." + str(iternum)))
-            iternum += 1
-          elif line.startswith("FINISHER time: "):
-            times.append(int(line.split()[2]))
-            thread_times.append([int(x) for x in line.split()[10:]])
-            colors.append(blue if odd2 else lightblue)
-            odd2 = not odd2
+              log_name_for_thread = "iteration." + str(iternum) if size == None else "iteration." + str(iternum) + ".size." + int(size)
+              smt_times.append(get_smt_time(input_directory, filename, log_name_for_thread))
+          else:
+            colors.append(blue)
             if include_smt_times:
               smt_times.append(get_smt_time(input_directory, filename, "finisher"))
 
@@ -314,22 +376,25 @@ def main():
 
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=3, ncols=4, figsize=[6, 8])
+  fig, ax = plt.subplots(nrows=3, ncols=5, figsize=[6, 8])
 
-  #make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
-  #make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
-  #make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
-  #make_seed_graph(ax.flat[3], input_directory, "paxos", False)
+  make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
+  make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
+  make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
+  make_seed_graph(ax.flat[3], input_directory, "paxos", False)
 
   make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", False)
-  #make_parallel_graph(ax.flat[5], input_directory, "paxos_implshape_finisher", True)
-  #make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
-  #make_seed_graph(ax.flat[7], input_directory, "paxos", True)
+  make_parallel_graph(ax.flat[5], input_directory, "paxos_implshape_finisher", True)
+  make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
+  make_seed_graph(ax.flat[7], input_directory, "paxos", True)
 
-  #make_opt_comparison_graph(ax.flat[8], input_directory, False)
-  #make_opt_comparison_graph(ax.flat[9], input_directory, True)
+  make_opt_comparison_graph(ax.flat[8], input_directory, False)
+  make_opt_comparison_graph(ax.flat[9], input_directory, True)
 
   make_nonacc_cmp_graph(ax.flat[10], input_directory)
+
+  make_parallel_graph(ax.flat[11], input_directory, "paxos_breadth", False)
+  make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", False)
 
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
