@@ -117,13 +117,14 @@ void AltImplCandidateSolver::existing_invariants_append(
 
 void AltImplCandidateSolver::addExistingInvariant(value inv0)
 {
-  for (value inv : taqd.rename_into_all_possibilities(inv0)) {
+  assert(false);
+  /*for (value inv : taqd.rename_into_all_possibilities(inv0)) {
     auto indices = get_indices_of_value(inv);
     existing_invariants_append(indices);
 
     value norm = inv->totally_normalize();
     existing_invariant_set.insert(ComparableValue(norm));
-  }
+  }*/
 }
 
 inline bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {

@@ -80,6 +80,7 @@ void BigDisjunctCandidateSolver::addExistingInvariant(value inv0)
 {
   for (value inv : tqd.rename_into_all_possibilities(inv0)) {
     vector<int> indices = get_indices_of_value(inv);
+    std::sort(indices.begin(), indices.end());
     existing_invariants_append(indices);
 
     value norm = inv->totally_normalize();

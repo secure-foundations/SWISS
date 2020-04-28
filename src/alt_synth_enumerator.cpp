@@ -102,6 +102,7 @@ void AltDisjunctCandidateSolver::addExistingInvariant(value inv0)
 {
   for (value inv : taqd.rename_into_all_possibilities(inv0)) {
     vector<int> indices = get_indices_of_value(inv);
+    sort(indices.begin(), indices.end());
     existing_invariants_append(indices);
 
     value norm = inv->totally_normalize();
