@@ -2489,3 +2489,80 @@ int Module::get_template_idx(std::shared_ptr<Value> templ)
   }
   assert(false);
 }
+
+value Forall::order_and_or_eq(ScopeState const& ss) const {
+  ScopeState ss_new = ss;
+  append_vector(ss_new.decls, decls);
+  return v_forall(decls, body->order_and_or_eq(ss_new));
+}
+
+value NearlyForall::order_and_or_eq(ScopeState const& ss) const {
+  assert(false && "NearlyForall::order_and_or_eq not implemented");
+}
+
+value Exists::order_and_or_eq(ScopeState const& ss) const {
+  ScopeState ss_new = ss;
+  append_vector(ss_new.decls, decls);
+  return v_forall(decls, body->order_and_or_eq(ss_new));
+}
+
+value Var::order_and_or_eq(ScopeState const& ss) const {
+  return v_var(name, sort);
+}
+
+value Const::order_and_or_eq(ScopeState const& ss) const {
+  return v_const(name, sort);
+}
+
+value IfThenElse::order_and_or_eq(ScopeState const& ss) const {
+  assert(false);
+}
+
+value Eq::order_and_or_eq(ScopeState const& ss) const {
+  value a = left->order_and_or_eq(ss);
+  value b = right->order_and_or_eq(ss);
+  return lt_value(a, b, ss, ss) ? v_eq(a, b) : v_eq(b, a);
+}
+
+value Not::order_and_or_eq(ScopeState const& ss) const {
+  return v_not(val->order_and_or_eq(ss));
+}
+
+value Implies::order_and_or_eq(ScopeState const& ss) const {
+  assert(false && "implies should have been replaced by |");
+}
+
+value Apply::order_and_or_eq(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->order_and_or_eq(ss));
+  }
+  return v_apply(func->order_and_or_eq(ss), move(new_args));
+}
+
+value And::order_and_or_eq(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->order_and_or_eq(ss));
+  }
+  sort_values(ss, new_args);
+  return v_and(new_args);
+}
+
+value Or::order_and_or_eq(ScopeState const& ss) const {
+  vector<value> new_args;
+  for (value arg : args) {
+    new_args.push_back(arg->order_and_or_eq(ss));
+  }
+  sort_values(ss, new_args);
+  return v_or(new_args);
+}
+
+value TemplateHole::order_and_or_eq(ScopeState const& ss) const {
+  return v_template_hole();
+}
+
+value order_and_or_eq(value v) {
+  ScopeState ss;
+  return v->order_and_or_eq(ss);
+}

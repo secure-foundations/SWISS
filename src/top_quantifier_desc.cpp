@@ -543,7 +543,7 @@ std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(v
             this->alts[candidate[i][j].first].decls[candidate[i][j].second].name));
         }
       }
-      results.push_back(this->with_body(body->replace_var_with_var(var_map)));
+      results.push_back(order_and_or_eq(this->with_body(body->replace_var_with_var(var_map))));
     }
 
     for (int i = 0; i < (int)taqd.alts.size(); i++) {
