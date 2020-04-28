@@ -2,6 +2,7 @@
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
+#include <algorithm>
 
 using namespace std;
 
