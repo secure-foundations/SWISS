@@ -122,6 +122,7 @@ class Stats(object):
     self.finisher_result_filename = None
     self.ivy_filename = ivy_filename
     self.json_filename = json_filename
+    self.all_logs = []
 
     self.inc_individual_times = []
     self.inc_times = []
@@ -139,6 +140,7 @@ class Stats(object):
       self.inc_individual_times.append([])
     self.inc_logs[-1].append(log)
     self.inc_individual_times[-1].append(seconds)
+    self.all_logs.append((log, seconds))
 
   def add_inc_result(self, iternum, log, seconds):
     #print("inc_result_filenames", self.inc_result_filenames)
@@ -150,6 +152,7 @@ class Stats(object):
   def add_finisher_log(self, filename, seconds):
     self.finisher_logs.append(filename)
     self.finisher_individual_times.append(seconds)
+    self.all_logs.append((filename, seconds))
 
   def add_finisher_result(self, filename, seconds):
     self.finisher_result_filename = filename
@@ -231,10 +234,17 @@ class Stats(object):
     t += self.get_finisher_cpu_time()
     return t
 
+  def dump_individual_stats(self, f):
+    self.log_stats = {}
+    for (log, seconds) in self.all_logs:
+      stats = parse_stats(log)
+      self.log_stats[log] = stats
+      log_stats(f, stats, log)
+
   def stats_finisher(self, f):
     stats_list = []
     for log in self.finisher_logs:
-      stats_list.append(parse_stats(log))
+      stats_list.append(self.log_stats[log])
     total = aggregate_stats(stats_list)
     log_stats(f, total, "finisher")
     return total
@@ -242,7 +252,7 @@ class Stats(object):
   def stats_inc_one(self, f, i):
     stats_list = []
     for log in self.inc_logs[i]:
-      stats_list.append(parse_stats(log))
+      stats_list.append(self.log_stats[log])
     total = aggregate_stats(stats_list)
     log_stats(f, total, "breadth (" + str(i) + ")")
     return total
@@ -291,4 +301,9 @@ class Stats(object):
       log(f, "total time:", self.get_total_time(), "seconds;",
           "total cpu time:", self.get_total_cpu_time(), "seconds")
 
+      log(f, "")
+      for (l, seconds) in self.all_logs:
+        log(f, "time for process " + l + " is " + str(seconds) + " seconds")
+
+      self.dump_individual_stats(f)
       self.stats_total(f)
