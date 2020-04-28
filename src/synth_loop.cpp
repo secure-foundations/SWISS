@@ -629,8 +629,12 @@ struct CexStats {
 
 void dump_stats(long long progress, CexStats const& cs,
     std::chrono::time_point<std::chrono::high_resolution_clock> init,
-    int num_redundant, long long filtering_ms, long long num_finishers_found,
-    long long addCounterexample_ms, long long addCounterexample_count) {
+    int num_redundant, int num_nonredundant,
+    long long filtering_ms, long long num_finishers_found,
+    long long addCounterexample_ms, long long addCounterexample_count,
+    long long cex_process_ns,
+    long long redundant_process_ns,
+    long long nonredundant_process_ns) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
   cout << "total time running so far: " << as_ms(now() - init)
@@ -640,9 +644,14 @@ void dump_stats(long long progress, CexStats const& cs,
   if (addCounterexample_count > 0) {
     cout << "avg time addCounterexample: " << (addCounterexample_ms/addCounterexample_count) << " ops" << endl;
   }
+  cout << "total time processing counterexamples: " << cex_process_ns / 1000000 << " ms" << endl;
+  cout << "total time processing redundant: " << redundant_process_ns / 1000000 << " ms" << endl;
+  cout << "total time processing nonredundant: " << nonredundant_process_ns / 1000000 << " ms" << endl;
   cs.dump();
   cout << "number of redundant invariants found: "
        << num_redundant << endl;
+  cout << "number of non-redundant invariants found: "
+       << num_nonredundant << endl;
   cout << "number of finisher invariants found: "
        << num_finishers_found << endl;
   cout << "number of retries: " << numRetries << endl;
@@ -713,6 +722,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   long long filtering_ns = 0;
 
   long long num_finishers_found = 0;
+  long long process_cex_ns = 0;
 
   while (true) {
     num_iterations++;
@@ -727,6 +737,8 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     auto filtering_t1 = now();
     value candidate = cs->getNext();
     filtering_ns += as_ns(now() - filtering_t1);
+
+    auto process_start_t = now();
 
     if (!candidate) {
       if (tsq) {
@@ -792,11 +804,16 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
       //transcript.entries.push_back(make_pair(cex, candidate));
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found, 0, 0);
+    long long process_ns = as_ns(now() - process_start_t);
+    if (!cex.none) {
+      process_cex_ns += process_ns;
+    }
+
+    dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats, t_init, 0, filtering_ns/1000000, num_finishers_found, 0, 0);
+  dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0);
   cout << "complete!" << endl;
 
   return synres;
@@ -855,6 +872,8 @@ SynthesisResult synth_loop(
 
 SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
 {
+  assert(false);
+#if 0
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
@@ -1035,6 +1054,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
   printf("\n");
 
   return SynthesisResult(false, found_invs, all_found_invs);
+#endif
 }
 
 SynthesisResult synth_loop_incremental_breadth(
@@ -1081,6 +1101,7 @@ SynthesisResult synth_loop_incremental_breadth(
   int num_iterations_total = 0;
   int num_iterations_outer = 0;
   int num_redundant = 0;
+  int num_nonredundant = 0;
 
   CexStats cexstats;
 
@@ -1093,6 +1114,10 @@ SynthesisResult synth_loop_incremental_breadth(
   long long filtering_ns = 0;
   long long addCounterexample_ns = 0;
   long long addCounterexample_count = 0;
+
+  long long cex_process_ns = 0;
+  long long redundant_process_ns = 0;
+  long long nonredundant_process_ns = 0;
 
   while (true) {
     num_iterations_outer++;
@@ -1126,6 +1151,8 @@ SynthesisResult synth_loop_incremental_breadth(
       auto filtering_t1 = now();
       value candidate0 = cs->getNext();
       filtering_ns += as_ns(now() - filtering_t1);
+
+      auto process_start_t = now();
 
       if (!candidate0) {
         if (tsq) {
@@ -1163,6 +1190,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
       cexstats.add(cex);
 
+      bool is_nonredundant;
       if (cex.none) {
         //Benchmarking bench_strengthen;
         //bench_strengthen.start("strengthen");
@@ -1174,7 +1202,6 @@ SynthesisResult synth_loop_incremental_breadth(
         //bench_strengthen.dump();
         cout << "strengthened " << strengthened_inv->to_string() << endl;
 
-        bool is_nonredundant;
         if (options.enum_sat) {
           is_nonredundant = true;
         } else {
@@ -1199,6 +1226,7 @@ SynthesisResult synth_loop_incremental_breadth(
             dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
             return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
           }*/
+          num_nonredundant++;
         } else {
           cout << "invariant is redundant" << endl;
           num_redundant++;
@@ -1219,10 +1247,19 @@ SynthesisResult synth_loop_incremental_breadth(
         cout << "addCounterexample: " << addCounterexample_ns / 1000000 << endl;
       }
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
+      long long process_ns = as_ns(now() - process_start_t);
+      if (!cex.none) {
+        cex_process_ns += process_ns;
+      } else if (is_nonredundant) {
+        nonredundant_process_ns += process_ns;
+      } else {
+        redundant_process_ns += process_ns;
+      }
+
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
+    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
 
     if (!any_formula_synthesized_this_round) {
       cout << "unable to synthesize any formula" << endl;
@@ -1231,7 +1268,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
     if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
       cout << "invariant implies safety condition, done!" << endl;
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
       return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
     }
 
