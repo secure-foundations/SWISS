@@ -146,8 +146,7 @@ VarIndexState get_var_index_init_state(value templ)
   TopQuantifierDesc taqd(templ);
   vector<QSRange> groups = taqd.grouped_by_sort();
   int ngroups = groups.size();
-  VarIndexState vis;
-  vis.indices.resize(ngroups);
+  VarIndexState vis(ngroups);
   for (int i = 0; i < ngroups; i++) {
     vis.indices[i] = 0;
   }

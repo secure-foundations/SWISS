@@ -33,10 +33,9 @@ BigDisjunctCandidateSolver::BigDisjunctCandidateSolver(shared_ptr<Module> module
   cur_indices = {};
   done = false;
 
-  var_index_states.resize(disj_arity + 2);
-  var_index_states[0] = get_var_index_init_state(templ);
-  for (int i = 1; i < (int)var_index_states.size(); i++) {
-    var_index_states[i] = var_index_states[0];
+  var_index_states.push_back(get_var_index_init_state(templ));
+  for (int i = 1; i < disj_arity + 2; i++) {
+    var_index_states.push_back(var_index_states[0]);
   }
 
   var_index_transitions =
@@ -410,14 +409,29 @@ static void getSpaceChunk_rec(vector<SpaceChunk>& res,
     sc.size = sz;
     sc.nums = indices;
     res.push_back(move(sc));
+
+    for (int i = 0; i < (int)indices.size(); i++) {
+      cout << indices[i] << " ";
+    }
+    for (int i = 0; i < (int)indices.size(); i++) {
+      cout << pieces[indices[i]]->to_string() << " ";
+    }
+    cout << endl;
     return;
   }
   int t = (i == 0 ? 0 : indices[i-1] + 1);
   for (int j = t; j < (int)pieces.size(); j++) {
     if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
-      VarIndexState next;
+      VarIndexState next(vis.indices.size());
       var_index_do_transition(vis, var_index_transitions[j].res, next);
       indices[i] = j;
+
+      /*if (i == 1 && indices[0] == 1 && indices[1] == 44) {
+        cout << "yooo" << endl;
+        for (int x : vis.indices) cout << x << " "; cout << endl;
+        for (int x : var_index_transitions[j].pre.indices) cout << x << " "; cout << endl;
+      }*/
+
       getSpaceChunk_rec(res, indices, i+1, next,
           pieces, var_index_transitions, sz);
     }

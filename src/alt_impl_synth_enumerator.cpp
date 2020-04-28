@@ -39,10 +39,9 @@ AltImplCandidateSolver::AltImplCandidateSolver(shared_ptr<Module> module, value 
   cur_indices = {};
   done = false;
 
-  var_index_states.resize(total_arity + 2);
-  var_index_states[0] = get_var_index_init_state(templ);
-  for (int i = 1; i < (int)var_index_states.size(); i++) {
-    var_index_states[i] = var_index_states[0];
+  var_index_states.push_back(get_var_index_init_state(templ));
+  for (int i = 1; i < total_arity + 2; i++) {
+    var_index_states.push_back(var_index_states[0]);
   }
 
   var_index_transitions =
@@ -555,7 +554,7 @@ static void getSpaceChunk_rec(vector<SpaceChunk>& res,
   int t = (i == 0 ? 0 : indices[i-1] + 1);
   for (int j = t; j < (int)pieces.size(); j++) {
     if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
-      VarIndexState next;
+      VarIndexState next(vis.indices.size());
       var_index_do_transition(vis, var_index_transitions[j].res, next);
       indices[i] = j;
       getSpaceChunk_rec(res, indices, i+1, next,

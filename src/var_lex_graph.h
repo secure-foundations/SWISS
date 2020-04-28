@@ -7,11 +7,15 @@ struct VarIndexState {
   // Minimum index reached (0 for none at all, 1 for having reached
   // the first one, etc.)
   std::vector<int> indices;
+
+  VarIndexState(size_t sz) : indices(sz) { }
 };
 
 struct VarIndexTransitionPrecondition {
   // Largest number which needs to have been reached before going in.
   // (e.g., if the term has 1 2 5, then the index stored here would be 4.)
+  // (e.g., if the term has 3 2, then the index stored here would be 2.)
+  // (e.g., if the term has 2 3, then the index stored here would be 1.)
   std::vector<int> indices;
 };
 
