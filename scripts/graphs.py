@@ -136,9 +136,10 @@ def make_nonacc_cmp_graph(ax, input_directory):
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
-def make_parallel_graph(ax, input_directory, name, include_smt_times):
+def make_parallel_graph(ax, input_directory, name, include_smt_times, graph_cex_count=False, graph_inv_count=False):
   ax.set_title("parallel " + name)
-  make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times)
+  make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times, 
+      graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count)
 
 def make_seed_graph(ax, input_directory, name, include_smt_times):
   ax.set_title("seed " + name)
@@ -152,6 +153,8 @@ lightblue = '#8080ff'
 
 orange = '#ffa500'
 lightorange = '#ffd8b1'
+
+green = '#00ff00'
 
 def slightly_darken(color):
   if color == red:
@@ -179,7 +182,10 @@ def group_by_thread(s):
     a = b
   return res
 
-def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False, columns=None):
+def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False, columns=None, graph_cex_count=False, graph_inv_count=False):
+  if graph_cex_count or graph_inv_count:
+    include_smt_times = True
+
   if columns is None:
     columns = []
     for filename in os.listdir(input_directory):
@@ -251,7 +257,7 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
             else:
               colors.append(orange if inner_odd else lightorange)
             if include_smt_times:
-              log_name_for_thread = "iteration." + str(iternum) if size == None else "iteration." + str(iternum) + ".size." + int(size)
+              log_name_for_thread = "iteration." + str(iternum) if size == None else "iteration." + str(iternum) + ".size." + str(size)
               smt_times.append(get_smt_time(input_directory, filename, log_name_for_thread))
           else:
             colors.append(blue)
@@ -263,32 +269,45 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
 
       bottom = 0
       for i in range(len(times)):
-        t = times[i]
-        color = 'red' if i % 2 == 0 else 'black'
-
-        if include_smt_times:
-          ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
+        if graph_cex_count or graph_inv_count:
+          (smt_sec, filtering_sec, cex_sec, cc, ic) = smt_times[i]
+          c = (cc if graph_cex_count else ic)
+          ax.bar(idx, c, bottom=bottom, color=colors[i])
+          bottom += c
         else:
-          ax.bar(idx, t, bottom=bottom, color=colors[i])
+          t = times[i]
 
-        if include_smt_times:
-          ax.bar(idx + 0.2, smt_times[i], bottom=bottom, width=0.4, color='black')
-          ax.bar(idx + 0.2, t-smt_times[i], bottom=bottom+smt_times[i], width=0.4, color='gray')
+          if include_smt_times:
+            ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
+          else:
+            ax.bar(idx, t, bottom=bottom, color=colors[i])
 
-        if include_threads:
-          for j in range(len(thread_times[i])):
-            thread_time = thread_times[i][j]
-            m = len(thread_times[i])
-            if include_smt_times:
-              ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.8 / float(m),
-                  thread_time, bottom=bottom, width = 0.4 / float(m),
-                  color=slightly_darken(colors[i]))
-            else:
-              ax.bar(idx - 0.4 + 0.8 * (j / float(m)) + 0.4 / float(m),
-                  thread_time, bottom=bottom, width = 0.8 / float(m),
-                  color=slightly_darken(colors[i]))
+          if include_smt_times:
+            (smt_sec, filtering_sec, cex_sec, cex_count, inv_count) = smt_times[i]
+            a = bottom
+            b = bottom + smt_sec
+            c = bottom + smt_sec + filtering_sec
+            d = bottom + smt_sec + filtering_sec + cex_sec
+            e = bottom + t
+            ax.bar(idx + 0.2, b-a, bottom=a, width=0.4, color='black')
+            ax.bar(idx + 0.2, c-b, bottom=b, width=0.4, color='green')
+            ax.bar(idx + 0.2, d-c, bottom=c, width=0.4, color='red')
+            ax.bar(idx + 0.2, e-d, bottom=d, width=0.4, color='gray')
 
-        bottom += t
+          if include_threads:
+            for j in range(len(thread_times[i])):
+              thread_time = thread_times[i][j]
+              m = len(thread_times[i])
+              if include_smt_times:
+                ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.2 / float(m),
+                    thread_time, bottom=bottom, width = 0.4 / float(m),
+                    color=slightly_darken(colors[i]))
+              else:
+                ax.bar(idx - 0.4 + 0.8 * (j / float(m)) + 0.4 / float(m),
+                    thread_time, bottom=bottom, width = 0.8 / float(m),
+                    color=slightly_darken(colors[i]))
+
+          bottom += t
 
 def get_smt_time(input_directory, filename, iteration_key):
   with open(os.path.join(input_directory, filename)) as f:
@@ -312,12 +331,44 @@ def get_smt_time(input_directory, filename, iteration_key):
         thread_to_use = int(l.split('.')[-1])
 
   ms = 0
+  filtering_ms = None
+  cex_ms = None
+  inv_count = None
+  cex_count_t = None
+  cex_count_f = None
+  cex_count_i = None
+  new_inv_count = 0
   with open(logpath + "." + iteration_key + ".thread." + str(thread_to_use)) as f:
     for line in f:
       if line.startswith("SMT result ("):
         t = int(line.split()[-2])
         ms += t
-  return ms / 1000
+      elif line.startswith("total time filtering: "):
+        filtering_ms = int(line.split()[3])
+      elif line.startswith("total time addCounterexample: "):
+        cex_ms = int(line.split()[3])
+      elif line.startswith("Counterexamples of type TRUE:"):
+        cex_count_t = int(line.split()[-1])
+      elif line.startswith("Counterexamples of type FALSE:"):
+        cex_count_f = int(line.split()[-1])
+      elif line.startswith("Counterexamples of type TRANSITION:"):
+        cex_count_i = int(line.split()[-1])
+      elif line.startswith("number of redundant invariants found:"):
+        inv_count = int(line.split()[-1])
+      elif line.startswith("found new invariant! all so far:"):
+        new_inv_count += 1
+  assert filtering_ms != None
+  assert cex_ms != None
+  assert inv_count != None
+  assert cex_count_t != None
+  assert cex_count_f != None
+  assert cex_count_i != None
+
+  print(new_inv_count)
+
+  cex_count = cex_count_t + cex_count_f + cex_count_i
+        
+  return (ms / 1000, filtering_ms / 1000, cex_ms / 1000, cex_count, inv_count + new_inv_count)
   
 #def get_smt_times(input_directory, filename):
 #  with open(os.path.join(input_directory, filename)) as f:
@@ -380,21 +431,28 @@ def main():
 
   make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
   make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
-  make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
-  make_seed_graph(ax.flat[3], input_directory, "paxos", False)
+  #make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
+  #make_seed_graph(ax.flat[3], input_directory, "paxos_breadth", False)
 
-  make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", False)
-  make_parallel_graph(ax.flat[5], input_directory, "paxos_implshape_finisher", True)
-  make_seed_graph(ax.flat[6], input_directory, "learning_switch", True)
-  make_seed_graph(ax.flat[7], input_directory, "paxos", True)
+  make_parallel_graph(ax.flat[5], input_directory, "paxos_breadth", False)
+  make_parallel_graph(ax.flat[6], input_directory, "paxos_implshape_finisher", True)
+  #make_seed_graph(ax.flat[7], input_directory, "learning_switch", True)
+  #make_seed_graph(ax.flat[8], input_directory, "paxos_breadth", True)
 
-  make_opt_comparison_graph(ax.flat[8], input_directory, False)
-  make_opt_comparison_graph(ax.flat[9], input_directory, True)
+  make_opt_comparison_graph(ax.flat[10], input_directory, False)
+  make_opt_comparison_graph(ax.flat[11], input_directory, True)
 
-  make_nonacc_cmp_graph(ax.flat[10], input_directory)
+  #make_nonacc_cmp_graph(ax.flat[12], input_directory)
 
-  make_parallel_graph(ax.flat[11], input_directory, "paxos_breadth", False)
+  make_seed_graph(ax.flat[2], input_directory, "paxos_breadth", True)
+  make_parallel_graph(ax.flat[7], input_directory, "paxos_breadth", True)
   make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", False)
+
+  make_parallel_graph(ax.flat[8], input_directory, "paxos_breadth", True, graph_cex_count=True)
+  make_parallel_graph(ax.flat[13], input_directory, "nonacc_paxos_breadth", False, graph_cex_count=True)
+
+  make_parallel_graph(ax.flat[9], input_directory, "paxos_breadth", True, graph_inv_count=True)
+  make_parallel_graph(ax.flat[14], input_directory, "nonacc_paxos_breadth", False, graph_inv_count=True)
 
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
