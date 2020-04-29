@@ -1443,7 +1443,9 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     Const* b = dynamic_cast<Const*>(b_.get());
     assert(b != NULL);
 
-    return a->name < b->name ? -1 : (a->name == b->name ? 0 : 1);
+    string a_name = iden_to_string(a->name);
+    string b_name = iden_to_string(b->name);
+    return a_name < b_name ? -1 : (a_name == b_name ? 0 : 1);
   }
 
   if (Eq* a = dynamic_cast<Eq*>(a_.get())) {

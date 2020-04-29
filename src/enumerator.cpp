@@ -462,14 +462,14 @@ pair<vector<value>, vector<value>> enumerate_for_template(
     add_constraints(module, solver);
     vector<value> fills;
     while (solver.solve()) {
-      fills.push_back(solver.solutionToValue());
+      fills.push_back(order_and_or_eq(solver.solutionToValue()));
     }
 
     sort_values(fills);
 
-    //for (value v : fills) {
-    //  cout << v->to_string() << endl;
-    //}
+    for (value v : fills) {
+      cout << v->to_string() << endl;
+    }
 
     //cout << "fills len " << fills.size() << endl;
 
