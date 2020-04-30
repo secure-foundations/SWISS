@@ -92,6 +92,11 @@ for i in range(3, 0, -1):
       "chord_breadth_t" + str(i),
       "breadth-chord --minimal-models --threads " + str(i)))
 
+for i in range(3, 0, -1):
+  benches.append(PaperBench(
+      "nonacc_chord_breadth_t" + str(i),
+      "breadth-chord --by-size --non-accumulative --minimal-models --threads " + str(i)))
+
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
 
