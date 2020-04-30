@@ -87,6 +87,11 @@ for postbmc in (False, True):
       benches.append(PaperBench(name+"lock_server", "breadth-lock-server --threads 1"+args))
       benches.append(PaperBench(name+"2pc", "breadth-2pc --threads 1"+args))
 
+for i in range(3, 0, -1):
+  benches.append(PaperBench(
+      "chord_breadth_t" + str(i),
+      "breadth-chord --minimal-models --threads " + str(i)))
+
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
 

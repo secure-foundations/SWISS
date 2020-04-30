@@ -4,6 +4,115 @@ from pathlib import Path
 import sys
 import os
 
+class ThreadStats(object):
+  def __init__(self, input_directory, filename):
+    times = {}
+    stats = {}
+    with open(os.path.join(input_directory, filename)) as f:
+      cur_name = None
+      cur_stats = None
+      state = 0
+      for line in f:
+        if line.startswith("time for process "):
+          l = line.split()
+          name = self.get_name_from_log(l[3])
+          secs = int(l[-2])
+          times[name] = secs
+        elif state == 0 and line.startswith("./logs/log."):
+          cur_name = self.get_name_from_log(line.strip())
+          state = 1
+        elif state == 1:
+          assert line == "-------------------------------------------------\n"
+          state = 2
+          cur_stats = {}
+        elif state == 2 and line == "-------------------------------------------------\n":
+          state = 0
+          stats[cur_name] = cur_stats
+        elif state == 2:
+          l = line.split('--->')
+          assert len(l) == 2
+          key = l[0].strip()
+          val = int(l[1].split()[0])
+          cur_stats[key] = val
+    for k in times:
+      stats[k]["total_time"] = times[k]
+
+    self.uses_sizes = False
+    for k in times:
+      if ".size." in k:
+        self.uses_sizes = True
+
+    self.stats = stats
+
+  def get_finisher_stats(self):
+    res = []
+    for k in self.stats:
+      if k.startswith("finisher.thread."):
+        res.append(self.stats[k])
+    return res
+
+  def get_breadth_stats(self):
+    res = []
+    for k in self.stats:
+      if k.startswith("iteration."):
+        task_name = k.split('.')
+        iternum = int(task_name[1])
+        if task_name[2] == 'size':
+          size = int(task_name[3])
+          if task_name[4] == 'thread':
+            thr = int(task_name[5])
+          else:
+            assert False
+        elif task_name[2] == 'thread':
+          size = 1
+          thr = int(task_name[3])
+        else:
+          assert False
+
+        while len(res) < iternum:
+          res.append([])
+        while len(res[iternum-1]) < size:
+          res[iternum-1].append([])
+        res[iternum-1][size-1].append(self.stats[k])
+    return res
+
+  def get_name_from_log(self, log):
+    assert log.startswith("./logs/log.")
+    return '.'.join(log.split('.')[5:])
+
+class Breakdown(object):
+  def __init__(self, stats):
+    self.stats = stats
+    self.total_smt_ms = 0
+    for k in stats:
+      if "TOTAL sat time" in k or "TOTAL unsat time" in k:
+        self.total_smt_ms += stats[k]
+    self.total_smt_secs = self.total_smt_ms / 1000
+
+    self.filter_secs = stats["total time filtering"] / 1000
+    self.cex_secs = stats["total time processing counterexamples"] / 1000
+    self.nonredundant_secs = stats["total time processing nonredundant"] / 1000
+    self.redundant_secs = stats["total time processing redundant"] / 1000
+
+    self.total_cex = (
+      stats["Counterexamples of type FALSE"] +
+      stats["Counterexamples of type TRUE"] +
+      stats["Counterexamples of type TRANSITION"]
+    )
+
+    self.total_invs = (
+      stats["number of non-redundant invariants found"] +
+      stats["number of redundant invariants found"]
+    )
+
+def get_longest(stat_list):
+  assert len(stat_list) > 0
+  t = stat_list[0]
+  for l in stat_list:
+    if l["total_time"] > t["total_time"]:
+      t = l
+  return t
+
 class BasicStats(object):
   def __init__(self, input_directory, name, filename):
     self.name = name
@@ -136,14 +245,19 @@ def make_nonacc_cmp_graph(ax, input_directory):
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
-def make_parallel_graph(ax, input_directory, name, include_smt_times, graph_cex_count=False, graph_inv_count=False):
-  ax.set_title("parallel " + name)
-  make_segmented_graph(ax, input_directory, name, "_t", True, include_smt_times, 
+def make_parallel_graph(ax, input_directory, name, include_breakdown, graph_cex_count=False, graph_inv_count=False):
+  suffix = ''
+  if graph_cex_count:
+    suffix = ' (cex)'
+  if graph_inv_count:
+    suffix = ' (invs)'
+  ax.set_title("parallel " + name + suffix)
+  make_segmented_graph(ax, input_directory, name, "_t", True, include_breakdown, 
       graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count)
 
-def make_seed_graph(ax, input_directory, name, include_smt_times):
+def make_seed_graph(ax, input_directory, name, include_breakdown):
   ax.set_title("seed " + name)
-  make_segmented_graph(ax, input_directory, name, "_seed_", True, include_smt_times)
+  make_segmented_graph(ax, input_directory, name, "_seed_", True, include_breakdown)
 
 red = '#ff4040'
 lightred = '#ff8080'
@@ -182,9 +296,9 @@ def group_by_thread(s):
     a = b
   return res
 
-def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_smt_times=False, columns=None, graph_cex_count=False, graph_inv_count=False):
+def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_breakdown=False, columns=None, graph_cex_count=False, graph_inv_count=False):
   if graph_cex_count or graph_inv_count:
-    include_smt_times = True
+    include_breakdown = True
 
   if columns is None:
     columns = []
@@ -194,111 +308,77 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
         columns.append((filename, idx))
 
   for (filename, idx) in columns:
-      with open(os.path.join(input_directory, filename)) as f:
-        logpath = None
-        for line in f:
-          if line.startswith("logs "):
-            logpath = line.split()[1]
-            break
-      assert logpath != None
+      ts = ThreadStats(input_directory, filename)
 
       times = []
       thread_times = []
       colors = []
-      smt_times = []
+      breakdowns = []
 
-      odd2 = True
-      with open(os.path.join(logpath)) as f:
-        stuff = []
-        for line in f:
-          if line.startswith("complete iteration."):
-            lsplit = line.split()
-            task_name = lsplit[1].split('.')
-            secs = lsplit[2]
-            assert secs[0] == '('
-            secs = int(secs[1:])
+      stuff = []
 
-            iternum = int(task_name[1])
-            if task_name[2] == 'size':
-              size = int(task_name[3])
-              if task_name[4] == 'thread':
-                thr = int(task_name[5])
-              else:
-                continue
-            elif task_name[2] == 'thread':
-              size = None
-              thr = int(task_name[3])
-            else:
-              continue
+      bs = ts.get_breadth_stats()
+      for i in range(len(bs)):
+        for j in range(len(bs[i])):
+          odd1 = i % 2 == 1
+          inner_odd = j % 2 == 1
+          iternum = i+1
+          size = (j+1 if ts.uses_sizes else None)
+          time_per_thread = sorted([s["total_time"] for s in bs[i][j]])
+          thread_times.append(time_per_thread)
+          longest = get_longest(bs[i][j])
+          breakdowns.append(Breakdown(longest))
+          times.append(longest["total_time"])
 
-            odd1 = iternum % 2 == 0
-            inner_odd = False if size == None else (size % 2 == 0)
-
-            stuff.append((('breadth', iternum, size), thr, secs))
-          elif line.startswith("complete finisher.thread."):
-            lsplit = line.split()
-            task_name = lsplit[1].split('.')
-            secs = lsplit[2]
-            assert secs[0] == '('
-            secs = int(secs[1:])
-            thr = int(task_name[2])
-            stuff.append((('finisher', None, None), thr, secs))
-        stuff = group_by_thread(stuff)
-        for (info, secs) in stuff:
-          times.append(max(secs))
-          thread_times.append(secs)
-          if info[0] == 'breadth':
-            iternum = info[1]
-            size = info[2]
-            odd1 = iternum % 2 == 0
-            inner_odd = False if size == None else size % 2 == 0
-            if odd1:
-              colors.append(red if inner_odd else lightred)
-            else:
-              colors.append(orange if inner_odd else lightorange)
-            if include_smt_times:
-              log_name_for_thread = "iteration." + str(iternum) if size == None else "iteration." + str(iternum) + ".size." + str(size)
-              smt_times.append(get_smt_time(input_directory, filename, log_name_for_thread))
+          if odd1:
+            colors.append(red if inner_odd else lightred)
           else:
-            colors.append(blue)
-            if include_smt_times:
-              smt_times.append(get_smt_time(input_directory, filename, "finisher"))
+            colors.append(orange if inner_odd else lightorange)
 
-      #if include_threads:
-      #  smt_times = get_smt_times(input_directory, filename)
+      fs = ts.get_finisher_stats()
+      if len(fs) > 0:
+        time_per_thread = sorted([s["total_time"] for s in fs])
+        thread_times.append(time_per_thread)
+        longest = get_longest(fs)
+        breakdowns.append(Breakdown(longest))
+        times.append(longest["total_time"])
+
+        colors.append(blue)
 
       bottom = 0
       for i in range(len(times)):
         if graph_cex_count or graph_inv_count:
-          (smt_sec, filtering_sec, cex_sec, cc, ic) = smt_times[i]
-          c = (cc if graph_cex_count else ic)
+          breakdown = breakdowns[i]
+          c = (breakdown.total_cex if graph_cex_count else breakdown.total_invs)
           ax.bar(idx, c, bottom=bottom, color=colors[i])
           bottom += c
         else:
           t = times[i]
 
-          if include_smt_times:
+          if include_breakdown:
             ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
           else:
             ax.bar(idx, t, bottom=bottom, color=colors[i])
 
-          if include_smt_times:
-            (smt_sec, filtering_sec, cex_sec, cex_count, inv_count) = smt_times[i]
+          if include_breakdown:
+            breakdown = breakdowns[i]
             a = bottom
-            b = bottom + smt_sec
-            c = bottom + smt_sec + filtering_sec
-            d = bottom + smt_sec + filtering_sec + cex_sec
-            e = bottom + t
-            ax.bar(idx + 0.2, b-a, bottom=a, width=0.4, color='black')
-            ax.bar(idx + 0.2, c-b, bottom=b, width=0.4, color='green')
-            ax.bar(idx + 0.2, d-c, bottom=c, width=0.4, color='red')
-            ax.bar(idx + 0.2, e-d, bottom=d, width=0.4, color='gray')
+            b = a + breakdown.filter_secs
+            c = b + breakdown.cex_secs
+            d = c + breakdown.nonredundant_secs
+            e = d + breakdown.redundant_secs
+            top = bottom + breakdown.stats["total_time"]
+            ax.bar(idx + 0.2, b-a, bottom=a, width=0.4, color='green')
+            ax.bar(idx + 0.2, c-b, bottom=b, width=0.4, color='red')
+            ax.bar(idx + 0.2, d-c, bottom=c, width=0.4, color='blue')
+            ax.bar(idx + 0.2, e-d, bottom=d, width=0.4, color='#8080ff')
+            ax.bar(idx + 0.2, top-e, bottom=e, width=0.4, color='gray')
 
           if include_threads:
             for j in range(len(thread_times[i])):
               thread_time = thread_times[i][j]
               m = len(thread_times[i])
-              if include_smt_times:
+              if include_breakdown:
                 ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.2 / float(m),
                     thread_time, bottom=bottom, width = 0.4 / float(m),
                     color=slightly_darken(colors[i]))
@@ -308,91 +388,6 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
                     color=slightly_darken(colors[i]))
 
           bottom += t
-
-def get_smt_time(input_directory, filename, iteration_key):
-  with open(os.path.join(input_directory, filename)) as f:
-    logpath = None
-    threads = None
-    for line in f:
-      if line.startswith("logs "):
-        logpath = line.split()[1]
-      if line.startswith("Number of threads: "):
-        threads = int(line.split()[3])
-      if logpath != None and threads != None:
-        break
-    assert logpath != None
-    assert threads != None
-
-  thread_to_use = None
-  with open(logpath) as f:
-    for line in f:
-      if line.startswith("complete " + iteration_key + ".thread."):
-        l = line.split()[1]
-        thread_to_use = int(l.split('.')[-1])
-
-  ms = 0
-  filtering_ms = None
-  cex_ms = None
-  inv_count = None
-  cex_count_t = None
-  cex_count_f = None
-  cex_count_i = None
-  new_inv_count = 0
-  with open(logpath + "." + iteration_key + ".thread." + str(thread_to_use)) as f:
-    for line in f:
-      if line.startswith("SMT result ("):
-        t = int(line.split()[-2])
-        ms += t
-      elif line.startswith("total time filtering: "):
-        filtering_ms = int(line.split()[3])
-      elif line.startswith("total time addCounterexample: "):
-        cex_ms = int(line.split()[3])
-      elif line.startswith("Counterexamples of type TRUE:"):
-        cex_count_t = int(line.split()[-1])
-      elif line.startswith("Counterexamples of type FALSE:"):
-        cex_count_f = int(line.split()[-1])
-      elif line.startswith("Counterexamples of type TRANSITION:"):
-        cex_count_i = int(line.split()[-1])
-      elif line.startswith("number of redundant invariants found:"):
-        inv_count = int(line.split()[-1])
-      elif line.startswith("found new invariant! all so far:"):
-        new_inv_count += 1
-  assert filtering_ms != None
-  assert cex_ms != None
-  assert inv_count != None
-  assert cex_count_t != None
-  assert cex_count_f != None
-  assert cex_count_i != None
-
-  print(new_inv_count)
-
-  cex_count = cex_count_t + cex_count_f + cex_count_i
-        
-  return (ms / 1000, filtering_ms / 1000, cex_ms / 1000, cex_count, inv_count + new_inv_count)
-  
-#def get_smt_times(input_directory, filename):
-#  with open(os.path.join(input_directory, filename)) as f:
-#    times = []
-#    cur = None
-#    for line in f:
-#      line = line.strip()
-#      if line == "-------------------------------------------------":
-#        if cur == None:
-#          cur = 0
-#        else:
-#          times.append(cur)
-#          cur = None
-#      elif cur != None:
-#        t = line.split('--->')
-#        key = t[0].strip()
-#        value = t[1].strip()
-#        if key in (
-#          'z3 TOTAL sat time',
-#          'z3 TOTAL unsat time',
-#          'cvc4 TOTAL sat time',
-#          'cvc4 TOTAL unsat time'):
-#          cur += int(value.split()[0])
-#  return [t/1000 for t in times]
 
 def get_total_time(input_directory, filename):
   with open(os.path.join(input_directory, filename)) as f:
@@ -446,7 +441,7 @@ def main():
 
   make_seed_graph(ax.flat[2], input_directory, "paxos_breadth", True)
   make_parallel_graph(ax.flat[7], input_directory, "paxos_breadth", True)
-  make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", False)
+  make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", True)
 
   make_parallel_graph(ax.flat[8], input_directory, "paxos_breadth", True, graph_cex_count=True)
   make_parallel_graph(ax.flat[13], input_directory, "nonacc_paxos_breadth", False, graph_cex_count=True)
