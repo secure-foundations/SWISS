@@ -15,7 +15,7 @@ public:
   void addExistingInvariant(value inv);
 
   long long getProgress() { return progress; }
-  long long getSpaceSize() { assert(false); }
+  long long getSpaceSize();
   long long progress;
 
 //private:

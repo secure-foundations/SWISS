@@ -446,3 +446,18 @@ void AltDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
         pieces, var_index_transitions, sz);
   }
 }
+
+long long AltDisjunctCandidateSolver::getSpaceSize() {
+  while (true) {
+    increment();
+    progress++;
+    /*if (progress % 500000 == 0) {
+      cout << progress << endl;
+      dump_cur_indices();
+    }*/
+    if (done) {
+      return progress;
+    }
+  }
+}
+
