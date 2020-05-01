@@ -174,11 +174,32 @@ class BasicStats(object):
     self.smt_time_sec = (self.z3_sat_time + self.z3_unsat_time + self.cvc4_sat_time + self.cvc4_unsat_time) // 1000
     self.smt_ops = self.z3_sat_ops + self.z3_unsat_ops + self.cvc4_sat_ops + self.cvc4_unsat_ops
 
-    self.b_size = -1
-    self.f_size = -1
+    if name == 'mm_leader_election_breadth':
+      self.b_size = 4490
+      self.f_size = -1
+    elif name == 'mm_leader_election_fin':
+      self.b_size = -1
+      self.f_size = 56915730
+    elif name == "mm_2pc":
+      self.b_size = 3739
+      self.f_size = -1
+    elif name == "mm_lock_server":
+      self.b_size = -1
+      self.f_size = 11
+    elif name == "mm_learning_switch":
+      self.b_size = 2259197
+      self.f_size = -1
+    elif name == "mm_paxos":
+      self.b_size = 3435314 + 
+      self.f_size = 
+    elif name == "mm_flexible_paxos":
+      self.b_size = 
+      self.f_size = 
+
+
     self.num_valid_finisher_candidates = -1
 
-def make_table(input_directory):
+def make_table(input_directory, which):
   s = [
     BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth"),
     BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin"),
@@ -188,25 +209,31 @@ def make_table(input_directory):
     BasicStats(input_directory, "Paxos", "mm_paxos"),
     BasicStats(input_directory, "Flexible Paxos", "mm_flexible_paxos"),
   ]
-  columns = [
-    ('Benchmark', 'name'),
-    ('$t$', 'total_time_sec'),
-    ('$B_i$', 'num_breadth_iters'),
-    ('$F_i$', 'num_finisher_iters', 'checkmark'),
-    ('$|\\B|$', 'b_size', 'b_only'),
-    ('$|\\F|$', 'f_size', 'f_only'),
-    #('Breadth time (sec)', 'breadth_total_time_sec'),
-    #('Finisher time (sec)', 'finisher_time_sec'),
-    ('$B_t$', 'breadth_total_time_sec', 'b_only'),
-    ('$F_t$', 'finisher_time_sec', 'f_only'),
-    ('\\cextrue', 'cex_true'),
-    ('\\cexfalse', 'cex_false'),
-    ('\\cexind', 'cex_trans'),
-    ('$r$', 'num_redundant', 'b_only'),
-    ('SMT calls', 'smt_ops'),
-    ('SMT time (sec)', 'smt_time_sec'),
-    ('$m$', 'num_inv'),
-  ]
+  if which == 0:
+    columns = [
+      ('Benchmark', 'name'),
+      ('Threads', 'num_threads'),
+      ('$B_i$', 'num_breadth_iters'),
+      ('$F_i$', 'num_finisher_iters', 'checkmark'),
+      ('$|\\B|$', 'b_size', 'b_only'),
+      ('$|\\F|$', 'f_size', 'f_only'),
+      ('$t$', 'total_time_sec'),
+      #('Breadth time (sec)', 'breadth_total_time_sec'),
+      #('Finisher time (sec)', 'finisher_time_sec'),
+      ('$B_t$', 'breadth_total_time_sec', 'b_only'),
+      ('$F_t$', 'finisher_time_sec', 'f_only'),
+    ]
+  else:
+    columns = [
+      ('Benchmark', 'name'),
+      ('\\cextrue', 'cex_true'),
+      ('\\cexfalse', 'cex_false'),
+      ('\\cexind', 'cex_trans'),
+      ('$r$', 'num_redundant', 'b_only'),
+      ('SMT calls', 'smt_ops'),
+      ('SMT time (sec)', 'smt_time_sec'),
+      ('$m$', 'num_inv'),
+    ]
   print("\\begin{tabular}{" + ('|l' * len(columns)) + "|}")
   print("\\hline")
   for i in range(len(columns)):

@@ -709,7 +709,8 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   CexStats cexstats;
 
   if (options.get_space_size) {
-    cout << "space size: " << cs->getSpaceSize() << endl;
+    long long s = cs->getSpaceSize();
+    cout << "space size: " << s << endl;
     exit(0);
   }
 
@@ -1123,6 +1124,13 @@ SynthesisResult synth_loop_incremental_breadth(
     num_iterations_outer++;
 
     shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, true);
+
+    if (options.get_space_size) {
+      long long s = cs->getSpaceSize();
+      cout << "space size: " << s << endl;
+      exit(0);
+    }
+
     if (options.enum_sat) {
       for (value inv : filtered_simplified_strengthened_invs) {
         cs->addExistingInvariant(inv);

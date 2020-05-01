@@ -375,7 +375,17 @@ body_end:
 }
 
 long long BigDisjunctCandidateSolver::getSpaceSize() {
-  assert(false);
+  while (true) {
+    increment();
+    progress++;
+    /*if (progress % 500000 == 0) {
+      cout << progress << endl;
+      dump_cur_indices();
+    }*/
+    if (done) {
+      return progress;
+    }
+  }
 }
 
 void BigDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)

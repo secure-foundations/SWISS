@@ -467,9 +467,9 @@ pair<vector<value>, vector<value>> enumerate_for_template(
 
     sort_values(fills);
 
-    for (value v : fills) {
-      cout << v->to_string() << endl;
-    }
+    //for (value v : fills) {
+    //  cout << v->to_string() << endl;
+    //}
 
     //cout << "fills len " << fills.size() << endl;
 
