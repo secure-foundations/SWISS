@@ -59,15 +59,20 @@ for seed in range(1, 8):
 #      "paxos_finisher_t" + str(i),
 #      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
+#for i in range(THREADS, 0, -1):
+#  benches.append(PaperBench(
+#      "paxos_implshape_finisher_t" + str(i),
+#      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
+
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(
-      "paxos_implshape_finisher_t" + str(i),
-      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
+      "paxos_depth2_finisher_t" + str(i),
+      "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
 
-for postbmc in (False, True):
-  for prebmc in (False, True):
-    for minmodels in [True]: #(True, False):
+for minmodels in (True, False):
+  for postbmc in (False, True):
+    for prebmc in (False, True):
       name = ""
       args = ""
       if postbmc:
@@ -86,6 +91,7 @@ for postbmc in (False, True):
       benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"lock_server", "lock-server --threads 1"+args))
       benches.append(PaperBench(name+"2pc", "breadth-2pc --threads 1"+args))
+      benches.append(PaperBench(name+"multi_paxos", "full-multi-paxos-depth2 --threads "+str(THREADS)+args))
 
 for i in range(3, 0, -1):
   benches.append(PaperBench(

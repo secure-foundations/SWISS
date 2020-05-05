@@ -174,28 +174,29 @@ class BasicStats(object):
     self.smt_time_sec = (self.z3_sat_time + self.z3_unsat_time + self.cvc4_sat_time + self.cvc4_unsat_time) // 1000
     self.smt_ops = self.z3_sat_ops + self.z3_unsat_ops + self.cvc4_sat_ops + self.cvc4_unsat_ops
 
-    if name == 'mm_leader_election_breadth':
+    if filename == 'mm_leader_election_breadth':
       self.b_size = 4490
       self.f_size = -1
-    elif name == 'mm_leader_election_fin':
+    elif filename == 'mm_leader_election_fin':
       self.b_size = -1
       self.f_size = 56915730
-    elif name == "mm_2pc":
+    elif filename == "mm_2pc":
       self.b_size = 3739
       self.f_size = -1
-    elif name == "mm_lock_server":
+    elif filename == "mm_lock_server":
       self.b_size = -1
       self.f_size = 11
-    elif name == "mm_learning_switch":
+    elif filename == "mm_learning_switch":
       self.b_size = 2259197
       self.f_size = -1
-    elif name == "mm_paxos":
-      self.b_size = 3435314 + 
-      self.f_size = 
-    elif name == "mm_flexible_paxos":
-      self.b_size = 
-      self.f_size = 
-
+    elif filename == "mm_paxos":
+      self.b_size = 3435314 + 47972
+      self.f_size = 232460599446
+    elif filename == "mm_flexible_paxos":
+      self.b_size = 3435314 + 47972
+      self.f_size = 232460599446
+    else:
+      assert False, "don't have numbers for " + filename
 
     self.num_valid_finisher_candidates = -1
 
@@ -266,8 +267,8 @@ def make_nonacc_cmp_graph(ax, input_directory):
   a = get_files_with_prefix(input_directory, "paxos_breadth_seed_")
   b = get_files_with_prefix(input_directory, "nonacc_paxos_breadth_seed_")
   columns = (
-    [(a[i], i+1) for i in range(len(a))] +
-    [(b[i], len(a) + 2 + i) for i in range(len(b))]
+    [(a[i], i+1, i+1) for i in range(len(a))] +
+    [(b[i], len(a) + 2 + i, i+1) for i in range(len(b))]
   )
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
@@ -278,13 +279,26 @@ def make_parallel_graph(ax, input_directory, name, include_breakdown, graph_cex_
     suffix = ' (cex)'
   if graph_inv_count:
     suffix = ' (invs)'
-  ax.set_title("parallel " + name + suffix)
+  
+  if name == "paxos_implshape_finisher":
+    ax.set_title("Paxos Finisher")
+  elif name == "paxos_breadth":
+    ax.set_title("Paxos BreadthAccumulative")
+  elif name == "nonacc_paxos_breadth":
+    ax.set_title("Paxos Breadth")
+  else:
+    ax.set_title("parallel " + name + suffix)
+
+  ax.set_ylabel("seconds")
+  ax.set_xlabel("threads")
   make_segmented_graph(ax, input_directory, name, "_t", True, include_breakdown, 
       graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count)
 
 def make_seed_graph(ax, input_directory, name, include_breakdown):
   ax.set_title("seed " + name)
+  ax.set_ylabel("seconds")
   make_segmented_graph(ax, input_directory, name, "_seed_", True, include_breakdown)
+  ax.set_xticks([])
 
 red = '#ff4040'
 lightred = '#ff8080'
@@ -332,9 +346,13 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
     for filename in os.listdir(input_directory):
       if filename.startswith(name + suffix):
         idx = int(filename[len(name + suffix) : ])
-        columns.append((filename, idx))
+        x_label = idx
+        columns.append((filename, idx, x_label))
 
-  for (filename, idx) in columns:
+  ax.set_xticks([a[1] for a in columns])
+  ax.set_xticklabels([a[2] for a in columns]) 
+
+  for (filename, idx, label) in columns:
       ts = ThreadStats(input_directory, filename)
 
       times = []
@@ -441,6 +459,26 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
           bottom=0, width=0.8/len(opts), color='black')
   
+def make_parallel_graphs(input_directory, save=False):
+  output_directory = "graphs"
+  Path(output_directory).mkdir(parents=True, exist_ok=True)
+
+  fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[15, 3])
+
+  #plt.tight_layout()
+  plt.gcf().subplots_adjust(bottom=0.20)
+
+  ax.flat[1].set_ylim(bottom=0, top=500)
+  ax.flat[2].set_ylim(bottom=0, top=500)
+
+  make_parallel_graph(ax.flat[0], input_directory, "paxos_implshape_finisher", True)
+  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth", True)
+  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", True)
+
+  if save:
+    plt.savefig(os.path.join(output_directory, 'paxos-parallel.png'))
+  else:
+    plt.show()
 
 def main():
   directory = sys.argv[1]
@@ -480,7 +518,8 @@ def main():
   plt.show()
 
 if __name__ == '__main__':
-  #directory = sys.argv[1]
-  #input_directory = os.path.join("paperlogs", directory)
+  directory = sys.argv[1]
+  input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory)
-  main()
+  #main()
+  make_parallel_graphs(input_directory)
