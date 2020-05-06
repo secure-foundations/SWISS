@@ -158,6 +158,7 @@ def awesome_async_run(directory, benches, j):
 
   benches = sorted(benches, key = lambda b : -b.threads)
   done = [False] * len(benches)
+  started = [False] * len(benches)
   c = 0
   for i in range(len(benches)):
     if exists(directory, benches[i]):
@@ -171,7 +172,7 @@ def awesome_async_run(directory, benches, j):
   while c < len(benches):
     cur = None
     for i in range(len(benches)):
-      if not done[i] and benches[i].threads + t <= j:
+      if (not done[i]) and (not started[i]) and benches[i].threads + t <= j:
         cur = i
         break
     if cur is None:
@@ -184,6 +185,7 @@ def awesome_async_run(directory, benches, j):
           args=(directory, benches[cur], cur, q))
       thr.start()
       t += benches[cur].threads
+      started[cur] = True
 
 def parse_args(args):
   res = []
