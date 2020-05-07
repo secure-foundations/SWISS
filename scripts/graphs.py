@@ -209,6 +209,7 @@ def make_table(input_directory, which):
     BasicStats(input_directory, "Learning switch", "mm_learning_switch"),
     BasicStats(input_directory, "Paxos", "mm_paxos"),
     BasicStats(input_directory, "Flexible Paxos", "mm_flexible_paxos"),
+    BasicStats(input_directory, "Multi-Paxos", "mm_multi_paxos"),
   ]
   if which == 0:
     columns = [

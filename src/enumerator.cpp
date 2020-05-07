@@ -487,6 +487,7 @@ pair<vector<value>, vector<value>> enumerate_for_template(
     all_hole_fills.push_back(move(f3));
   }
 
+  assert (all_hole_fills.size() > 0);
   vector<value> res = fill_holes(templ, all_hole_fills);
   vector<value> final = remove_equiv2(res);
 

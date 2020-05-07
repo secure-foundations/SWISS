@@ -107,7 +107,7 @@ BENCHMARKS = {
 
 "breadth-paxos-exist-1" :
   Benchmark("benchmarks/paxos_epr_existential_1.ivy",
-      "--start-with-existing-conjectures",
+      #"--start-with-existing-conjectures",
       "--breadth --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
 
 "finisher-paxos-exist-1" : # the hard one
@@ -184,5 +184,18 @@ BENCHMARKS = {
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
 
+"full-multi-paxos-depth2" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
+
+"finisher-paxos-minus-size4" :
+  Benchmark("benchmarks/paxos_epr_minus_size4.ivy", "--with-conjs",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 4"),
+
+"breadth-paxos-minus-size4" :
+  Benchmark("benchmarks/paxos_epr_minus_size4.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4"),
 
 }

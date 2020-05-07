@@ -131,6 +131,12 @@ export propose
 export cast_vote
 export decide
 
+# safety property:
+conjecture (
+    decision(N1,R1,V1) &
+    decision(N2,R2,V2)
+) -> V1 = V2
+
 # proposals are unique per round
 conjecture proposal(R,V1) & proposal(R,V2) -> V1 = V2
 
