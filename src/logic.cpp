@@ -102,22 +102,38 @@ vector<VarDecl> json2decl_array(Json j) {
   return res;
 }
 
-shared_ptr<Value> json2value(Json j) {
+set<iden> add_names(set<iden> names, vector<VarDecl> const& decls)
+{
+  for (VarDecl const& decl : decls) {
+    // sanity check
+    assert (names.find(decl.name) == names.end() && "duplicate variable name in input");
+    names.insert(decl.name);
+  }
+  return names;
+}
+
+shared_ptr<Value> json2value(Json j, set<iden> const& names) {
   assert(j.is_array());
   assert(j.array_items().size() >= 1);
   assert(j[0].is_string());
   string type = j[0].string_value();
   if (type == "forall") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new Forall(json2decl_array(j[1]), json2value(j[2])));
+    vector<VarDecl> decls = json2decl_array(j[1]);
+    set<iden> new_names = add_names(names, decls);
+    return shared_ptr<Value>(new Forall(decls, json2value(j[2], new_names)));
   }
   if (type == "nearlyforall") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new NearlyForall(json2decl_array(j[1]), json2value(j[2])));
+    vector<VarDecl> decls = json2decl_array(j[1]);
+    set<iden> new_names = add_names(names, decls);
+    return shared_ptr<Value>(new NearlyForall(decls, json2value(j[2], new_names)));
   }
   else if (type == "exists") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new Exists(json2decl_array(j[1]), json2value(j[2])));
+    vector<VarDecl> decls = json2decl_array(j[1]);
+    set<iden> new_names = add_names(names, decls);
+    return shared_ptr<Value>(new Exists(decls, json2value(j[2], new_names)));
   }
   else if (type == "var") {
     assert (j.array_items().size() == 3);
@@ -131,19 +147,19 @@ shared_ptr<Value> json2value(Json j) {
   }
   else if (type == "implies") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new Implies(json2value(j[1]), json2value(j[2])));
+    return shared_ptr<Value>(new Implies(json2value(j[1], names), json2value(j[2], names)));
   }
   else if (type == "eq") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new Eq(json2value(j[1]), json2value(j[2])));
+    return shared_ptr<Value>(new Eq(json2value(j[1], names), json2value(j[2], names)));
   }
   else if (type == "not") {
     assert (j.array_items().size() == 2);
-    return shared_ptr<Value>(new Not(json2value(j[1])));
+    return shared_ptr<Value>(new Not(json2value(j[1], names)));
   }
   else if (type == "apply") {
     assert (j.array_items().size() == 3);
-    return shared_ptr<Value>(new Apply(json2value(j[1]), json2value_array(j[2])));
+    return shared_ptr<Value>(new Apply(json2value(j[1], names), json2value_array(j[2])));
   }
   else if (type == "and") {
     assert (j.array_items().size() == 2);
@@ -161,6 +177,10 @@ shared_ptr<Value> json2value(Json j) {
     printf("value type: %s\n", type.c_str());
     assert(false && "unrecognized Value type");
   }
+}
+
+shared_ptr<Value> json2value(Json j) {
+  return json2value(j, {});
 }
 
 shared_ptr<Value> Value::from_json(Json j) {
