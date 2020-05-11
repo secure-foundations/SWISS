@@ -184,12 +184,6 @@ BENCHMARKS = {
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
 
-"full-multi-paxos-depth2" :
-  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
-      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
-      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
-      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
-
 "finisher-paxos-minus-size4" :
   Benchmark("benchmarks/paxos_epr_minus_size4.ivy", "--with-conjs",
       "--finisher --template 0 --conj-arity 1 --disj-arity 4"),
@@ -221,4 +215,16 @@ BENCHMARKS = {
       "--breadth --template 2 --conj-arity 1 --disj-arity 5 --strat-alt",
       "--finisher --template 3 --conj-arity 1 --disj-arity 8 --depth2-shape"),
 
+
+"breadth-multi-paxos-4-r3" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4"),
+
+"breadth-multi-paxos-exist-2" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt"),
+
+"finisher-multi-paxos-exist-1-depth2" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
 }

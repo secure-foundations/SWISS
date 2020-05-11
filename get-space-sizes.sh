@@ -12,3 +12,7 @@ set -x
 ./bench-simple.sh breadth-flexible-paxos-4-r3 --get-space-size | grep 'space size'
 ./bench-simple.sh breadth-flexible-paxos-exist-2 --get-space-size | grep 'space size'
 ./bench-simple.sh finisher-flexible-paxos-exist-1-depth2 --get-space-size | grep 'space size'
+
+./bench-simple.sh breadth-multi-paxos-4-r3 --get-space-size | grep 'space size'
+./bench-simple.sh breadth-multi-paxos-exist-2 --get-space-size | grep 'space size'
+./bench-simple.sh finisher-multi-paxos-exist-1-depth2 --get-space-size | grep 'space size'
