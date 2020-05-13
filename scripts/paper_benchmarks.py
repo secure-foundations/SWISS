@@ -114,8 +114,8 @@ for i in range(3, 0, -1):
       "nonacc_chord_breadth_t" + str(i),
       "breadth-chord --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
-benches.append(PaperBench("finisher_paxos_minus_size4", "finisher-paxos-minus-size4 --whole-space --threads 1"))
-benches.append(PaperBench("breadth_paxos_minus_size4", "breadth-paxos-minus-size4 --threads 1"))
+#benches.append(PaperBench("finisher_paxos_minus_size4", "finisher-paxos-minus-size4 --whole-space --threads 1"))
+#benches.append(PaperBench("breadth_paxos_minus_size4", "breadth-paxos-minus-size4 --threads 1"))
 
 benches.append(PaperBench("fail_chord", "fail-chord --threads 7"))
 benches.append(PaperBench("fail_chain", "chain --threads 7"))

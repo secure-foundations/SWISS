@@ -398,7 +398,7 @@ bool conjectures_inv(
       conjectures);
 }
 
-/*void cex_stats(Counterexample cex) {
+void cex_stats(Counterexample cex) {
   shared_ptr<Model> model;
   if (cex.is_true) {
     model = cex.is_true;
@@ -414,7 +414,7 @@ bool conjectures_inv(
   }
 
   model->dump_sizes();
-}*/
+}
 
 Counterexample simplify_cex_nosafety(shared_ptr<Module> module, Counterexample cex, Options const& options,
     BMCContext& bmc) {
@@ -800,7 +800,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
         break;
       }
     } else {
-      //cex_stats(cex);
+      cex_stats(cex);
       cs->addCounterexample(cex, candidate);
       //transcript.entries.push_back(make_pair(cex, candidate));
     }
@@ -1013,7 +1013,7 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 
         break;
       } else {
-        //cex_stats(cex);
+        cex_stats(cex);
 
         Benchmarking add_cex_bench;
         add_cex_bench.start("add_counterexample");
@@ -1246,7 +1246,7 @@ SynthesisResult synth_loop_incremental_breadth(
           cs->addExistingInvariant(strengthened_inv);
         }
       } else {
-        //cex_stats(cex);
+        cex_stats(cex);
         auto t1 = now();
         cs->addCounterexample(cex, candidate0);
         auto t2 = now();
