@@ -1,0 +1,38 @@
+#lang ivy1.5
+
+type node
+
+relation message(Src: node, Dst: node)
+relation has_lock(N: node)
+
+individual start_node: node
+
+init forall Src, Dst . ~message(Src, Dst)
+init has_lock(start_node)
+init N ~= start_node -> ~has_lock(N)
+
+action send = {
+  local src: node, dst: node {
+    assume has_lock(src);
+    message(src, dst) := true;
+    has_lock(src) := false;
+  }
+}
+
+action recv = {
+  local src: node, dst: node {
+    assume message(src, dst);
+    message(src, dst) := false;
+    has_lock(dst) := true;
+  }
+}
+
+conjecture X ~= Y -> ~(has_lock(X) & has_lock(Y))
+
+#conjecture ~(has_lock(X) & message(Y,Z))
+#conjecture ~message(X,Y) | ~message(Z,W) | X=Z
+#conjecture ~message(X,Y) | ~message(Z,W) | Y=W
+
+#conjecture forall A, B, C, D . ((((A) = (B)) & ((C) = (D))) | ((~(has_lock(A))) & (~(message(A, C)))) | (~(message(B, D))))
+
+template forall A:node . forall B:node . forall C:node . forall D:node . WILD

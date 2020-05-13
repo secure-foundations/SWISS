@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 from pathlib import Path
 import sys
@@ -195,6 +196,9 @@ class BasicStats(object):
     elif filename == "mm_flexible_paxos":
       self.b_size = 3435314 + 47972
       self.f_size = 232460599446
+    elif filename == "mm_multi_paxos":
+      self.b_size = 8439183 + 26290
+      self.f_size = 33589418704
     else:
       assert False, "don't have numbers for " + filename
 
@@ -443,22 +447,57 @@ def get_total_time(input_directory, filename):
         return t
 
 def make_opt_comparison_graph(ax, input_directory, large_ones):
-  opts = ['mm_', 'postbmc_mm_', 'prebmc_mm_', 'postbmc_prebmc_mm_']
-  if large_ones:
-    probs = ['flexible_paxos', 'learning_switch', 'paxos']
-  else:
-    probs = ['2pc', 'leader_election_breadth', 'leader_election_fin', 'lock_server']
+  ax.set_yscale('log')
+  #opts = ['mm_', 'postbmc_mm_', 'prebmc_mm_', 'postbmc_prebmc_mm_']
+  opts = ['', 'mm_', 'prebmc_'] #, 'postbmc_']
+  #if large_ones:
+  #  probs = ['flexible_paxos', 'learning_switch', 'paxos']
+  #else:
+  #  probs = ['2pc', 'leader_election_breadth', 'leader_election_fin', 'lock_server']
+
+  colors = ['black', '#ff8080', '#8080ff', '#80ff80']
+
+  prob_data = [
+      ('Leader election (1)',  'leader_election_breadth'),
+      ('Leader election (2)',  'leader_election_fin'),
+      ('Two-phase commit', '2pc'),
+      ('Lock server', 'lock_server'),
+      ('Learning switch', 'learning_switch'),
+      ('Paxos', 'paxos'),
+      ('Flexible Paxos', 'flexible_paxos'),
+      #('Multi-Paxos', 'multi_paxos'),
+  ]
+
+  ax.set_xticks([i for i in range(1, len(prob_data) + 1)])
+  ax.set_xticklabels([name for (name, prob) in prob_data])
+  probs = [prob for (name, prob) in prob_data]
+
+  for tick in ax.get_xticklabels():
+      tick.set_rotation(90)
+
+  patterns = [ None, "\\" , "/" , "+" ]
+
   idx = 0
   for prob in probs:
     idx += 1
     opt_idx = -1
-    for opt in opts:
+    for (opt, color, pattern) in zip(opts, colors, patterns):
       opt_idx += 1
 
       name = opt + prob
       t = get_total_time(input_directory, name)
       ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
-          bottom=0, width=0.8/len(opts), color='black')
+          bottom=0, width=0.8/len(opts), color=color, edgecolor='black') #hatch=pattern)
+
+  p = []
+  for (opt, color, pattern) in zip(opts, colors, patterns):
+    opt_name = {
+      '': "Baseline",
+      'mm_': "Minimal models",
+      'prebmc_': "BMC",
+    }[opt]
+    p.append(patches.Patch(color=color, label=opt_name))
+  ax.legend(handles=p)
   
 def make_parallel_graphs(input_directory, save=False):
   output_directory = "graphs"
@@ -481,6 +520,20 @@ def make_parallel_graphs(input_directory, save=False):
   else:
     plt.show()
 
+def make_opt_graphs_main(input_directory, save=False):
+  output_directory = "graphs"
+  Path(output_directory).mkdir(parents=True, exist_ok=True)
+
+  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=[5, 4.5])
+  plt.gcf().subplots_adjust(bottom=0.45)
+
+  make_opt_comparison_graph(ax, input_directory, True)
+
+  if save:
+    plt.savefig(os.path.join(output_directory, 'opt-comparison.png'))
+  else:
+    plt.show()
+
 def main():
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
@@ -490,13 +543,13 @@ def main():
 
   fig, ax = plt.subplots(nrows=3, ncols=5, figsize=[6, 8])
 
-  make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
+  #make_parallel_graph(ax.flat[0], input_directory, "paxos_breadth", False)
+  #make_parallel_graph(ax.flat[1], input_directory, "paxos_implshape_finisher", False)
   #make_seed_graph(ax.flat[2], input_directory, "learning_switch", False)
   #make_seed_graph(ax.flat[3], input_directory, "paxos_breadth", False)
 
-  make_parallel_graph(ax.flat[5], input_directory, "paxos_breadth", False)
-  make_parallel_graph(ax.flat[6], input_directory, "paxos_implshape_finisher", True)
+  #make_parallel_graph(ax.flat[5], input_directory, "paxos_breadth", False)
+  #make_parallel_graph(ax.flat[6], input_directory, "paxos_implshape_finisher", True)
   #make_seed_graph(ax.flat[7], input_directory, "learning_switch", True)
   #make_seed_graph(ax.flat[8], input_directory, "paxos_breadth", True)
 
@@ -505,15 +558,15 @@ def main():
 
   #make_nonacc_cmp_graph(ax.flat[12], input_directory)
 
-  make_seed_graph(ax.flat[2], input_directory, "paxos_breadth", True)
-  make_parallel_graph(ax.flat[7], input_directory, "paxos_breadth", True)
-  make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", True)
+  #make_seed_graph(ax.flat[2], input_directory, "paxos_breadth", True)
+  #make_parallel_graph(ax.flat[7], input_directory, "paxos_breadth", True)
+  #make_parallel_graph(ax.flat[12], input_directory, "nonacc_paxos_breadth", True)
 
-  make_parallel_graph(ax.flat[8], input_directory, "paxos_breadth", True, graph_cex_count=True)
-  make_parallel_graph(ax.flat[13], input_directory, "nonacc_paxos_breadth", False, graph_cex_count=True)
+  #make_parallel_graph(ax.flat[8], input_directory, "paxos_breadth", True, graph_cex_count=True)
+  #make_parallel_graph(ax.flat[13], input_directory, "nonacc_paxos_breadth", False, graph_cex_count=True)
 
-  make_parallel_graph(ax.flat[9], input_directory, "paxos_breadth", True, graph_inv_count=True)
-  make_parallel_graph(ax.flat[14], input_directory, "nonacc_paxos_breadth", False, graph_inv_count=True)
+  #make_parallel_graph(ax.flat[9], input_directory, "paxos_breadth", True, graph_inv_count=True)
+  #make_parallel_graph(ax.flat[14], input_directory, "nonacc_paxos_breadth", False, graph_inv_count=True)
 
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
@@ -522,5 +575,5 @@ if __name__ == '__main__':
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory)
-  #main()
-  make_parallel_graphs(input_directory)
+  main()
+  #make_parallel_graphs(input_directory)

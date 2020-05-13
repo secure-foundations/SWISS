@@ -227,4 +227,9 @@ BENCHMARKS = {
 "finisher-multi-paxos-exist-1-depth2" :
   Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --depth2-shape"),
+
+"sdl":
+  Benchmark("benchmarks/simple-de-lock.ivy", "--with-conjs",
+      "--finisher --template 0 --disj-arity 8 --depth2-shape"),
+  
 }

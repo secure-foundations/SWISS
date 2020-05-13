@@ -52,7 +52,7 @@ for seed in range(1, 5):
 for seed in range(1, 5):
   benches.append(PaperBench(
       "wholespace_finisher_paxos_seed_" + str(seed),
-      "finisher-paxos-depth2 --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+      "finisher-paxos-exist-1-depth2 --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 5):
   benches.append(PaperBench(
@@ -94,6 +94,7 @@ for minmodels in (True, False):
       if minmodels:
         name += "mm_"
         args += " --minimal-models"
+      benches.append(PaperBench(name+"sdl", "sdl --threads 1"+args))
       benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads 1"+args))
       benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads 4"+args))
       benches.append(PaperBench(name+"learning_switch", "breadth-learning-switch --threads "+str(THREADS)+args))
