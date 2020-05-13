@@ -80,7 +80,8 @@ for i in range(THREADS, 0, -1):
       "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
 
-for minmodels in (True, False):
+#for minmodels in (True, False):
+for minmodels in (True,):
   for postbmc in (False, True):
     for prebmc in (False, True):
       name = ""
