@@ -115,7 +115,8 @@ def get_longest(stat_list):
   return t
 
 class BasicStats(object):
-  def __init__(self, input_directory, name, filename):
+  def __init__(self, input_directory, name, filename, I4=None):
+    self.I4_time = I4
     self.name = name
     with open(os.path.join(input_directory, filename)) as f:
       doing_total = False
@@ -206,11 +207,12 @@ class BasicStats(object):
 
 def make_table(input_directory, which):
   s = [
-    BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth"),
-    BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin"),
-    BasicStats(input_directory, "Two-phase commit", "mm_2pc"),
-    BasicStats(input_directory, "Lock server", "mm_lock_server"),
-    BasicStats(input_directory, "Learning switch", "mm_learning_switch"),
+    #BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
+    BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth", I4='6.1'),
+    BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin", I4='6.1'),
+    BasicStats(input_directory, "Two-phase commit", "mm_2pc", I4='4.3'),
+    BasicStats(input_directory, "Lock server", "mm_lock_server", I4='0.8'),
+    BasicStats(input_directory, "Learning switch", "mm_learning_switch", I4='10.7'),
     BasicStats(input_directory, "Paxos", "mm_paxos"),
     BasicStats(input_directory, "Flexible Paxos", "mm_flexible_paxos"),
     BasicStats(input_directory, "Multi-Paxos", "mm_multi_paxos"),
@@ -228,6 +230,7 @@ def make_table(input_directory, which):
       #('Finisher time (sec)', 'finisher_time_sec'),
       ('$B_t$', 'breadth_total_time_sec', 'b_only'),
       ('$F_t$', 'finisher_time_sec', 'f_only'),
+      ('I4', 'I4_time'),
     ]
   else:
     columns = [
@@ -240,7 +243,7 @@ def make_table(input_directory, which):
       ('SMT time (sec)', 'smt_time_sec'),
       ('$m$', 'num_inv'),
     ]
-  print("\\begin{tabular}{" + ('|l' * len(columns)) + "|}")
+  print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "||l|}")
   print("\\hline")
   for i in range(len(columns)):
     print(columns[i][0], "\\\\" if i == len(columns) - 1 else "&", end=" ")
@@ -256,6 +259,8 @@ def make_table(input_directory, which):
         prop = ""
       if len(col) >= 3 and col[2] == 'f_only' and bench.num_finisher_iters == 0:
         prop = ""
+      if col[1] == 'I4_time' and prop == 'None':
+        prop = ''
       print(prop, "\\\\" if i == len(columns) - 1 else "&", end=" ")
     print("")
     print("\\hline")
@@ -461,7 +466,7 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       ('Leader election (1)',  'leader_election_breadth'),
       ('Leader election (2)',  'leader_election_fin'),
       ('Two-phase commit', '2pc'),
-      ('Lock server', 'lock_server'),
+      #('Lock server', 'lock_server'),
       ('Learning switch', 'learning_switch'),
       ('Paxos', 'paxos'),
       ('Flexible Paxos', 'flexible_paxos'),

@@ -117,6 +117,12 @@ for i in range(3, 0, -1):
 benches.append(PaperBench("finisher_paxos_minus_size4", "finisher-paxos-minus-size4 --whole-space --threads 1"))
 benches.append(PaperBench("breadth_paxos_minus_size4", "breadth-paxos-minus-size4 --threads 1"))
 
+benches.append(PaperBench("fail_chord", "fail-chord --threads 7"))
+benches.append(PaperBench("fail_chain", "chain --threads 7"))
+benches.append(PaperBench("fail_delock", "fail-delock --threads 7"))
+benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --threads 7"))
+benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --threads 7"))
+
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
 
