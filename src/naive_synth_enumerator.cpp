@@ -306,6 +306,7 @@ std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
     return shared_ptr<CandidateSolver>(new AltImplCandidateSolver(module, templ, options.disj_arity));
   }
   else if (!options.impl_shape && !options.strat_alt && !options.depth2_shape) {
+    assert (options.conj_arity > 1);
     return shared_ptr<CandidateSolver>(new ConjunctCandidateSolver(module, templ, options.conj_arity, options.disj_arity));
   }
   else if (!options.impl_shape && options.depth2_shape) {

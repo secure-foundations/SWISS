@@ -230,23 +230,24 @@ BENCHMARKS = {
 
 "sdl":
   Benchmark("benchmarks/simple-de-lock.ivy", "--with-conjs",
-      "--finisher --template 0 --disj-arity 8 --depth2-shape"),
+      "--finisher --template 0 --conj-arity 1 --disj-arity 8 --depth2-shape"),
 
 # size 5 is 7482678873
 "chain":
   Benchmark("benchmarks/chord.ivy", "--with-conjs",
-      "--breadth --disj-arity 4",
-      "--finisher --disj-arity 6 --depth2-shape"),
+      "--breadth --conj-arity 1 --disj-arity 4",
+      "--finisher --conj-arity 1 --disj-arity 6 --depth2-shape"),
 
 # 43,893,203,822
 "fail-delock":
   Benchmark("benchmarks/decentralized-lock.ivy", "--with-conjs",
-      "--finisher --template 0 --disj-arity 5 --depth2-shape"),
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
+# 603,223,828,972
 "fail-chord":
   Benchmark("benchmarks/chord.ivy", "--with-conjs",
-      "--breadth --disj-arity 4",
-      "--finisher --template 0 --disj-arity 5 --depth2-shape"),
+      "--breadth --conj-arity 1 --disj-arity 4",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --depth2-shape"),
   
 
 "fail-full-stoppable-paxos-depth2" :

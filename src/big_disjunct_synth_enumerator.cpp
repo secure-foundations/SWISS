@@ -453,6 +453,7 @@ void BigDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
   int k = 2;
   for (int sz = 1; sz <= disj_arity; sz++) {
     int j = k < sz ? sz - k : 0;
+    if (j >= 4) j = 3;
     VarIndexState vis = var_index_states[0];
     vector<int> indices;
     indices.resize(j);
