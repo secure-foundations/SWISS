@@ -236,7 +236,7 @@ BENCHMARKS = {
 "chain":
   Benchmark("benchmarks/chord.ivy", "--with-conjs",
       "--breadth --conj-arity 1 --disj-arity 4",
-      "--finisher --conj-arity 1 --disj-arity 6 --depth2-shape"),
+      "--finisher --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
 # 43,893,203,822
 "fail-delock":
