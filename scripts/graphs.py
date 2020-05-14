@@ -82,7 +82,10 @@ class ThreadStats(object):
     return '.'.join(log.split('.')[5:])
 
 class Breakdown(object):
-  def __init__(self, stats):
+  def __init__(self, stats, skip=False):
+    if skip:
+      break
+
     self.stats = stats
     self.total_smt_ms = 0
     for k in stats:
@@ -105,6 +108,23 @@ class Breakdown(object):
       stats["number of non-redundant invariants found"] +
       stats["number of redundant invariants found"]
     )
+
+  def add(self, other):
+    b = Breakdown(None, skip=True)
+    for attr in (
+        "total_smt_ms",
+        "filter_secs",
+        "cex_secs",
+        "nonredundant_secs",
+        "redundant_secs",
+        "total_cex"):
+      setattr(b, attr, getattr(self, attr) + getattr(other, attr))
+
+def sum_breakdowns(l):
+  t = l[0]
+  for i in range(1, len(l)):
+    t = t.add(l[i])
+  return t
 
 def get_longest(stat_list):
   assert len(stat_list) > 0
@@ -283,14 +303,14 @@ def make_nonacc_cmp_graph(ax, input_directory):
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
-def make_parallel_graph(ax, input_directory, name, include_breakdown, graph_cex_count=False, graph_inv_count=False):
+def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False):
   suffix = ''
   if graph_cex_count:
     suffix = ' (cex)'
   if graph_inv_count:
     suffix = ' (invs)'
   
-  if name == "paxos_implshape_finisher":
+  if name == "paxos_depth2_finisher":
     ax.set_title("Paxos Finisher")
   elif name == "paxos_breadth":
     ax.set_title("Paxos BreadthAccumulative")
@@ -301,13 +321,22 @@ def make_parallel_graph(ax, input_directory, name, include_breakdown, graph_cex_
 
   ax.set_ylabel("seconds")
   ax.set_xlabel("threads")
-  make_segmented_graph(ax, input_directory, name, "_t", True, include_breakdown, 
-      graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count)
+  make_segmented_graph(ax, input_directory, name, "_t", include_threads=include_threads, include_breakdown=include_breakdown, 
+      collapsed_breakdown=collapsed_breakdown,
+      graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count, collapse_size_split=collapse_size_split)
 
-def make_seed_graph(ax, input_directory, name, include_breakdown):
-  ax.set_title("seed " + name)
+def make_seed_graph(ax, input_directory, name, title=None, include_threads=False, include_breakdown=False, skip_b=False, skip_f=False):
+  if title is None:
+    ax.set_title("seed " + name)
+  else:
+    ax.set_title(title)
+    
   ax.set_ylabel("seconds")
-  make_segmented_graph(ax, input_directory, name, "_seed_", True, include_breakdown)
+  make_segmented_graph(ax, input_directory, name, "_seed_",
+      include_threads=include_threads,
+      include_breakdown=include_breakdown,
+      skip_b=skip_b,
+      skip_f=skip_f)
   ax.set_xticks([])
 
 red = '#ff4040'
@@ -347,7 +376,16 @@ def group_by_thread(s):
     a = b
   return res
 
-def make_segmented_graph(ax, input_directory, name, suffix, include_threads=False, include_breakdown=False, columns=None, graph_cex_count=False, graph_inv_count=False):
+def make_segmented_graph(ax, input_directory, name, suffix,
+        include_threads=False,
+        include_breakdown=False,
+        columns=None,
+        graph_cex_count=False,
+        graph_inv_count=False,
+        skip_b=False,
+        skip_f=False,
+        collapse_size_split=False,
+        collapsed_breakdown=False):
   if graph_cex_count or graph_inv_count:
     include_breakdown = True
 
@@ -372,33 +410,56 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
 
       stuff = []
 
-      bs = ts.get_breadth_stats()
-      for i in range(len(bs)):
-        for j in range(len(bs[i])):
+      if collapse_size_split:
+        assert not include_breakdown
+        assert not include_threads
+
+      if not skip_b:
+        bs = ts.get_breadth_stats()
+        for i in range(len(bs)):
+          this_size_time = 0
           odd1 = i % 2 == 1
-          inner_odd = j % 2 == 1
-          iternum = i+1
-          size = (j+1 if ts.uses_sizes else None)
-          time_per_thread = sorted([s["total_time"] for s in bs[i][j]])
+          for j in range(len(bs[i])):
+            inner_odd = j % 2 == 1
+            iternum = i+1
+            size = (j+1 if ts.uses_sizes else None)
+            time_per_thread = sorted([s["total_time"] for s in bs[i][j]])
+            longest = get_longest(bs[i][j])
+
+            if not collapse_size_split:
+              thread_times.append(time_per_thread)
+              breakdowns.append(Breakdown(longest))
+              times.append(longest["total_time"])
+
+              if odd1:
+                colors.append(red if inner_odd else lightred)
+              else:
+                colors.append(orange if inner_odd else lightorange)
+
+            this_size_time += longest["total_time"]
+
+          if collapse_size_split:
+            times.append(this_size_time)
+            if odd1:
+              colors.append(lightred)
+            else:
+              colors.append(lightorange)
+
+      if not skip_f:
+        fs = ts.get_finisher_stats()
+        if len(fs) > 0:
+          time_per_thread = sorted([s["total_time"] for s in fs])
           thread_times.append(time_per_thread)
-          longest = get_longest(bs[i][j])
+          longest = get_longest(fs)
           breakdowns.append(Breakdown(longest))
           times.append(longest["total_time"])
 
-          if odd1:
-            colors.append(red if inner_odd else lightred)
-          else:
-            colors.append(orange if inner_odd else lightorange)
+          colors.append(blue)
 
-      fs = ts.get_finisher_stats()
-      if len(fs) > 0:
-        time_per_thread = sorted([s["total_time"] for s in fs])
-        thread_times.append(time_per_thread)
-        longest = get_longest(fs)
-        breakdowns.append(Breakdown(longest))
-        times.append(longest["total_time"])
-
-        colors.append(blue)
+      if collapsed_breakdown:
+        assert not include_threads
+        times = [sum(times)]
+        breakdowns = [sum_breakdowns(breakdowns)]
 
       bottom = 0
       for i in range(len(times)):
@@ -410,12 +471,13 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
         else:
           t = times[i]
 
-          if include_breakdown:
-            ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
-          else:
-            ax.bar(idx, t, bottom=bottom, color=colors[i])
+          if not collapsed_breakdown:
+            if include_breakdown:
+              ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
+            else:
+              ax.bar(idx, t, bottom=bottom, color=colors[i])
 
-          if include_breakdown:
+          if include_breakdown or collapsed_breakdown:
             breakdown = breakdowns[i]
             a = bottom
             b = a + breakdown.filter_secs
@@ -423,24 +485,33 @@ def make_segmented_graph(ax, input_directory, name, suffix, include_threads=Fals
             d = c + breakdown.nonredundant_secs
             e = d + breakdown.redundant_secs
             top = bottom + breakdown.stats["total_time"]
-            ax.bar(idx + 0.2, b-a, bottom=a, width=0.4, color='green')
-            ax.bar(idx + 0.2, c-b, bottom=b, width=0.4, color='red')
-            ax.bar(idx + 0.2, d-c, bottom=c, width=0.4, color='blue')
-            ax.bar(idx + 0.2, e-d, bottom=d, width=0.4, color='#8080ff')
-            ax.bar(idx + 0.2, top-e, bottom=e, width=0.4, color='gray')
 
-          if include_threads:
-            for j in range(len(thread_times[i])):
-              thread_time = thread_times[i][j]
-              m = len(thread_times[i])
-              if include_breakdown:
-                ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.2 / float(m),
-                    thread_time, bottom=bottom, width = 0.4 / float(m),
-                    color=slightly_darken(colors[i]))
-              else:
-                ax.bar(idx - 0.4 + 0.8 * (j / float(m)) + 0.4 / float(m),
-                    thread_time, bottom=bottom, width = 0.8 / float(m),
-                    color=slightly_darken(colors[i]))
+            if collapsed_breakdown:
+              center = idx
+              width = 0.8
+            else:
+              center = idx + 0.2
+              width = 0.4
+
+            ax.bar(center, b-a, bottom=a, width=width, color='green')
+            ax.bar(center, c-b, bottom=b, width=width, color='red')
+            ax.bar(center, d-c, bottom=c, width=width, color='blue')
+            ax.bar(center, e-d, bottom=d, width=width, color='#8080ff')
+            ax.bar(center, top-e, bottom=e, width=width, color='gray')
+
+          if not collapsed_breakdown:
+            if include_threads:
+              for j in range(len(thread_times[i])):
+                thread_time = thread_times[i][j]
+                m = len(thread_times[i])
+                if include_breakdown:
+                  ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.2 / float(m),
+                      thread_time, bottom=bottom, width = 0.4 / float(m),
+                      color=slightly_darken(colors[i]))
+                else:
+                  ax.bar(idx - 0.4 + 0.8 * (j / float(m)) + 0.4 / float(m),
+                      thread_time, bottom=bottom, width = 0.8 / float(m),
+                      color=slightly_darken(colors[i]))
 
           bottom += t
 
@@ -504,7 +575,7 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
     p.append(patches.Patch(color=color, label=opt_name))
   ax.legend(handles=p)
   
-def make_parallel_graphs(input_directory, save=False):
+def make_parallel_graphs(input_directory, save=False, breakdown=True):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
@@ -516,9 +587,9 @@ def make_parallel_graphs(input_directory, save=False):
   ax.flat[1].set_ylim(bottom=0, top=500)
   ax.flat[2].set_ylim(bottom=0, top=500)
 
-  make_parallel_graph(ax.flat[0], input_directory, "paxos_implshape_finisher", True)
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth", True)
-  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", True)
+  make_parallel_graph(ax.flat[0], input_directory, "paxos_depth2_finisher", collapsed_breakdown=breakdown)
+  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth", collapsed_breakdown=breakdown)
+  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", collapse_size_split=not breakdown, collapsed_breakdown=breakdown)
 
   if save:
     plt.savefig(os.path.join(output_directory, 'paxos-parallel.png'))
@@ -536,6 +607,25 @@ def make_opt_graphs_main(input_directory, save=False):
 
   if save:
     plt.savefig(os.path.join(output_directory, 'opt-comparison.png'))
+  else:
+    plt.show()
+
+def make_seed_graphs_main(input_directory, save=False):
+  output_directory = "graphs"
+  Path(output_directory).mkdir(parents=True, exist_ok=True)
+
+  fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
+  plt.gcf().subplots_adjust(bottom=0.20)
+
+  make_seed_graph(ax.flat[0], input_directory, "learning_switch", title="Learning switch")
+  make_seed_graph(ax.flat[1], input_directory, "paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
+  make_seed_graph(ax.flat[2], input_directory, "paxos", title="Paxos (Finisher)", skip_b=True)
+  make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_paxos", title="Paxos (Finisher, entire space)")
+
+  fig.tight_layout()
+
+  if save:
+    plt.savefig(os.path.join(output_directory, 'seed.png'))
   else:
     plt.show()
 
@@ -580,5 +670,6 @@ if __name__ == '__main__':
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory)
-  main()
+  #main()
   #make_parallel_graphs(input_directory)
+  make_seed_graphs_main(input_directory)

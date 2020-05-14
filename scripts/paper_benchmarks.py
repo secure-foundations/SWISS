@@ -39,12 +39,17 @@ for seed in range(1, 8):
       "nonacc_learning_switch_seed_" + str(seed),
       "breadth-learning-switch --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
+for seed in range(1, 9):
+  benches.append(PaperBench(
+      "learning_switch_seed_" + str(seed),
+      "breadth-learning-switch --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+
 for seed in range(1, 5):
   benches.append(PaperBench(
       "nonacc_paxos_seed_" + str(seed),
       "full-paxos-depth2 --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
-for seed in range(1, 5):
+for seed in range(1, 9):
   benches.append(PaperBench(
       "paxos_seed_" + str(seed),
       "full-paxos-depth2 --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
@@ -118,11 +123,11 @@ for i in range(3, 0, -1):
 #benches.append(PaperBench("finisher_paxos_minus_size4", "finisher-paxos-minus-size4 --whole-space --threads 1"))
 #benches.append(PaperBench("breadth_paxos_minus_size4", "breadth-paxos-minus-size4 --threads 1"))
 
-benches.append(PaperBench("fail_chord", "fail-chord --threads 7"))
-benches.append(PaperBench("fail_chain", "chain --threads 7"))
-benches.append(PaperBench("fail_delock", "fail-delock --threads 7"))
-benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --threads 7"))
-benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --threads 7"))
+benches.append(PaperBench("fail_chord", "fail-chord --minimal-models --threads 7"))
+benches.append(PaperBench("fail_chain", "chain --minimal-models --threads 7"))
+benches.append(PaperBench("fail_delock", "fail-delock --minimal-models --threads 7"))
+benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --minimal-models --threads 7"))
+benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --minimal-models --threads 7"))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
