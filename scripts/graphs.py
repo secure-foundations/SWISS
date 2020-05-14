@@ -84,7 +84,7 @@ class ThreadStats(object):
 class Breakdown(object):
   def __init__(self, stats, skip=False):
     if skip:
-      break
+      return
 
     self.stats = stats
     self.total_smt_ms = 0
@@ -119,6 +119,8 @@ class Breakdown(object):
         "redundant_secs",
         "total_cex"):
       setattr(b, attr, getattr(self, attr) + getattr(other, attr))
+    b.stats = {"total_time": self.stats["total_time"] + other.stats["total_time"]}
+    return b
 
 def sum_breakdowns(l):
   t = l[0]
@@ -150,6 +152,9 @@ class BasicStats(object):
       self.cvc4_unsat_time = 0
       self.breadth_total_time_sec = 0
       self.finisher_time_sec = 0
+      self.total_time_filtering_ms = 0
+      self.total_inductivity_check_time_ms = 0
+      self.num_inductivity_checks = 0
       for line in f:
         if line.strip() == "total":
           doing_total = True
@@ -192,9 +197,28 @@ class BasicStats(object):
             self.cvc4_unsat_ops = int(line.split()[-1])
           elif line.startswith("cvc4 TOTAL unsat time"):
             self.cvc4_unsat_time = int(line.split()[-2])
+          elif line.startswith("total time filtering"):
+            self.total_time_filtering_ms = int(line.split()[-2])
+
+          if "[init-check] sat ops" in line:
+            self.num_inductivity_checks += int(line.split()[-1])
+          elif "[init-check] unsat ops" in line:
+            self.num_inductivity_checks += int(line.split()[-1])
+
+
+          if ("[inductivity-check: " in line or "[init-check]" in line):
+            s = line.split()
+            if s[-1] == "ms" and s[-4] == "time":
+              self.total_inductivity_check_time_ms += int(s[-2])
 
     self.smt_time_sec = (self.z3_sat_time + self.z3_unsat_time + self.cvc4_sat_time + self.cvc4_unsat_time) // 1000
     self.smt_ops = self.z3_sat_ops + self.z3_unsat_ops + self.cvc4_sat_ops + self.cvc4_unsat_ops
+
+    self.total_inductivity_check_time_sec = (
+        self.total_inductivity_check_time_ms / 1000)
+
+    self.total_time_filtering_sec = (
+        self.total_time_filtering_ms / 1000)
 
     if filename == 'mm_leader_election_breadth':
       self.b_size = 4490
@@ -214,6 +238,9 @@ class BasicStats(object):
     elif filename == "mm_paxos":
       self.b_size = 3435314 + 47972
       self.f_size = 232460599446
+    elif filename == "paxos_depth2_finisher_t1":
+      self.b_size = 0
+      self.f_size = 232460599446
     elif filename == "mm_flexible_paxos":
       self.b_size = 3435314 + 47972
       self.f_size = 232460599446
@@ -221,7 +248,9 @@ class BasicStats(object):
       self.b_size = 8439183 + 26290
       self.f_size = 33589418704
     else:
-      assert False, "don't have numbers for " + filename
+      assert False, "don't have space-size numbers for " + filename
+
+    self.f_b_size = self.f_size + self.b_size
 
     self.num_valid_finisher_candidates = -1
 
@@ -286,6 +315,45 @@ def make_table(input_directory, which):
     print("\\hline")
   print("\\end{tabular}")
 
+def make_smt_stats_table(input_directory):
+  s = [
+    #BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
+    BasicStats(input_directory, "Paxos (Finisher)", 
+        "paxos_depth2_finisher_t1")
+  ]
+  columns = [
+    ('Benchmark', 'name'),
+    #('smt ops', 'smt_ops'),
+    ('smt', 'smt_time_sec'),
+    ('smti', 'total_inductivity_check_time_sec'),
+    ('I', 'num_inductivity_checks'),
+    ('f', 'total_time_filtering_sec'),
+    ('size', 'f_b_size'),
+    ('I / sec', 'num_inductivity_checks', 'total_inductivity_check_time_sec'),
+    ('F / sec', 'f_b_size', 'total_time_filtering_sec'),
+    ('T / sec', 'f_b_size', 'total_time_sec'),
+  ]
+  print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "|l|}")
+  print("\\hline")
+  for i in range(len(columns)):
+    print(columns[i][0], "\\\\" if i == len(columns) - 1 else "&", end=" ")
+  print("")
+  print("\\hline")
+  for bench in s:
+    print(bench.total_time_filtering_sec)
+    print(bench.total_time_sec)
+    for i in range(len(columns)):
+      col = columns[i]
+      prop = str(getattr(bench, col[1]))
+      if len(col) == 3:
+        prop2 = str(getattr(bench, col[2]))
+        prop = str(float(prop) / float(prop2))
+      print(prop, "\\\\" if i == len(columns) - 1 else "&", end=" ")
+    print("")
+    print("\\hline")
+  print("\\end{tabular}")
+
+
 def get_files_with_prefix(input_directory, prefix):
   files = []
   for filename in os.listdir(input_directory):
@@ -347,8 +415,6 @@ lightblue = '#8080ff'
 
 orange = '#ffa500'
 lightorange = '#ffd8b1'
-
-green = '#00ff00'
 
 def slightly_darken(color):
   if color == red:
@@ -493,8 +559,8 @@ def make_segmented_graph(ax, input_directory, name, suffix,
               center = idx + 0.2
               width = 0.4
 
-            ax.bar(center, b-a, bottom=a, width=width, color='green')
-            ax.bar(center, c-b, bottom=b, width=width, color='red')
+            ax.bar(center, b-a, bottom=a, width=width, color='#b0ffb0')
+            ax.bar(center, c-b, bottom=b, width=width, color='#ff2020')
             ax.bar(center, d-c, bottom=c, width=width, color='blue')
             ax.bar(center, e-d, bottom=d, width=width, color='#8080ff')
             ax.bar(center, top-e, bottom=e, width=width, color='gray')
@@ -575,21 +641,28 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
     p.append(patches.Patch(color=color, label=opt_name))
   ax.legend(handles=p)
   
-def make_parallel_graphs(input_directory, save=False, breakdown=True):
+def make_parallel_graphs(input_directory, save=False):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=1, ncols=3, figsize=[15, 3])
+  fig, ax = plt.subplots(nrows=2, ncols=3, figsize=[15, 6])
 
-  #plt.tight_layout()
   plt.gcf().subplots_adjust(bottom=0.20)
 
   ax.flat[1].set_ylim(bottom=0, top=500)
   ax.flat[2].set_ylim(bottom=0, top=500)
+  ax.flat[4].set_ylim(bottom=0, top=500)
+  ax.flat[5].set_ylim(bottom=0, top=500)
 
-  make_parallel_graph(ax.flat[0], input_directory, "paxos_depth2_finisher", collapsed_breakdown=breakdown)
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth", collapsed_breakdown=breakdown)
-  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", collapse_size_split=not breakdown, collapsed_breakdown=breakdown)
+  make_parallel_graph(ax.flat[0], input_directory, "paxos_depth2_finisher")
+  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth")
+  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", collapse_size_split=True)
+
+  make_parallel_graph(ax.flat[3], input_directory, "paxos_depth2_finisher", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[5], input_directory, "nonacc_paxos_breadth", collapsed_breakdown=True)
+
+  plt.tight_layout()
 
   if save:
     plt.savefig(os.path.join(output_directory, 'paxos-parallel.png'))
@@ -628,6 +701,7 @@ def make_seed_graphs_main(input_directory, save=False):
     plt.savefig(os.path.join(output_directory, 'seed.png'))
   else:
     plt.show()
+
 
 def main():
   directory = sys.argv[1]
@@ -672,4 +746,5 @@ if __name__ == '__main__':
   #make_table(input_directory)
   #main()
   #make_parallel_graphs(input_directory)
-  make_seed_graphs_main(input_directory)
+  #make_seed_graphs_main(input_directory)
+  make_smt_stats_table(input_directory)

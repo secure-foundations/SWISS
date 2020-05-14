@@ -84,6 +84,12 @@ for i in range(THREADS, 0, -1):
       "paxos_depth2_finisher_t" + str(i),
       "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
+benches.append(PaperBench("breadth_paxos_epr_minus_easy_existential",
+    "breadth_paxos_epr_minus_easy_existential --minimal-models --threads 1"))
+
+benches.append(PaperBench("breadth_paxos_epr_minus_easy_existential",
+    "finisher_paxos_epr_minus_easy_existential --minimal-models --threads 1 --whole-space"))
+
 
 #for minmodels in (True, False):
 for minmodels in (True,):
