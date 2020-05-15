@@ -409,9 +409,15 @@ shared_ptr<Model> Model::extract_cvc4(
   std::unordered_map<std::string, SortInfo> sort_info;
   for (auto p : e.ctx->sorts) {
     string name = p.first;
+    //cout << "doing sort " << name << endl;
     CVC4::Type ty = dynamic_cast<smt_cvc4::sort*>(p.second.p.get())->ty;
     vector<CVC4::Expr> exprs = cvc4_model->getDomainElements(ty);
     assert (exprs.size() > 0);
+    for (int i = 0; i < (int)exprs.size(); i++) {
+      //cout << "e is " << e << endl;
+      exprs[i] = cvc4_model->getValue(exprs[i]);
+      //cout << "e' is " << cvc4_model->getValue(e) << endl;
+    }
     universes.insert(make_pair(name, exprs));
     SortInfo si;
     si.domain_size = exprs.size();
@@ -422,6 +428,7 @@ shared_ptr<Model> Model::extract_cvc4(
 
   for (VarDecl decl : module->functions) {
     iden name = decl.name;
+    //cout << "doing function " << iden_to_string(name) << endl;
     smt::func_decl fd = e.getFunc(name);
 
     //cout << "doing " << iden_to_string(name) << endl;
@@ -499,6 +506,7 @@ shared_ptr<Model> Model::extract_cvc4(
             break;
           }
         }
+        //cout << "result_expr " << result_expr << endl;
         assert (found);
       } else {
         assert (false);

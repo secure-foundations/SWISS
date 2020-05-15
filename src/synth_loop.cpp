@@ -341,6 +341,9 @@ Counterexample get_counterexample_simple(
         my_ctx = smt::context(smt::Backend::cvc4);
       }
 
+      //blaht++;
+      //bool me = (blaht == 596);
+
       auto indctx = shared_ptr<InductionContext>(new InductionContext(my_ctx, module, j));
       smt::solver& solver = indctx->ctx->solver;
       solver.push();
@@ -353,6 +356,8 @@ Counterexample get_counterexample_simple(
       solver.set_log_info(
           "inductivity-check: " + module->action_names[j]);
       smt::SolverResult res = solver.check_result();
+
+      //assert (!me);
 
       if (res == smt::SolverResult::Sat) {
         if (options.minimal_models) {

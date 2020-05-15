@@ -195,6 +195,7 @@ namespace smt_z3 {
     void add(_expr* _e) override {
       expr* e = dynamic_cast<expr*>(_e);
       assert (e != NULL);
+      //cout << "adding " << e->ex << endl;
       z3_solver.add(e->ex);
     }
 
@@ -498,7 +499,13 @@ namespace smt_z3 {
   smt::SolverResult solver::check_result()
   {
     auto t1 = now();
-    z3::check_result res = z3_solver.check();
+    z3::check_result res;
+    try {
+      res = z3_solver.check();
+    } catch (z3::exception exc) {
+      cout << "got z3 exception" << endl;
+      res = z3::unknown;
+    }
     auto t2 = now();
 
     long long ms = as_ms(t2 - t1);
