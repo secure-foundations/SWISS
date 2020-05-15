@@ -87,7 +87,7 @@ for i in range(THREADS, 0, -1):
 benches.append(PaperBench("breadth_paxos_epr_minus_easy_existential",
     "breadth_paxos_epr_minus_easy_existential --minimal-models --threads 1"))
 
-benches.append(PaperBench("breadth_paxos_epr_minus_easy_existential",
+benches.append(PaperBench("finisher_paxos_epr_minus_easy_existential",
     "finisher_paxos_epr_minus_easy_existential --minimal-models --threads 1 --whole-space"))
 
 
