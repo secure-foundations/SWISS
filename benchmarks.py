@@ -230,7 +230,7 @@ BENCHMARKS = {
 
 "sdl":
   Benchmark("benchmarks/simple-de-lock.ivy", "--with-conjs",
-      "--finisher --template 0 --conj-arity 1 --disj-arity 8 --depth2-shape"),
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
 # size 5 is 7482678873
 "chain":

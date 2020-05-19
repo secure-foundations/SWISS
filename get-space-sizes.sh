@@ -1,5 +1,7 @@
 set -x
 
+./bench-simple.sh sdl --get-space-size | grep 'space size'
+
 ./bench-simple.sh breadth-leader-election --get-space-size | grep 'space size'
 ./bench-simple.sh leader-election-depth2 --get-space-size | grep 'space size'
 ./bench-simple.sh breadth-2pc --get-space-size | grep 'space size'

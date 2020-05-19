@@ -256,7 +256,7 @@ class BasicStats(object):
 
 def make_table(input_directory, which):
   s = [
-    #BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
+    BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
     BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth", I4='6.1'),
     BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin", I4='6.1'),
     BasicStats(input_directory, "Two-phase commit", "mm_2pc", I4='4.3'),
