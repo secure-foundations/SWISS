@@ -270,4 +270,13 @@ BENCHMARKS = {
 "finisher_paxos_epr_minus_easy_existential" :
   Benchmark("benchmarks/paxos_epr_minus_easy_existential.ivy", "--with-conjs",
       "--finisher --template 1 --conj-arity 1 --disj-arity 3 --strat-alt"),
+
+"chord-gimme-1":
+  Benchmark("benchmarks/chord-gimme-1.ivy", "--with-conjs",
+      "--breadth --conj-arity 1 --disj-arity 4",
+      "--finisher --conj-arity 1 --disj-arity 4"),
+
+"decentralized-lock-gimme-1":
+  Benchmark("benchmarks/decentralized-lock-gimme-1.ivy", "--with-conjs",
+      "--finisher --conj-arity 1 --disj-arity 7 --depth2-shape"),
 }

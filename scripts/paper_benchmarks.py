@@ -54,7 +54,7 @@ for seed in range(1, 9):
       "paxos_seed_" + str(seed),
       "full-paxos-depth2 --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
-for seed in range(1, 5):
+for seed in range(1, 9):
   benches.append(PaperBench(
       "wholespace_finisher_paxos_seed_" + str(seed),
       "finisher-paxos-exist-1-depth2 --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
@@ -132,8 +132,12 @@ for i in range(3, 0, -1):
 benches.append(PaperBench("fail_chord", "fail-chord --minimal-models --threads 7"))
 benches.append(PaperBench("fail_chain", "chain --minimal-models --threads 7"))
 benches.append(PaperBench("fail_delock", "fail-delock --minimal-models --threads 7"))
-benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --minimal-models --threads 7"))
+
+benches.append(PaperBench("gimme1_chord", "chord-gimme-1 --minimal-models --threads 7"))
+benches.append(PaperBench("gimme1_delock", "decentralized-lock-gimme-1 --minimal-models --threads 7"))
+
 benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --minimal-models --threads 7"))
+benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --minimal-models --threads 7"))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness

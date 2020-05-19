@@ -247,6 +247,9 @@ class BasicStats(object):
     elif filename == "mm_multi_paxos":
       self.b_size = 8439183 + 26290
       self.f_size = 33589418704
+    elif filename == "mm_sdl":
+      self.b_size = -1
+      self.f_size = 87858803
     else:
       assert False, "don't have space-size numbers for " + filename
 
@@ -591,7 +594,7 @@ def get_total_time(input_directory, filename):
 def make_opt_comparison_graph(ax, input_directory, large_ones):
   ax.set_yscale('log')
   #opts = ['mm_', 'postbmc_mm_', 'prebmc_mm_', 'postbmc_prebmc_mm_']
-  opts = ['', 'mm_', 'prebmc_'] #, 'postbmc_']
+  opts = ['', 'mm_', 'prebmc_', 'prebmc_mm_'] #, 'postbmc_']
   #if large_ones:
   #  probs = ['flexible_paxos', 'learning_switch', 'paxos']
   #else:
@@ -607,8 +610,11 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       ('Learning switch', 'learning_switch'),
       ('Paxos', 'paxos'),
       ('Flexible Paxos', 'flexible_paxos'),
+      ('Multi Paxos', 'multi_paxos'),
       #('Multi-Paxos', 'multi_paxos'),
   ]
+
+  failures = ['prebmc_multi_paxos', 'multi_paxos']
 
   ax.set_xticks([i for i in range(1, len(prob_data) + 1)])
   ax.set_xticklabels([name for (name, prob) in prob_data])
@@ -627,9 +633,10 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       opt_idx += 1
 
       name = opt + prob
-      t = get_total_time(input_directory, name)
-      ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
-          bottom=0, width=0.8/len(opts), color=color, edgecolor='black') #hatch=pattern)
+      if name not in failures:
+        t = get_total_time(input_directory, name)
+        ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
+            bottom=0, width=0.8/len(opts), color=color, edgecolor='black') #hatch=pattern)
 
   p = []
   for (opt, color, pattern) in zip(opts, colors, patterns):
@@ -637,6 +644,7 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
       '': "Baseline",
       'mm_': "Minimal models",
       'prebmc_': "BMC",
+      'prebmc_mm_': "Minimal models + BMC",
     }[opt]
     p.append(patches.Patch(color=color, label=opt_name))
   ax.legend(handles=p)
@@ -673,8 +681,9 @@ def make_opt_graphs_main(input_directory, save=False):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=[5, 4.5])
+  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=[6.5, 4.5])
   plt.gcf().subplots_adjust(bottom=0.45)
+  ax.set_ylabel("seconds")
 
   make_opt_comparison_graph(ax, input_directory, True)
 
@@ -690,7 +699,7 @@ def make_seed_graphs_main(input_directory, save=False):
   fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
   plt.gcf().subplots_adjust(bottom=0.20)
 
-  make_seed_graph(ax.flat[0], input_directory, "learning_switch", title="Learning switch")
+  make_seed_graph(ax.flat[0], input_directory, "learning_switch", title="Learning switch (BreadthAccumulative)")
   make_seed_graph(ax.flat[1], input_directory, "paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
   make_seed_graph(ax.flat[2], input_directory, "paxos", title="Paxos (Finisher)", skip_b=True)
   make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_paxos", title="Paxos (Finisher, entire space)")
@@ -747,4 +756,5 @@ if __name__ == '__main__':
   #main()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
-  make_smt_stats_table(input_directory)
+  #make_smt_stats_table(input_directory)
+  make_opt_graphs_main(input_directory)
