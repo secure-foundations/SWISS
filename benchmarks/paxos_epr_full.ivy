@@ -143,4 +143,4 @@ template (forall R:round, V:value. exists Q:quorum. forall M1:node, M2:node. WIL
 
 template (forall R1:round, R2:round, V1:value, V2:value, Q:quorum. exists N:node. WILD)
 
-template (forall R1:round, R2:round, R3:round, V1:value, V2:value, Q:quorum. exists N:node. exists M:node. WILD)
+template (forall R1:round, R2:round, R3:round, V1:value, V2:value, Q:quorum. exists M:node. exists N:node. WILD)
