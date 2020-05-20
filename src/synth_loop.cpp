@@ -1063,14 +1063,24 @@ SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOpt
 #endif
 }
 
+template <typename T>
+vector<T> vector_concat(vector<T> const& a, vector<T> const& b)
+{
+  vector<T> res = a;
+  for (int i = 0; i < (int)b.size(); i++) {
+    res.push_back(b[i]);
+  }
+  return res;
+}
+
 SynthesisResult synth_loop_incremental_breadth(
     shared_ptr<Module> module,
     vector<EnumOptions> const& enum_options,
     Options const& options,
     bool use_input_chunks,
     vector<SpaceChunk> const& chunks,
-    vector<value> const& all_invs,
-    vector<value> const& new_invs)
+    vector<value> all_invs,
+    vector<value> new_invs)
 {
   auto t_init = now();
 
@@ -1093,8 +1103,10 @@ SynthesisResult synth_loop_incremental_breadth(
     return SynthesisResult(true, {}, {});
   }
 
-  vector<value> strengthened_invs = all_invs;
-  vector<value> filtered_simplified_strengthened_invs = new_invs;
+  //vector<value> strengthened_invs = all_invs;
+  //vector<value> filtered_simplified_strengthened_invs = new_invs;
+  vector<value> base_invs_plus_new_invs = vector_concat(
+      starter_invariants, new_invs);
 
   cout << "starting with |all_invs| = " << all_invs.size() << endl;
   cout << "starting with |new_invs| = " << new_invs.size() << endl;
@@ -1137,11 +1149,11 @@ SynthesisResult synth_loop_incremental_breadth(
     }
 
     if (options.enum_sat) {
-      for (value inv : filtered_simplified_strengthened_invs) {
+      for (value inv : new_invs) {
         cs->addExistingInvariant(inv);
       }
     } else {
-      for (value inv : strengthened_invs) {
+      for (value inv : all_invs) {
         cs->addExistingInvariant(inv);
       }
     }
@@ -1190,7 +1202,7 @@ SynthesisResult synth_loop_incremental_breadth(
                 module, options, ctx, bmc, false /* check_implies_conj */,
                 v_and(options.non_accumulative
                   ? starter_invariants
-                  : filtered_simplified_strengthened_invs),
+                  : base_invs_plus_new_invs),
                 candidate);
 
       Benchmarking bench2;
@@ -1209,7 +1221,7 @@ SynthesisResult synth_loop_incremental_breadth(
         //bench_strengthen.start("strengthen");
         value strengthened_inv = options.non_accumulative ? candidate0 :
             strengthen_invariant(module,
-              v_and(filtered_simplified_strengthened_invs), candidate0);
+              v_and(base_invs_plus_new_invs), candidate0);
         value simplified_strengthened_inv = strengthened_inv->simplify()->reduce_quants();
         //bench_strengthen.end();
         //bench_strengthen.dump();
@@ -1218,18 +1230,19 @@ SynthesisResult synth_loop_incremental_breadth(
         if (options.enum_sat) {
           is_nonredundant = true;
         } else {
-          is_nonredundant = invariant_is_nonredundant(module, ctx, filtered_simplified_strengthened_invs, simplified_strengthened_inv);
+          is_nonredundant = invariant_is_nonredundant(module, ctx, base_invs_plus_new_invs, simplified_strengthened_inv);
         }
 
-        strengthened_invs.push_back(strengthened_inv);
+        all_invs.push_back(strengthened_inv);
 
         if (is_nonredundant) {
           any_formula_synthesized_this_round = true;
 
-          filtered_simplified_strengthened_invs.push_back(simplified_strengthened_inv);
+          base_invs_plus_new_invs.push_back(simplified_strengthened_inv);
+          new_invs.push_back(simplified_strengthened_inv);
 
           cout << "\nfound new invariant! all so far:\n";
-          for (value found_inv : filtered_simplified_strengthened_invs) {
+          for (value found_inv : new_invs) {
             cout << "    " << found_inv->to_string() << endl;
           }
 
@@ -1237,7 +1250,7 @@ SynthesisResult synth_loop_incremental_breadth(
           /*if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
             cout << "invariant implies safety condition, done!" << endl;
             dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0);
-            return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
+            return SynthesisResult(true, filtered_simplified_strengthened_invs, all_invs);
           }*/
           num_nonredundant++;
         } else {
@@ -1279,10 +1292,10 @@ SynthesisResult synth_loop_incremental_breadth(
       break;
     }
 
-    if (!options.whole_space && conjectures_inv(module, filtered_simplified_strengthened_invs, conjectures)) {
+    if (!options.whole_space && conjectures_inv(module, new_invs, conjectures)) {
       cout << "invariant implies safety condition, done!" << endl;
       dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
-      return SynthesisResult(true, filtered_simplified_strengthened_invs, strengthened_invs);
+      return SynthesisResult(true, new_invs, all_invs);
     }
 
     if (use_input_chunks) {
@@ -1291,5 +1304,5 @@ SynthesisResult synth_loop_incremental_breadth(
     }
   }
 
-  return SynthesisResult(false, filtered_simplified_strengthened_invs, strengthened_invs);
+  return SynthesisResult(false, new_invs, all_invs);
 }

@@ -37,8 +37,8 @@ SynthesisResult synth_loop_incremental_breadth(
   Options const& options,
   bool use_input_chunks,
   std::vector<SpaceChunk> const& chunks,
-  std::vector<value> const& all_invs,
-  std::vector<value> const& new_invs);
+  std::vector<value> all_invs,
+  std::vector<value> new_invs);
 
 //void synth_loop_from_transcript(std::shared_ptr<Module> module, int arity, int depth);
 
