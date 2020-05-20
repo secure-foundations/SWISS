@@ -67,22 +67,36 @@ pair<vector<vector<int>>, int> build_transition_matrix(
   return make_pair(matrix, last_idx);
 }
 
+vector<vector<int>> get_matrix_counts(
+  vector<vector<int>> const& matrix,
+  int final)
+{
+  vector<vector<int>> res;
+  for (int state = 0; state < (int)matrix.size(); state++) {
+    res.push_back(vector<int>(matrix[state].size() + 1));
+    res[state][matrix[state].size()] = 0;
+    for (int j = matrix[state].size() - 1; j >= 0; j--) {
+      res[state][j] = res[state][j+1] + (matrix[state][j] == final ? 1 : 0);
+    }
+  }
+  return res;
+}
+
 long long rec_main(
   vector<vector<int>> const& matrix,
+  vector<vector<int>> const& matrix_counts,
   int final,
   TreeShape const& ts,
   vector<int>& indices,
   int idx,
   int state)
 {
-  if (idx == (int)indices.size()) {
-    if (state == final && is_normalized_for_tree_shape(ts, indices)) {
-      /*cout << "counting ";
-      for (int i = 0; i < idx; i++) {
-        cout << indices[i] << " ";
-      }
-      cout << endl;*/
-      return 1;
+  if (idx == (int)indices.size() - 1) {
+    int minLast = is_normalized_for_tree_shape_get_min_of_last(ts, indices);
+    //for (int i = 0; i < (int)indices.size()-1; i++) cout << indices[i] << " ";
+    //cout << "_ " << ts.to_string() << " " << minLast << endl;
+    if (minLast != -1) {
+      return matrix_counts[state][minLast];
     } else {
       return 0;
     }
@@ -98,7 +112,7 @@ long long rec_main(
   for (int j = t; j < m; j++) {
     indices[idx] = j;
     if (matrix[state][j] != -1) {
-      res += rec_main(matrix, final, ts, indices, idx+1, matrix[state][j]);
+      res += rec_main(matrix, matrix_counts, final, ts, indices, idx+1, matrix[state][j]);
     }
   }
   return res;
@@ -171,6 +185,8 @@ long long count_space_for_partition(shared_ptr<Module> module, int k, vector<int
   int start = 0;
   int final = p.second;
 
+  vector<vector<int>> matrix_counts = get_matrix_counts(transition_matrix, final);
+
   if (final == -1) {
     cout << "skipping" << endl;
     return 0;
@@ -182,7 +198,7 @@ long long count_space_for_partition(shared_ptr<Module> module, int k, vector<int
       vector<int> indices;
       indices.resize(tree_shapes[i].total);
       long long r = rec_main(
-          transition_matrix, final, tree_shapes[i], indices, 0, start);
+          transition_matrix, matrix_counts, final, tree_shapes[i], indices, 0, start);
       long long mul = (tree_shapes[i].total == 1 ? 1 : 2);
       result += r * mul;
     }

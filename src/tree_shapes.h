@@ -31,4 +31,8 @@ std::vector<TreeShape> get_tree_shapes_up_to(int n);
 
 bool is_normalized_for_tree_shape(TreeShape const& ts, std::vector<int> const& pieces);
 
+int is_normalized_for_tree_shape_get_min_of_last(
+  TreeShape const& ts,
+  std::vector<int> const& pieces);
+
 #endif
