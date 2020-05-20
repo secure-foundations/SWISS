@@ -11,6 +11,7 @@
 #include "sat_solver.h"
 #include "wpr.h"
 #include "filter.h"
+#include "template_counter.h"
 
 #include <iostream>
 #include <iterator>
@@ -290,6 +291,10 @@ int main(int argc, char* argv[]) {
   bool coalesce = false;
   int chunk_size_to_use = -1;
 
+  bool template_counter = false;
+  int template_counter_k;
+  int template_counter_maxVars;
+
   int i;
   for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
@@ -384,6 +389,13 @@ int main(int argc, char* argv[]) {
       chunk_size_to_use = atoi(argv[i+1]);
       i++;
     }
+    else if (argv[i] == string("--template-counter")) {
+      assert(i + 2 < argc);
+      template_counter = true;
+      template_counter_k = atoi(argv[i+1]);
+      template_counter_maxVars = atoi(argv[i+2]);
+      i += 2;
+    }
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
       options.threads = atoi(argv[i+1]);
@@ -393,6 +405,13 @@ int main(int argc, char* argv[]) {
       cout << "unreocgnized argument " << argv[i] << endl;
       return 1;
     }
+  }
+
+  if (template_counter) {
+    long long res = count_space(module, template_counter_k,
+        template_counter_maxVars);
+    cout << "total: " << res << endl;
+    return 0;
   }
 
   if (wpr) {

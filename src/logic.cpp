@@ -1176,7 +1176,7 @@ int cmp_sort(lsort a, lsort b) {
       assert(false);
     }
   }
-  else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(b.get())) {
+  else if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(a.get())) {
     if (dynamic_cast<BooleanSort*>(a.get())) {
       return 1;
     }
@@ -1215,10 +1215,12 @@ value forall_exists_normalize_symmetries(
     return body->normalize_symmetries(ss, vars_used);
   }
 
-  int idx_end = idx + 1;
-  while (idx_end < (int)decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
-    idx_end++;
-  }
+  // XXX wtf I'm not sure if this is right
+  int idx_end = (int)decls.size();
+  //int idx_end = idx + 1;
+  //while (idx_end < (int)decls.size() && eq_sort(decls[idx].sort, decls[idx_end].sort)) {
+  //  idx_end++;
+  //}
 
   vector<iden> front_vars = get_front_quantifier_order(body, decls, vars_used);
 
@@ -1394,7 +1396,8 @@ int cmp_expr(value a_, value b_, ScopeState const& ss_a, ScopeState const& ss_b)
     ScopeState ss_a_new = ss_a;
     ScopeState ss_b_new = ss_b;
     for (int i = 0; i < (int)a->decls.size(); i++) {
-      if (int c = cmp_sort(a->decls[i].sort, b->decls[i].sort)) {
+      int c = cmp_sort(a->decls[i].sort, b->decls[i].sort);
+      if (c != 0) {
         return c;
       }
       ss_a_new.decls.push_back(a->decls[i]);

@@ -32,6 +32,7 @@ OBJECTS = $(addprefix bin/,\
 	smt_z3.o \
 	smt_cvc4.o \
 	tree_shapes.o \
+	template_counter.o \
 	lib/json11/json11.o \
 )
 

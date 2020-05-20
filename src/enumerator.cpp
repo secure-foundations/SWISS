@@ -205,6 +205,9 @@ vector<value> fill_holes(value templ, vector<vector<value>> const& fills) {
 
   vector<int> indices;
   for (int i = 0; i < (int)fills.size(); i++) {
+    if (fills[i].size() == 0) {
+      return {};
+    }
     indices.push_back(0);
   }
   while (true) {
@@ -557,6 +560,7 @@ std::shared_ptr<ValueList> cached_get_filtered_values(std::shared_ptr<Module> mo
 std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> module, value templ, int k)
 {
   int l = module->get_template_idx(templ);
+  //cout << "template idx " << l << endl;
 
   auto key = make_pair(module, make_pair(k, l));
   auto iter = cache_unfiltered.find(key);
