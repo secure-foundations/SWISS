@@ -69,7 +69,7 @@ def run_synthesis(logfile_base, run_id, jsonfile, args, q=None, use_stdout=False
 
       t2 = time.time()
 
-      seconds = int(t2 - t1)
+      seconds = t2 - t1
 
       if killing:
         print("stopped " + run_id + " (" + str(seconds) + " seconds)")
