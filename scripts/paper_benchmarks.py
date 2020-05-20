@@ -106,14 +106,14 @@ for minmodels in (True,):
       if minmodels:
         name += "mm_"
         args += " --minimal-models"
-      benches.append(PaperBench(name+"sdl", "sdl --threads 1"+args))
-      benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads 1"+args))
-      benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads 4"+args))
+      benches.append(PaperBench(name+"sdl", "sdl --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"learning_switch", "breadth-learning-switch --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"lock_server", "lock-server --threads 1"+args))
-      benches.append(PaperBench(name+"2pc", "breadth-2pc --threads 1"+args))
+      benches.append(PaperBench(name+"lock_server", "lock-server --threads "+str(THREADS)+args))
+      benches.append(PaperBench(name+"2pc", "breadth-2pc --threads "+str(THREADS)+args))
       benches.append(PaperBench(name+"multi_paxos", "full-multi-paxos-depth2 --threads "+str(THREADS)+args))
 
 for i in range(3, 0, -1):
