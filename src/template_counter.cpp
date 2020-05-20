@@ -1,6 +1,7 @@
 #include "template_counter.h"
 
 #include <iostream>
+#include <cassert>
 
 #include "logic.h"
 #include "enumerator.h"
