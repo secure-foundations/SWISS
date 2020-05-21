@@ -7,6 +7,8 @@ from pathlib import Path
 import queue
 import threading
 
+NUM_PARTS = 6
+
 def get_num_threads(args):
   args = args.split()
   for i in range(len(args)):
@@ -15,101 +17,102 @@ def get_num_threads(args):
   assert False
 
 class PaperBench(object):
-  def __init__(self, name, args):
+  def __init__(self, partition, name, args):
     self.name = name
     self.args = args
     self.threads = get_num_threads(args)
+    self.partition = partition
 
 benches = [ ]
 
 THREADS = 7
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "nonacc_paxos_breadth_t" + str(i),
       "breadth-paxos-4-r3 --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "paxos_breadth_t" + str(i),
       "breadth-paxos-4-r3 --minimal-models --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_wc_bt_paxos_breadth_t" + str(i),
       "better-template-paxos-breadth4 --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "paxos_wc_bt_breadth_t" + str(i),
       "better-template-paxos-breadth4 --breadth-with-conjs --minimal-models --threads " + str(i)))
 
 
 for seed in range(1, 8):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "nonacc_learning_switch_seed_" + str(seed),
       "breadth-learning-switch --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "learning_switch_seed_" + str(seed),
       "breadth-learning-switch --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 8):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_wc_learning_switch_seed_" + str(seed),
       "breadth-learning-switch --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wc_learning_switch_seed_" + str(seed),
       "breadth-learning-switch --breadth-with-conjs --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 5):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "nonacc_paxos_seed_" + str(seed),
       "full-paxos-depth2 --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "paxos_seed_" + str(seed),
       "full-paxos-depth2 --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "wholespace_finisher_paxos_seed_" + str(seed),
       "finisher-paxos-exist-1-depth2 --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 5):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_wc_bt_paxos_seed_" + str(seed),
       "better-template-paxos --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wc_bt_paxos_seed_" + str(seed),
       "better-template-paxos --breadth-with-conjs --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wholespace_finisher_bt_paxos_seed_" + str(seed),
       "better-template-paxos-finisher --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 5):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "nonacc_paxos_breadth_seed_" + str(seed),
       "breadth-paxos-4-r3 --non-accumulative --minimal-models --threads 1 --seed " + str(200 + seed)))
 for seed in range(1, 8):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "paxos_breadth_seed_" + str(seed),
       "breadth-paxos-4-r3 --minimal-models --threads 1 --seed " + str(300 + seed)))
 
 for seed in range(1, 5):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_wc_bt_paxos_breadth_seed_" + str(seed),
       "better-template-paxos-breadth4 --breadth-with-conjs --non-accumulative --minimal-models --threads 1 --seed " + str(200 + seed)))
 for seed in range(1, 8):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wc_bt_paxos_breadth_seed_" + str(seed),
       "better-template-paxos-breadth4 --breadth-with-conjs --minimal-models --threads 1 --seed " + str(300 + seed)))
 
@@ -126,30 +129,30 @@ for seed in range(1, 8):
 #      "finisher-paxos-exist-1 --minimal-models --whole-space --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "paxos_depth2_finisher_t" + str(i),
       "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wc_bt_paxos_depth2_finisher_t" + str(i),
       "better-template-paxos-finisher --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
 
-benches.append(PaperBench("breadth_paxos_epr_minus_easy_existential",
+benches.append(PaperBench(1, "breadth_paxos_epr_minus_easy_existential",
     "breadth_paxos_epr_minus_easy_existential --minimal-models --threads 1"))
 
-benches.append(PaperBench("finisher_paxos_epr_minus_easy_existential",
+benches.append(PaperBench(1, "finisher_paxos_epr_minus_easy_existential",
     "finisher_paxos_epr_minus_easy_existential --minimal-models --threads 1 --whole-space"))
 
-benches.append(PaperBench("breadth_wc_bt_paxos_epr_minus_easy_existential",
+benches.append(PaperBench(2, "breadth_wc_bt_paxos_epr_minus_easy_existential",
     "better_template_breadth_paxos_epr_minus_easy_existential --breadth-with-conjs --minimal-models --threads 1"))
 
-benches.append(PaperBench("finisher_wc_bt_paxos_epr_minus_easy_existential",
+benches.append(PaperBench(2, "finisher_wc_bt_paxos_epr_minus_easy_existential",
     "better_template_finisher_paxos_epr_minus_easy_existential --breadth-with-conjs --minimal-models --threads 1 --whole-space"))
 
 
-#for minmodels in (True, False):
-for minmodels in (True,):
+for minmodels in (True, False):
+#for minmodels in (True,):
   for postbmc in [False]: #(False, True):
     for prebmc in (False, True):
       name = ""
@@ -163,43 +166,48 @@ for minmodels in (True,):
       if minmodels:
         name += "mm_"
         args += " --minimal-models"
-      benches.append(PaperBench(name+"sdl", "sdl --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"leader_election_fin", "leader-election-depth2 --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"leader_election_breadth", "breadth-leader-election --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"learning_switch", "breadth-learning-switch --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"paxos", "full-paxos-depth2 --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"lock_server", "lock-server --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"2pc", "breadth-2pc --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"multi_paxos", "full-multi-paxos-depth2 --threads "+str(THREADS)+args))
 
-      benches.append(PaperBench(name+"wc_sdl", "sdl --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_leader_election_fin", "leader-election-depth2 --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_leader_election_breadth", "breadth-leader-election --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_learning_switch", "breadth-learning-switch --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_lock_server", "breadth-lock-server --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_2pc", "breadth-2pc --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_bt_paxos", "better-template-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_bt_flexible_paxos", "better-template-flexible-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
-      benches.append(PaperBench(name+"wc_bt_multi_paxos", "better-template-multi-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
+      c = 3 if minmodels else 4
+
+      benches.append(PaperBench(c, name+"sdl", "sdl --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"leader_election_fin", "leader-election-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"leader_election_breadth", "breadth-leader-election --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"learning_switch", "breadth-learning-switch --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"paxos", "full-paxos-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"flexible_paxos", "full-flexible-paxos-depth2 --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"lock_server", "lock-server --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"2pc", "breadth-2pc --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"multi_paxos", "full-multi-paxos-depth2 --threads "+str(THREADS)+args))
+
+      c = 5 if minmodels else 6
+
+      benches.append(PaperBench(c, name+"wc_sdl", "sdl --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_leader_election_fin", "leader-election-depth2 --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_leader_election_breadth", "breadth-leader-election --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_learning_switch", "breadth-learning-switch --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_lock_server", "breadth-lock-server --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_2pc", "breadth-2pc --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_bt_paxos", "better-template-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_bt_flexible_paxos", "better-template-flexible-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
+      benches.append(PaperBench(c, name+"wc_bt_multi_paxos", "better-template-multi-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
 
 for i in range(3, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(1,
       "chord_breadth_t" + str(i),
       "breadth-chord --minimal-models --threads " + str(i)))
 
 for i in range(3, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_chord_breadth_t" + str(i),
       "breadth-chord --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
 for i in range(3, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "wc_chord_breadth_t" + str(i),
       "breadth-chord --breadth-with-conjs --minimal-models --threads " + str(i)))
 
 for i in range(3, 0, -1):
-  benches.append(PaperBench(
+  benches.append(PaperBench(2,
       "nonacc_wc_chord_breadth_t" + str(i),
       "breadth-chord --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(i)))
 
@@ -211,17 +219,20 @@ for i in range(3, 0, -1):
 #benches.append(PaperBench("fail_chain", "chain --minimal-models --threads 7"))
 #benches.append(PaperBench("fail_delock", "fail-delock --minimal-models --threads 7"))
 
-benches.append(PaperBench("gimme1_chord", "chord-gimme-1 --minimal-models --threads 7"))
-benches.append(PaperBench("gimme1_delock", "decentralized-lock-gimme-1 --minimal-models --threads 7"))
+benches.append(PaperBench(1, "gimme1_chord", "chord-gimme-1 --minimal-models --threads 7"))
+benches.append(PaperBench(1, "gimme1_delock", "decentralized-lock-gimme-1 --minimal-models --threads 7"))
 
-benches.append(PaperBench("gimme1_wc_chord", "chord-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
-benches.append(PaperBench("gimme1_wc_delock", "decentralized-lock-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
+benches.append(PaperBench(2, "gimme1_wc_chord", "chord-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
+benches.append(PaperBench(2, "gimme1_wc_delock", "decentralized-lock-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
 
 #benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --minimal-models --threads 7"))
 #benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --minimal-models --threads 7"))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
+
+for b in benches:
+  assert 1 <= b.partition <= NUM_PARTS
 
 def get_statfile(out):
   for line in out.split(b'\n'):
@@ -307,19 +318,23 @@ def awesome_async_run(directory, benches, j):
 def parse_args(args):
   res = []
   j = None
+  p = None
   i = 0
   while i < len(args):
     if args[i] == '-j':
       j = int(args[i+1])
       i += 1
+    elif args[i] == '-p':
+      p = int(args[i+1])
+      i += 1
     else:
       res.append(args[i])
     i += 1
-  return j, res
+  return j, p, res
 
 def main():
   args = sys.argv[1:]
-  j, args = parse_args(args)
+  j, p, args = parse_args(args)
 
   assert len(args) == 1
   directory = args[0]
@@ -329,9 +344,13 @@ def main():
 
   if j == None:
     for b in benches:
-      run(directory, b)
+      if p == None or p == b.partition:
+        run(directory, b)
   else:
-    awesome_async_run(directory, benches, j)
+    if p == None:
+      awesome_async_run(directory, benches, j)
+    else:
+      awesome_async_run(directory, [b for b in benches if b.partition == p], j)
 
   print('done')
 
