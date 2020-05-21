@@ -15,6 +15,10 @@ BENCHMARKS = {
   Benchmark("benchmarks/lock_server.ivy",
       "--breadth --conj-arity 1 --disj-arity 2"),
 
+"breadth-lock-server-with-conjs" :
+  Benchmark("benchmarks/lock_server.ivy", "--breadth-with-conjs",
+      "--breadth --conj-arity 1 --disj-arity 2"),
+
 "breadth-2pc" :
   Benchmark("benchmarks/2PC.ivy",
       "--breadth --conj-arity 1 --disj-arity 3"),
@@ -296,14 +300,63 @@ BENCHMARKS = {
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
     ),
 
-"better-template-paxos2" :
+"better-template-paxos-breadth4" :
   Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
-      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
       "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
-      "--breadth --template 4 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+    ),
+
+"better-template-paxos-finisher" :
+  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy", "--with-conjs",
       "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
       "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
-      "--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
     ),
+
+"better_template_breadth_paxos_epr_minus_easy_existential" :
+  Benchmark("benchmarks/paxos_epr_minus_easy_existential.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+    ),
+
+"better_template_finisher_paxos_epr_minus_easy_existential" :
+  Benchmark("benchmarks/paxos_epr_minus_easy_existential.ivy", "--with-conjs",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 4",
+      "--finisher --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+    ),
+
+"better-template-flexible-paxos" :
+  Benchmark("benchmarks/paxos_flexible_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
+      "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+  ),
+
+"better-template-multi-paxos" :
+  Benchmark("benchmarks/paxos_multi_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 4",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
+      "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+  ),
+
+
+#"better-template-paxos2" :
+#  Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
+#      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
+#      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+#      "--breadth --template 4 --conj-arity 1 --disj-arity 3 --strat-alt",
+#      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
+#      "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+#      "--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+#    ),
 
 }
