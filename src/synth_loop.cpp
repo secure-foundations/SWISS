@@ -1107,6 +1107,8 @@ SynthesisResult synth_loop_incremental_breadth(
   //vector<value> filtered_simplified_strengthened_invs = new_invs;
   vector<value> base_invs_plus_new_invs = vector_concat(
       starter_invariants, new_invs);
+  vector<value> conjs_plus_base_invs_plus_new_invs = vector_concat(
+      conjectures, base_invs_plus_new_invs);
 
   cout << "starting with |all_invs| = " << all_invs.size() << endl;
   cout << "starting with |new_invs| = " << new_invs.size() << endl;
@@ -1200,9 +1202,11 @@ SynthesisResult synth_loop_incremental_breadth(
 
       Counterexample cex = get_counterexample_simple(
                 module, options, ctx, bmc, false /* check_implies_conj */,
-                v_and(options.non_accumulative
-                  ? starter_invariants
-                  : base_invs_plus_new_invs),
+                v_and(
+                  options.non_accumulative
+                    ? (options.breadth_with_conjs ? module->conjectures : starter_invariants)
+                    : (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs)
+                ),
                 candidate);
 
       Benchmarking bench2;
@@ -1221,7 +1225,9 @@ SynthesisResult synth_loop_incremental_breadth(
         //bench_strengthen.start("strengthen");
         value strengthened_inv = options.non_accumulative ? candidate0 :
             strengthen_invariant(module,
-              v_and(base_invs_plus_new_invs), candidate0);
+              v_and(
+                (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs)
+              ), candidate0);
         value simplified_strengthened_inv = strengthened_inv->simplify()->reduce_quants();
         //bench_strengthen.end();
         //bench_strengthen.dump();
@@ -1230,7 +1236,9 @@ SynthesisResult synth_loop_incremental_breadth(
         if (options.enum_sat) {
           is_nonredundant = true;
         } else {
-          is_nonredundant = invariant_is_nonredundant(module, ctx, base_invs_plus_new_invs, simplified_strengthened_inv);
+          is_nonredundant = invariant_is_nonredundant(module, ctx,
+              (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs),
+              simplified_strengthened_inv);
         }
 
         all_invs.push_back(strengthened_inv);
@@ -1239,6 +1247,7 @@ SynthesisResult synth_loop_incremental_breadth(
           any_formula_synthesized_this_round = true;
 
           base_invs_plus_new_invs.push_back(simplified_strengthened_inv);
+          conjs_plus_base_invs_plus_new_invs.push_back(simplified_strengthened_inv);
           new_invs.push_back(simplified_strengthened_inv);
 
           cout << "\nfound new invariant! all so far:\n";
@@ -1292,7 +1301,10 @@ SynthesisResult synth_loop_incremental_breadth(
       break;
     }
 
-    if (!options.whole_space && conjectures_inv(module, new_invs, conjectures)) {
+    //if (!options.whole_space && conjectures_inv(module, new_invs, conjectures)) {
+    if (!options.whole_space && is_invariant_wrt(module,
+            v_and(base_invs_plus_new_invs), conjectures))
+    {
       cout << "invariant implies safety condition, done!" << endl;
       dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
       return SynthesisResult(true, new_invs, all_invs);

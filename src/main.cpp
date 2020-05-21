@@ -266,6 +266,7 @@ int main(int argc, char* argv[]) {
   Options options;
   options.enum_sat = false;
   options.with_conjs = false;
+  options.breadth_with_conjs = false;
   options.whole_space = false;
   options.pre_bmc = false;
   options.post_bmc = false;
@@ -343,6 +344,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
+    }
+    else if (argv[i] == string("--breadth-with-conjs")) {
+      options.breadth_with_conjs = true;
     }
     else if (argv[i] == string("--log-smt-files")) {
       enable_smt_logging = true;

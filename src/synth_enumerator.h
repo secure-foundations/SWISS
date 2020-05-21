@@ -33,6 +33,7 @@ struct Options {
   // If true, generate X such that X & conj is invariant
   // otherwise, generate X such X is invariant and X ==> conj
   bool with_conjs;
+  bool breadth_with_conjs;
 
   bool filter_redundant;
 
