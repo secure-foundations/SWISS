@@ -130,4 +130,6 @@ std::shared_ptr<CandidateSolver> make_candidate_solver(
 std::shared_ptr<CandidateSolver> compose_candidate_solvers(
   std::vector<std::shared_ptr<CandidateSolver>> const& solvers);
 
+extern int numEnumeratedFilteredRedundantInvariants;
+
 #endif

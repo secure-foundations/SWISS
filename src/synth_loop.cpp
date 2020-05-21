@@ -632,6 +632,8 @@ struct CexStats {
   }
 };
 
+int numEnumeratedFilteredRedundantInvariants = 0;
+
 void dump_stats(long long progress, CexStats const& cs,
     std::chrono::time_point<std::chrono::high_resolution_clock> init,
     int num_redundant, int num_nonredundant,
@@ -660,6 +662,7 @@ void dump_stats(long long progress, CexStats const& cs,
   cout << "number of finisher invariants found: "
        << num_finishers_found << endl;
   cout << "number of retries: " << numRetries << endl;
+  cout << "number of enumerated filtered redundant invariants: " << numEnumeratedFilteredRedundantInvariants << endl;
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
   cout.flush();

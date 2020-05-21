@@ -213,6 +213,7 @@ value BigDisjunctCandidateSolver::getNext() {
 
     int upTo;
     if (existing_invariant_trie.query(cur_indices, upTo /* output */)) {
+      numEnumeratedFilteredRedundantInvariants++;
       this->skipAhead(upTo);
       failed = true;
     }
