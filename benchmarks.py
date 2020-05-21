@@ -279,4 +279,31 @@ BENCHMARKS = {
 "decentralized-lock-gimme-1":
   Benchmark("benchmarks/decentralized-lock-gimme-1.ivy", "--with-conjs",
       "--finisher --conj-arity 1 --disj-arity 7 --depth2-shape"),
+
+"full-paxos-mini" :
+  Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 3 --strat-alt --impl-shape"),
+
+"better-template-paxos" :
+  Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 2 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
+      "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+      "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+    ),
+
+"better-template-paxos2" :
+  Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
+      "--breadth --template 1 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--breadth --template 4 --conj-arity 1 --disj-arity 3 --strat-alt",
+      "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
+      "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+      "--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
+    ),
+
 }
