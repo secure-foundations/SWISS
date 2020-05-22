@@ -17,7 +17,7 @@ class ThreadStats(object):
         if line.startswith("time for process "):
           l = line.split()
           name = self.get_name_from_log(l[3])
-          secs = int(l[-2])
+          secs = float(l[-2])
           times[name] = secs
         elif state == 0 and line.startswith("./logs/log."):
           cur_name = self.get_name_from_log(line.strip())
@@ -754,7 +754,7 @@ if __name__ == '__main__':
   input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory)
   #main()
-  #make_parallel_graphs(input_directory)
+  make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
-  make_opt_graphs_main(input_directory)
+  #make_opt_graphs_main(input_directory)

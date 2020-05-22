@@ -1130,6 +1130,11 @@ SynthesisResult synth_loop_incremental_breadth(
 
   unique_ptr<ThreadSafeQueue> tsq;
   if (use_input_chunks) {
+    if (chunks.size() == 0) {
+      dump_stats(0, cexstats, t_init, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      return SynthesisResult(false, new_invs, all_invs);
+    }
+
     tsq.reset(new ThreadSafeQueue());
     tsq->q = chunks;
   }
@@ -1304,7 +1309,7 @@ SynthesisResult synth_loop_incremental_breadth(
       break;
     }
 
-    //if (!options.whole_space && conjectures_inv(module, new_invs, conjectures)) {
+    //if (!options.whole_space && conjectures_inv(module, new_invs, conjectures))
     if (!options.whole_space && is_invariant_wrt(module,
             v_and(base_invs_plus_new_invs), conjectures))
     {
