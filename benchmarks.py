@@ -236,9 +236,9 @@ BENCHMARKS = {
   Benchmark("benchmarks/simple-de-lock.ivy", "--with-conjs",
       "--finisher --template 0 --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
-# size 5 is 7482678873
+# size 5 is 7,482,678,873
 "chain":
-  Benchmark("benchmarks/chord.ivy", "--with-conjs",
+  Benchmark("benchmarks/chain.ivy", "--with-conjs",
       "--breadth --conj-arity 1 --disj-arity 4",
       "--finisher --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
