@@ -134,7 +134,7 @@ for i in range(THREADS, 0, -1):
       "finisher-paxos-exist-1-depth2 --minimal-models --whole-space --threads " + str(i)))
 
 for i in range(THREADS, 0, -1):
-  benches.append(PaperBench(2,
+  benches.append(PaperBench(10,
       "wc_bt_paxos_depth2_finisher_t" + str(i),
       "better-template-paxos-finisher --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
 
