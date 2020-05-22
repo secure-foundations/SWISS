@@ -313,7 +313,7 @@ BENCHMARKS = {
     ),
 
 "better-template-paxos-finisher" :
-  Benchmark("benchmarks/paxos_epr_full_existential_1.ivy", "--with-conjs",
+  Benchmark("benchmarks/paxos_epr_full_existential_1_threetemplates.ivy", "--with-conjs",
       "--finisher --template 0 --conj-arity 1 --disj-arity 5 --strat-alt --depth2-shape",
       "--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
       "--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
