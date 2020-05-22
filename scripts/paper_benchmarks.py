@@ -7,7 +7,7 @@ from pathlib import Path
 import queue
 import threading
 
-NUM_PARTS = 6
+NUM_PARTS = 7
 
 def get_num_threads(args):
   args = args.split()
@@ -216,7 +216,7 @@ for i in range(3, 0, -1):
 #benches.append(PaperBench("breadth_paxos_minus_size4", "breadth-paxos-minus-size4 --threads 1"))
 
 #benches.append(PaperBench("fail_chord", "fail-chord --minimal-models --threads 7"))
-#benches.append(PaperBench("fail_chain", "chain --minimal-models --threads 7"))
+benches.append(PaperBench(7, "fail_chain", "chain --minimal-models --threads 7"))
 #benches.append(PaperBench("fail_delock", "fail-delock --minimal-models --threads 7"))
 
 benches.append(PaperBench(1, "gimme1_chord", "chord-gimme-1 --minimal-models --threads 7"))
