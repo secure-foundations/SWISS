@@ -242,6 +242,11 @@ BENCHMARKS = {
       "--breadth --conj-arity 1 --disj-arity 4",
       "--finisher --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
+"chain6":
+  Benchmark("benchmarks/chain.ivy", "--with-conjs",
+      "--breadth --conj-arity 1 --disj-arity 4",
+      "--finisher --conj-arity 1 --disj-arity 6 --depth2-shape"),
+
 # 43,893,203,822
 "fail-delock":
   Benchmark("benchmarks/decentralized-lock.ivy", "--with-conjs",

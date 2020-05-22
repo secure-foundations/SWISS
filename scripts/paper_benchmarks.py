@@ -217,6 +217,8 @@ for i in range(3, 0, -1):
 
 #benches.append(PaperBench("fail_chord", "fail-chord --minimal-models --threads 7"))
 benches.append(PaperBench(7, "fail_chain", "chain --minimal-models --threads 7"))
+benches.append(PaperBench(7, "fail_wc_chain", "chain --breadth-with-conjs --minimal-models --threads 7"))
+benches.append(PaperBench(7, "fail_wc_chain6", "chain6 --breadth-with-conjs --minimal-models --threads 7"))
 #benches.append(PaperBench("fail_delock", "fail-delock --minimal-models --threads 7"))
 
 benches.append(PaperBench(1, "gimme1_chord", "chord-gimme-1 --minimal-models --threads 7"))
