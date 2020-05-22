@@ -7,7 +7,7 @@ from pathlib import Path
 import queue
 import threading
 
-NUM_PARTS = 8
+NUM_PARTS = 10
 
 def get_num_threads(args):
   args = args.split()
@@ -89,12 +89,12 @@ for seed in range(1, 5):
       "better-template-paxos --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(2,
+  benches.append(PaperBench(9,
       "wc_bt_paxos_seed_" + str(seed),
       "better-template-paxos --breadth-with-conjs --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
 for seed in range(1, 9):
-  benches.append(PaperBench(2,
+  benches.append(PaperBench(10,
       "wholespace_finisher_bt_paxos_seed_" + str(seed),
       "better-template-paxos-finisher --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
 
