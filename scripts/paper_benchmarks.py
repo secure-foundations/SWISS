@@ -7,7 +7,7 @@ from pathlib import Path
 import queue
 import threading
 
-NUM_PARTS = 7
+NUM_PARTS = 8
 
 def get_num_threads(args):
   args = args.split()
@@ -227,8 +227,8 @@ benches.append(PaperBench(1, "gimme1_delock", "decentralized-lock-gimme-1 --mini
 benches.append(PaperBench(2, "gimme1_wc_chord", "chord-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
 benches.append(PaperBench(2, "gimme1_wc_delock", "decentralized-lock-gimme-1 --breadth-with-conjs --minimal-models --threads 7"))
 
-#benches.append(PaperBench("fail_vertical", "fail-full-vertical--paxos-depth2 --minimal-models --threads 7"))
-#benches.append(PaperBench("fail_stoppable", "fail-full-stoppable-paxos-depth2 --minimal-models --threads 7"))
+benches.append(PaperBench(8, "fail_wc_bt_vertical", "better-template-vertical-paxos --breadth-with-conjs--minimal-models --threads 7"))
+benches.append(PaperBench(8, "fail_wc_bt_stoppable", "better-template-stoppable-paxos --breadth-with-conjs --minimal-models --threads 7"))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
