@@ -234,6 +234,7 @@ BENCHMARKS = {
 
 "sdl":
   Benchmark("benchmarks/simple-de-lock.ivy", "--with-conjs",
+      "--breadth --template 0 --conj-arity 1 --disj-arity 3",
       "--finisher --template 0 --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
 # size 5 is 7,482,678,873

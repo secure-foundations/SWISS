@@ -262,6 +262,20 @@ class BasicStats(object):
 
     self.num_valid_finisher_candidates = -1
 
+def make_optimization_step_table(input_directory):
+  s = [
+    ThreadStats(input_directory, "Simple decentralized lock", "mm_wc_sdl_one_thread"),
+    ThreadStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
+    ThreadStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
+    ThreadStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
+    ThreadStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
+    ThreadStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
+    ThreadStats(input_directory, "Paxos", "mm_wc_bt_paxos_one_thread"),
+    ThreadStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
+    ThreadStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
+  ]
+
+
 def make_table(input_directory, which):
   s = [
     BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
@@ -300,6 +314,7 @@ def make_table(input_directory, which):
       ('SMT time (sec)', 'smt_time_sec'),
       ('$m$', 'num_inv'),
     ]
+
   print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "||l|}")
   print("\\hline")
   for i in range(len(columns)):
