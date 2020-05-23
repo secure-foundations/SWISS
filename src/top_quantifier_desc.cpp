@@ -485,9 +485,14 @@ static bool is_valid(vector<vector<pair<int,int>>>& candidate) {
 
   return true;
 }
-    
+
 std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(value v) {
   cout << "rename_into_all_possibilities " << v->to_string() << endl;
+  for (Alternation const& alt : alts) {
+    cout << "type: " << (alt.altType == AltType::Forall ? "forall" : "exists");
+    cout << " ";
+  }
+  cout << endl;
 
   v = remove_unneeded_quants(v.get());
 
@@ -511,7 +516,10 @@ std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(v
 
       VarDecl const& decl = taqd.alts[i].decls[j];
       for (int k = 0; k < (int)this->alts.size(); k++) {
-        if (this->alts[k].altType == taqd.alts[i].altType) {
+        if (this->alts[k].altType == taqd.alts[i].altType ||
+            (taqd.alts[i].altType == AltType::Forall
+              && this->alts[k].altType == AltType::Exists)
+        ) {
           for (int l = 0; l < (int)this->alts[k].decls.size(); l++) {
             if (sorts_eq(decl.sort, this->alts[k].decls[l].sort)) {
               possibilities[i][j].push_back(make_pair(k, l));

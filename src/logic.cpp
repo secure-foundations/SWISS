@@ -2528,7 +2528,7 @@ value NearlyForall::order_and_or_eq(ScopeState const& ss) const {
 value Exists::order_and_or_eq(ScopeState const& ss) const {
   ScopeState ss_new = ss;
   append_vector(ss_new.decls, decls);
-  return v_forall(decls, body->order_and_or_eq(ss_new));
+  return v_exists(decls, body->order_and_or_eq(ss_new));
 }
 
 value Var::order_and_or_eq(ScopeState const& ss) const {

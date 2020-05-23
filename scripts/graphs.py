@@ -19,7 +19,7 @@ class ThreadStats(object):
           name = self.get_name_from_log(l[3])
           secs = float(l[-2])
           times[name] = secs
-        elif state == 0 and line.startswith("./logs/log."):
+        elif state == 0 and (line.startswith("./logs/log.") or line.startswith("/pylon5/ms5pijp/tjhance/log.")):
           cur_name = self.get_name_from_log(line.strip())
           state = 1
         elif state == 1:
@@ -78,8 +78,13 @@ class ThreadStats(object):
     return res
 
   def get_name_from_log(self, log):
-    assert log.startswith("./logs/log.")
-    return '.'.join(log.split('.')[5:])
+    if log.startswith("./logs/log."):
+      name = '.'.join(log.split('.')[5:])
+    elif log.startswith("/pylon5/ms5pijp/tjhance/log."):
+      name = '.'.join(log.split('.')[4:])
+    else:
+      assert False
+    return name
 
 class Breakdown(object):
   def __init__(self, stats, skip=False):
@@ -657,18 +662,18 @@ def make_parallel_graphs(input_directory, save=False):
 
   plt.gcf().subplots_adjust(bottom=0.20)
 
-  ax.flat[1].set_ylim(bottom=0, top=500)
-  ax.flat[2].set_ylim(bottom=0, top=500)
-  ax.flat[4].set_ylim(bottom=0, top=500)
-  ax.flat[5].set_ylim(bottom=0, top=500)
+  ax.flat[1].set_ylim(bottom=0, top=30000)
+  ax.flat[2].set_ylim(bottom=0, top=30000)
+  ax.flat[4].set_ylim(bottom=0, top=30000)
+  ax.flat[5].set_ylim(bottom=0, top=30000)
 
-  make_parallel_graph(ax.flat[0], input_directory, "paxos_depth2_finisher")
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_breadth")
-  make_parallel_graph(ax.flat[2], input_directory, "nonacc_paxos_breadth", collapse_size_split=True)
+  make_parallel_graph(ax.flat[0], input_directory, "wc_bt_paxos_depth2_finisher")
+  make_parallel_graph(ax.flat[1], input_directory, "paxos_wc_bt_breadth")
+  make_parallel_graph(ax.flat[2], input_directory, "nonacc_wc_bt_paxos_breadth", collapse_size_split=True)
 
-  make_parallel_graph(ax.flat[3], input_directory, "paxos_depth2_finisher", collapsed_breakdown=True)
-  make_parallel_graph(ax.flat[4], input_directory, "paxos_breadth", collapsed_breakdown=True)
-  make_parallel_graph(ax.flat[5], input_directory, "nonacc_paxos_breadth", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[3], input_directory, "wc_bt_paxos_depth2_finisher", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[4], input_directory, "paxos_wc_bt_breadth", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[5], input_directory, "nonacc_wc_bt_paxos_breadth", collapsed_breakdown=True)
 
   plt.tight_layout()
 
@@ -699,10 +704,10 @@ def make_seed_graphs_main(input_directory, save=False):
   fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
   plt.gcf().subplots_adjust(bottom=0.20)
 
-  make_seed_graph(ax.flat[0], input_directory, "learning_switch", title="Learning switch (BreadthAccumulative)")
-  make_seed_graph(ax.flat[1], input_directory, "paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
-  make_seed_graph(ax.flat[2], input_directory, "paxos", title="Paxos (Finisher)", skip_b=True)
-  make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_paxos", title="Paxos (Finisher, entire space)")
+  make_seed_graph(ax.flat[0], input_directory, "wc_learning_switch", title="Learning switch (BreadthAccumulative)")
+  make_seed_graph(ax.flat[1], input_directory, "wc_bt_paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
+  make_seed_graph(ax.flat[2], input_directory, "wc_bt_paxos", title="Paxos (Finisher)", skip_b=True)
+  make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_bt_paxos", title="Paxos (Finisher, entire space)")
 
   fig.tight_layout()
 
@@ -754,7 +759,7 @@ if __name__ == '__main__':
   input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory)
   #main()
-  make_parallel_graphs(input_directory)
-  #make_seed_graphs_main(input_directory)
+  #make_parallel_graphs(input_directory)
+  make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
