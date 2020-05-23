@@ -191,6 +191,18 @@ for minmodels in (True, False):
       benches.append(PaperBench(c, name+"wc_bt_flexible_paxos", "better-template-flexible-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
       benches.append(PaperBench(c, name+"wc_bt_multi_paxos", "better-template-multi-paxos --breadth-with-conjs --threads "+str(THREADS)+args))
 
+      if minmodels and not prebmc and not postbmc:
+        benches.append(PaperBench(c, name+"wc_sdl_one_thread", "sdl --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_leader_election_fin_one_thread", "leader-election-depth2 --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_leader_election_breadth_one_thread", "breadth-leader-election --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_learning_switch_one_thread", "breadth-learning-switch --breadth-with-conjs --threads "+str(11)+args))
+        benches.append(PaperBench(c, name+"wc_lock_server_one_thread", "breadth-lock-server --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_2pc_one_thread", "breadth-2pc --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_bt_paxos_one_thread", "better-template-paxos --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_bt_flexible_paxos_one_thread", "better-template-flexible-paxos --breadth-with-conjs --threads "+str(1)+args))
+        benches.append(PaperBench(c, name+"wc_bt_multi_paxos_one_thread", "better-template-multi-paxos --breadth-with-conjs --threads "+str(1)+args))
+
+
 for i in range(3, 0, -1):
   benches.append(PaperBench(19,
       "chord_breadth_t" + str(i),
