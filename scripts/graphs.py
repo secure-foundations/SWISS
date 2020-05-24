@@ -383,15 +383,15 @@ def make_optimization_step_table(input_directory):
 
 def make_table(input_directory, which):
   s = [
-    BasicStats(input_directory, "Simple decentralized lock", "mm_sdl"),
-    BasicStats(input_directory, "Leader election (1)", "mm_leader_election_breadth", I4='6.1'),
-    BasicStats(input_directory, "Leader election (2)", "mm_leader_election_fin", I4='6.1'),
-    BasicStats(input_directory, "Two-phase commit", "mm_2pc", I4='4.3'),
-    BasicStats(input_directory, "Lock server", "mm_lock_server", I4='0.8'),
-    BasicStats(input_directory, "Learning switch", "mm_learning_switch", I4='10.7'),
-    BasicStats(input_directory, "Paxos", "mm_paxos"),
-    BasicStats(input_directory, "Flexible Paxos", "mm_flexible_paxos"),
-    BasicStats(input_directory, "Multi-Paxos", "mm_multi_paxos"),
+    BasicStats(input_directory, "Simple decentralized lock", "mm_wc_sdl"),
+    BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_breadth", I4='6.1'),
+    BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_fin", I4='6.1'),
+    BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc", I4='4.3'),
+    BasicStats(input_directory, "Lock server", "mm_wc_lock_server", I4='0.8'),
+    BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch", I4='10.7'),
+    BasicStats(input_directory, "Paxos", "mm_wc_bt_paxos"),
+    BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos"),
+    BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos"),
   ]
   if which == 0:
     columns = [
@@ -877,10 +877,10 @@ def main():
 if __name__ == '__main__':
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
-  #make_table(input_directory)
+  make_table(input_directory, 0)
   #main()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  make_optimization_step_table(input_directory)
+  #make_optimization_step_table(input_directory)

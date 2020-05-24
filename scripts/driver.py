@@ -179,7 +179,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
       if has_any:
         total_has_any = True
       if success:
-        stats.add_inc_result(iteration_num, output_invfile, int(time.time() - t1))
+        stats.add_inc_result(iteration_num, output_invfile, time.time() - t1)
         return success, total_has_any, output_invfile
       invfile = output_invfile
     success = False
@@ -191,7 +191,7 @@ def do_breadth_single(iterkey, logfile, nthreads, jsonfile, args, invfile, itera
 
   new_output_file = update_base_invs(new_output_file)
 
-  stats.add_inc_result(iteration_num, new_output_file, int(time.time() - t1))
+  stats.add_inc_result(iteration_num, new_output_file, time.time() - t1)
 
   return success, has_any, new_output_file
 
@@ -355,10 +355,10 @@ def do_finisher(iterkey, logfile, nthreads, jsonfile, args, invfile, stats):
         success, this_has_any = parse_output_file(output_files[key])
         if success:
           any_success = True
-          stats.add_finisher_result(output_files[key], int(time.time() - t1))
+          stats.add_finisher_result(output_files[key], time.time() - t1)
           kill_all_procs()
   if not any_success:
-    stats.add_finisher_result(output_files[iterkey+".thread.0"], int(time.time() - t1))
+    stats.add_finisher_result(output_files[iterkey+".thread.0"], time.time() - t1)
 
 def parse_args(args):
   nthreads = None
