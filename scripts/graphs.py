@@ -254,7 +254,10 @@ class BasicStats(object):
       self.b_size = 8439183 + 26290
       self.f_size = 33589418704
     elif filename == "mm_sdl":
-      self.b_size = -1
+      self.b_size = 87858803
+      self.f_size = 87858803
+    elif filename == "mm_wc_sdl_one_thread":
+      self.b_size = 87858803
       self.f_size = 87858803
     else:
       assert False, "don't have space-size numbers for " + filename
@@ -266,46 +269,47 @@ class BasicStats(object):
 def make_optimization_step_table(input_directory):
   s = [
     BasicStats(input_directory, "Simple decentralized lock", "mm_wc_sdl_one_thread"),
-    BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
-    BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
-    BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
-    BasicStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
-    BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
-    BasicStats(input_directory, "Paxos", "mm_wc_bt_paxos_one_thread"),
-    BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
-    BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
+    #BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
+    #BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
+    #BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
+    #BasicStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
+    #BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
+    #BasicStats(input_directory, "Paxos", "mm_wc_bt_paxos_one_thread"),
+    #BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
+    #BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
   ]
 
   presymm = {
-    "mm_wc_sdl_one_thread": (None,None)
-    "mm_wc_leader_election_fin_one_thread": (None,None)
-    "mm_wc_leader_election_breadth_one_thread": (None,None)
-    "mm_wc_2pc_one_thread": (None,None)
-    "mm_wc_lock_server_one_thread": (None,None)
-    "mm_wc_learning_switch_one_thread": (None,None)
-    "mm_wc_bt_paxos_one_thread": (None,None)
-    "mm_wc_bt_flexible_paxos_one_thread": (None,None)
-    "mm_wc_bt_multi_paxos_one_thread": (None,None)
+    "mm_wc_sdl_one_thread": (None,None),
+    "mm_wc_leader_election_fin_one_thread": (None,None),
+    "mm_wc_leader_election_breadth_one_thread": (None,None),
+    "mm_wc_2pc_one_thread": (None,None),
+    "mm_wc_lock_server_one_thread": (None,None),
+    "mm_wc_learning_switch_one_thread": (None,None),
+    "mm_wc_bt_paxos_one_thread": (None,None),
+    "mm_wc_bt_flexible_paxos_one_thread": (None,None),
+    "mm_wc_bt_multi_paxos_one_thread": (None,None),
   }
 
   postsymm = {
-    "mm_wc_sdl_one_thread": (None,None)
-    "mm_wc_leader_election_fin_one_thread": (None,None)
-    "mm_wc_leader_election_breadth_one_thread": (None,None)
-    "mm_wc_2pc_one_thread": (None,None)
-    "mm_wc_lock_server_one_thread": (None,None)
-    "mm_wc_learning_switch_one_thread": (None,None)
-    "mm_wc_bt_paxos_one_thread": (None,None)
-    "mm_wc_bt_flexible_paxos_one_thread": (None,None)
-    "mm_wc_bt_multi_paxos_one_thread": (None,None)
+    "mm_wc_sdl_one_thread": (87858803,87858803),
+    "mm_wc_leader_election_fin_one_thread": (None,None),
+    "mm_wc_leader_election_breadth_one_thread": (None,None),
+    "mm_wc_2pc_one_thread": (None,None),
+    "mm_wc_lock_server_one_thread": (None,None),
+    "mm_wc_learning_switch_one_thread": (None,None),
+    "mm_wc_bt_paxos_one_thread": (None,None),
+    "mm_wc_bt_flexible_paxos_one_thread": (None,None),
+    "mm_wc_bt_multi_paxos_one_thread": (None,None),
   }
 
   columns = [
-    'Benchmark': (None,None)
-    'Baseline': (None,None)
-    'Symmetries': (None,None)
-    'Counterexample filtering': (None,None)
-    'Redundant invariant filtering': (None,None)
+    'Benchmark',
+    'Baseline',
+    'Symmetries',
+    'Counterexample filtering',
+    'Redundant invariant filtering',
+    'Invariants',
   ]
 
   print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "||l|}")
@@ -321,7 +325,7 @@ def make_optimization_step_table(input_directory):
         bs = ts.get_breadth_stats()
         if len(bs) == 0:
           continue
-        stats = bs[0][0]
+        stats = bs[0][0][0]
       else:
         fs = ts.get_finisher_stats()
         if len(fs) == 0:
@@ -356,7 +360,13 @@ def make_optimization_step_table(input_directory):
               + stats["number of redundant invariants found"]
               + stats["number of finisher invariants found"]
             )
-            
+
+        elif col == 'Invariants':
+          prop = (
+                stats["number of non-redundant invariants found"]
+              + stats["number of redundant invariants found"]
+              + stats["number of finisher invariants found"]
+            )
 
           if col == 'Symmetries':
             prop = sz
@@ -869,6 +879,7 @@ if __name__ == '__main__':
   #make_table(input_directory)
   #main()
   #make_parallel_graphs(input_directory)
-  make_seed_graphs_main(input_directory)
+  #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
+  make_optimization_step_table(input_directory)

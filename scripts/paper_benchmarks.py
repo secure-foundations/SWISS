@@ -333,6 +333,7 @@ def parse_args(args):
   res = []
   j = None
   p = None
+  one = None
   i = 0
   while i < len(args):
     if args[i] == '-j':
@@ -341,14 +342,17 @@ def parse_args(args):
     elif args[i] == '-p':
       p = int(args[i+1])
       i += 1
+    elif args[i] == '--one':
+      one = args[i+1]
+      i += 1
     else:
       res.append(args[i])
     i += 1
-  return j, p, res
+  return j, p, one, res
 
 def main():
   args = sys.argv[1:]
-  j, p, args = parse_args(args)
+  j, p, one, args = parse_args(args)
 
   assert len(args) == 1
   directory = args[0]
@@ -358,7 +362,7 @@ def main():
 
   if j == None:
     for b in benches:
-      if p == None or p == b.partition:
+      if (p == None or p == b.partition) and (b.name == one or one == None):
         run(directory, b)
   else:
     if p == None:
