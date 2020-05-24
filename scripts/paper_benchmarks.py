@@ -7,7 +7,7 @@ from pathlib import Path
 import queue
 import threading
 
-NUM_PARTS = 24
+NUM_PARTS = 27
 
 def get_num_threads(args):
   args = args.split()
@@ -41,6 +41,22 @@ for i in range(THREADS, 0, -1):
   benches.append(PaperBench(3,
       "wc_bt_paxos_depth2_finisher_t" + str(i),
       "better-template-paxos-finisher --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(25,
+      "wc_chord_t" + str(i),
+      "chord-gimme-1 --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(26,
+      "wc_bt_multi_paxos_t" + str(i),
+      "better-template-multi-paxos --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(27,
+      "wc_bt_flexible_paxos_t" + str(i),
+      "better-template-flexible-paxos --breadth-with-conjs --minimal-models --whole-space --threads " + str(i)))
+
 
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(4,
