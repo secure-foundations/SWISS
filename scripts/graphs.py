@@ -781,10 +781,10 @@ def make_parallel_graphs(input_directory, save=False):
 
   plt.gcf().subplots_adjust(bottom=0.20)
 
-  ax.flat[1].set_ylim(bottom=0, top=30000)
-  ax.flat[2].set_ylim(bottom=0, top=30000)
-  ax.flat[4].set_ylim(bottom=0, top=30000)
-  ax.flat[5].set_ylim(bottom=0, top=30000)
+  ax.flat[1].set_ylim(bottom=0, top=1500)
+  ax.flat[2].set_ylim(bottom=0, top=1500)
+  ax.flat[4].set_ylim(bottom=0, top=1500)
+  ax.flat[5].set_ylim(bottom=0, top=1500)
 
   make_parallel_graph(ax.flat[0], input_directory, "wc_bt_paxos_depth2_finisher")
   make_parallel_graph(ax.flat[1], input_directory, "paxos_wc_bt_breadth")
@@ -879,7 +879,7 @@ if __name__ == '__main__':
   #make_table(input_directory)
   #main()
   #make_parallel_graphs(input_directory)
-  #make_seed_graphs_main(input_directory)
+  make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  make_optimization_step_table(input_directory)
+  #make_optimization_step_table(input_directory)
