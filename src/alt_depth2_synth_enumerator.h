@@ -16,6 +16,7 @@ public:
   void addExistingInvariant(value inv);
   long long getProgress() { return progress; }
   long long getSpaceSize();
+  long long getPreSymmCount();
 
 //private:
   std::shared_ptr<Module> module;

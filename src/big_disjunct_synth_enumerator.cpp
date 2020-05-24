@@ -462,3 +462,9 @@ void BigDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
         pieces, var_index_transitions, sz);
   }
 }
+
+long long BigDisjunctCandidateSolver::getPreSymmCount() {
+  long long ans = 1;
+  for (int i = 0; i < disj_arity; i++) ans *= (long long)pieces.size();
+  return ans;
+}

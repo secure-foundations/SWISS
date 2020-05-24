@@ -16,6 +16,7 @@ public:
 
   long long getProgress() { return progress; }
   long long getSpaceSize();
+  long long getPreSymmCount();
   long long progress;
 
 //private:

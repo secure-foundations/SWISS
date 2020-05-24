@@ -260,7 +260,8 @@ class BasicStats(object):
       self.b_size = 87858803
       self.f_size = 87858803
     else:
-      assert False, "don't have space-size numbers for " + filename
+      self.f_size = -1
+      self.b_size = -1
 
     self.f_b_size = self.f_size + self.b_size
 
@@ -269,14 +270,14 @@ class BasicStats(object):
 def make_optimization_step_table(input_directory):
   s = [
     BasicStats(input_directory, "Simple decentralized lock", "mm_wc_sdl_one_thread"),
-    #BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
-    #BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
-    #BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
-    #BasicStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
-    #BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
+    BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
+    BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
+    BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
+    BasicStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
+    BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
     #BasicStats(input_directory, "Paxos", "mm_wc_bt_paxos_one_thread"),
     #BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
-    #BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
+    BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
   ]
 
   presymm = {
@@ -879,7 +880,7 @@ if __name__ == '__main__':
   #make_table(input_directory)
   #main()
   #make_parallel_graphs(input_directory)
-  make_seed_graphs_main(input_directory)
+  #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  #make_optimization_step_table(input_directory)
+  make_optimization_step_table(input_directory)

@@ -514,3 +514,12 @@ void AltDepth2CandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
   }
   //cout << "done" << endl;
 }
+
+long long AltDepth2CandidateSolver::getPreSymmCount() {
+  long long ans = 1;
+  for (int i = 0; i < total_arity; i++) ans *= (long long)pieces.size();
+  long long mul;
+  if (total_arity == 1) mul = 1;
+  else mul = 2 * (long long)((1 << (total_arity - 1)) - 1);
+  return ans * mul;
+}

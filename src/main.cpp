@@ -610,6 +610,55 @@ int main(int argc, char* argv[]) {
   output_fd.success = false;
   output_fd.base_invs = base_invs;
 
+  if (options.get_space_size) {
+    vector<EnumOptions> enum_options_b;
+    vector<EnumOptions> enum_options_f;
+    int i;
+    for (i = 0; i < (int)strats.size(); i++) {
+      if (strats[i].inc || strats[i].breadth) {
+        assert (strats[0].inc == strats[i].inc);
+        assert (strats[0].breadth == strats[i].breadth);
+        enum_options_b.push_back(strats[i].enum_options);
+      } else {
+        break;
+      }
+    }
+    for (; i < (int)strats.size(); i++) {
+      if (strats[i].finisher) {
+        enum_options_f.push_back(strats[i].enum_options);
+      }
+    }
+    long long b_pre_symm = -1;
+    long long b_post_symm = -1;
+    long long f_pre_symm = -1;
+    long long f_post_symm = -1;
+    if (enum_options_b.size() > 0) {
+      shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options_b, true);
+      b_pre_symm = cs->getPreSymmCount();
+      cout << "b_pre_symm " << b_pre_symm << endl;
+      b_post_symm = cs->getSpaceSize();
+      cout << "b_post_symm " << b_post_symm << endl;
+    }
+    if (enum_options_f.size() > 0) {
+      shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options_f, false);
+      f_pre_symm = cs->getPreSymmCount();
+      cout << "f_pre_symm " << f_pre_symm << endl;
+      f_post_symm = cs->getSpaceSize();
+      cout << "f_post_symm " << f_post_symm << endl;
+    }
+    cout << "pre_symm counts ("
+        << (b_pre_symm == -1 ? "None" : to_string(b_pre_symm))
+        << ", "
+        << (f_pre_symm == -1 ? "None" : to_string(f_pre_symm))
+        << ")" << endl;
+    cout << "post_symm counts ("
+        << (b_pre_symm == -1 ? "None" : to_string(b_pre_symm))
+        << ", "
+        << (f_pre_symm == -1 ? "None" : to_string(f_pre_symm))
+        << ")" << endl;
+    return 0;
+  }
+
   try {
     int idx;
     if (strats[0].inc || strats[0].breadth) {

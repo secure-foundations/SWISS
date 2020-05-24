@@ -6,6 +6,8 @@
 #include "var_lex_graph.h"
 #include "subsequence_trie.h"
 
+#include <cassert>
+
 class AltImplCandidateSolver : public CandidateSolver {
 public:
   AltImplCandidateSolver(std::shared_ptr<Module>, value templ, int disj_arity);
@@ -15,6 +17,7 @@ public:
   void addExistingInvariant(value inv);
   long long getProgress() { return progress; }
   long long getSpaceSize();
+  long long getPreSymmCount() { assert(false); }
 
 //private:
   std::shared_ptr<Module> module;

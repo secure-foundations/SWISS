@@ -142,6 +142,7 @@ public:
 
   long long getProgress() { return progress; }
   long long getSpaceSize() { assert(false); }
+  long long getPreSymmCount() { assert(false); }
   long long progress;
 
 //private:
@@ -383,6 +384,15 @@ public:
     }
     return res;
   }
+
+  long long getPreSymmCount() {
+    long long res = 0;
+    for (int i = 0; i < (int)solvers.size(); i++) {
+      res += solvers[i]->getPreSymmCount();
+    }
+    return res;
+  }
+
 
   void setSpaceChunk(SpaceChunk const& sc) {
     doing_chunks = true;

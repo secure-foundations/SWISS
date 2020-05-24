@@ -20,6 +20,7 @@ public:
 
   long long getProgress() { return -1; }
   long long getSpaceSize() { assert(false); }
+  long long getPreSymmCount() { assert(false); }
 
 //private:
   vector<value> existingInvariants;
