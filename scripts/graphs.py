@@ -281,24 +281,24 @@ def make_optimization_step_table(input_directory):
   ]
 
   presymm = {
-    "mm_wc_sdl_one_thread": (None,None),
-    "mm_wc_leader_election_fin_one_thread": (None,None),
-    "mm_wc_leader_election_breadth_one_thread": (None,None),
-    "mm_wc_2pc_one_thread": (None,None),
-    "mm_wc_lock_server_one_thread": (None,None),
-    "mm_wc_learning_switch_one_thread": (None,None),
+    "mm_wc_sdl_one_thread": (343000, 50421000000),
+    "mm_wc_leader_election_fin_one_thread": (None, 10350757530),
+    "mm_wc_leader_election_breadth_one_thread": (132651, None),
+    "mm_wc_2pc_one_thread": (103823, None),
+    "mm_wc_lock_server_one_thread": (16, None),
+    "mm_wc_learning_switch_one_thread": (69426531, None),
     "mm_wc_bt_paxos_one_thread": (None,None),
     "mm_wc_bt_flexible_paxos_one_thread": (None,None),
     "mm_wc_bt_multi_paxos_one_thread": (None,None),
   }
 
   postsymm = {
-    "mm_wc_sdl_one_thread": (87858803,87858803),
-    "mm_wc_leader_election_fin_one_thread": (None,None),
-    "mm_wc_leader_election_breadth_one_thread": (None,None),
-    "mm_wc_2pc_one_thread": (None,None),
-    "mm_wc_lock_server_one_thread": (None,None),
-    "mm_wc_learning_switch_one_thread": (None,None),
+    "mm_wc_sdl_one_thread": (4573, 87858803),
+    "mm_wc_leader_election_fin_one_thread": (None, 56915730),
+    "mm_wc_leader_election_breadth_one_thread": (4490, None),
+    "mm_wc_2pc_one_thread": (3739, None),
+    "mm_wc_lock_server_one_thread": (11, None),
+    "mm_wc_learning_switch_one_thread": (2259197, None),
     "mm_wc_bt_paxos_one_thread": (None,None),
     "mm_wc_bt_flexible_paxos_one_thread": (None,None),
     "mm_wc_bt_multi_paxos_one_thread": (None,None),
@@ -309,14 +309,14 @@ def make_optimization_step_table(input_directory):
     'Baseline',
     'Symmetries',
     'Counterexample filtering',
-    'Redundant invariant filtering',
+    'FastImplies',
     'Invariants',
   ]
 
   print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "||l|}")
   print("\\hline")
   for i in range(len(columns)):
-    print(columns[i][0], "\\\\" if i == len(columns) - 1 else "&", end=" ")
+    print(columns[i], "\\\\" if i == len(columns) - 1 else "&", end=" ")
   print("")
   print("\\hline")
   for bench in s:
@@ -353,7 +353,7 @@ def make_optimization_step_table(input_directory):
               + stats["number of enumerated filtered redundant invariants"]
             )
 
-        elif col == 'Redundant invariant filtering':
+        elif col == 'FastImplies':
           prop = (stats["Counterexamples of type FALSE"]
               + stats["Counterexamples of type TRANSITION"]
               + stats["Counterexamples of type TRUE"]
@@ -368,11 +368,6 @@ def make_optimization_step_table(input_directory):
               + stats["number of redundant invariants found"]
               + stats["number of finisher invariants found"]
             )
-
-          if col == 'Symmetries':
-            prop = sz
-          elif col == 'Redundant invariant filtering':
-            prop = sz - stats["number of enumerated filtered redundant invariants"]
 
         print(prop, "\\\\" if i == len(columns) - 1 else "&", end=" ")
       print("")
@@ -877,10 +872,10 @@ def main():
 if __name__ == '__main__':
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
-  make_table(input_directory, 0)
+  #make_table(input_directory, 0)
   #main()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  #make_optimization_step_table(input_directory)
+  make_optimization_step_table(input_directory)

@@ -652,9 +652,9 @@ int main(int argc, char* argv[]) {
         << (f_pre_symm == -1 ? "None" : to_string(f_pre_symm))
         << ")" << endl;
     cout << "post_symm counts ("
-        << (b_pre_symm == -1 ? "None" : to_string(b_pre_symm))
+        << (b_post_symm == -1 ? "None" : to_string(b_post_symm))
         << ", "
-        << (f_pre_symm == -1 ? "None" : to_string(f_pre_symm))
+        << (f_post_symm == -1 ? "None" : to_string(f_post_symm))
         << ")" << endl;
     return 0;
   }

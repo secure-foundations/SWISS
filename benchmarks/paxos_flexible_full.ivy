@@ -26,12 +26,12 @@ module total_order(r) = {
 #
 ################################################################################
 
-type node
+type round
 type value
 # two types of quorums
 type quorum_1
 type quorum_2
-type round
+type node
 
 individual none: round
 relation le(X:round, Y:round)

@@ -1,0 +1,73 @@
+#lang ivy1.5
+
+type node
+type id
+
+function nid(N:node) : id
+relation btw(X:node, Y:node, Z:node)
+relation leader(X:node)
+relation pnd(X:id, N:node)
+relation le(X:id, Y:id)
+
+# unique ids
+axiom forall N : node . forall M : node . (N ~= M) -> (nid(N) ~= nid(M))
+
+# <=
+axiom forall X : id . le(X, X)
+axiom forall X : id . forall Y : id . le(X, Y) & le(Y, Z) -> le(X, Z)
+axiom forall X : id . forall Y : id . (le(X, Y) & le(Y, X)) -> X = Y
+axiom forall X : id . forall Y : id . le(X, Y) | le(Y, X)
+
+# ring_topology
+axiom btw(X,Y,Z) -> btw(Y,Z,X)
+axiom btw(W,X,Y) & btw(W,Y,Z) -> btw(W,X,Z)
+axiom btw(W,X,Y) -> ~btw(W,Y,X)
+axiom forall W : node . forall X : node . forall Y : node . (W ~= X & X ~= Y & Y ~= W) -> (btw(W,X,Y) | btw(W,Y,X))
+
+init ~leader(X)
+init ~pnd(X,Y)
+
+action send = {
+  local n: node, m: node {
+    assume (X ~= n & X ~= m) -> btw(n,m,X); # next(n,m)
+    pnd(nid(n), m) := true;
+  }
+}
+
+action receive = {
+  local i: id, n: node, m: node {
+    assume pnd(i, n);
+    pnd(i, n) := false;
+    if (nid(n) = i) {
+      leader(n) := true;
+    } else {
+      if (le(nid(n), i)) {
+        assume forall X : node . (X ~= n & X ~= m) -> btw(n,m,X); # next(n,m)
+        pnd(i, m) := true;
+      }
+    }
+  }
+}
+
+export send
+export receive
+
+# safety property
+conjecture ~(leader(N) & leader(M) & N ~= M)
+
+template forall A001:id. forall A002:id. forall A003:id. forall A004:id. WILD
+template exists A001:id. exists A002:id. exists A003:id. exists A004:id. WILD
+template forall A001:node. forall A002:id. forall A003:id. forall A004:id. WILD
+template forall A001:node. exists A002:id. exists A003:id. exists A004:id. WILD
+template exists A001:node. forall A002:id. forall A003:id. forall A004:id. WILD
+template exists A001:node. exists A002:id. exists A003:id. exists A004:id. WILD
+template forall A001:node. forall A002:node. forall A003:id. forall A004:id. WILD
+template forall A001:node. forall A002:node. exists A003:id. exists A004:id. WILD
+template exists A001:node. exists A002:node. forall A003:id. forall A004:id. WILD
+template exists A001:node. exists A002:node. exists A003:id. exists A004:id. WILD
+template forall A001:node. forall A002:node. forall A003:node. forall A004:id. WILD
+template forall A001:node. forall A002:node. forall A003:node. exists A004:id. WILD
+template exists A001:node. exists A002:node. exists A003:node. forall A004:id. WILD
+template exists A001:node. exists A002:node. exists A003:node. exists A004:id. WILD
+template forall A001:node. forall A002:node. forall A003:node. forall A004:node. WILD
+template exists A001:node. exists A002:node. exists A003:node. exists A004:node. WILD

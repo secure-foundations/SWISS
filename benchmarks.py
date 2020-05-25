@@ -288,7 +288,7 @@ BENCHMARKS = {
 
 "decentralized-lock-gimme-1":
   Benchmark("benchmarks/decentralized-lock-gimme-1.ivy", "--with-conjs",
-      "--finisher --conj-arity 1 --disj-arity 7 --depth2-shape"),
+      "--finisher --conj-arity 1 --disj-arity 5 --depth2-shape"),
 
 "full-paxos-mini" :
   Benchmark("benchmarks/paxos_epr_full.ivy", "--with-conjs",
@@ -386,4 +386,654 @@ BENCHMARKS = {
 #      "--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape",
 #    ),
 
+"final-leader-election" :
+  Benchmark("benchmarks/final-leader-election.ivy",
+  *("""
+  --with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-simple-de-lock" :
+  Benchmark("benchmarks/final-simple-de-lock.ivy",
+  *(""" 
+  --with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-2pc" :
+  Benchmark("benchmarks/final-2pc.ivy",
+  *(""" 
+--with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-lock-server" :
+  Benchmark("benchmarks/final-lock-server.ivy",
+  *(""" 
+  --with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+
+"final-learning-switch" :
+  Benchmark("benchmarks/final-learning-switch.ivy",
+  *(""" 
+  --with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+
+"final-decentralized-lock" :
+  Benchmark("benchmarks/final-decentralized-lock.ivy",
+  *(""" 
+  --with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-chord" :
+  Benchmark("benchmarks/final-chord.ivy",
+  *(""" 
+--with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-paxos" :
+  Benchmark("benchmarks/final-paxos.ivy",
+  *("""
+--with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 16 --conj-arity 1 --disj-arity 4
+--breadth --template 17 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 18 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 19 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 20 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 21 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 22 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 23 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 24 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 25 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 26 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 27 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 28 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 29 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 30 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 31 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 32 --conj-arity 1 --disj-arity 4
+--breadth --template 33 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 34 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 35 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 36 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 37 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 38 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 39 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 40 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 41 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 42 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 43 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 44 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 45 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 46 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 47 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 16 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 17 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 18 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 19 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 20 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 21 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 22 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 23 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 24 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 25 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 26 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 27 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 28 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 29 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 30 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 31 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 32 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 33 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 34 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 35 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 36 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 37 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 38 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 39 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 40 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 41 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 42 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 43 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 44 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 45 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 46 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 47 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+"final-multi-paxos" :
+  Benchmark("benchmarks/final-multi-paxos.ivy",
+  *("""
+--with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 16 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 17 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 18 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 19 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 20 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 21 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 22 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 23 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 24 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 25 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 26 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 27 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 28 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 29 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 30 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 31 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 32 --conj-arity 1 --disj-arity 4
+--breadth --template 33 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 34 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 35 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 36 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 37 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 38 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 39 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 40 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 41 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 42 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 43 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 44 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 45 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 46 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 47 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 48 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 49 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 50 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 51 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 52 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 53 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 54 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 55 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 56 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 57 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 58 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 59 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 60 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 61 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 62 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 63 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 64 --conj-arity 1 --disj-arity 4
+--breadth --template 65 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 66 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 67 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 68 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 69 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 70 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 71 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 72 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 73 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 74 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 75 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 76 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 77 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 78 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 79 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 80 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 81 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 82 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 83 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 84 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 85 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 86 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 87 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 88 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 89 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 90 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 91 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 92 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 93 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 94 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 95 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 96 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 97 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 98 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 99 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 100 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 101 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 102 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 103 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 104 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 105 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 106 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 107 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 108 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 109 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 110 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 111 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 112 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 113 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 114 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 115 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 116 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 117 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 118 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 119 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 120 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 121 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 122 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 123 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 124 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 125 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 126 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 127 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 16 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 17 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 18 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 19 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 20 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 21 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 22 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 23 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 24 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 25 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 26 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 27 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 28 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 29 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 30 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 31 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 32 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 33 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 34 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 35 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 36 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 37 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 38 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 39 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 40 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 41 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 42 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 43 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 44 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 45 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 46 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 47 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 48 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 49 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 50 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 51 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 52 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 53 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 54 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 55 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 56 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 57 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 58 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 59 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 60 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 61 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 62 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 63 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 64 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 65 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 66 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 67 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 68 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 69 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 70 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 71 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 72 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 73 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 74 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 75 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 76 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 77 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 78 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 79 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 80 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 81 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 82 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 83 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 84 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 85 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 86 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 87 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 88 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 89 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 90 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 91 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 92 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 93 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 94 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 95 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 96 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 97 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 98 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 99 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 100 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 101 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 102 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 103 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 104 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 105 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 106 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 107 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 108 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 109 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 110 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 111 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 112 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 113 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 114 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 115 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 116 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 117 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 118 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 119 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 120 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 121 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 122 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 123 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 124 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 125 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 126 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 127 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
+
+
+"final-flexible-paxos" :
+  Benchmark("benchmarks/final-flexible-paxos.ivy",
+  *("""
+--with-conjs
+--breadth --template 0 --conj-arity 1 --disj-arity 4
+--breadth --template 1 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 2 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 3 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 4 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 5 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 6 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 7 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 8 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 9 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 10 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 11 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 12 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 13 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 14 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 15 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 16 --conj-arity 1 --disj-arity 4
+--breadth --template 17 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 18 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 19 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 20 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 21 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 22 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 23 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 24 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 25 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 26 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 27 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 28 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 29 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 30 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 31 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 32 --conj-arity 1 --disj-arity 4
+--breadth --template 33 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 34 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 35 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 36 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 37 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 38 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 39 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 40 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 41 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 42 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 43 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 44 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 45 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 46 --conj-arity 1 --disj-arity 4 --strat-alt
+--breadth --template 47 --conj-arity 1 --disj-arity 4 --strat-alt
+--finisher --template 0 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 1 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 2 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 3 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 4 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 5 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 6 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 7 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 8 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 9 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 10 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 11 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 12 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 13 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 14 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 15 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 16 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 17 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 18 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 19 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 20 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 21 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 22 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 23 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 24 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 25 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 26 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 27 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 28 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 29 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 30 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 31 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 32 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 33 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 34 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 35 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 36 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 37 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 38 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 39 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 40 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 41 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 42 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 43 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 44 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 45 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 46 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+--finisher --template 47 --conj-arity 1 --disj-arity 6 --strat-alt --depth2-shape
+""".split('\n'))),
 }

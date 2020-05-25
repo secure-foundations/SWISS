@@ -7,7 +7,7 @@ from pathlib import Path
 import queue
 import threading
 
-NUM_PARTS = 27
+NUM_PARTS = 37
 
 def get_num_threads(args):
   args = args.split()
@@ -26,6 +26,36 @@ class PaperBench(object):
 benches = [ ]
 
 THREADS = 8
+
+benches.append(PaperBench(28, "final-leader-election",
+    "final-leader-election --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(29, "final-simple-de-lock",
+    "final-simple-de-lock --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(30, "final-2pc",
+    "final-2pc --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(31, "final-lock-server",
+    "final-lock-server --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(32, "final-learning-switch",
+    "final-learning-switch --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(33, "final-decentralized-lock",
+    "final-decentralized-lock --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(34, "final-chord",
+    "final-chord --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(35, "final-paxos",
+    "final-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(36, "final-multi-paxos",
+    "final-multi-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(37, "final-flexible-paxos",
+    "final-flexible-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
 
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(1,
