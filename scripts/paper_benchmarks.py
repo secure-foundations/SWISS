@@ -57,6 +57,12 @@ benches.append(PaperBench(36, "final-multi-paxos",
 benches.append(PaperBench(37, "final-flexible-paxos",
     "final-flexible-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
 
+benches.append(PaperBench(28, "final-stoppable-paxos",
+    "final-stoppable-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
+benches.append(PaperBench(28, "final-vertical-paxos",
+    "final-vertical-paxos --breadth-with-conjs --threads 24 --minimal-models --by-size --non-accumulative"))
+
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(1,
       "nonacc_wc_bt_paxos_breadth_t" + str(i),

@@ -19,11 +19,11 @@ module total_order(r) = {
 #
 ################################################################################
 
-type node
+type round
 type value
 type quorum
-type round
 type config
+type node
 
 individual none: value
 
