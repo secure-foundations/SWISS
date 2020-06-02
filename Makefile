@@ -33,10 +33,13 @@ OBJECTS = $(addprefix bin/,\
 )
 
 ifdef GLUCOSE_RELEASE
-LIBS = bin/lib_glucose_release.a
+GLUCOSE_LIB = bin/lib_glucose_release.a
 else
-LIBS = bin/lib_glucose_debug.a
+GLUCOSE_LIB = bin/lib_glucose_debug.a
 endif
+
+#LIBS = $(GLUCOSE_LIB)
+LIBS =
 
 DEP_DIR = bin/deps
 
@@ -45,7 +48,7 @@ CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compa
 
 all: synthesis
 
-glucoselib: $(LIBS)
+glucoselib: GLUCOSE_LIB
 
 synthesis: $(OBJECTS) $(LIBS)
 	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3 -lcvc4 -lpthread
