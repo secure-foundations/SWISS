@@ -17,12 +17,10 @@ OBJECTS = $(addprefix bin/,\
 	model_isomorphisms.o \
 	wpr.o \
 	filter.o \
-	naive_synth_enumerator.o \
+	synth_enumerator.o \
 	obviously_implies.o \
 	var_lex_graph.o \
-	big_disjunct_synth_enumerator.o \
 	alt_synth_enumerator.o \
-	alt_impl_synth_enumerator.o \
 	alt_depth2_synth_enumerator.o \
 	smt.o \
 	smt_z3.o \

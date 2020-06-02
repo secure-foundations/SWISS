@@ -11,11 +11,7 @@ struct EnumOptions {
 
   // Naive solving
   int disj_arity;
-  int conj_arity;
-  bool impl_shape; // overly-specific option
   bool depth2_shape;
-  //bool strat2;
-  bool strat_alt;
 };
 
 struct Options {

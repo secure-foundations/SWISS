@@ -113,12 +113,8 @@ struct Strategy {
     breadth = false;
 
     enum_options.template_idx = 0;
-    enum_options.conj_arity = -1;
     enum_options.disj_arity = -1;
-    enum_options.impl_shape = false;
     enum_options.depth2_shape = false;
-    //options.strat2 = false;
-    enum_options.strat_alt = false;
   }
 };
 
@@ -499,24 +495,13 @@ int main(int argc, char* argv[]) {
             && strat.enum_options.template_idx < (int)module->templates.size());
         i++;
       }
-      else if (argv[i] == string("--conj-arity")) {
-        assert(i + 1 < argc);
-        strat.enum_options.conj_arity = atoi(argv[i+1]);
-        i++;
-      }
       else if (argv[i] == string("--disj-arity")) {
         assert(i + 1 < argc);
         strat.enum_options.disj_arity = atoi(argv[i+1]);
         i++;
       }
-      else if (argv[i] == string("--impl-shape")) {
-        strat.enum_options.impl_shape = true;
-      }
       else if (argv[i] == string("--depth2-shape")) {
         strat.enum_options.depth2_shape = true;
-      }
-      else if (argv[i] == string("--strat-alt")) {
-        strat.enum_options.strat_alt = true;
       }
       else {
         cout << "unreocgnized enum_options argument " << argv[i] << endl;
