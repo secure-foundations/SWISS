@@ -9,18 +9,14 @@ OBJECTS = $(addprefix bin/,\
 	bmc.o \
 	enumerator.o \
 	utils.o \
-	sketch.o \
 	synth_loop.o \
 	ftree.o \
 	quantifier_permutations.o \
 	top_quantifier_desc.o \
-	sketch_model.o \
 	strengthen_invariant.o \
-	sat_solver.o \
 	model_isomorphisms.o \
 	wpr.o \
 	filter.o \
-	synth_enumerator.o \
 	naive_synth_enumerator.o \
 	obviously_implies.o \
 	var_lex_graph.o \

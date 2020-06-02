@@ -26,11 +26,6 @@ SynthesisResult synth_loop(
   bool use_input_chunks,
   std::vector<SpaceChunk> const& chunks);
 
-SynthesisResult synth_loop_incremental(
-  std::shared_ptr<Module> module,
-  std::vector<EnumOptions> const& enum_options,
-  Options const& options);
-
 SynthesisResult synth_loop_incremental_breadth(
   std::shared_ptr<Module> module,
   std::vector<EnumOptions> const& enum_options,

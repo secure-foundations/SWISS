@@ -8,8 +8,6 @@
 #include "lib/json11/json11.hpp"
 
 #include "model.h"
-#include "sketch.h"
-#include "sketch_model.h"
 #include "enumerator.h"
 #include "benchmarking.h"
 #include "bmc.h"
@@ -828,16 +826,6 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   return synres;
 }
 
-/*void synth_loop_thread_starter(
-  shared_ptr<Module> module,
-  vector<EnumOptions> enum_options,
-  Options options,
-  ThreadSafeQueue *tsq)
-{
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
-  return synth_loop_main(module, cs, options, tsq);
-}*/
-
 SynthesisResult synth_loop(
   shared_ptr<Module> module,
   vector<EnumOptions> const& enum_options,
@@ -845,7 +833,7 @@ SynthesisResult synth_loop(
   bool use_input_chunks,
   vector<SpaceChunk> const& chunks)
 {
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, false);
+  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, enum_options, false);
   if (use_input_chunks) {
     ThreadSafeQueue tsq;
     tsq.q = chunks;
@@ -853,217 +841,6 @@ SynthesisResult synth_loop(
   } else {
     return synth_loop_main(module, cs, options, NULL);
   }
-}
-
-
-/*void synth_loop_from_transcript(shared_ptr<Module> module, int arity, int depth)
-{
-  string filename = "../../ms";
-  ifstream t(filename);
-  string contents((istreambuf_iterator<char>(t)), istreambuf_iterator<char>());
-
-  cout << "read in transcript contents:" << endl;
-  cout << contents << endl << endl;
-
-  string err;
-  if (err.size()) cout << err << "\n";
-  Json j = Json::parse(contents, err);
-  Transcript transcript = Transcript::from_json(j, module);
-
-  Benchmarking bench;
-  bench.start("synth_loop with transcript");
-
-  synth_loop(module, arity, depth, &transcript);
-
-  bench.end();
-  bench.dump();
-}*/
-
-SynthesisResult synth_loop_incremental(shared_ptr<Module> module, vector<EnumOptions> const& enum_options, Options const& options)
-{
-  assert(false);
-#if 0
-  auto t_init = now();
-
-  smt::context ctx(smt::Backend::z3);
-  if (options.smt_retries) {
-    cout << "using SMT timeout " << TIMEOUT
-         << " for inductivity checks" << endl;
-    ctx.set_timeout(TIMEOUT);
-  }
-  smt::context bmcctx(smt::Backend::z3);
-
-  vector<value> all_found_invs;
-  vector<value> found_invs;
-  vector<value> all_found_invs_unsimplified;
-  if (is_invariant_with_conjectures(module, v_true())) {
-    printf("already invariant, done\n");
-    return SynthesisResult(true, {}, {});
-  }
-
-  int bmc_depth = 4;
-  printf("bmc_depth = %d\n", bmc_depth);
-  BMCContext bmc(bmcctx, module, bmc_depth);
-  bmcctx.set_timeout(15000); // 15 seconds
-
-  int num_iterations_total = 0;
-  int num_redundant = 0;
-
-  std::vector<std::pair<Counterexample, value>> cexes;
-
-  CexStats cexstats;
-
-  long long filtering_ns = 0;
-
-  while (true) {
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, true);
-    if (options.enum_sat) {
-      for (value inv : found_invs) {
-        cs->addExistingInvariant(inv);
-      }
-    } else {
-      for (value inv : all_found_invs_unsimplified) {
-        cs->addExistingInvariant(inv);
-      }
-    }
-    for (auto& p : cexes) {
-      cs->addCounterexample(p.first, p.second);
-    }
-
-    Benchmarking per_outer_loop_bench;
-    per_outer_loop_bench.start("time to infer this invariant");
-
-    int num_iterations = 0;
-
-    while (true) {
-      Benchmarking per_inner_loop_bench;
-      per_inner_loop_bench.start("iteration");
-
-      num_iterations++;
-      num_iterations_total++;
-
-      cout << "num_iterations_total = " << num_iterations_total << endl;
-
-      printf("\n");
-
-      //log_smtlib(solver_sf);
-      //printf("number of boolean variables: %d\n", sf.get_bool_count() + sm.get_bool_count());
-      std::cout.flush();
-
-      auto filtering_t1 = now();
-      value candidate0 = cs->getNext();
-      filtering_ns += as_ns(now() - filtering_t1);
-
-      if (!candidate0) {
-        printf("unable to synthesize any formula\n");
-        goto done;
-      }
-
-      cout << "candidate: " << candidate0->to_string() << endl;
-
-      value candidate = candidate0->reduce_quants();
-
-      //auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module));
-      //auto initctx = shared_ptr<InitContext>(new InitContext(ctx, module));
-      Counterexample cex = get_counterexample_simple(
-                module, options, ctx, bmc, false,
-                v_and(found_invs), candidate);
-
-      Benchmarking bench2;
-      bench2.start("simplification");
-      cex = simplify_cex_nosafety(module, cex, options, bmc);
-      bench2.end();
-      bench2.dump();
-
-      assert(cex.is_false == nullptr);
-
-      cexstats.add(cex);
-
-      if (cex.none) {
-        value simplified_inv;
-        if (options.enum_sat) {
-          Benchmarking bench_strengthen;
-          bench_strengthen.start("strengthen");
-          simplified_inv = strengthen_invariant(module, v_and(found_invs), candidate)
-              ->simplify()->reduce_quants();
-          bench_strengthen.end();
-          bench_strengthen.dump();
-        } else {
-          simplified_inv = candidate;
-        }
-
-        found_invs.push_back(simplified_inv);
-        all_found_invs_unsimplified.push_back(candidate0);
-        all_found_invs.push_back(simplified_inv);
-
-        cexes = filter_unneeded_cexes(cexes, v_and(found_invs));
-
-        printf("\nfound new invariant! all so far:\n");
-        for (value found_inv : found_invs) {
-          printf("    %s\n", found_inv->to_string().c_str());
-        }
-        if (options.filter_redundant) {
-          found_invs = filter_redundant_formulas(module, found_invs);
-          printf("\nfiltered:\n");
-          for (value found_inv : found_invs) {
-            printf("    %s\n", found_inv->to_string().c_str());
-          }
-          printf("num found so far:   %d\n", (int)found_invs.size());
-        }
-        printf("TODAL found so far: %d\n", (int)all_found_invs.size());
-
-        per_inner_loop_bench.end();
-        per_inner_loop_bench.dump();
-
-        benchmarking_dump_totals();
-
-        dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
-
-        break;
-      } else {
-        cex_stats(cex);
-
-        Benchmarking add_cex_bench;
-        add_cex_bench.start("add_counterexample");
-        cs->addCounterexample(cex, candidate0);
-        cexes.push_back(make_pair(cex, candidate0));
-        add_cex_bench.end();
-        add_cex_bench.dump();
-      }
-
-      per_inner_loop_bench.end();
-      per_inner_loop_bench.dump();
-
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
-    }
-
-    assert(is_itself_invariant(module, found_invs));
-
-    if (!options.whole_space && is_invariant_with_conjectures(module, found_invs)) {
-      printf("invariant implies safety condition, done!\n");
-
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, filtering_ns/1000000, 0, 0, 0);
-      break;
-    }
-
-    printf("\n");
-    per_outer_loop_bench.end();
-    per_outer_loop_bench.dump();
-    printf("\n");
-  }
-
-  done:
-
-  printf("\nall invariants found::\n");
-  for (value found_inv : found_invs) {
-    printf("    %s\n", found_inv->to_string().c_str());
-  }
-  printf("total invariants found: %d\n", (int)found_invs.size());
-  benchmarking_dump_totals();
-  printf("\n");
-
-  return SynthesisResult(false, found_invs, all_found_invs);
-#endif
 }
 
 template <typename T>
@@ -1150,7 +927,7 @@ SynthesisResult synth_loop_incremental_breadth(
   while (true) {
     num_iterations_outer++;
 
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options, true);
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, enum_options, true);
 
     if (options.get_space_size) {
       long long s = cs->getSpaceSize();
@@ -1158,14 +935,8 @@ SynthesisResult synth_loop_incremental_breadth(
       exit(0);
     }
 
-    if (options.enum_sat) {
-      for (value inv : new_invs) {
-        cs->addExistingInvariant(inv);
-      }
-    } else {
-      for (value inv : all_invs) {
-        cs->addExistingInvariant(inv);
-      }
+    for (value inv : all_invs) {
+      cs->addExistingInvariant(inv);
     }
 
     int num_iterations = 0;
@@ -1241,13 +1012,9 @@ SynthesisResult synth_loop_incremental_breadth(
         //bench_strengthen.dump();
         cout << "strengthened " << strengthened_inv->to_string() << endl;
 
-        if (options.enum_sat) {
-          is_nonredundant = true;
-        } else {
-          is_nonredundant = invariant_is_nonredundant(module, ctx,
-              (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs),
-              simplified_strengthened_inv);
-        }
+        is_nonredundant = invariant_is_nonredundant(module, ctx,
+            (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs),
+            simplified_strengthened_inv);
 
         all_invs.push_back(strengthened_inv);
 
@@ -1275,11 +1042,7 @@ SynthesisResult synth_loop_incremental_breadth(
           num_redundant++;
         }
 
-        if (options.enum_sat) {
-          cs->addExistingInvariant(simplified_strengthened_inv);
-        } else {
-          cs->addExistingInvariant(strengthened_inv);
-        }
+        cs->addExistingInvariant(strengthened_inv);
       } else {
         cex_stats(cex);
         auto t1 = now();

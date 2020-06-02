@@ -2,19 +2,12 @@
 #define SYNTH_ENUMERATOR_H
 
 #include "model.h"
-#include "sat_solver.h"
 #include "top_quantifier_desc.h"
-#include "sketch.h"
 
 #include <string>
 
 struct EnumOptions {
   int template_idx;
-
-  // SAT solving
-  int arity;
-  int depth;
-  bool conj;
 
   // Naive solving
   int disj_arity;
@@ -26,8 +19,6 @@ struct EnumOptions {
 };
 
 struct Options {
-  bool enum_sat;
-
   bool get_space_size;
 
   // If true, generate X such that X & conj is invariant
@@ -112,19 +103,15 @@ std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
     std::shared_ptr<Module> module, EnumOptions const& options);
 
 inline std::shared_ptr<CandidateSolver> make_candidate_solver(
-    std::shared_ptr<Module> module, bool enum_sat, 
+    std::shared_ptr<Module> module,
     EnumOptions const& options,
     bool ensure_nonredundant)
 {
-  if (enum_sat) {
-    return make_sat_candidate_solver(module, options, ensure_nonredundant);
-  } else {
-    return make_naive_candidate_solver(module, options);
-  }
+  return make_naive_candidate_solver(module, options);
 }
 
 std::shared_ptr<CandidateSolver> make_candidate_solver(
-    std::shared_ptr<Module> module, bool enum_sat, 
+    std::shared_ptr<Module> module,
     std::vector<EnumOptions> const& options,
     bool ensure_nonredundant);
 

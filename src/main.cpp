@@ -8,7 +8,6 @@
 #include "enumerator.h"
 #include "utils.h"
 #include "synth_loop.h"
-#include "sat_solver.h"
 #include "wpr.h"
 #include "filter.h"
 #include "template_counter.h"
@@ -106,19 +105,14 @@ extern bool enable_smt_logging;
 
 struct Strategy {
   bool finisher;
-  bool inc;
   bool breadth;
   EnumOptions enum_options;
 
   Strategy() {
     finisher = false;
-    inc = false;
     breadth = false;
 
     enum_options.template_idx = 0;
-    enum_options.arity = -1;
-    enum_options.depth = -1;
-    enum_options.conj = false;
     enum_options.conj_arity = -1;
     enum_options.disj_arity = -1;
     enum_options.impl_shape = false;
@@ -264,7 +258,6 @@ int main(int argc, char* argv[]) {
   run_id = rand();
 
   Options options;
-  options.enum_sat = false;
   options.with_conjs = false;
   options.breadth_with_conjs = false;
   options.whole_space = false;
@@ -324,9 +317,6 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--finisher")) {
       break;
     }
-    else if (argv[i] == string("--incremental")) {
-      break;
-    }
     else if (argv[i] == string("--breadth")) {
       break;
     }
@@ -338,9 +328,6 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--non-accumulative")) {
       options.non_accumulative = true;
-    }
-    else if (argv[i] == string("--enum-sat")) {
-      options.enum_sat = true;
     }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
@@ -491,9 +478,6 @@ int main(int argc, char* argv[]) {
     if (argv[i] == string("--finisher")) {
       strat.finisher = true;
     }
-    else if (argv[i] == string("--incremental")) {
-      strat.inc = true;
-    }
     else if (argv[i] == string("--breadth")) {
       strat.breadth = true;
     }
@@ -505,9 +489,6 @@ int main(int argc, char* argv[]) {
       if (argv[i] == string("--finisher")) {
         break;
       }
-      else if (argv[i] == string("--incremental")) {
-        break;
-      }
       else if (argv[i] == string("--breadth")) {
         break;
       }
@@ -517,19 +498,6 @@ int main(int argc, char* argv[]) {
         assert(0 <= strat.enum_options.template_idx
             && strat.enum_options.template_idx < (int)module->templates.size());
         i++;
-      }
-      else if (argv[i] == string("--arity")) {
-        assert(i + 1 < argc);
-        strat.enum_options.arity = atoi(argv[i+1]);
-        i++;
-      }
-      else if (argv[i] == string("--depth")) {
-        assert(i + 1 < argc);
-        strat.enum_options.depth = atoi(argv[i+1]);
-        i++;
-      }
-      else if (argv[i] == string("--conj")) {
-        strat.enum_options.conj = true;
       }
       else if (argv[i] == string("--conj-arity")) {
         assert(i + 1 < argc);
@@ -579,7 +547,6 @@ int main(int argc, char* argv[]) {
 
   if (output_chunk_files.size() || input_chunk_file != "") {
     for (int i = 1; i < (int)strats.size(); i++) {
-      assert (strats[0].inc == strats[i].inc);
       assert (strats[0].breadth == strats[i].breadth);
       assert (strats[0].finisher == strats[i].finisher);
     }
@@ -591,7 +558,7 @@ int main(int argc, char* argv[]) {
       enum_options.push_back(strat.enum_options);
     }
     shared_ptr<CandidateSolver> cs = make_candidate_solver(
-        module, options.enum_sat, enum_options, !strats[0].finisher);
+        module, enum_options, !strats[0].finisher);
     vector<SpaceChunk> chunks;
     cs->getSpaceChunk(chunks /* output */);
     randomize_chunks(chunks);
@@ -615,8 +582,7 @@ int main(int argc, char* argv[]) {
     vector<EnumOptions> enum_options_f;
     int i;
     for (i = 0; i < (int)strats.size(); i++) {
-      if (strats[i].inc || strats[i].breadth) {
-        assert (strats[0].inc == strats[i].inc);
+      if (strats[i].breadth) {
         assert (strats[0].breadth == strats[i].breadth);
         enum_options_b.push_back(strats[i].enum_options);
       } else {
@@ -633,14 +599,16 @@ int main(int argc, char* argv[]) {
     long long f_pre_symm = -1;
     long long f_post_symm = -1;
     if (enum_options_b.size() > 0) {
-      shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options_b, true);
+      shared_ptr<CandidateSolver> cs =
+          make_candidate_solver(module, enum_options_b, true);
       b_pre_symm = cs->getPreSymmCount();
       cout << "b_pre_symm " << b_pre_symm << endl;
       b_post_symm = cs->getSpaceSize();
       cout << "b_post_symm " << b_post_symm << endl;
     }
     if (enum_options_f.size() > 0) {
-      shared_ptr<CandidateSolver> cs = make_candidate_solver(module, options.enum_sat, enum_options_f, false);
+      shared_ptr<CandidateSolver> cs = make_candidate_solver(
+          module, enum_options_f, false);
       f_pre_symm = cs->getPreSymmCount();
       cout << "f_pre_symm " << f_pre_symm << endl;
       f_post_symm = cs->getSpaceSize();
@@ -661,12 +629,11 @@ int main(int argc, char* argv[]) {
 
   try {
     int idx;
-    if (strats[0].inc || strats[0].breadth) {
+    if (strats[0].breadth) {
       vector<EnumOptions> enum_options;
       int i;
       for (i = 0; i < (int)strats.size(); i++) {
-        if (strats[i].inc || strats[i].breadth) {
-          assert (strats[0].inc == strats[i].inc);
+        if (strats[i].breadth) {
           assert (strats[0].breadth == strats[i].breadth);
           enum_options.push_back(strats[i].enum_options);
         } else {
@@ -676,19 +643,11 @@ int main(int argc, char* argv[]) {
       idx = i;
 
       SynthesisResult synres;
-      if (strats[0].inc) {
-        cout << endl;
-        cout << ">>>>>>>>>>>>>> Starting incremental algorithm" << endl;
-        cout << endl;
-        assert (!(use_input_chunks));
-        synres = synth_loop_incremental(module, enum_options, options);
-      } else {
-        cout << endl;
-        cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
-        cout << endl;
-        synres = synth_loop_incremental_breadth(module, enum_options, options,
-            use_input_chunks, chunks, all_invs, new_invs);
-      }
+      cout << endl;
+      cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
+      cout << endl;
+      synres = synth_loop_incremental_breadth(module, enum_options, options,
+          use_input_chunks, chunks, all_invs, new_invs);
 
       augment_fd(output_fd, synres);
 
