@@ -451,7 +451,7 @@ void sort_values(vector<value>& values) {
   });
 }
 
-pair<vector<value>, vector<value>> enumerate_for_template(
+vector<value> enumerate_for_template(
     shared_ptr<Module> module,
     value templ, int k)
 {
@@ -492,129 +492,16 @@ pair<vector<value>, vector<value>> enumerate_for_template(
 
   assert (all_hole_fills.size() > 0);
   vector<value> res = fill_holes(templ, all_hole_fills);
-  vector<value> final = remove_equiv2(res);
+  //vector<value> final = remove_equiv2(res);
 
   //cout << "res len " << res.size() << endl;
-  return make_pair(final, res);
+  //return make_pair(final, res);
+  return res;
 }
 
-// XXX this doesn't make any sense
-/*vector<value> enumerate_fills_for_template(
-    shared_ptr<Module> module,
+vector<value> get_clauses_for_template(
+    std::shared_ptr<Module> module, 
     value templ)
 {
-  vector<HoleInfo> all_hole_info = getHoleInfo(templ);
-  vector<vector<value>> all_hole_fills;
-  for (HoleInfo hi : all_hole_info) {
-    Grammar grammar = createGrammarFromModule(module, hi.vars);
-    context z3_ctx;
-    solver z3_solver(z3_ctx);
-    SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
-    add_constraints(module, solver);
-    vector<value> fills;
-    while (solver.solve()) {
-      fills.push_back(solver.solutionToValue());
-    }
-    fills = filter_boring(fills);
-    for (int i = 0; i < fills.size(); i++) {
-      fills[i] = fills[i]->negate();
-    }
-    all_hole_fills.push_back(move(fills));
-  }
-
-  vector<value> res = fill_holes(templ, all_hole_fills);
-  return res;
-}*/
-
-thread_local map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_filtered;
-thread_local map<pair<shared_ptr<Module>, pair<int, int>>, shared_ptr<ValueList>> cache_unfiltered;
-
-void populate(shared_ptr<Module> module, value templ, int k) {
-  int l = module->get_template_idx(templ);
-
-  auto p = enumerate_for_template(module, templ, k);
-
-  shared_ptr<ValueList> v1 { new ValueList() };
-  shared_ptr<ValueList> v2 { new ValueList() };
-  v1->values_unsimplified = move(p.first);
-  v2->values_unsimplified = move(p.second);
-
-  cache_filtered.insert(make_pair(make_pair(module, make_pair(k, l)), v1));
-  cache_unfiltered.insert(make_pair(make_pair(module, make_pair(k, l)), v2));
-}
-
-std::shared_ptr<ValueList> cached_get_filtered_values(std::shared_ptr<Module> module, value templ, int k)
-{
-  int l = module->get_template_idx(templ);
-
-  auto key = make_pair(module, make_pair(k, l));
-  auto iter = cache_filtered.find(key);
-  if (iter == cache_filtered.end()) {
-    populate(module, templ, k);
-    return cache_filtered[key];
-  } else {
-    return iter->second;
-  }
-}
-
-std::shared_ptr<ValueList> cached_get_unfiltered_values(std::shared_ptr<Module> module, value templ, int k)
-{
-  int l = module->get_template_idx(templ);
-  //cout << "template idx " << l << endl;
-
-  auto key = make_pair(module, make_pair(k, l));
-  auto iter = cache_unfiltered.find(key);
-  if (iter == cache_unfiltered.end()) {
-    populate(module, templ, k);
-    return cache_unfiltered[key];
-  } else {
-    return iter->second;
-  }
-}
-
-void ValueList::init_simp() {
-  if (values.size() == values_unsimplified.size()) {
-    return;
-  }
-
-  for (value v : values_unsimplified) {
-    values.push_back(v->simplify());
-  }
-}
-
-void ValueList::init_extra() {
-  init_simp();
-
-  if (implications.size() == values.size()) {
-    return;
-  }
-
-  implications.resize(values.size());
-
-  for (int i = 0; i < (int)values.size(); i++) {
-    ComparableValue cv(values[i]->totally_normalize());
-    normalized_to_idx.insert(make_pair(cv, i));
-  }
-
-  for (int i = 0; i < (int)values.size(); i++) {
-    //cout << "doing " << i << "   " << values[i]->to_string() << endl;
-    vector<value> subs = all_sub_disjunctions(values[i]);
-    bool found_self = false;
-    for (value v : subs) {
-      ComparableValue cv(v->totally_normalize());
-      auto iter = normalized_to_idx.find(cv);
-      assert(iter != normalized_to_idx.end());
-      int idx = iter->second;
-      assert(idx <= i);
-      implications[idx].push_back(i);
-
-      //cout << "  " << idx << "   " << v->to_string() << "   " << v->totally_normalize()->to_string() << "   " << endl;
-
-      if (idx == i) {
-        found_self = true;
-      }
-    }
-    //cout << endl;
-    assert(found_self);
-  }
+  return enumerate_for_template(module, templ, 1);
 }

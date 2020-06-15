@@ -18,9 +18,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   cout << "Using AltDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
-  auto values = cached_get_unfiltered_values(module, templ, 1);
-  values->init_simp();
-  pieces = values->values;
+  pieces = get_clauses_for_template(module, templ);
 
   cout << "Using " << pieces.size() << " terms" << endl;
   //for (value p : pieces) {
@@ -451,7 +449,6 @@ void AltDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
 long long AltDisjunctCandidateSolver::getSpaceSize() {
   while (true) {
     increment();
-    progress++;
     /*if (progress % 500000 == 0) {
       cout << progress << endl;
       dump_cur_indices();
@@ -459,6 +456,7 @@ long long AltDisjunctCandidateSolver::getSpaceSize() {
     if (done) {
       return progress;
     }
+    progress++;
   }
 }
 

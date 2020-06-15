@@ -111,12 +111,35 @@ VarIndexTransition get_var_index_transition(
   return vit;
 }
 
+/*vector<QSRange> order_groups(vector<QSRange> const& ranges)
+{
+  vector<QSRange> v;
+  for (int i = 0; i < (int)module->sorts.size(); i++) {
+    lsort so = s_uninterp(module->sorts[i]);
+    int t = -1;
+    for (int j = 0; j < ranges.size(); j++) {
+      if (sorts_eq(ranges[j].sort, so)) {
+        assert (t == -1);
+        t = j;
+      }
+    }
+    if (t == -1) {
+      QSRange qsr;
+      v.push_back(qsr);
+    } else {
+      v.push_back(ranges[j]);
+    }
+  }
+  return v;
+}*/
+
 vector<VarIndexTransition> get_var_index_transitions(
   value templ,
   vector<value> const& values)
 {
   TopAlternatingQuantifierDesc taqd(templ);
   vector<QSRange> groups = taqd.grouped_by_sort();
+  //groups = order_groups(groups);
 
   int ngroups = groups.size();
 

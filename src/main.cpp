@@ -395,8 +395,11 @@ int main(int argc, char* argv[]) {
   }
 
   if (template_counter) {
-    long long res = count_space(module, template_counter_k,
-        template_counter_maxVars);
+    long long res = count_template(module,
+        module->templates[0],
+        template_counter_k,
+        false,
+        false);
     cout << "total: " << res << endl;
     return 0;
   }

@@ -21,6 +21,15 @@ struct VarIndexState {
     }
     return true;
   }
+
+  std::string to_string() const {
+    std::string s = "[";
+    for (int i = 0; i < (int)indices.size(); i++) {
+      if (i > 0) s += " ";
+      s += std::to_string(indices[i]);
+    }
+    return s + "]";
+  }
 };
 
 struct VarIndexTransitionPrecondition {
@@ -29,12 +38,30 @@ struct VarIndexTransitionPrecondition {
   // (e.g., if the term has 3 2, then the index stored here would be 2.)
   // (e.g., if the term has 2 3, then the index stored here would be 1.)
   std::vector<int> indices;
+
+  std::string to_string() const {
+    std::string s = "[";
+    for (int i = 0; i < (int)indices.size(); i++) {
+      if (i > 0) s += " ";
+      s += std::to_string(indices[i]);
+    }
+    return s + "]";
+  }
 };
 
 struct VarIndexTransitionResult {
   // Minimum index reached (0 for none at all, 1 for having reached
   // the first one, etc.)
   std::vector<int> indices;
+
+  std::string to_string() const {
+    std::string s = "[";
+    for (int i = 0; i < (int)indices.size(); i++) {
+      if (i > 0) s += " ";
+      s += std::to_string(indices[i]);
+    }
+    return s + "]";
+  }
 };
 
 inline void var_index_do_transition(

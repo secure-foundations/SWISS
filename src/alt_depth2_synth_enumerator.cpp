@@ -18,9 +18,7 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(shared_ptr<Module> module, va
   cout << "Using AltDepth2CandidateSolver" << endl;
   cout << "total_arity: " << total_arity << endl;
 
-  auto values = cached_get_unfiltered_values(module, templ, 1);
-  values->init_simp();
-  pieces = values->values;
+  pieces = get_clauses_for_template(module, templ);
 
   tree_shapes = get_tree_shapes_up_to(total_arity);
 
@@ -434,13 +432,13 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
 long long AltDepth2CandidateSolver::getSpaceSize() {
   while (true) {
     increment();
+    if (done) {
+      return progress;
+    }
     progress++;
     if (progress % 500000 == 0) {
       cout << progress << endl;
       dump_cur_indices();
-    }
-    if (done) {
-      return progress;
     }
   }
 }
