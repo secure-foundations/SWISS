@@ -206,6 +206,231 @@ long long meetInMiddle(
   return res;
 }
 
+vector<vector<vector<long long>>> getCountsFromVarStateToVarState(
+    vector<vector<int>> const& matrix,
+    int d)
+{
+  int m = matrix.size();
+  int n = matrix[0].size();
+
+  vector<vector<vector<long long>>> res;
+  res.resize(d+1);
+  for (int i = 0; i < d+1; i++) {
+    res[i].resize(m);
+    for (int j = 0; j < m; j++) {
+      res[i][j].resize(m);
+    }
+  }
+
+  vector<vector<vector<long long>>> dp;
+  dp.resize(d+1);
+  for (int i = 0; i < d+1; i++) {
+    dp[i].resize(m);
+    for (int j = 0; j < m; j++) {
+      dp[i][j].resize(n+1);
+    }
+  }
+
+  for (int final = 0; final < m; final++) {
+    for (int j = 0; j < m; j++) {
+      for (int k = 0; k <= n; k++) {
+        dp[d][j][k] = (j == final ? 1 : 0);
+      }
+    }
+
+    for (int i = d-1; i >= 0; i--) {
+      for (int j = 0; j < m; j++) {
+        dp[i][j][n] = 0;
+        for (int k = n-1; k >= 0; k--) {
+          dp[i][j][k] = dp[i][j][k+1];
+          if (matrix[j][k] != -1) {
+            dp[i][j][k] += dp[i+1][matrix[j][k]][k+1];
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i <= d; i++) {
+      for (int j = 0; j < m; j++) {
+        res[i][j][final] = dp[d-i][j][0];
+      }
+    }
+  }
+
+  return res;
+}
+
+void multiplyMatrixRec(
+    vector<vector<int>> const& matrix,
+    vector<vector<int>>& matrix1,
+    vector<int>& indices,
+    int i,
+    int& idx)
+{
+  int n = matrix[0].size();
+
+  if (i == (int)indices.size()) {
+    int m = matrix.size();
+    for (int t = 0; t < m; t++) {
+      int u = t;
+      for (int j = 0; j < (int)indices.size(); j++) {
+        u = matrix[u][indices[j]];
+        if (u == -1) {
+          break;
+        }
+      }
+      matrix1[t][idx] = u;
+    }
+
+    idx++;
+    return;
+  }
+
+  int next = (i == 0 ? 0 : indices[i-1] + 1);
+  for (int j = next; j < n; j++) {
+    indices[i] = j;
+    multiplyMatrixRec(matrix, matrix1, indices, i+1, idx);
+  }
+}
+
+vector<vector<int>> multiplyMatrix(
+    vector<vector<int>> matrix,
+    int k)
+{
+  assert (k >= 1);
+  if (k == 1) {
+    return matrix;
+  }
+
+  int m = matrix.size();
+  int n = matrix[0].size();
+
+  long long n1 = 1;
+  for (int i = n; i >= n - k + 1; i--) {
+    n1 *= (long long)i;
+    n1 /= n - i + 1;
+  }
+
+  vector<vector<int>> matrix1;
+  matrix1.resize(m);
+  for (int i = 0; i < m; i++) {
+    matrix1[i].resize(n1);
+  }
+
+  vector<int> indices;
+  indices.resize(k);
+  int idx = 0;
+  multiplyMatrixRec(matrix, matrix1, indices, 0, idx);
+
+  return matrix1;
+}
+
+vector<vector<vector<long long>>> getCountsFromVarStateToVarStateForGroups(
+    vector<vector<int>> const& matrix,
+    int groupSize, int nGroups)
+{
+  assert (groupSize > 0);
+  if (nGroups == 1) {
+    vector<vector<vector<long long>>> r =
+      getCountsFromVarStateToVarState(matrix, groupSize);
+
+    vector<vector<vector<long long>>> res;
+    res.resize(2);
+    res[0] = r[0];
+    res[1] = r[groupSize];
+    return res;
+  } else {
+    return getCountsFromVarStateToVarState(
+        multiplyMatrix(matrix, groupSize), nGroups);
+  }
+}
+
+vector<long long> countDepth1(
+    vector<vector<int>> const& matrix,
+    int d,
+    int final)
+{
+  vector<vector<vector<long long>>> trans =
+      getCountsFromVarStateToVarStateForGroups(matrix, 1, d);
+  vector<long long> res;
+  res.resize(d + 1);
+  res[0] = 0;
+
+  int m = matrix.size();
+
+  for (int i = 1; i <= d; i++) {
+    if (final == -1) {
+      res[i] = 0;
+      for (int j = 0; j < m; j++) {
+        res[i] += trans[i][0][j];
+        //cout << i << " " << j << ", " << trans[i][0][j] << endl;
+      }
+    } else {
+      res[i] = trans[i][0][final];
+    }
+  }
+
+  return res;
+}
+
+vector<long long> countDepth2(
+    vector<vector<int>> const& matrix,
+    int d,
+    int final)
+{
+  // groupSize, nGroups, startState, endState
+  vector<vector<vector<vector<long long>>>> trans;
+  trans.push_back({});
+  for (int i = 1; i <= d; i++) {
+    trans.push_back(getCountsFromVarStateToVarStateForGroups(
+        matrix, i, d / i));
+  }
+
+  int m = matrix.size();
+  
+  // position, max len after position, state
+  vector<vector<vector<long long>>> dp;
+  dp.resize(d+1);
+  for (int i = 0; i <= d; i++) {
+    dp[i].resize(d+1);
+    for (int j = 0; j <= d; j++) {
+      dp[i][j].resize(m);
+    }
+  }
+
+  for (int j = 0; j <= d; j++) {
+    for (int k = 0; k < m; k++) {
+      dp[d][j][k] = (final == -1 || k == final ? 1 : 0);
+    }
+  }
+
+  for (int i = d-1; i >= 0; i--) {
+    for (int k = 0; k < m; k++) {
+      dp[d][0][k] = 0;
+    }
+
+    for (int j = 1; j <= d; j++) {
+      for (int k = 0; k < m; k++) {
+        dp[i][j][k] = dp[i][j-1][k];
+        int groupSize = j;
+        for (int nGroups = 1; nGroups < (int)trans[groupSize].size() && i + groupSize * nGroups <= d; nGroups++) {
+          for (int l = 0; l < m; l++) {
+            dp[i][j][k] += trans[groupSize][nGroups][k][l] * dp[i + groupSize * nGroups][groupSize - 1][l];
+          }
+        }
+      }
+    }
+  }
+
+  vector<long long> res;
+  res[0] = 0;
+  res.resize(d+1);
+  for (int i = 1; i <= d; i++) {
+    res.push_back(dp[d-i][d][0]);
+  }
+  return res;
+}
+
 int get_num_vars(shared_ptr<Module> module, value templ)
 {
   TopAlternatingQuantifierDesc taqd(templ);
@@ -230,6 +455,9 @@ long long count_template(
           ei.var_index_transitions,
           get_num_vars(module, templ));
   cout << "clauses: " << ei.clauses.size() << endl;
+  /*for (value v : ei.clauses) {
+    cout << v->to_string() << endl;
+  }*/
   cout << "matrix: " << p.first.size() << endl;
 
   auto matrix = p.first;
@@ -238,6 +466,27 @@ long long count_template(
 
   assert (final != -1);
 
+  if (!useAllVars) {
+    final = -1;
+  }
+
+  vector<long long> counts;
+  if (depth2) {
+    counts = countDepth2(matrix, k, final);
+  } else {
+    counts = countDepth1(matrix, k, final);
+  }
+
+  long long total = 0;
+  for (int i = 1; i <= k; i++) {
+    long long v = counts[i];
+    cout << "k = " << i << " : " << v << endl;
+    total += v;
+  }
+  cout << "total = " << total << endl;
+  //return total;
+
+  {
   auto prefixes = count_prefixes(matrix, (k+1)/2);
   auto suffixes = count_suffixes(matrix_rev, k/2, useAllVars ? final : -1);
 
@@ -249,6 +498,7 @@ long long count_template(
   }
   cout << "total = " << total << endl;
   return total;
+  }
 }
 
 /*
