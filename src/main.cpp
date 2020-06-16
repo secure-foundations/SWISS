@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
 
   bool template_counter = false;
   int template_counter_k;
-  int template_counter_maxVars;
+  int template_counter_d;
 
   int i;
   for (i = 1; i < argc; i++) {
@@ -380,7 +380,7 @@ int main(int argc, char* argv[]) {
       assert(i + 2 < argc);
       template_counter = true;
       template_counter_k = atoi(argv[i+1]);
-      template_counter_maxVars = atoi(argv[i+2]);
+      template_counter_d = atoi(argv[i+2]);
       i += 2;
     }
     /*else if (argv[i] == string("--threads")) {
@@ -395,10 +395,11 @@ int main(int argc, char* argv[]) {
   }
 
   if (template_counter) {
+    assert (template_counter_d == 1 || template_counter_d == 2);
     long long res = count_template(module,
         module->templates[0],
         template_counter_k,
-        false,
+        template_counter_d == 2,
         false);
     cout << "total: " << res << endl;
     return 0;

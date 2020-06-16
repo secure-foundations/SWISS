@@ -378,27 +378,41 @@ vector<long long> countDepth2(
     int d,
     int final)
 {
+  if (d < 2) {
+    d = 2;
+  }
+
   // groupSize, nGroups, startState, endState
   vector<vector<vector<vector<long long>>>> trans;
   trans.push_back({});
-  for (int i = 1; i <= d; i++) {
+  for (int i = 1; i < d; i++) {
     trans.push_back(getCountsFromVarStateToVarStateForGroups(
         matrix, i, d / i));
   }
 
   int m = matrix.size();
-  
+
+  /*for (int i = 1; i <= (int)trans.size(); i++) {
+    for (int j = 1; j < (int)trans[i].size(); j++) {
+      for (int k = 0; k < m; k++) {
+        for (int l = 0; l < m; l++) {
+          cout << "(" << j << " groups of " << i << ") from " << k << " to " << l << " gives " << trans[i][j][k][l] << endl;
+        }
+      }
+    }
+  }*/
+
   // position, max len after position, state
   vector<vector<vector<long long>>> dp;
   dp.resize(d+1);
   for (int i = 0; i <= d; i++) {
-    dp[i].resize(d+1);
-    for (int j = 0; j <= d; j++) {
+    dp[i].resize(d);
+    for (int j = 0; j < d; j++) {
       dp[i][j].resize(m);
     }
   }
 
-  for (int j = 0; j <= d; j++) {
+  for (int j = 0; j < d; j++) {
     for (int k = 0; k < m; k++) {
       dp[d][j][k] = (final == -1 || k == final ? 1 : 0);
     }
@@ -406,28 +420,42 @@ vector<long long> countDepth2(
 
   for (int i = d-1; i >= 0; i--) {
     for (int k = 0; k < m; k++) {
-      dp[d][0][k] = 0;
+      dp[i][0][k] = 0;
     }
 
-    for (int j = 1; j <= d; j++) {
+    for (int j = 1; j < d; j++) {
       for (int k = 0; k < m; k++) {
         dp[i][j][k] = dp[i][j-1][k];
         int groupSize = j;
         for (int nGroups = 1; nGroups < (int)trans[groupSize].size() && i + groupSize * nGroups <= d; nGroups++) {
+          //cout << "i = " << i << " nGroups = " << nGroups << " groupSize = " << groupSize << endl;
           for (int l = 0; l < m; l++) {
             dp[i][j][k] += trans[groupSize][nGroups][k][l] * dp[i + groupSize * nGroups][groupSize - 1][l];
           }
         }
+        //cout << "dp[" << i << "][" << j << "][" << k << "] = " << dp[i][j][k] << endl;
       }
     }
   }
 
   vector<long long> res;
-  res[0] = 0;
   res.resize(d+1);
+  res[0] = 0;
   for (int i = 1; i <= d; i++) {
-    res.push_back(dp[d-i][d][0]);
+    //cout << "yo " << dp[d-i][d][0] << endl;
+    res[i] = dp[d-i][d-1][0];
   }
+
+  for (int i = 2; i < d; i++) {
+    if (final == -1) {
+      for (int l = 0; l < m; l++) {
+        res[i] -= trans[i][1][0][l];
+      }
+    } else {
+      res[i] -= trans[i][1][0][final];
+    }
+  }
+
   return res;
 }
 
@@ -481,12 +509,17 @@ long long count_template(
   for (int i = 1; i <= k; i++) {
     long long v = counts[i];
     cout << "k = " << i << " : " << v << endl;
-    total += v;
+
+    if (depth2 && i > 1) {
+      total += 2*v;
+    } else {
+      total += v;
+    }
   }
   cout << "total = " << total << endl;
-  //return total;
+  return total;
 
-  {
+  /*{
   auto prefixes = count_prefixes(matrix, (k+1)/2);
   auto suffixes = count_suffixes(matrix_rev, k/2, useAllVars ? final : -1);
 
@@ -498,177 +531,5 @@ long long count_template(
   }
   cout << "total = " << total << endl;
   return total;
-  }
+  }*/
 }
-
-/*
-vector<vector<int>> get_matrix_counts(
-  vector<vector<int>> const& matrix,
-  int final)
-{
-  vector<vector<int>> res;
-  for (int state = 0; state < (int)matrix.size(); state++) {
-    res.push_back(vector<int>(matrix[state].size() + 1));
-    res[state][matrix[state].size()] = 0;
-    for (int j = matrix[state].size() - 1; j >= 0; j--) {
-      res[state][j] = res[state][j+1] + (matrix[state][j] == final ? 1 : 0);
-    }
-  }
-  return res;
-}
-
-long long rec_main(
-  vector<vector<int>> const& matrix,
-  vector<vector<int>> const& matrix_counts,
-  int final,
-  TreeShape const& ts,
-  vector<int>& indices,
-  int idx,
-  int state)
-{
-  if (idx == (int)indices.size() - 1) {
-    int minLast = is_normalized_for_tree_shape_get_min_of_last(ts, indices);
-    //for (int i = 0; i < (int)indices.size()-1; i++) cout << indices[i] << " ";
-    //cout << "_ " << ts.to_string() << " " << minLast << endl;
-    if (minLast != -1) {
-      return matrix_counts[state][minLast];
-    } else {
-      return 0;
-    }
-  }
-
-  //int n = matrix.size();
-  int m = matrix[0].size();
-
-  long long res = 0;
-
-  SymmEdge const& symm_edge = ts.symmetry_back_edges[idx];
-  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
-  for (int j = t; j < m; j++) {
-    indices[idx] = j;
-    if (matrix[state][j] != -1) {
-      res += rec_main(matrix, matrix_counts, final, ts, indices, idx+1, matrix[state][j]);
-    }
-  }
-  return res;
-}
-
-int name_idx = 0;
-
-value make_template(
-    shared_ptr<Module> module,
-    vector<int> const& partition)
-{
-  vector<VarDecl> decls;
-  for (int i = 0; i < (int)partition.size(); i++) {
-    lsort so = s_uninterp(module->sorts[i]);
-    for (int j = 0; j < partition[i]; j++) {
-      string name = "A" + to_string(name_idx);
-      name_idx++;
-
-      decls.push_back(VarDecl(string_to_iden(name), so));
-    }
-  }
-
-  value v = v_template_hole();
-  for (int i = decls.size() - 1; i >= 0; i--) {
-    v = v_forall({decls[i]}, v);
-  }
-  return v;
-}
-
-long long count_space_for_partition(shared_ptr<Module> module, int k, vector<int> const& partition)
-{
-  assert (partition.size() == module->sorts.size());
-  cout << endl;
-  cout << "doing variable set:";
-  for (int i = 0; i < (int)module->sorts.size(); i++) {
-    cout << " " << partition[i] << " " << module->sorts[i];
-  }
-  cout << endl;
-
-  value templ = make_template(module, partition);
-  module->templates.push_back(templ);
-  auto values = cached_get_unfiltered_values(module, templ, 1);
-  values->init_simp();
-  vector<value> pieces = values->values;
-
-  cout << "number of values: " << pieces.size() << endl;
-  if (pieces.size() == 0) {
-    return 0;
-  }
-  //for (value v : pieces) {
-  //  cout << v->to_string() << endl;
-  //}
-
-  auto tree_shapes = get_tree_shapes_up_to(k);
-
-  //std::vector<VarIndexState> var_index_states;
-  //var_index_states.push_back(get_var_index_init_state(templ));
-  //for (int i = 1; i < total_arity + 2; i++) {
-  //  var_index_states.push_back(var_index_states[0]);
-  //}
-
-  std::vector<VarIndexTransition> var_index_transitions =
-      get_var_index_transitions(templ, pieces);
-
-  auto p = build_transition_matrix(
-      get_var_index_init_state(templ),
-      var_index_transitions,
-      partition);
-  vector<vector<int>> transition_matrix = p.first;
-  int start = 0;
-  int final = p.second;
-
-  vector<vector<int>> matrix_counts = get_matrix_counts(transition_matrix, final);
-
-  if (final == -1) {
-    cout << "skipping" << endl;
-    return 0;
-  }
-
-  long long result = 0;
-  for (int i = 0; i < (int)tree_shapes.size(); i++) {
-    if (tree_shapes[i].top_level_is_conj || tree_shapes[i].total == 1) {
-      vector<int> indices;
-      indices.resize(tree_shapes[i].total);
-      long long r = rec_main(
-          transition_matrix, matrix_counts, final, tree_shapes[i], indices, 0, start);
-      long long mul = (tree_shapes[i].total == 1 ? 1 : 2);
-      result += r * mul;
-    }
-  }
-  cout << "counted " << result << " for this variable set" << endl;
-
-  int num_nonzero = 0;
-  for (int p : partition) {
-    if (p != 0) num_nonzero++;
-  }
-
-  long long mult_result = (result << (long long)num_nonzero);
-  cout << result << " * 2^" << num_nonzero << " = " << mult_result << endl;
-
-  return mult_result;
-}
-
-long long count_space_make_partition(
-  shared_ptr<Module> module, int k, int maxVars, int sum,
-  vector<int> const& partition)
-{
-  if (partition.size() == module->sorts.size()) {
-    return count_space_for_partition(module, k, partition);
-  }
-  long long res = 0;
-  for (int i = 0; sum + i <= maxVars; i++) {
-    vector<int> newp = partition;
-    newp.push_back(i);
-    res += count_space_make_partition(module, k, maxVars, sum + i, newp);
-  }
-  return res;
-}
-
-long long count_space(shared_ptr<Module> module, int k, int maxVars) {
-  vector<int> partition;
-  return count_space_make_partition(module, k, maxVars, 0, partition);
-}
-*/

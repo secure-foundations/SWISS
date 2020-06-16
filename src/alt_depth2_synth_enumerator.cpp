@@ -281,6 +281,7 @@ level_size_top:
     return;
   }
   cout << "moving to tree " << tree_shapes[tree_shape_idx].to_string() << endl;
+  cout << "progress " << progress << endl;
   cur_indices.resize(tree_shapes[tree_shape_idx].total);
   t = 0;
 

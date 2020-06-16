@@ -111,49 +111,6 @@ bool is_normalized_for_tree_shape(TreeShape const& ts, vector<int> const& pieces
   return true;
 }
 
-int is_normalized_for_tree_shape_get_min_of_last(TreeShape const& ts, vector<int> const& pieces)
-{
-  int pos = ts.parts[0];
-  for (int i = 1; i < (int)ts.parts.size() - 1; i++) {
-    if (ts.parts[i] == ts.parts[i-1]) {
-      if (!is_lexicographically_lt(pieces, pos - ts.parts[i], pos, ts.parts[i])) {
-        return -1;
-      }
-    }
-    pos += ts.parts[i];
-  }
-
-  int i = ts.parts.size() - 1;
-  if (i >= 1) {
-    if (ts.parts[i] == ts.parts[i-1]) {
-      int k = pos - ts.parts[i];
-      int l = pos;
-      int len = ts.parts[i];
-      for (int a = 0; a < len-1; a++) {
-        if (pieces[k+a] > pieces[l+a]) {
-          return -1;
-        } else if (pieces[k+a] < pieces[l+a]) {
-          return pieces[pieces.size() - 2] + 1;
-        }
-      }
-      return pieces[k+len-1] + 1;
-    } else {
-      if (ts.parts[i] == 1) {
-        return 0;
-      } else {
-        return pieces[pieces.size() - 2] + 1;
-      }
-    }
-  } else {
-    if (ts.parts[i] == 1) {
-      return 0;
-    } else {
-      return pieces[pieces.size() - 2] + 1;
-    }
-  }
-}
-
-
 std::string TreeShape::to_string() const {
   string s = top_level_is_conj ? "AND" : "OR";
   s += " [";
