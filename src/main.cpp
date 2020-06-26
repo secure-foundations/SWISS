@@ -239,16 +239,20 @@ void augment_fd(FormulaDump& fd, SynthesisResult const& synres)
   }
 }
 
-int main(int argc, char* argv[]) {
-  std::istreambuf_iterator<char> begin(std::cin), end;
+shared_ptr<Module> read_module(string const& module_filename)
+{
+  ifstream f;
+  f.open(module_filename);
+  std::istreambuf_iterator<char> begin(f), end;
   std::string json_src(begin, end);
+  return parse_module(json_src);
+}
 
-  shared_ptr<Module> module = parse_module(json_src);
-
-  cout << "conjectures:" << endl;
-  for (value v : module->conjectures) {
-    cout << v->to_string() << endl;
+int main(int argc, char* argv[]) {
+  for (int i = 0; i < argc; i++) {
+    cout << argv[i] << " ";
   }
+  cout << endl;
 
   srand((int)time(NULL));
   run_id = rand();
@@ -270,6 +274,8 @@ int main(int argc, char* argv[]) {
 
   vector<string> input_formula_files;
   string output_formula_file;
+
+  string module_filename;
   
   int seed = 1234;
   bool check_inductiveness = false;
@@ -354,6 +360,12 @@ int main(int argc, char* argv[]) {
       output_chunk_files.push_back(argv[i+1]);
       i++;
     }
+    else if (argv[i] == string("--input-module")) {
+      assert(i + 1 < argc);
+      assert(module_filename == "");
+      module_filename = argv[i+1];
+      i++;
+    }
     else if (argv[i] == string("--input-chunk-file")) {
       assert(i + 1 < argc);
       assert(input_chunk_file == "");
@@ -392,6 +404,13 @@ int main(int argc, char* argv[]) {
       cout << "unreocgnized argument " << argv[i] << endl;
       return 1;
     }
+  }
+
+  shared_ptr<Module> module = read_module(module_filename);
+
+  cout << "conjectures:" << endl;
+  for (value v : module->conjectures) {
+    cout << v->to_string() << endl;
   }
 
   if (template_counter) {
