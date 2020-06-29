@@ -200,23 +200,48 @@ void randomize_chunks(vector<SpaceChunk>& chunks)
   }
 }
 
-bool read_formulas(string const& filename, vector<value>& base_invs, vector<value>& new_invs, vector<value>& all_invs)
+void split_into_invariants_conjectures(
+    shared_ptr<Module> module,
+    vector<value>& invs,
+    vector<value>& conjs)
+{
+  invs.clear();
+  conjs = module->conjectures;
+  while (true) {
+    bool change = false;
+    for (int i = 0; i < (int)conjs.size(); i++) {
+      if (is_invariant_wrt(module, v_and(invs), conjs[i])) {
+        invs.push_back(conjs[i]);
+        conjs.erase(conjs.begin() + i);
+        i--;
+        change = true;
+      }
+    }
+    if (!change) {
+      break;
+    }
+  }
+}
+
+FormulaDump read_formula_dump(string const& filename)
 {
   ifstream f;
   f.open(filename);
   std::istreambuf_iterator<char> begin(f), end;
   std::string json_src(begin, end);
   FormulaDump fd = parse_formula_dump(json_src);
-  for (value v : fd.base_invs) {
-    base_invs.push_back(v);
-  }
-  for (value v : fd.new_invs) {
-    new_invs.push_back(v);
-  }
-  for (value v : fd.all_invs) {
-    all_invs.push_back(v);
-  }
-  return fd.success;
+  return fd;
+}
+
+FormulaDump get_default_formula_dump(shared_ptr<Module> module)
+{
+  FormulaDump fd;
+  fd.success = false;
+  split_into_invariants_conjectures(
+      module,
+      fd.base_invs /* output */,
+      fd.conjectures /* output */);
+  return fd;
 }
 
 void write_formulas(string const& filename, FormulaDump const& fd)
@@ -463,31 +488,30 @@ int main(int argc, char* argv[]) {
     }
     if (is_satisfiable(module, v_and(vs))) {
       printf("first is NOT implied by the rest\n");
-    } else{
+    } else {
       printf("first IS implied by the rest\n");
     }
     return 0;
   }
 
   if (coalesce) {
-    vector<value> base_invs;
-    vector<value> new_invs;
-    vector<value> all_invs;
-    FormulaDump fd;
-    fd.success = false;
+    FormulaDump res_fd;
+    res_fd.success = false;
     for (string const& filename : input_formula_files) {
-      bool succ = read_formulas(filename, base_invs, new_invs, all_invs);
-      if (succ) fd.success = true;
+      FormulaDump fd = read_formula_dump(filename);
+      vector_append(res_fd.base_invs, fd.base_invs);
+      vector_append(res_fd.new_invs, fd.new_invs);
+      vector_append(res_fd.all_invs, fd.all_invs);
+      vector_append(res_fd.conjectures, fd.conjectures);
+      if (fd.success) res_fd.success = true;
     }
 
-    module = module->add_conjectures(base_invs);
-
-    fd.base_invs = filter_unique_formulas(module, base_invs);
-    fd.new_invs = filter_redundant_formulas(module, new_invs);
-    fd.all_invs = filter_unique_formulas(module, all_invs);
-    fd.success = false;
+    res_fd.base_invs = filter_unique_formulas(res_fd.base_invs);
+    res_fd.new_invs = filter_redundant_formulas(module, res_fd.new_invs);
+    res_fd.all_invs = filter_unique_formulas(res_fd.all_invs);
+    res_fd.conjectures = filter_unique_formulas(res_fd.conjectures);
     assert (output_formula_file != "");
-    write_formulas(output_formula_file, fd);
+    write_formulas(output_formula_file, res_fd);
     return 0;
   }
 
@@ -543,15 +567,24 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  vector<value> base_invs;
-  vector<value> new_invs;
-  vector<value> all_invs;
-  for (string const& filename : input_formula_files)
-  {
-    cout << "Reading in formulas from " << filename << endl;
-    read_formulas(filename, base_invs, new_invs, all_invs);
+  FormulaDump input_fd;
+  assert (input_formula_files.size() <= 1);
+  if (input_formula_files.size() == 1) {
+    cout << "Reading in formulas from " << input_formula_files[0] << endl;
+    input_fd = read_formula_dump(input_formula_files[0]);
+  } else {
+    cout << "Retrieving base_invs / conjectures from module spec" << endl;
+    input_fd = get_default_formula_dump(module);
   }
-  module = module->add_conjectures(base_invs);
+
+  for (value v : input_fd.base_invs) {
+    cout << "[invariant] " << v->to_string() << endl;
+  }
+  for (value v : input_fd.conjectures) {
+    cout << "[conjecture] " << v->to_string() << endl;
+  }
+  cout << "|all_invs| = " << input_fd.all_invs.size() << endl;
+  cout << "|new_invs| = " << input_fd.new_invs.size() << endl;
 
   if (output_chunk_files.size() || input_chunk_file != "") {
     for (int i = 1; i < (int)strats.size(); i++) {
@@ -583,7 +616,8 @@ int main(int argc, char* argv[]) {
 
   FormulaDump output_fd;
   output_fd.success = false;
-  output_fd.base_invs = base_invs;
+  output_fd.base_invs = input_fd.base_invs;
+  output_fd.conjectures = input_fd.conjectures;
 
   if (options.get_space_size) {
     vector<EnumOptions> enum_options_b;
@@ -655,7 +689,7 @@ int main(int argc, char* argv[]) {
       cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
       cout << endl;
       synres = synth_loop_incremental_breadth(module, enum_options, options,
-          use_input_chunks, chunks, all_invs, new_invs);
+          use_input_chunks, chunks, input_fd);
 
       augment_fd(output_fd, synres);
 
@@ -680,7 +714,7 @@ int main(int argc, char* argv[]) {
       cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
       cout << endl;
       SynthesisResult synres = synth_loop(module, enum_options, options,
-          use_input_chunks, chunks);
+          use_input_chunks, chunks, input_fd);
 
       augment_fd(output_fd, synres);
 

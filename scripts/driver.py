@@ -196,11 +196,8 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, args, invfile, 
   return success, has_any, new_output_file
 
 def update_base_invs(a):
-  if a == None:
-    j = { "all_invs" : [], "new_invs" : [], "base_invs" : False }
-  else:
-    with open(a) as f:
-      j = json.loads(f.read())
+  with open(a) as f:
+    j = json.loads(f.read())
   j["base_invs"] = j["base_invs"] + j["new_invs"]
   j["new_invs"] = []
 

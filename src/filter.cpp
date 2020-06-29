@@ -54,7 +54,6 @@ vector<value> filter_redundant_formulas(
 }
 
 vector<value> filter_unique_formulas(
-  shared_ptr<Module> module,
   vector<value> const& values0)
 {
   vector<value> values;

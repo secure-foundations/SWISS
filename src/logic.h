@@ -722,6 +722,7 @@ struct FormulaDump {
   std::vector<value> base_invs;
   std::vector<value> new_invs;
   std::vector<value> all_invs;
+  std::vector<value> conjectures;
   bool success;
 };
 

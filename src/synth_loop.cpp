@@ -576,36 +576,6 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vec
   return res;
 }
 
-void split_into_invariants_conjectures(
-    shared_ptr<Module> module,
-    vector<value>& invs,
-    vector<value>& conjs)
-{
-  invs.clear();
-  conjs = module->conjectures;
-  while (true) {
-    bool change = false;
-    for (int i = 0; i < (int)conjs.size(); i++) {
-      if (is_invariant_wrt(module, v_and(invs), conjs[i])) {
-        invs.push_back(conjs[i]);
-        conjs.erase(conjs.begin() + i);
-        i--;
-        change = true;
-      }
-    }
-    if (!change) {
-      break;
-    }
-  }
-
-  for (value v : invs) {
-    cout << "[invariant] " << v->to_string() << endl;
-  }
-  for (value v : conjs) {
-    cout << "[conjecture] " << v->to_string() << endl;
-  }
-}
-
 struct CexStats {
   int count_true;
   int count_false;
@@ -671,7 +641,8 @@ extern const int TIMEOUT = 45 * 1000;
 SynthesisResult synth_loop_main(shared_ptr<Module> module,
   shared_ptr<CandidateSolver> cs,
   Options const& options,
-  ThreadSafeQueue* tsq)
+  ThreadSafeQueue* tsq,
+  FormulaDump const& fd)
 {
   SynthesisResult synres;
   synres.done = false;
@@ -705,10 +676,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     printf("done\n");
   }*/
 
-  vector<value> cur_invariants;
-  vector<value> conjectures;
-  split_into_invariants_conjectures(module, cur_invariants /* output */, conjectures /* output */);
-  value cur_invariant = v_and(cur_invariants);
+  value cur_invariant = v_and(fd.base_invs);
 
   //Transcript transcript;
 
@@ -766,7 +734,7 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
 
     Counterexample cex;
     if (options.with_conjs) {
-      cex = get_counterexample_test_with_conjs(module, options, ctx, cur_invariant, candidate, conjectures);
+      cex = get_counterexample_test_with_conjs(module, options, ctx, cur_invariant, candidate, fd.conjectures);
       cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
       cex = get_counterexample_simple(module, options, ctx, bmc, true, nullptr, candidate);
@@ -831,15 +799,16 @@ SynthesisResult synth_loop(
   vector<EnumOptions> const& enum_options,
   Options const& options,
   bool use_input_chunks,
-  vector<SpaceChunk> const& chunks)
+  vector<SpaceChunk> const& chunks,
+  FormulaDump const& fd)
 {
   shared_ptr<CandidateSolver> cs = make_candidate_solver(module, enum_options, false);
   if (use_input_chunks) {
     ThreadSafeQueue tsq;
     tsq.q = chunks;
-    return synth_loop_main(module, cs, options, &tsq);
+    return synth_loop_main(module, cs, options, &tsq, fd);
   } else {
-    return synth_loop_main(module, cs, options, NULL);
+    return synth_loop_main(module, cs, options, NULL, fd);
   }
 }
 
@@ -859,8 +828,7 @@ SynthesisResult synth_loop_incremental_breadth(
     Options const& options,
     bool use_input_chunks,
     vector<SpaceChunk> const& chunks,
-    vector<value> all_invs,
-    vector<value> new_invs)
+    FormulaDump const& fd)
 {
   auto t_init = now();
 
@@ -872,26 +840,21 @@ SynthesisResult synth_loop_incremental_breadth(
   }
   smt::context bmcctx(smt::Backend::z3);
 
-  vector<value> starter_invariants;
-  vector<value> conjectures;
-  split_into_invariants_conjectures(module,
-      starter_invariants /* output */,
-      conjectures /* output */);
-
-  if (conjectures.size() == 0) {
+  if (fd.conjectures.size() == 0) {
     cout << "already invariant, done" << endl;
     return SynthesisResult(true, {}, {});
   }
 
+  vector<value> all_invs = fd.all_invs;
+  vector<value> new_invs = fd.new_invs;
   //vector<value> strengthened_invs = all_invs;
   //vector<value> filtered_simplified_strengthened_invs = new_invs;
   vector<value> base_invs_plus_new_invs = vector_concat(
-      starter_invariants, new_invs);
+      fd.base_invs, fd.new_invs);
   vector<value> conjs_plus_base_invs_plus_new_invs = vector_concat(
-      conjectures, base_invs_plus_new_invs);
-
-  cout << "starting with |all_invs| = " << all_invs.size() << endl;
-  cout << "starting with |new_invs| = " << new_invs.size() << endl;
+      fd.conjectures, base_invs_plus_new_invs);
+  vector<value> base_invs_plus_conjs = vector_concat(
+      fd.base_invs, fd.conjectures);
 
   int bmc_depth = 4;
   printf("bmc_depth = %d\n", bmc_depth);
@@ -983,7 +946,7 @@ SynthesisResult synth_loop_incremental_breadth(
                 module, options, ctx, bmc, false /* check_implies_conj */,
                 v_and(
                   options.non_accumulative
-                    ? (options.breadth_with_conjs ? module->conjectures : starter_invariants)
+                    ? (options.breadth_with_conjs ? base_invs_plus_conjs : fd.base_invs)
                     : (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs)
                 ),
                 candidate);
@@ -1074,7 +1037,7 @@ SynthesisResult synth_loop_incremental_breadth(
 
     //if (!options.whole_space && conjectures_inv(module, new_invs, conjectures))
     if (!options.whole_space && is_invariant_wrt(module,
-            v_and(base_invs_plus_new_invs), conjectures))
+            v_and(base_invs_plus_new_invs), fd.conjectures))
     {
       cout << "invariant implies safety condition, done!" << endl;
       dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
