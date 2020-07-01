@@ -11,13 +11,171 @@
 
 using namespace std;
 
+struct TransitionSystem {
+  vector<vector<int>> transitions;
+
+  TransitionSystem(vector<vector<int>> transitions)
+      : transitions(transitions) { }
+
+  // returns -1 if no edge
+  int next(int state, int trans) const {
+    return transitions[state][trans];
+  }
+
+  int nTransitions() const {
+    return transitions[0].size();
+  }
+  int nStates() const {
+    return transitions.size();
+  }
+};
+
+struct Matrix {
+  vector<vector<long long>> m;
+  Matrix() { }
+  Matrix(int n) {
+    m.resize(n);
+    for (int i = 0; i < n; i++) {
+      m[i].resize(n);
+    }
+  }
+  void add(Matrix const& a)
+  {
+    int n = m.size();
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        m[i][j] += a.m[i][j];
+      }
+    }
+  }
+  void add_product(Matrix const& a, Matrix const& b)
+  {
+    int n = m.size();
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        for (int k = 0; k < n; k++) {
+          m[i][k] += a.m[i][k] * b.m[k][j];
+        }
+      }
+    }
+  }
+  void add_product(TransitionSystem const& ts, int trans, Matrix const& a, Matrix const& b)
+  {
+    int n = m.size();
+    for (int i = 0; i < n; i++) {
+      int i1 = ts.next(i, trans);
+      if (i1 != -1) {
+        for (int j = 0; j < n; j++) {
+          for (int k = 0; k < n; k++) {
+            m[i][j] += a.m[i1][k] * b.m[k][j];
+          }
+        }
+      }
+    }
+  }
+  void add_product(TransitionSystem const& ts, int trans, Matrix const& a)
+  {
+    int n = m.size();
+    for (int i = 0; i < n; i++) {
+      int i1 = ts.next(i, trans);
+      if (i1 != -1) {
+        for (int j = 0; j < n; j++) {
+          m[i][j] += a.m[i1][j];
+        }
+      }
+    }
+  }
+  void set_to_identity()
+  {
+    int n = m.size();
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        m[i][j] = 0;
+      }
+      m[i][i] = 1;
+    }
+  }
+  long long count_from_to(int from, int to) {
+    if (to == -1) {
+      long long res = 0;
+      int n = m.size();
+      for (int i = 0; i < n; i++) {
+        res += m[from][i];
+      }
+      return res;
+    } else {
+      return m[from][to];
+    }
+  }
+};
+
+struct GroupSpec {
+  int groupSize;
+  int nGroups;
+  int firstMin;
+  GroupSpec(
+    int groupSize,
+    int nGroups,
+    int firstMin)
+  : groupSize(groupSize), nGroups(nGroups), firstMin(firstMin) { }
+};
+
+map<pair<int, int>, vector<Matrix*>> group_spec_to_matrix;
+
+Matrix* getMatrixForGroupSpec(GroupSpec gs, TransitionSystem const& ts) {
+  auto key = make_pair(gs.groupSize, gs.nGroups);
+  auto it = group_spec_to_matrix.find(key);
+  if (it != group_spec_to_matrix.end()) {
+    return it->second[gs.firstMin];
+  }
+
+  int m = ts.nTransitions();
+  int n = ts.nStates();
+
+  vector<Matrix*> res;
+  res.resize(m + 1);
+
+  if (gs.nGroups == 0) {
+    res[m] = new Matrix(n);
+    res[m]->set_to_identity();
+    for (int i = m-1; i >= 0; i--) {
+      res[i] = res[m];
+    }
+  } else {
+    res[m] = new Matrix(n);
+
+    for (int i = m - 1; i >= 0; i--) {
+      res[i] = new Matrix();
+      res[i]->m = res[i+1]->m;
+
+      if (gs.groupSize >= 2) {
+        for (int numSame = 1; numSame < gs.nGroups; numSame++) {
+          res[i]->add_product(ts, i,
+              *getMatrixForGroupSpec(GroupSpec(gs.groupSize - 1, numSame, i+1), ts),
+              *getMatrixForGroupSpec(GroupSpec(gs.groupSize, gs.nGroups-numSame, i+1), ts));
+        }
+        res[i]->add_product(ts, i,
+            *getMatrixForGroupSpec(GroupSpec(gs.groupSize - 1, gs.nGroups, i+1), ts));
+      } else {
+        assert (gs.groupSize == 1);
+        res[i]->add_product(ts, i,
+            *getMatrixForGroupSpec(GroupSpec(1, gs.nGroups - 1, i+1), ts));
+      }
+    }
+  }
+
+  group_spec_to_matrix[key] = res;
+  return res[gs.firstMin];
+}
+
+
 EnumInfo::EnumInfo(std::shared_ptr<Module> module, value templ)
 {
   clauses = get_clauses_for_template(module, templ);
   var_index_transitions = get_var_index_transitions(templ, clauses);
 }
 
-pair<vector<vector<int>>, int> build_transition_matrix(
+pair<TransitionSystem, int> build_transition_system(
       VarIndexState const& init,
       std::vector<VarIndexTransition> const& transitions,
       int totalNumVars)
@@ -75,10 +233,10 @@ pair<vector<vector<int>>, int> build_transition_matrix(
     }
   }
 
-  return make_pair(matrix, last_idx);
+  return make_pair(TransitionSystem(matrix), last_idx);
 }
 
-vector<vector<vector<int>>> transpose_matrix(
+/*vector<vector<vector<int>>> transpose_matrix(
     vector<vector<int>> const& matrix)
 {
   int n = matrix[0].size();
@@ -98,9 +256,9 @@ vector<vector<vector<int>>> transpose_matrix(
     }
   }
   return rev_matrix;
-}
+}*/
 
-void count_prefixes_rec(
+/*void count_prefixes_rec(
     int n, int m, int d,
     vector<vector<int>> const& matrix,
     vector<vector<vector<long long>>>& res,
@@ -135,9 +293,9 @@ vector<vector<vector<long long>>> count_prefixes(
   }
   count_prefixes_rec(n, m, d, matrix, res, 0, 0, 0);
   return res;
-}
+}*/
 
-void count_suffixes_rec(
+/*void count_suffixes_rec(
     int n, int m, int d,
     vector<vector<vector<int>>> const& matrix_rev,
     vector<vector<vector<long long>>>& res,
@@ -204,9 +362,9 @@ long long meetInMiddle(
     }
   }
   return res;
-}
+}*/
 
-vector<vector<vector<long long>>> getCountsFromVarStateToVarState(
+/*vector<vector<vector<long long>>> getCountsFromVarStateToVarState(
     vector<vector<int>> const& matrix,
     int d)
 {
@@ -323,9 +481,9 @@ vector<vector<int>> multiplyMatrix(
   multiplyMatrixRec(matrix, matrix1, indices, 0, idx);
 
   return matrix1;
-}
+}*/
 
-vector<vector<vector<long long>>> getCountsFromVarStateToVarStateForGroups(
+/*vector<vector<vector<long long>>> getCountsFromVarStateToVarStateForGroups(
     vector<vector<int>> const& matrix,
     int groupSize, int nGroups)
 {
@@ -343,38 +501,27 @@ vector<vector<vector<long long>>> getCountsFromVarStateToVarStateForGroups(
     return getCountsFromVarStateToVarState(
         multiplyMatrix(matrix, groupSize), nGroups);
   }
-}
+}*/
 
 vector<long long> countDepth1(
-    vector<vector<int>> const& matrix,
+    TransitionSystem const& ts,
     int d,
     int final)
 {
-  vector<vector<vector<long long>>> trans =
-      getCountsFromVarStateToVarStateForGroups(matrix, 1, d);
   vector<long long> res;
   res.resize(d + 1);
   res[0] = 0;
 
-  int m = matrix.size();
-
   for (int i = 1; i <= d; i++) {
-    if (final == -1) {
-      res[i] = 0;
-      for (int j = 0; j < m; j++) {
-        res[i] += trans[i][0][j];
-        //cout << i << " " << j << ", " << trans[i][0][j] << endl;
-      }
-    } else {
-      res[i] = trans[i][0][final];
-    }
+    Matrix* m = getMatrixForGroupSpec(GroupSpec(1, i, 0), ts);
+    res[i] = m->count_from_to(0, final);
   }
 
   return res;
 }
 
 vector<long long> countDepth2(
-    vector<vector<int>> const& matrix,
+    TransitionSystem const& ts,
     int d,
     int final)
 {
@@ -382,25 +529,7 @@ vector<long long> countDepth2(
     d = 2;
   }
 
-  // groupSize, nGroups, startState, endState
-  vector<vector<vector<vector<long long>>>> trans;
-  trans.push_back({});
-  for (int i = 1; i < d; i++) {
-    trans.push_back(getCountsFromVarStateToVarStateForGroups(
-        matrix, i, d / i));
-  }
-
-  int m = matrix.size();
-
-  /*for (int i = 1; i <= (int)trans.size(); i++) {
-    for (int j = 1; j < (int)trans[i].size(); j++) {
-      for (int k = 0; k < m; k++) {
-        for (int l = 0; l < m; l++) {
-          cout << "(" << j << " groups of " << i << ") from " << k << " to " << l << " gives " << trans[i][j][k][l] << endl;
-        }
-      }
-    }
-  }*/
+  int nStates = ts.nStates();
 
   // position, max len after position, state
   vector<vector<vector<long long>>> dp;
@@ -408,32 +537,31 @@ vector<long long> countDepth2(
   for (int i = 0; i <= d; i++) {
     dp[i].resize(d);
     for (int j = 0; j < d; j++) {
-      dp[i][j].resize(m);
+      dp[i][j].resize(nStates);
     }
   }
 
   for (int j = 0; j < d; j++) {
-    for (int k = 0; k < m; k++) {
+    for (int k = 0; k < nStates; k++) {
       dp[d][j][k] = (final == -1 || k == final ? 1 : 0);
     }
   }
 
   for (int i = d-1; i >= 0; i--) {
-    for (int k = 0; k < m; k++) {
+    for (int k = 0; k < nStates; k++) {
       dp[i][0][k] = 0;
     }
 
     for (int j = 1; j < d; j++) {
-      for (int k = 0; k < m; k++) {
+      for (int k = 0; k < nStates; k++) {
         dp[i][j][k] = dp[i][j-1][k];
         int groupSize = j;
-        for (int nGroups = 1; nGroups < (int)trans[groupSize].size() && i + groupSize * nGroups <= d; nGroups++) {
-          //cout << "i = " << i << " nGroups = " << nGroups << " groupSize = " << groupSize << endl;
-          for (int l = 0; l < m; l++) {
-            dp[i][j][k] += trans[groupSize][nGroups][k][l] * dp[i + groupSize * nGroups][groupSize - 1][l];
+        for (int nGroups = 1; i + groupSize * nGroups <= d; nGroups++) {
+          Matrix *m = getMatrixForGroupSpec(GroupSpec(groupSize, nGroups, 0), ts);
+          for (int l = 0; l < nStates; l++) {
+            dp[i][j][k] += m->m[k][l] * dp[i + groupSize * nGroups][groupSize - 1][l];
           }
         }
-        //cout << "dp[" << i << "][" << j << "][" << k << "] = " << dp[i][j][k] << endl;
       }
     }
   }
@@ -447,13 +575,8 @@ vector<long long> countDepth2(
   }
 
   for (int i = 2; i < d; i++) {
-    if (final == -1) {
-      for (int l = 0; l < m; l++) {
-        res[i] -= trans[i][1][0][l];
-      }
-    } else {
-      res[i] -= trans[i][1][0][final];
-    }
+    Matrix *m = getMatrixForGroupSpec(GroupSpec(i, 1, 0), ts);
+    res[i] -= m->count_from_to(0, final);
   }
 
   return res;
@@ -478,7 +601,7 @@ long long count_template(
     bool useAllVars)
 {
   EnumInfo ei(module, templ);
-  pair<vector<vector<int>>, int> p = build_transition_matrix(
+  pair<TransitionSystem, int> p = build_transition_system(
           get_var_index_init_state(templ),
           ei.var_index_transitions,
           get_num_vars(module, templ));
@@ -486,11 +609,11 @@ long long count_template(
   /*for (value v : ei.clauses) {
     cout << v->to_string() << endl;
   }*/
-  cout << "matrix: " << p.first.size() << endl;
+  cout << "nStates: " << p.first.nStates() << endl;
 
   auto matrix = p.first;
   int final = p.second;
-  auto matrix_rev = transpose_matrix(matrix);
+  //auto matrix_rev = transpose_matrix(matrix);
 
   assert (final != -1);
 
