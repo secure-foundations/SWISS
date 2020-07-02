@@ -31,13 +31,13 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   cur_indices = {};
   done = false;
 
-  var_index_states.push_back(get_var_index_init_state(templ));
+  var_index_states.push_back(get_var_index_init_state(module, templ));
   for (int i = 1; i < disj_arity + 2; i++) {
     var_index_states.push_back(var_index_states[0]);
   }
 
   var_index_transitions =
-      get_var_index_transitions(templ, pieces);
+      get_var_index_transitions(module, templ, pieces);
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }

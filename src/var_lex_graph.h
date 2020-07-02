@@ -93,10 +93,12 @@ struct VarIndexTransition {
 };
 
 std::vector<VarIndexTransition> get_var_index_transitions(
+  std::shared_ptr<Module>,
   value templ,
   std::vector<value> const& values);
 
 VarIndexState get_var_index_init_state(
+  std::shared_ptr<Module>,
   value templ);
 
 #endif

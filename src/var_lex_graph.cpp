@@ -111,35 +111,43 @@ VarIndexTransition get_var_index_transition(
   return vit;
 }
 
-/*vector<QSRange> order_groups(vector<QSRange> const& ranges)
+vector<QSRange> use_module_sort_order(
+  shared_ptr<Module> module,
+  vector<QSRange> const& qsr)
 {
-  vector<QSRange> v;
-  for (int i = 0; i < (int)module->sorts.size(); i++) {
-    lsort so = s_uninterp(module->sorts[i]);
-    int t = -1;
-    for (int j = 0; j < ranges.size(); j++) {
-      if (sorts_eq(ranges[j].sort, so)) {
-        assert (t == -1);
-        t = j;
+  vector<QSRange> res;
+  for (string so_name : module->sorts) {
+    lsort so = s_uninterp(so_name);
+    int idx = -1;
+    for (int i = 0; i < (int)qsr.size(); i++) {
+      if (sorts_eq(so, qsr[i].sort)) {
+        assert(idx == -1);
+        idx = i;
       }
     }
-    if (t == -1) {
-      QSRange qsr;
-      v.push_back(qsr);
+    if (idx == -1) {
+      QSRange q;
+      q.start = 0;
+      q.end = 0;
+      q.qtype = QType::Forall;
+      q.sort = so;
+      res.push_back(q);
     } else {
-      v.push_back(ranges[j]);
+      res.push_back(qsr[idx]);
     }
   }
-  return v;
-}*/
+  return res;
+}
+
 
 vector<VarIndexTransition> get_var_index_transitions(
+  shared_ptr<Module> module,
   value templ,
   vector<value> const& values)
 {
   TopAlternatingQuantifierDesc taqd(templ);
   vector<QSRange> groups = taqd.grouped_by_sort();
-  //groups = order_groups(groups);
+  groups = use_module_sort_order(module, groups);
 
   int ngroups = groups.size();
 
@@ -164,11 +172,14 @@ vector<VarIndexTransition> get_var_index_transitions(
   return vits;
 }
 
-VarIndexState get_var_index_init_state(value templ)
+
+VarIndexState get_var_index_init_state(shared_ptr<Module> module, value templ)
 {
   TopQuantifierDesc taqd(templ);
-  vector<QSRange> groups = taqd.grouped_by_sort();
-  int ngroups = groups.size();
+  //vector<QSRange> groups = taqd.grouped_by_sort();
+  //groups = use_module_sort_order(module, groups);
+  //int ngroups = groups.size();
+  int ngroups = module->sorts.size();
   VarIndexState vis(ngroups);
   for (int i = 0; i < ngroups; i++) {
     vis.indices[i] = 0;

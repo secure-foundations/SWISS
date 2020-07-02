@@ -200,7 +200,7 @@ Matrix* getMatrixForGroupSpec(GroupSpec gs, TransitionSystem const& ts) {
 EnumInfo::EnumInfo(std::shared_ptr<Module> module, value templ)
 {
   clauses = get_clauses_for_template(module, templ);
-  var_index_transitions = get_var_index_transitions(templ, clauses);
+  var_index_transitions = get_var_index_transitions(module, templ, clauses);
 }
 
 pair<TransitionSystem, int> build_transition_system(
@@ -349,7 +349,7 @@ long long count_template(
 {
   EnumInfo ei(module, templ);
   pair<TransitionSystem, int> p = build_transition_system(
-          get_var_index_init_state(templ),
+          get_var_index_init_state(module, templ),
           ei.var_index_transitions,
           get_num_vars(module, templ));
   cout << "clauses: " << ei.clauses.size() << endl;

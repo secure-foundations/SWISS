@@ -36,13 +36,13 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(shared_ptr<Module> module, va
   cur_indices = {};
   done = false;
 
-  var_index_states.push_back(get_var_index_init_state(templ));
+  var_index_states.push_back(get_var_index_init_state(module, templ));
   for (int i = 1; i < total_arity + 2; i++) {
     var_index_states.push_back(var_index_states[0]);
   }
 
   var_index_transitions =
-      get_var_index_transitions(templ, pieces);
+      get_var_index_transitions(module, templ, pieces);
 }
 
 void AltDepth2CandidateSolver::addCounterexample(Counterexample cex, value candidate)
