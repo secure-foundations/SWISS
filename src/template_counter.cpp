@@ -30,6 +30,29 @@ struct TransitionSystem {
   }
 };
 
+struct Vector {
+  vector<long long> v;
+
+  void subtract(Vector const& other)
+  {
+    for (int i = 0; i < (int)v.size(); i++) {
+      v[i] -= other.v[i];
+    }
+  }
+
+  long long get_entry_or_sum(int idx) {
+    if (idx == -1) {
+      long long sum = 0;
+      for (int i = 0; i < (int)v.size(); i++) {
+        sum += v[i];
+      }
+      return sum;
+    } else {
+      return v[idx];
+    }
+  }
+};
+
 struct Matrix {
   vector<vector<long long>> m;
   Matrix() { }
@@ -106,6 +129,11 @@ struct Matrix {
     } else {
       return m[from][to];
     }
+  }
+  Vector get_row(int from) {
+    Vector v;
+    v.v = m[from];
+    return v;
   }
 };
 
@@ -236,27 +264,24 @@ pair<TransitionSystem, int> build_transition_system(
   return make_pair(TransitionSystem(matrix), last_idx);
 }
 
-vector<long long> countDepth1(
+vector<Vector> countDepth1(
     TransitionSystem const& ts,
-    int d,
-    int final)
+    int d)
 {
-  vector<long long> res;
+  vector<Vector> res;
   res.resize(d + 1);
-  res[0] = 0;
 
   for (int i = 1; i <= d; i++) {
     Matrix* m = getMatrixForGroupSpec(GroupSpec(1, i, 0), ts);
-    res[i] = m->count_from_to(0, final);
+    res[i] = m->get_row(0);
   }
 
   return res;
 }
 
-vector<long long> countDepth2(
+vector<Vector> countDepth2(
     TransitionSystem const& ts,
-    int d,
-    int final)
+    int d)
 {
   if (d < 2) {
     d = 2;
@@ -265,51 +290,40 @@ vector<long long> countDepth2(
   int nStates = ts.nStates();
 
   // position, max len after position, state
-  vector<vector<vector<long long>>> dp;
+  vector<vector<Matrix>> dp;
   dp.resize(d+1);
   for (int i = 0; i <= d; i++) {
     dp[i].resize(d);
     for (int j = 0; j < d; j++) {
-      dp[i][j].resize(nStates);
+      dp[i][j] = Matrix(nStates);
     }
   }
 
   for (int j = 0; j < d; j++) {
-    for (int k = 0; k < nStates; k++) {
-      dp[d][j][k] = (final == -1 || k == final ? 1 : 0);
-    }
+    dp[d][j].set_to_identity();
   }
 
   for (int i = d-1; i >= 0; i--) {
-    for (int k = 0; k < nStates; k++) {
-      dp[i][0][k] = 0;
-    }
-
     for (int j = 1; j < d; j++) {
-      for (int k = 0; k < nStates; k++) {
-        dp[i][j][k] = dp[i][j-1][k];
-        int groupSize = j;
-        for (int nGroups = 1; i + groupSize * nGroups <= d; nGroups++) {
-          Matrix *m = getMatrixForGroupSpec(GroupSpec(groupSize, nGroups, 0), ts);
-          for (int l = 0; l < nStates; l++) {
-            dp[i][j][k] += m->m[k][l] * dp[i + groupSize * nGroups][groupSize - 1][l];
-          }
-        }
+      dp[i][j] = dp[i][j-1];
+      int groupSize = j;
+      for (int nGroups = 1; i + groupSize * nGroups <= d; nGroups++) {
+        Matrix *m = getMatrixForGroupSpec(GroupSpec(groupSize, nGroups, 0), ts);
+        dp[i][j].add_product(*m, dp[i + groupSize * nGroups][groupSize - 1]);
       }
     }
   }
 
-  vector<long long> res;
+  vector<Vector> res;
   res.resize(d+1);
-  res[0] = 0;
   for (int i = 1; i <= d; i++) {
     //cout << "yo " << dp[d-i][d][0] << endl;
-    res[i] = dp[d-i][d-1][0];
+    res[i] = dp[d-i][d-1].get_row(0);
   }
 
   for (int i = 2; i < d; i++) {
     Matrix *m = getMatrixForGroupSpec(GroupSpec(i, 1, 0), ts);
-    res[i] -= m->count_from_to(0, final);
+    res[i].subtract(m->get_row(0));
   }
 
   return res;
@@ -354,16 +368,16 @@ long long count_template(
     final = -1;
   }
 
-  vector<long long> counts;
+  vector<Vector> counts;
   if (depth2) {
-    counts = countDepth2(matrix, k, final);
+    counts = countDepth2(matrix, k);
   } else {
-    counts = countDepth1(matrix, k, final);
+    counts = countDepth1(matrix, k);
   }
 
   long long total = 0;
   for (int i = 1; i <= k; i++) {
-    long long v = counts[i];
+    long long v = counts[i].get_entry_or_sum(final);
     cout << "k = " << i << " : " << v << endl;
 
     if (depth2 && i > 1) {
@@ -389,3 +403,19 @@ long long count_template(
   return total;
   }*/
 }
+
+/*void count_many_templates(
+    shared_ptr<Module> module,
+    int maxClauses,
+    bool depth2,
+    int maxVars) {
+  value templ = make_template_with_max_vars(module, maxVars);
+  
+  EnumInfo ei(module, templ);
+  pair<TransitionSystem, int> p = build_transition_system(
+          get_var_index_init_state(templ),
+          ei.var_index_transitions,
+          -1);
+
+  
+}*/
