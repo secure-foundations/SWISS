@@ -19,4 +19,10 @@ struct EnumInfo {
   EnumInfo(std::shared_ptr<Module>, value templ);
 };
 
+void count_many_templates(
+    std::shared_ptr<Module> module,
+    int maxClauses,
+    bool depth2,
+    int maxVars);
+
 #endif

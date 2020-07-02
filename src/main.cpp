@@ -316,6 +316,11 @@ int main(int argc, char* argv[]) {
   int template_counter_k;
   int template_counter_d;
 
+  bool template_sorter = false;
+  int template_sorter_k;
+  int template_sorter_d;
+  int template_sorter_mvars;
+
   int i;
   for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
@@ -420,6 +425,15 @@ int main(int argc, char* argv[]) {
       template_counter_d = atoi(argv[i+2]);
       i += 2;
     }
+    else if (argv[i] == string("--template-sorter")) {
+      assert(i + 2 < argc);
+      template_sorter = true;
+      template_sorter_k = atoi(argv[i+1]);
+      template_sorter_d = atoi(argv[i+2]);
+      template_sorter_mvars = atoi(argv[i+3]);
+      i += 3;
+    }
+
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
       options.threads = atoi(argv[i+1]);
@@ -446,6 +460,15 @@ int main(int argc, char* argv[]) {
         template_counter_d == 2,
         false);
     cout << "total: " << res << endl;
+    return 0;
+  }
+
+  if (template_sorter) {
+    assert (template_sorter_d == 1 || template_sorter_d == 2);
+    count_many_templates(module,
+        template_sorter_k,
+        template_sorter_d == 2,
+        template_sorter_mvars);
     return 0;
   }
 
