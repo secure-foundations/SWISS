@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 
 #include "logic.h"
 #include "enumerator.h"
@@ -69,6 +70,51 @@ struct TransitionSystem {
     }
     return reorder_rows(rows_to_keep);
   }
+
+  TransitionSystem make_upper_triangular() {
+    vector<pair<int, int>> v;
+    for (int i = 0; i < (int)transitions.size(); i++) {
+      int sum = 0;
+      for (int j : state_reps[i]) {
+        sum += j;
+      }
+      v.push_back(make_pair(sum, i));
+    }
+    sort(v.begin(), v.end());
+    vector<int> rows;
+    for (auto p : v) {
+      rows.push_back(p.second);
+    }
+    return reorder_rows(rows);
+  }
+
+  TransitionSystem remove_unused_transitions() {
+    int n = nStates();
+    int m = nTransitions();
+    vector<bool> used;
+    used.resize(m);
+    for (int i = 0; i < m; i++) {
+      bool u = false;
+      for (int j = 0; j < n; j++) {
+        if (transitions[j][i] != -1) {
+          u = true;
+          break;
+        }
+      }
+      used[i] = u;
+    }
+    vector<vector<int>> transitions1;
+    for (int i = 0; i < n; i++) {
+      vector<int> row1;
+      for (int j = 0; j < m; j++) {
+        if (used[j]) {
+          row1.push_back(transitions[i][j]);
+        }
+      }
+      transitions1.push_back(row1);
+    }
+    return TransitionSystem(transitions1, state_reps);
+  }
 };
 
 struct Vector {
@@ -116,9 +162,9 @@ struct Matrix {
   {
     int n = m.size();
     for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        for (int k = 0; k < n; k++) {
-          m[i][k] += a.m[i][k] * b.m[k][j];
+      for (int k = i; k < n; k++) {
+        for (int j = k; j < n; j++) {
+          m[i][j] += a.m[i][k] * b.m[k][j];
         }
       }
     }
@@ -129,8 +175,8 @@ struct Matrix {
     for (int i = 0; i < n; i++) {
       int i1 = ts.next(i, trans);
       if (i1 != -1) {
-        for (int j = 0; j < n; j++) {
-          for (int k = 0; k < n; k++) {
+        for (int k = i1; k < n; k++) {
+          for (int j = k; j < n; j++) {
             m[i][j] += a.m[i1][k] * b.m[k][j];
           }
         }
@@ -143,7 +189,7 @@ struct Matrix {
     for (int i = 0; i < n; i++) {
       int i1 = ts.next(i, trans);
       if (i1 != -1) {
-        for (int j = 0; j < n; j++) {
+        for (int j = i1; j < n; j++) {
           m[i][j] += a.m[i1][j];
         }
       }
@@ -244,10 +290,9 @@ EnumInfo::EnumInfo(std::shared_ptr<Module> module, value templ)
   var_index_transitions = get_var_index_transitions(module, templ, clauses);
 }
 
-pair<TransitionSystem, int> build_transition_system(
+TransitionSystem build_transition_system(
       VarIndexState const& init,
-      std::vector<VarIndexTransition> const& transitions,
-      int totalNumVars)
+      std::vector<VarIndexTransition> const& transitions)
 {
   vector<VarIndexState> idx_to_state;
   idx_to_state.push_back(init);
@@ -288,26 +333,12 @@ pair<TransitionSystem, int> build_transition_system(
     cur++;
   }
 
-  int last_idx = -1;
-
-  for (int j = 0; j < (int)idx_to_state.size(); j++) {
-    int sum = 0;
-    for (int k = 0; k < (int)idx_to_state[j].indices.size(); k++) {
-      sum += idx_to_state[j].indices[k];
-    }
-
-    if (sum == totalNumVars) {
-      last_idx = j;
-      break;
-    }
-  }
-
   vector<vector<int>> state_reps;
   for (int i = 0; i < (int)idx_to_state.size(); i++) {
     state_reps.push_back(idx_to_state[i].indices);
   }
 
-  return make_pair(TransitionSystem(matrix, state_reps), last_idx);
+  return TransitionSystem(matrix, state_reps);
 }
 
 vector<Vector> countDepth1(
@@ -394,18 +425,21 @@ long long count_template(
     bool useAllVars)
 {
   EnumInfo ei(module, templ);
-  pair<TransitionSystem, int> p = build_transition_system(
+  TransitionSystem ts = build_transition_system(
           get_var_index_init_state(module, templ),
-          ei.var_index_transitions,
-          get_num_vars(module, templ));
+          ei.var_index_transitions);
+
+  ts = ts.cap_total_vars(get_num_vars(module, templ));
+  ts = ts.remove_unused_transitions();
+  ts = ts.make_upper_triangular();
+
   cout << "clauses: " << ei.clauses.size() << endl;
   /*for (value v : ei.clauses) {
     cout << v->to_string() << endl;
   }*/
-  cout << "nStates: " << p.first.nStates() << endl;
+  cout << "nStates: " << ts.nStates() << endl;
 
-  auto ts = p.first;
-  int final = p.second;
+  int final = ts.nStates() - 1;
 
   assert (final != -1);
 
@@ -487,9 +521,10 @@ void count_many_templates(
   EnumInfo ei(module, templ);
   TransitionSystem ts = build_transition_system(
           get_var_index_init_state(module, templ),
-          ei.var_index_transitions,
-          -1).first;
+          ei.var_index_transitions);
   ts = ts.cap_total_vars(maxVars);
+  ts = ts.remove_unused_transitions();
+  ts = ts.make_upper_triangular();
 
   cout << "states " << ts.nStates() << endl;
   cout << "transitions " << ts.nTransitions() << endl;
