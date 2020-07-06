@@ -457,13 +457,14 @@ long long count_template(
   long long total = 0;
   for (int i = 1; i <= k; i++) {
     long long v = counts[i].get_entry_or_sum(final);
-    cout << "k = " << i << " : " << v << endl;
 
     if (depth2 && i > 1) {
-      total += 2*v;
-    } else {
-      total += v;
+      v *= 2;
     }
+
+    cout << "k = " << i << " : " << v << endl;
+
+    total += v;
   }
   cout << "total = " << total << endl;
   return total;
@@ -544,7 +545,7 @@ void count_many_templates(
       td.vars = ts.state_reps[i];
       td.k = d;
       td.depth = (depth2 ? 2 : 1);
-      td.count = (depth2 && i > 1 ? 2 : 1) * counts[d].v[i];
+      td.count = (depth2 && d > 1 ? 2 : 1) * counts[d].v[i];
       tds.push_back(td);
     }
   }
