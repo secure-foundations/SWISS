@@ -5,6 +5,7 @@
 #include "bitset_eval_result.h"
 #include "var_lex_graph.h"
 #include "subsequence_trie.h"
+#include "template_counter.h"
 
 class AltDisjunctCandidateSolver : public CandidateSolver {
 public:
@@ -28,7 +29,7 @@ public:
   std::vector<value> pieces;
 
   std::vector<int> cur_indices;
-  std::vector<VarIndexState> var_index_states;
+  std::vector<int> var_index_states;
   int start_from;
   int done_cutoff;
   bool finish_at_cutoff;
@@ -45,7 +46,7 @@ public:
 
   std::map<ComparableValue, int> piece_to_index;
 
-  std::vector<VarIndexTransition> var_index_transitions;
+  TransitionSystem ts;
 
   void increment();
   void skipAhead(int upTo);

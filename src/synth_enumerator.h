@@ -3,16 +3,9 @@
 
 #include "model.h"
 #include "top_quantifier_desc.h"
+#include "template_counter.h"
 
 #include <string>
-
-struct EnumOptions {
-  int template_idx;
-
-  // Naive solving
-  int disj_arity;
-  bool depth2_shape;
-};
 
 struct Options {
   bool get_space_size;
@@ -91,24 +84,24 @@ public:
   virtual void getSpaceChunk(std::vector<SpaceChunk>&) = 0;
 };
 
-std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
-    std::shared_ptr<Module> module, EnumOptions const& options,
-      bool ensure_nonredundant);
+//std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
+//    std::shared_ptr<Module> module, EnumOptions const& options,
+//      bool ensure_nonredundant);
 
-std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
-    std::shared_ptr<Module> module, EnumOptions const& options);
+//std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
+//    std::shared_ptr<Module> module, EnumOptions const& options);
 
-inline std::shared_ptr<CandidateSolver> make_candidate_solver(
+/*inline std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
     EnumOptions const& options,
     bool ensure_nonredundant)
 {
   return make_naive_candidate_solver(module, options);
-}
+}*/
 
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
-    std::vector<EnumOptions> const& options,
+    std::vector<TemplateDesc> const& tds,
     bool ensure_nonredundant);
 
 std::shared_ptr<CandidateSolver> compose_candidate_solvers(

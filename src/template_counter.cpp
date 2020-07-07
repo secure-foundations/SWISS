@@ -12,111 +12,6 @@
 
 using namespace std;
 
-struct TransitionSystem {
-  vector<vector<int>> transitions;
-  vector<vector<int>> state_reps;
-
-  TransitionSystem(
-      vector<vector<int>> transitions,
-      vector<vector<int>> state_reps)
-      : transitions(transitions), state_reps(state_reps) { }
-
-  // returns -1 if no edge
-  int next(int state, int trans) const {
-    return transitions[state][trans];
-  }
-
-  int nTransitions() const {
-    return transitions[0].size();
-  }
-  int nStates() const {
-    return transitions.size();
-  }
-
-  TransitionSystem reorder_rows(vector<int> const& maps_to) {
-    vector<int> rev;
-    rev.resize(transitions.size());
-    for (int i = 0; i < (int)rev.size(); i++) {
-      rev[i] = -1;
-    }
-    for (int i = 0; i < (int)maps_to.size(); i++) {
-      rev[maps_to[i]] = i;
-    }
-
-    vector<vector<int>> transitions1;
-    vector<vector<int>> state_reps1;
-    for (int i = 0; i < (int)maps_to.size(); i++) {
-      state_reps1.push_back(state_reps[maps_to[i]]);
-      transitions1.push_back(transitions[maps_to[i]]);
-      for (int j = 0; j < (int)transitions1[i].size(); j++) {
-        if (transitions1[i][j] != -1) {
-          transitions1[i][j] = rev[transitions1[i][j]];
-        }
-      }
-    }
-    return TransitionSystem(transitions1, state_reps1);
-  }
-
-  TransitionSystem cap_total_vars(int mvars) {
-    vector<int> rows_to_keep;
-    for (int i = 0; i < (int)transitions.size(); i++) {
-      int sum = 0;
-      for (int j : state_reps[i]) {
-        sum += j;
-      }
-      if (sum <= mvars) {
-        rows_to_keep.push_back(i);
-      }
-    }
-    return reorder_rows(rows_to_keep);
-  }
-
-  TransitionSystem make_upper_triangular() {
-    vector<pair<int, int>> v;
-    for (int i = 0; i < (int)transitions.size(); i++) {
-      int sum = 0;
-      for (int j : state_reps[i]) {
-        sum += j;
-      }
-      v.push_back(make_pair(sum, i));
-    }
-    sort(v.begin(), v.end());
-    vector<int> rows;
-    for (auto p : v) {
-      rows.push_back(p.second);
-    }
-    return reorder_rows(rows);
-  }
-
-  TransitionSystem remove_unused_transitions() {
-    int n = nStates();
-    int m = nTransitions();
-    vector<bool> used;
-    used.resize(m);
-    for (int i = 0; i < m; i++) {
-      bool u = false;
-      for (int j = 0; j < n; j++) {
-        if (transitions[j][i] != -1) {
-          u = true;
-          break;
-        }
-      }
-      used[i] = u;
-    }
-    vector<vector<int>> transitions1;
-    for (int i = 0; i < n; i++) {
-      vector<int> row1;
-      for (int j = 0; j < m; j++) {
-        if (used[j]) {
-          row1.push_back(transitions[i][j]);
-        }
-      }
-      transitions1.push_back(row1);
-    }
-    return TransitionSystem(transitions1, state_reps);
-  }
-};
-
 struct Vector {
   vector<long long> v;
 
@@ -488,30 +383,7 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars)
   return v_forall(decls, v_template_hole());
 }
 
-struct TemplateDesc {
-  vector<int> vars;
-  int k;
-  int depth;
-  long long count;
-  inline bool operator<(TemplateDesc const& other) const {
-    return count < other.count;
-  }
-  string to_string(shared_ptr<Module> module) const {
-    string s = "((";
-    for (int i = 0; i < (int)module->sorts.size(); i++) {
-      if (i > 0) {
-        s += ", ";
-      }
-      s += module->sorts[i];
-      s += " ";
-      s += ::to_string(vars[i]);
-    }
-    s += ") depth " + ::to_string(depth) + ", k " + ::to_string(k) + ") count " + ::to_string(count);
-    return s;
-  }
-};
-
-void count_many_templates(
+vector<TemplateDesc> count_many_templates(
     shared_ptr<Module> module,
     int maxClauses,
     bool depth2,
@@ -553,4 +425,61 @@ void count_many_templates(
   for (TemplateDesc const& td : tds) {
     cout << td.to_string(module) << endl;
   }
+
+  return tds;
+}
+
+ostream& operator<<(ostream& os, const TemplateDesc& td)
+{
+  os << "TemplateDesc[ ";
+  os << td.k
+    << " " << td.depth
+    << " " << td.count\
+    << " " << td.vars.size();
+  assert (td.vars.size() == td.quantifiers.size());
+  for (int i = 0; i < (int)td.vars.size(); i++) {
+    os << " " << td.vars[i]
+       << " " << (td.quantifiers[i] == Forall ? "forall" : "exists");
+  }
+  os << " ]";
+  return os;
+}
+
+istream& operator>>(istream& is, TemplateDesc& td)
+{
+  string b;
+  is >> b;
+  assert(b == "TemplateDesc[");
+  is >> td.k;
+  is >> td.depth;
+  is >> td.count;
+  int sz;
+  is >> sz;
+  td.vars = {};
+  for (int i = 0; i < sz; i++) {
+    int x;
+    is >> x;
+    string quant;
+    is >> quant;
+    assert (quant == "forall" || quant == "exists");
+    td.vars.push_back(x);
+    td.quantifiers.push_back(quant == "forall" ? Forall : Exists);
+  }
+  is >> b;
+  assert(b == "]");
+  return is;
+}
+
+std::string TemplateDesc::to_string(std::shared_ptr<Module> module) const {
+  std::string s = "((";
+  for (int i = 0; i < (int)module->sorts.size(); i++) {
+    if (i > 0) {
+      s += ", ";
+    }
+    s += module->sorts[i];
+    s += " ";
+    s += ::to_string(vars[i]);
+  }
+  s += ") depth " + ::to_string(depth) + ", k " + ::to_string(k) + ") count " + ::to_string(count);
+  return s;
 }

@@ -18,7 +18,9 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   cout << "Using AltDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
-  pieces = get_clauses_for_template(module, templ);
+  EnumInfo ei(module, templ);
+
+  pieces = ei.clauses;
 
   cout << "Using " << pieces.size() << " terms" << endl;
   //for (value p : pieces) {
@@ -31,13 +33,11 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   cur_indices = {};
   done = false;
 
-  var_index_states.push_back(get_var_index_init_state(module, templ));
-  for (int i = 1; i < disj_arity + 2; i++) {
-    var_index_states.push_back(var_index_states[0]);
-  }
+  var_index_states.resize(disj_arity + 2);
 
-  var_index_transitions =
-      get_var_index_transitions(module, templ, pieces);
+  ts = build_transition_system(
+      get_var_index_init_state(module, templ),
+      ei.var_index_transitions);
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
@@ -349,10 +349,9 @@ body_start:
   }
 
   if (t > 0) {
-    var_index_do_transition(
+    var_index_states[t] = ts.next(
       var_index_states[t-1],
-      var_index_transitions[cur_indices[t-1]].res,
-      var_index_states[t]);
+      cur_indices[t-1]);
   }
 
   cur_indices[t] = (t == 0 ? 0 : cur_indices[t-1] + 1);
@@ -360,9 +359,7 @@ body_start:
   goto loop_start_before_check;
 
 loop_start:
-  if (var_index_is_valid_transition(
-      var_index_states[t],
-      var_index_transitions[cur_indices[t]].pre)) {
+  if (ts.next(var_index_states[t-1], cur_indices[t]) != -1) {
     t++;
     goto body_start;
   }
@@ -398,10 +395,9 @@ void AltDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)
     cur_indices[i] = sc.nums[i];
   }
   for (int i = 1; i <= (int)sc.nums.size(); i++) {
-    var_index_do_transition(
-      var_index_states[i-1],
-      var_index_transitions[cur_indices[i-1]].res,
-      var_index_states[i]);
+    var_index_states[i] = ts.next(
+        var_index_states[i-1],
+        cur_indices[i-1]);
   }
   start_from = sc.nums.size();
   done_cutoff = sc.nums.size();
@@ -410,9 +406,9 @@ void AltDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)
 }
 
 static void getSpaceChunk_rec(vector<SpaceChunk>& res,
-  vector<int>& indices, int i, VarIndexState const& vis,
+  vector<int>& indices, int i, int vis,
   vector<value> const& pieces,
-  vector<VarIndexTransition> const& var_index_transitions, int sz)
+  TransitionSystem const& ts, int sz)
 {
   if (i == (int)indices.size()) {
     SpaceChunk sc;
@@ -423,12 +419,11 @@ static void getSpaceChunk_rec(vector<SpaceChunk>& res,
   }
   int t = (i == 0 ? 0 : indices[i-1] + 1);
   for (int j = t; j < (int)pieces.size(); j++) {
-    if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
-      VarIndexState next(vis.indices.size());
-      var_index_do_transition(vis, var_index_transitions[j].res, next);
+    if (ts.next(vis, j) != -1) {
+      int next = ts.next(vis, j);
       indices[i] = j;
       getSpaceChunk_rec(res, indices, i+1, next,
-          pieces, var_index_transitions, sz);
+          pieces, ts, sz);
     }
   }
 }
@@ -438,11 +433,11 @@ void AltDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
   int k = 2;
   for (int sz = 1; sz <= disj_arity; sz++) {
     int j = k < sz ? sz - k : 0;
-    VarIndexState vis = var_index_states[0];
+    int vis = var_index_states[0];
     vector<int> indices;
     indices.resize(j);
     getSpaceChunk_rec(res, indices, 0, vis,
-        pieces, var_index_transitions, sz);
+        pieces, ts, sz);
   }
 }
 

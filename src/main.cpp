@@ -103,18 +103,24 @@ void print_wpr(shared_ptr<Module> module, int count)
 int run_id;
 extern bool enable_smt_logging;
 
+struct EnumOptions {
+  string filename;
+
+  int template_idx;
+
+  // Naive solving
+  int disj_arity;
+  bool depth2_shape;
+};
+
 struct Strategy {
   bool finisher;
   bool breadth;
-  EnumOptions enum_options;
+  vector<TemplateDesc> tds;
 
   Strategy() {
     finisher = false;
     breadth = false;
-
-    enum_options.template_idx = 0;
-    enum_options.disj_arity = -1;
-    enum_options.depth2_shape = false;
   }
 };
 
@@ -273,6 +279,58 @@ shared_ptr<Module> read_module(string const& module_filename)
   return parse_module(json_src);
 }
 
+vector<TemplateDesc> read_template_desc_file(
+    shared_ptr<Module> module,
+    string const& filename)
+{
+  ifstream f;
+  f.open(filename);
+  int sz;
+  f >> sz;
+  int sorts_sz;
+  f >> sorts_sz;
+  for (int i = 0; i < sorts_sz; i++) {
+    string so;
+    f >> so;
+    assert (so == module->sorts[i] && "template file uses wrong sort order");
+  }
+  vector<TemplateDesc> tds;
+  for (int i = 0; i < sz; i++) {
+    TemplateDesc td;
+    f >> td;
+    tds.push_back(td);
+  }
+  return tds;
+}
+
+void write_template_desc_file(
+    shared_ptr<Module> module,
+    string const& filename,
+    vector<TemplateDesc> const& tds) {
+  ofstream f;
+  f.open(filename);
+  f << tds.size() << endl;
+  f << module->sorts.size();
+  for (string so : module->sorts) {
+    f << " " << so;
+  }
+  f << endl;
+  for (TemplateDesc const& td : tds) {
+    f << td << endl;
+  }
+}
+
+vector<TemplateDesc> tds_from_enum_options(
+    shared_ptr<Module> module,
+    EnumOptions const& options)
+{
+  if (options.filename) {
+    return read_template_desc_file(module, options.filename);
+  } else {
+    assert(false);
+  }
+}
+
 int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     cout << argv[i] << " ";
@@ -320,6 +378,7 @@ int main(int argc, char* argv[]) {
   int template_sorter_k;
   int template_sorter_d;
   int template_sorter_mvars;
+  string template_outfile;
 
   int i;
   for (i = 1; i < argc; i++) {
@@ -433,6 +492,12 @@ int main(int argc, char* argv[]) {
       template_sorter_mvars = atoi(argv[i+3]);
       i += 3;
     }
+    else if (argv[i] == string("--template-outfile")) {
+      assert(i + 1 < argc);
+      assert (template_outfile == "");
+      template_outfile = argv[i+1];
+      i++;
+    }
 
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
@@ -469,6 +534,8 @@ int main(int argc, char* argv[]) {
         template_sorter_k,
         template_sorter_d == 2,
         template_sorter_mvars);
+    if (template_outfile != "") {
+    }
     return 0;
   }
 
@@ -551,6 +618,11 @@ int main(int argc, char* argv[]) {
       assert (false);
     }
 
+    EnumOptions enum_options;
+    enum_options.template_idx = -1;
+    enum_options.disj_arity = -1;
+    enum_options.depth2_shape = false;
+
     for (i++; i < argc; i++) {
       if (argv[i] == string("--finisher")) {
         break;
@@ -558,26 +630,33 @@ int main(int argc, char* argv[]) {
       else if (argv[i] == string("--breadth")) {
         break;
       }
+      else if (argv[i] == string("--filename")) {
+        assert(i + 1 < argc);
+        enum_options.filename = string(argv[i+1]);
+        i++;
+      }
       else if (argv[i] == string("--template")) {
         assert(i + 1 < argc);
-        strat.enum_options.template_idx = atoi(argv[i+1]);
-        assert(0 <= strat.enum_options.template_idx
-            && strat.enum_options.template_idx < (int)module->templates.size());
+        enum_options.template_idx = atoi(argv[i+1]);
+        assert(0 <= enum_options.template_idx
+            && enum_options.template_idx < (int)module->templates.size());
         i++;
       }
       else if (argv[i] == string("--disj-arity")) {
         assert(i + 1 < argc);
-        strat.enum_options.disj_arity = atoi(argv[i+1]);
+        enum_options.disj_arity = atoi(argv[i+1]);
         i++;
       }
       else if (argv[i] == string("--depth2-shape")) {
-        strat.enum_options.depth2_shape = true;
+        enum_options.depth2_shape = true;
       }
       else {
         cout << "unreocgnized enum_options argument " << argv[i] << endl;
         return 1;
       }
     }
+
+    strat.tds = tds_from_enum_options(module, enum_options);
 
     strats.push_back(strat);
   }
@@ -617,12 +696,12 @@ int main(int argc, char* argv[]) {
   }
 
   if (output_chunk_files.size() > 0) {
-    vector<EnumOptions> enum_options;
+    vector<TemplateDesc> tds;
     for (Strategy const& strat : strats) {
-      enum_options.push_back(strat.enum_options);
+      vector_append(tds, strat.tds);
     }
     shared_ptr<CandidateSolver> cs = make_candidate_solver(
-        module, enum_options, !strats[0].finisher);
+        module, tds, !strats[0].finisher);
     vector<SpaceChunk> chunks;
     cs->getSpaceChunk(chunks /* output */);
     randomize_chunks(chunks);
@@ -643,20 +722,20 @@ int main(int argc, char* argv[]) {
   output_fd.conjectures = input_fd.conjectures;
 
   if (options.get_space_size) {
-    vector<EnumOptions> enum_options_b;
-    vector<EnumOptions> enum_options_f;
+    vector<TemplateDesc> tds_b;
+    vector<TemplateDesc> tds_f;
     int i;
     for (i = 0; i < (int)strats.size(); i++) {
       if (strats[i].breadth) {
         assert (strats[0].breadth == strats[i].breadth);
-        enum_options_b.push_back(strats[i].enum_options);
+        vector_append(tds_b, strats[i].tds);
       } else {
         break;
       }
     }
     for (; i < (int)strats.size(); i++) {
       if (strats[i].finisher) {
-        enum_options_f.push_back(strats[i].enum_options);
+        vector_append(tds_f, strats[i].tds);
       }
     }
     long long b_pre_symm = -1;
@@ -665,7 +744,7 @@ int main(int argc, char* argv[]) {
     long long f_post_symm = -1;
     if (enum_options_b.size() > 0) {
       shared_ptr<CandidateSolver> cs =
-          make_candidate_solver(module, enum_options_b, true);
+          make_candidate_solver(module, tds_b, true);
       b_pre_symm = cs->getPreSymmCount();
       cout << "b_pre_symm " << b_pre_symm << endl;
       b_post_symm = cs->getSpaceSize();
@@ -673,7 +752,7 @@ int main(int argc, char* argv[]) {
     }
     if (enum_options_f.size() > 0) {
       shared_ptr<CandidateSolver> cs = make_candidate_solver(
-          module, enum_options_f, false);
+          module, tds_f, false);
       f_pre_symm = cs->getPreSymmCount();
       cout << "f_pre_symm " << f_pre_symm << endl;
       f_post_symm = cs->getSpaceSize();
@@ -695,12 +774,12 @@ int main(int argc, char* argv[]) {
   try {
     int idx;
     if (strats[0].breadth) {
-      vector<EnumOptions> enum_options;
+      vector<TemplateDesc> tds;
       int i;
       for (i = 0; i < (int)strats.size(); i++) {
         if (strats[i].breadth) {
           assert (strats[0].breadth == strats[i].breadth);
-          enum_options.push_back(strats[i].enum_options);
+          vector_append(tds, strats[i].tds);
         } else {
           break;
         }
@@ -711,7 +790,7 @@ int main(int argc, char* argv[]) {
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
       cout << endl;
-      synres = synth_loop_incremental_breadth(module, enum_options, options,
+      synres = synth_loop_incremental_breadth(module, tds, options,
           use_input_chunks, chunks, input_fd);
 
       augment_fd(output_fd, synres);
@@ -727,16 +806,16 @@ int main(int argc, char* argv[]) {
     }
 
     if (idx < (int)strats.size()) {
-      vector<EnumOptions> enum_options;
+      vector<TemplateDesc> tds;
       for (int i = idx; i < (int)strats.size(); i++) {
         assert (strats[i].finisher);
-        enum_options.push_back(strats[i].enum_options);
+        vector_append(tds, strats[i].tds);
       }
 
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
       cout << endl;
-      SynthesisResult synres = synth_loop(module, enum_options, options,
+      SynthesisResult synres = synth_loop(module, tds, options,
           use_input_chunks, chunks, input_fd);
 
       augment_fd(output_fd, synres);
