@@ -3,6 +3,7 @@
 
 #include "logic.h"
 #include "var_lex_graph.h"
+#include "template_desc.h"
 
 #include <algorithm>
 
@@ -131,26 +132,6 @@ struct EnumInfo {
 
   EnumInfo(std::shared_ptr<Module>, value templ);
 };
-
-struct TemplateDesc {
-  enum Quantifier {
-    Forall,
-    Exists
-  };
-
-  std::vector<int> vars;
-  std::vector<Quantifier> quantifiers;
-  int k;
-  int depth;
-  long long count;
-  inline bool operator<(TemplateDesc const& other) const {
-    return count < other.count;
-  }
-  std::string to_string(std::shared_ptr<Module> module) const;
-};
-
-std::ostream& operator<<(std::ostream& os, const TemplateDesc& td);
-std::istream& operator>>(std::istream& is, TemplateDesc& td);
 
 std::vector<TemplateDesc> count_many_templates(
     std::shared_ptr<Module> module,

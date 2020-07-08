@@ -168,7 +168,7 @@ def do_breadth(iterkey, logfile, nthreads, json_filename, args, invfile, stats, 
 def do_breadth_single(iterkey, logfile, nthreads, json_filename, args, invfile, iteration_num, stats, by_size):
   t1 = time.time()
 
-  chunk_files = breadth_chunkify(iterkey, logfile, nthreads, json_filename, args)
+  chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
   if by_size:
     c_by_size = get_chunk_files_for_each_size(chunk_files)
     total_has_any = False
@@ -206,7 +206,7 @@ def update_base_invs(a):
     f.write(json.dumps(j))
   return c
 
-def breadth_chunkify(iterkey, logfile, nthreads, json_filename, args):
+def chunkify(iterkey, logfile, nthreads, json_filename, args):
   chunk_files = []
   chunk_file_args = []
   for i in range(nthreads):
@@ -308,16 +308,7 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile, iter
 def do_finisher(iterkey, logfile, nthreads, json_filename, args, invfile, stats):
   t1 = time.time()
 
-  chunk_files = []
-  chunk_file_args = []
-  for i in range(nthreads):
-    chunk = tempfile.mktemp()
-    chunk_files.append(chunk)
-    chunk_file_args.append("--output-chunk-file")
-    chunk_file_args.append(chunk)
-
-  succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
-  assert succ, "finisher chunkify failed"
+  chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
 
   q = queue.Queue()
   threads = [ ]
