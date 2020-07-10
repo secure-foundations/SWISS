@@ -133,6 +133,8 @@ public:
   }
 
   void set_solver_idx() {
+    assert (false && "TODO add logging here");
+
     if (idx < (int)sub_slices.size()) {
       for (int i = 0; i < (int)spaces.size(); i++) {
         if (is_subspace(sub_slices[idx], spaces[i])) {

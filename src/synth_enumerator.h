@@ -58,6 +58,7 @@ public:
   virtual void addExistingInvariant(value inv) = 0;
   virtual long long getProgress() = 0;
   virtual long long getPreSymmCount() = 0;
+  virtual long long getSpaceSize() = 0;
 
   virtual void setSubSlice(TemplateSubSlice const&) = 0;
 };

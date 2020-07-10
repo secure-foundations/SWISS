@@ -21,19 +21,16 @@ struct SynthesisResult {
 
 SynthesisResult synth_loop(
   std::shared_ptr<Module> module,
-  std::vector<EnumOptions> const& enum_options,
+  std::vector<TemplateSubSlice> const& slices,
   Options const& options,
-  bool use_input_chunks,
-  std::vector<SpaceChunk> const& chunks,
   FormulaDump const& fd);
 
 SynthesisResult synth_loop_incremental_breadth(
   std::shared_ptr<Module> module,
-  std::vector<EnumOptions> const& enum_options,
+  std::vector<TemplateSubSlice> const& slices,
   Options const& options,
-  bool use_input_chunks,
-  std::vector<SpaceChunk> const& chunks,
-  FormulaDump const& fd);
+  FormulaDump const& fd,
+  bool single_round);
 
 //void synth_loop_from_transcript(std::shared_ptr<Module> module, int arity, int depth);
 

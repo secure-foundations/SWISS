@@ -3,7 +3,6 @@
 #include <iostream>
 #include <fstream>
 #include <streambuf>
-#include <thread>
 
 #include "lib/json11/json11.hpp"
 
@@ -16,7 +15,6 @@
 #include "strengthen_invariant.h"
 #include "filter.h"
 #include "synth_enumerator.h"
-#include "thread_safe_queue.h"
 
 using namespace std;
 using namespace json11;
@@ -638,12 +636,15 @@ void dump_stats(long long progress, CexStats const& cs,
 
 extern const int TIMEOUT = 45 * 1000;
 
-SynthesisResult synth_loop_main(shared_ptr<Module> module,
-  shared_ptr<CandidateSolver> cs,
+SynthesisResult synth_loop(
+  shared_ptr<Module> module,
+  vector<TemplateSubSlice> const& slices,
   Options const& options,
-  ThreadSafeQueue* tsq,
   FormulaDump const& fd)
 {
+  shared_ptr<CandidateSolver> cs = make_candidate_solver(
+      module, slices, false);
+
   SynthesisResult synres;
   synres.done = false;
 
@@ -688,12 +689,6 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     exit(0);
   }
 
-  if (tsq) {
-    SpaceChunk* sc = tsq->getNextSpace();
-    assert (sc != NULL);
-    cs->setSpaceChunk(*sc);
-  }
-
   long long filtering_ns = 0;
 
   long long num_finishers_found = 0;
@@ -716,16 +711,6 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
     auto process_start_t = now();
 
     if (!candidate) {
-      if (tsq) {
-        SpaceChunk* sc = tsq->getNextSpace();
-        if (sc != NULL) {
-          cs->setSpaceChunk(*sc);
-          cout << "NEW CHUNK (" << tsq->i << " / " << tsq->q.size() << ") "
-               << sc->to_string() << endl;
-          continue;
-        }
-      }
-
       printf("unable to synthesize any formula\n");
       break;
     }
@@ -745,10 +730,6 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
 
     if (cex.none) {
       num_finishers_found++;
-
-      if (tsq && !options.whole_space) {
-        tsq->clear();
-      }
 
       // Extra verification:
       // (If we get here, then it should definitely be invariant,
@@ -794,24 +775,6 @@ SynthesisResult synth_loop_main(shared_ptr<Module> module,
   return synres;
 }
 
-SynthesisResult synth_loop(
-  shared_ptr<Module> module,
-  vector<EnumOptions> const& enum_options,
-  Options const& options,
-  bool use_input_chunks,
-  vector<SpaceChunk> const& chunks,
-  FormulaDump const& fd)
-{
-  shared_ptr<CandidateSolver> cs = make_candidate_solver(module, enum_options, false);
-  if (use_input_chunks) {
-    ThreadSafeQueue tsq;
-    tsq.q = chunks;
-    return synth_loop_main(module, cs, options, &tsq, fd);
-  } else {
-    return synth_loop_main(module, cs, options, NULL, fd);
-  }
-}
-
 template <typename T>
 vector<T> vector_concat(vector<T> const& a, vector<T> const& b)
 {
@@ -824,11 +787,10 @@ vector<T> vector_concat(vector<T> const& a, vector<T> const& b)
 
 SynthesisResult synth_loop_incremental_breadth(
     shared_ptr<Module> module,
-    vector<EnumOptions> const& enum_options,
+    vector<TemplateSubSlice> const& slices,
     Options const& options,
-    bool use_input_chunks,
-    vector<SpaceChunk> const& chunks,
-    FormulaDump const& fd)
+    FormulaDump const& fd,
+    bool single_round)
 {
   auto t_init = now();
 
@@ -868,17 +830,6 @@ SynthesisResult synth_loop_incremental_breadth(
 
   CexStats cexstats;
 
-  unique_ptr<ThreadSafeQueue> tsq;
-  if (use_input_chunks) {
-    if (chunks.size() == 0) {
-      dump_stats(0, cexstats, t_init, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      return SynthesisResult(false, new_invs, all_invs);
-    }
-
-    tsq.reset(new ThreadSafeQueue());
-    tsq->q = chunks;
-  }
-
   long long filtering_ns = 0;
   long long addCounterexample_ns = 0;
   long long addCounterexample_count = 0;
@@ -890,7 +841,7 @@ SynthesisResult synth_loop_incremental_breadth(
   while (true) {
     num_iterations_outer++;
 
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, enum_options, true);
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, slices, true);
 
     if (options.get_space_size) {
       long long s = cs->getSpaceSize();
@@ -905,12 +856,6 @@ SynthesisResult synth_loop_incremental_breadth(
     int num_iterations = 0;
     bool any_formula_synthesized_this_round = false;
 
-    if (tsq) {
-      SpaceChunk* sc = tsq->getNextSpace();
-      assert (sc != NULL);
-      cs->setSpaceChunk(*sc);
-    }
-
     while (true) {
       num_iterations++;
       num_iterations_total++;
@@ -924,16 +869,6 @@ SynthesisResult synth_loop_incremental_breadth(
       auto process_start_t = now();
 
       if (!candidate0) {
-        if (tsq) {
-          SpaceChunk* sc = tsq->getNextSpace();
-          if (sc != NULL) {
-            cs->setSpaceChunk(*sc);
-            cout << "NEW CHUNK (" << tsq->i << " / " << tsq->q.size() << ") "
-                 << sc->to_string() << endl;
-            continue;
-          }
-        }
-
         break;
       }
 
@@ -1044,8 +979,8 @@ SynthesisResult synth_loop_incremental_breadth(
       return SynthesisResult(true, new_invs, all_invs);
     }
 
-    if (use_input_chunks) {
-      cout << "terminating because of chunk mode" << endl;
+    if (single_round) {
+      cout << "terminating because of single_round mode" << endl;
       break;
     }
   }
