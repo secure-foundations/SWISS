@@ -6,16 +6,18 @@
 #include "var_lex_graph.h"
 #include "subsequence_trie.h"
 #include "tree_shapes.h"
+#include "template_desc.h"
 
 class AltDepth2CandidateSolver : public CandidateSolver {
 public:
-  AltDepth2CandidateSolver(std::shared_ptr<Module>, value templ, int total_arity);
+  AltDepth2CandidateSolver(
+      std::shared_ptr<Module>,
+      TemplateSpace const& tspce);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
   long long getProgress() { return progress; }
-  long long getSpaceSize();
   long long getPreSymmCount();
 
 //private:
@@ -23,14 +25,19 @@ public:
   int total_arity;
   long long progress;
 
+  TemplateSpace tspace;
   TopAlternatingQuantifierDesc taqd;
-  std::vector<value> pieces;
 
+  std::vector<value> pieces;
   std::vector<TreeShape> tree_shapes;
 
+  TemplateSubSlice tss;
+  std::vector<int> slice_index_map;
+
   int tree_shape_idx;
+  std::vector<int> cur_indices_sub;
   std::vector<int> cur_indices;
-  std::vector<VarIndexState> var_index_states;
+  std::vector<int> var_index_states;
   int start_from;
   int done_cutoff;
   bool finish_at_cutoff;
@@ -40,7 +47,7 @@ public:
   std::vector<std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>>> cex_results;
   std::vector<std::pair<AlternationBitsetEvaluator, AlternationBitsetEvaluator>> abes;
 
-  std::vector<VarIndexTransition> var_index_transitions;
+  TransitionSystem ts;
 
   void increment();
   //void skipAhead(int upTo);
@@ -57,8 +64,7 @@ public:
       std::vector<std::pair<BitsetEvalResult, BitsetEvalResult>> const& cex_result,
       std::vector<int> const& cur_indices);
 
-  void setSpaceChunk(SpaceChunk const&);
-  void getSpaceChunk(std::vector<SpaceChunk>&);
+  void setSubSlice(TemplateSubSlice const&);
 
   std::vector<uint64_t> evaluator_buf;
 };

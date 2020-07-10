@@ -30,26 +30,6 @@ struct Options {
   //int threads;
 };
 
-struct SpaceChunk {
-  int major_idx;
-  int tree_idx;
-  int size;
-  std::vector<int> nums;
-
-  SpaceChunk() : major_idx(-1), tree_idx(-1), size(-1) { }
-
-  std::string to_string() {
-    std::string s = std::to_string(major_idx) + " "
-        + std::to_string(size) + " "
-        + std::to_string(tree_idx) + " "
-        + std::to_string(nums.size());
-    for (int i = 0; i < (int)nums.size(); i++) {
-      s += " " + std::to_string(nums[i]);
-    }
-    return s;
-  }
-};
-
 struct Counterexample {
   // is_true
   std::shared_ptr<Model> is_true;
@@ -77,11 +57,9 @@ public:
   virtual void addCounterexample(Counterexample cex, value candidate) = 0;
   virtual void addExistingInvariant(value inv) = 0;
   virtual long long getProgress() = 0;
-  virtual long long getSpaceSize() = 0;
   virtual long long getPreSymmCount() = 0;
 
-  virtual void setSpaceChunk(SpaceChunk const&) = 0;
-  virtual void getSpaceChunk(std::vector<SpaceChunk>&) = 0;
+  virtual void setSubSlice(TemplateSubSlice const&) = 0;
 };
 
 //std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
@@ -101,11 +79,11 @@ public:
 
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
-    std::vector<TemplateDesc> const& tds,
+    std::vector<TemplateSubSlice> const& sub_slices, 
     bool ensure_nonredundant);
 
-std::shared_ptr<CandidateSolver> compose_candidate_solvers(
-  std::vector<std::shared_ptr<CandidateSolver>> const& solvers);
+//std::shared_ptr<CandidateSolver> compose_candidate_solvers(
+  //std::vector<std::shared_ptr<CandidateSolver>> const& solvers);
 
 extern int numEnumeratedFilteredRedundantInvariants;
 

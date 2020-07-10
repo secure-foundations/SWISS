@@ -279,7 +279,7 @@ shared_ptr<Module> read_module(string const& module_filename)
   return parse_module(json_src);
 }
 
-vector<TemplateDesc> read_template_desc_file(
+/*vector<TemplateDesc> read_template_desc_file(
     shared_ptr<Module> module,
     string const& filename)
 {
@@ -318,7 +318,7 @@ void write_template_desc_file(
   for (TemplateDesc const& td : tds) {
     f << td << endl;
   }
-}
+}*/
 
 vector<TemplateDesc> tds_from_enum_options(
     shared_ptr<Module> module,

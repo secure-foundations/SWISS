@@ -6,9 +6,9 @@
 
 using namespace std;
 
-ostream& operator<<(ostream& os, const TemplateSpace& td)
+ostream& operator<<(ostream& os, const TemplateSlice& td)
 {
-  os << "TemplateSpace[ ";
+  os << "TemplateSlice[ ";
   os << td.k
     << " " << td.depth
     << " " << td.count\
@@ -16,17 +16,17 @@ ostream& operator<<(ostream& os, const TemplateSpace& td)
   assert (td.vars.size() == td.quantifiers.size());
   for (int i = 0; i < (int)td.vars.size(); i++) {
     os << " " << td.vars[i]
-       << " " << (td.quantifiers[i] == TemplateSpace::Forall ? "forall" : "exists");
+       << " " << (td.quantifiers[i] == Quantifier::Forall ? "forall" : "exists");
   }
   os << " ]";
   return os;
 }
 
-istream& operator>>(istream& is, TemplateSpace& td)
+istream& operator>>(istream& is, TemplateSlice& td)
 {
   string b;
   is >> b;
-  assert(b == "TemplateSpace[");
+  assert(b == "TemplateSlice[");
   is >> td.k;
   is >> td.depth;
   is >> td.count;
@@ -40,14 +40,14 @@ istream& operator>>(istream& is, TemplateSpace& td)
     is >> quant;
     assert (quant == "forall" || quant == "exists");
     td.vars.push_back(x);
-    td.quantifiers.push_back(quant == "forall" ? TemplateSpace::Forall : TemplateSpace::Exists);
+    td.quantifiers.push_back(quant == "forall" ? Quantifier::Forall : Quantifier::Exists);
   }
   is >> b;
   assert(b == "]");
   return is;
 }
 
-std::string TemplateSpace::to_string(std::shared_ptr<Module> module) const {
+std::string TemplateSlice::to_string(std::shared_ptr<Module> module) const {
   std::string s = "((";
   for (int i = 0; i < (int)module->sorts.size(); i++) {
     if (i > 0) {
@@ -61,9 +61,9 @@ std::string TemplateSpace::to_string(std::shared_ptr<Module> module) const {
   return s;
 }
 
-ostream& operator<<(ostream& os, const TemplateSubSpace& tss)
+ostream& operator<<(ostream& os, const TemplateSubSlice& tss)
 {
-  os << "TemplateSubSpace[ ";
+  os << "TemplateSubSlice[ ";
   os << tss.ts;
   os << " ";
 
@@ -79,11 +79,11 @@ ostream& operator<<(ostream& os, const TemplateSubSpace& tss)
   return os;
 }
 
-istream& operator>>(istream& is, TemplateSubSpace& tss)
+istream& operator>>(istream& is, TemplateSubSlice& tss)
 {
   string b;
   is >> b;
-  assert (b == "TemplateSubSpace[");
+  assert (b == "TemplateSubSlice[");
 
   is >> tss.ts;
 

@@ -5,18 +5,19 @@
 #include "bitset_eval_result.h"
 #include "var_lex_graph.h"
 #include "subsequence_trie.h"
-#include "template_counter.h"
+#include "template_desc.h"
 
 class AltDisjunctCandidateSolver : public CandidateSolver {
 public:
-  AltDisjunctCandidateSolver(std::shared_ptr<Module>, value templ, int disj_arity);
+  AltDisjunctCandidateSolver(
+      std::shared_ptr<Module>,
+      TemplateSpace const& tspace);
 
   value getNext();
   void addCounterexample(Counterexample cex, value candidate);
   void addExistingInvariant(value inv);
 
   long long getProgress() { return progress; }
-  long long getSpaceSize();
   long long getPreSymmCount();
   long long progress;
 
@@ -24,10 +25,15 @@ public:
   std::shared_ptr<Module> module;
   int disj_arity;
 
+  TemplateSpace tspace;
   TopAlternatingQuantifierDesc taqd;
 
   std::vector<value> pieces;
 
+  TemplateSubSlice tss;
+  std::vector<int> slice_index_map;
+
+  std::vector<int> cur_indices_sub;
   std::vector<int> cur_indices;
   std::vector<int> var_index_states;
   int start_from;
@@ -57,8 +63,7 @@ public:
   void init_piece_to_index();
   void existing_invariants_append(std::vector<int> const& indices);
 
-  void setSpaceChunk(SpaceChunk const&);
-  void getSpaceChunk(std::vector<SpaceChunk>&);
+  void setSubSlice(TemplateSubSlice const&);
 };
 
 #endif

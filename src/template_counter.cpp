@@ -383,7 +383,7 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars)
   return v_forall(decls, v_template_hole());
 }
 
-vector<TemplateDesc> count_many_templates(
+vector<TemplateSlice> count_many_templates(
     shared_ptr<Module> module,
     int maxClauses,
     bool depth2,
@@ -409,11 +409,11 @@ vector<TemplateDesc> count_many_templates(
     counts = countDepth1(ts, maxClauses);
   }
 
-  vector<TemplateDesc> tds;
+  vector<TemplateSlice> tds;
 
   for (int d = 1; d <= maxClauses; d++) {
     for (int i = 0; i < ts.nStates(); i++) {
-      TemplateDesc td;
+      TemplateSlice td;
       td.vars = ts.state_reps[i];
       td.k = d;
       td.depth = (depth2 ? 2 : 1);
@@ -422,7 +422,7 @@ vector<TemplateDesc> count_many_templates(
     }
   }
   sort(tds.begin(), tds.end());
-  for (TemplateDesc const& td : tds) {
+  for (TemplateSlice const& td : tds) {
     cout << td.to_string(module) << endl;
   }
 

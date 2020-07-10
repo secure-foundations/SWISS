@@ -6,11 +6,14 @@
 
 using namespace std;
 
-AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module, value templ, int disj_arity)
+AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
+      shared_ptr<Module> module,
+      TemplateSpace const& tspace)
   : progress(0)
   , module(module)
-  , disj_arity(disj_arity)
-  , taqd(templ)
+  , disj_arity(tspace.k)
+  , tspace(tspace)
+  , taqd(v_template_hole())
   , start_from(-1)
   , done_cutoff(0)
   , finish_at_cutoff(false)
@@ -18,6 +21,10 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(shared_ptr<Module> module
   cout << "Using AltDisjunctCandidateSolver" << endl;
   cout << "disj_arity: " << disj_arity << endl;
 
+  assert (tspace.depth == 1);
+
+  value templ = tspace.make_templ();
+  taqd = TopAlternatingQuantifierDesc(templ);
   EnumInfo ei(module, templ);
 
   pieces = ei.clauses;
@@ -208,6 +215,10 @@ value AltDisjunctCandidateSolver::getNext() {
       return nullptr;
     }
 
+    for (int i = 0; i < (int)cur_indices.size(); i++) {
+      cur_indices[i] = slice_index_map[cur_indices_sub[i]];
+    }
+
     // TODO comment this
     /*value sanity_v;
     {
@@ -304,27 +315,27 @@ value AltDisjunctCandidateSolver::getNext() {
 
 void AltDisjunctCandidateSolver::dump_cur_indices()
 {
-  cout << "cur_indices:";
-  for (int i : cur_indices) {
+  cout << "cur_indices_sub:";
+  for (int i : cur_indices_sub) {
     cout << " " << i;
   }
-  cout << " / " << pieces.size() << endl;
+  cout << " / " << slice_index_map.size() << endl;
 }
 
 // Skip all remaining index-sequences that match
 // the first `upTo` numbers of the current index-sequence
 void AltDisjunctCandidateSolver::skipAhead(int upTo)
 {
-  for (int i = upTo; i < (int)cur_indices.size(); i++) {
-    cur_indices[i] = (int)pieces.size() + i - (int)cur_indices.size();
+  for (int i = upTo; i < (int)cur_indices_sub.size(); i++) {
+    cur_indices_sub[i] = (int)pieces.size() + i - (int)cur_indices_sub.size();
   }
 }
 
 void AltDisjunctCandidateSolver::increment()
 {
-  int n = pieces.size();
+  int n = slice_index_map.size();
 
-  int t = cur_indices.size();
+  int t = cur_indices_sub.size();
 
   if (start_from != -1) {
     t = start_from;
@@ -335,8 +346,8 @@ void AltDisjunctCandidateSolver::increment()
   goto body_end;
 
 level_size_top:
-  cur_indices.push_back(0);
-  if ((int)cur_indices.size() > disj_arity) {
+  cur_indices_sub.push_back(0);
+  if ((int)cur_indices_sub.size() > disj_arity) {
     this->done = true;
     return;
   }
@@ -344,30 +355,30 @@ level_size_top:
   goto body_start;
 
 body_start:
-  if (t == (int)cur_indices.size()) {
+  if (t == (int)cur_indices_sub.size()) {
     return;
   }
 
   if (t > 0) {
     var_index_states[t] = ts.next(
       var_index_states[t-1],
-      cur_indices[t-1]);
+      slice_index_map[cur_indices_sub[t-1]]);
   }
 
-  cur_indices[t] = (t == 0 ? 0 : cur_indices[t-1] + 1);
+  cur_indices_sub[t] = (t == 0 ? 0 : cur_indices_sub[t-1] + 1);
 
   goto loop_start_before_check;
 
 loop_start:
-  if (ts.next(var_index_states[t-1], cur_indices[t]) != -1) {
+  if (ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
 
 call_end:
-  cur_indices[t]++;
+  cur_indices_sub[t]++;
 loop_start_before_check:
-  if (cur_indices[t] >= n) {
+  if (cur_indices_sub[t] >= n) {
     goto body_end;
   }
   goto loop_start;
@@ -385,74 +396,28 @@ body_end:
   }
 }
 
-void AltDisjunctCandidateSolver::setSpaceChunk(SpaceChunk const& sc)
+void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
 {
+  this->tss = tss; 
+  slice_index_map = get_subslice_index_map(pieces, tss.ts);
+
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
-  assert (sc.size > 0);
-  cur_indices.resize(sc.size);
-  assert ((int)sc.nums.size() <= sc.size);
-  for (int i = 0; i < (int)sc.nums.size(); i++) {
-    cur_indices[i] = sc.nums[i];
+  assert (tss.ts.k > 0);
+  cur_indices_sub.resize(tss.ts.k);
+  cur_indices.resize(tss.ts.k);
+  assert ((int)tss.prefix.size() <= tss.ts.k);
+  for (int i = 0; i < (int)tss.prefix.size(); i++) {
+    cur_indices_sub[i] = tss.prefix[i];
   }
-  for (int i = 1; i <= (int)sc.nums.size(); i++) {
+  for (int i = 1; i <= (int)tss.prefix.size(); i++) {
     var_index_states[i] = ts.next(
         var_index_states[i-1],
-        cur_indices[i-1]);
+        slice_index_map[cur_indices_sub[i-1]]);
   }
-  start_from = sc.nums.size();
-  done_cutoff = sc.nums.size();
+  start_from = tss.prefix.size();
+  done_cutoff = tss.prefix.size();
   done = false;
   finish_at_cutoff = true;
-}
-
-static void getSpaceChunk_rec(vector<SpaceChunk>& res,
-  vector<int>& indices, int i, int vis,
-  vector<value> const& pieces,
-  TransitionSystem const& ts, int sz)
-{
-  if (i == (int)indices.size()) {
-    SpaceChunk sc;
-    sc.size = sz;
-    sc.nums = indices;
-    res.push_back(move(sc));
-    return;
-  }
-  int t = (i == 0 ? 0 : indices[i-1] + 1);
-  for (int j = t; j < (int)pieces.size(); j++) {
-    if (ts.next(vis, j) != -1) {
-      int next = ts.next(vis, j);
-      indices[i] = j;
-      getSpaceChunk_rec(res, indices, i+1, next,
-          pieces, ts, sz);
-    }
-  }
-}
-
-void AltDisjunctCandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
-{
-  int k = 2;
-  for (int sz = 1; sz <= disj_arity; sz++) {
-    int j = k < sz ? sz - k : 0;
-    int vis = var_index_states[0];
-    vector<int> indices;
-    indices.resize(j);
-    getSpaceChunk_rec(res, indices, 0, vis,
-        pieces, ts, sz);
-  }
-}
-
-long long AltDisjunctCandidateSolver::getSpaceSize() {
-  while (true) {
-    increment();
-    /*if (progress % 500000 == 0) {
-      cout << progress << endl;
-      dump_cur_indices();
-    }*/
-    if (done) {
-      return progress;
-    }
-    progress++;
-  }
 }
 
 long long AltDisjunctCandidateSolver::getPreSymmCount() {

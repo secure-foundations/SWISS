@@ -6,11 +6,14 @@
 
 using namespace std;
 
-AltDepth2CandidateSolver::AltDepth2CandidateSolver(shared_ptr<Module> module, value templ, int total_arity)
+AltDepth2CandidateSolver::AltDepth2CandidateSolver(
+      shared_ptr<Module> module,
+      TemplateSpace const& tspace)
   : module(module)
-  , total_arity(total_arity)
+  , total_arity(tspace.k)
   , progress(0)
-  , taqd(templ)
+  , tspace(tspace)
+  , taqd(v_template_hole())
   , start_from(-1)
   , done_cutoff(0)
   , finish_at_cutoff(false)
@@ -18,7 +21,13 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(shared_ptr<Module> module, va
   cout << "Using AltDepth2CandidateSolver" << endl;
   cout << "total_arity: " << total_arity << endl;
 
-  pieces = get_clauses_for_template(module, templ);
+  assert (tspace.depth == 2);
+
+  value templ = tspace.make_templ();
+  taqd = TopAlternatingQuantifierDesc(templ);
+  EnumInfo ei(module, templ);
+
+  pieces = ei.clauses;
 
   tree_shapes = get_tree_shapes_up_to(total_arity);
 
@@ -36,13 +45,10 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(shared_ptr<Module> module, va
   cur_indices = {};
   done = false;
 
-  var_index_states.push_back(get_var_index_init_state(module, templ));
-  for (int i = 1; i < total_arity + 2; i++) {
-    var_index_states.push_back(var_index_states[0]);
-  }
-
-  var_index_transitions =
-      get_var_index_transitions(module, templ, pieces);
+  var_index_states.resize(total_arity + 2);
+  ts = build_transition_system(
+      get_var_index_init_state(module, templ),
+      ei.var_index_transitions);
 }
 
 void AltDepth2CandidateSolver::addCounterexample(Counterexample cex, value candidate)
@@ -130,7 +136,7 @@ value AltDepth2CandidateSolver::get_current_value()
   for (int i = 0; i < (int)ts.parts.size(); i++) {
     vector<value> mid_level;
     for (int j = 0; j < ts.parts[i]; j++) {
-      mid_level.push_back(get_clause(cur_indices[k]));
+      mid_level.push_back(get_clause(slice_index_map[cur_indices[k]]));
       k++;
     }
     top_level.push_back(
@@ -154,6 +160,10 @@ value AltDepth2CandidateSolver::getNext() {
       return nullptr;
     }
 
+    for (int i = 0; i < (int)cur_indices.size(); i++) {
+      cur_indices[i] = slice_index_map[cur_indices_sub[i]];
+    }
+
     /*t++;
     if (t == 50000) {
       cout << "incrementing... ";
@@ -167,22 +177,6 @@ value AltDepth2CandidateSolver::getNext() {
     //cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
 
     bool failed = false;
-
-    //// Check if it contains an existing invariant
-
-    //int upTo;
-
-    //vector<int> simple_indices = get_simple_indices(cur_indices);
-    //if (existing_invariant_tries[0].query(simple_indices, upTo /* output */)) {
-    //  this->skipAhead(upTo);
-    //  continue;
-    //}
-
-    //int ci = get_summary_index(cur_indices);
-    //if (existing_invariant_tries[ci].query(simple_indices, upTo /* output */)) {
-    //  //this->skipAhead(upTo);
-    //  continue;
-    //}
 
     //// Check if it violates a countereample
 
@@ -248,11 +242,11 @@ value AltDepth2CandidateSolver::getNext() {
 
 void AltDepth2CandidateSolver::dump_cur_indices()
 {
-  cout << "cur_indices:";
-  for (int i : cur_indices) {
+  cout << "cur_indices_sub:";
+  for (int i : cur_indices_sub) {
     cout << " " << i;
   }
-  cout << " / " << pieces.size() << " in tree shape (idx = "
+  cout << " / " << slice_index_map.size() << " in tree shape (idx = "
       << tree_shape_idx << ") "
       << tree_shapes[tree_shape_idx].to_string() << endl;
 }
@@ -260,7 +254,7 @@ void AltDepth2CandidateSolver::dump_cur_indices()
 void AltDepth2CandidateSolver::increment()
 {
   int n = pieces.size();
-  int t = cur_indices.size();
+  int t = cur_indices_sub.size();
 
   if (tree_shape_idx == -1) {
     goto level_size_top;
@@ -282,14 +276,14 @@ level_size_top:
   }
   cout << "moving to tree " << tree_shapes[tree_shape_idx].to_string() << endl;
   cout << "progress " << progress << endl;
-  cur_indices.resize(tree_shapes[tree_shape_idx].total);
+  cur_indices_sub.resize(tree_shapes[tree_shape_idx].total);
   t = 0;
 
   goto body_start;
 
 body_start:
-  if (t == (int)cur_indices.size()) {
-    if (is_normalized_for_tree_shape(tree_shapes[tree_shape_idx], cur_indices)) {
+  if (t == (int)cur_indices_sub.size()) {
+    if (is_normalized_for_tree_shape(tree_shapes[tree_shape_idx], cur_indices_sub)) {
       return;
     } else {
       goto body_end;
@@ -297,32 +291,29 @@ body_start:
   }
 
   if (t > 0) {
-    var_index_do_transition(
+    var_index_states[t] = ts.next(
       var_index_states[t-1],
-      var_index_transitions[cur_indices[t-1]].res,
-      var_index_states[t]);
+      slice_index_map[cur_indices_sub[t-1]]);
   }
 
   {
     SymmEdge const& symm_edge = tree_shapes[tree_shape_idx].symmetry_back_edges[t];
-    cur_indices[t] = symm_edge.idx == -1 ? 0 :
-        cur_indices[symm_edge.idx] + symm_edge.inc;
+    cur_indices_sub[t] = symm_edge.idx == -1 ? 0 :
+        cur_indices_sub[symm_edge.idx] + symm_edge.inc;
   }
 
   goto loop_start_before_check;
 
 loop_start:
-  if (var_index_is_valid_transition(
-      var_index_states[t],
-      var_index_transitions[cur_indices[t]].pre)) {
+  if (ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
 
 call_end:
-  cur_indices[t]++;
+  cur_indices_sub[t]++;
 loop_start_before_check:
-  if (cur_indices[t] >= n) {
+  if (cur_indices_sub[t] >= n) {
     goto body_end;
   }
   goto loop_start;
@@ -430,88 +421,28 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
   }
 }
 
-long long AltDepth2CandidateSolver::getSpaceSize() {
-  while (true) {
-    increment();
-    if (done) {
-      return progress;
-    }
-    progress++;
-    if (progress % 500000 == 0) {
-      cout << progress << endl;
-      dump_cur_indices();
-    }
-  }
-}
-
-void AltDepth2CandidateSolver::setSpaceChunk(SpaceChunk const& sc)
+void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
 {
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
-  assert (0 <= sc.tree_idx && sc.tree_idx < (int)tree_shapes.size());
-  tree_shape_idx = sc.tree_idx;
+  assert (0 <= tss.tree_idx && tss.tree_idx < (int)tree_shapes.size());
+  tree_shape_idx = tss.tree_idx;
   TreeShape const& ts = tree_shapes[tree_shape_idx];
+  assert (ts.total == tss.ts.k);
   cur_indices.resize(ts.total);
-  assert (sc.nums.size() <= cur_indices.size());
-  for (int i = 0; i < (int)sc.nums.size(); i++) {
-    cur_indices[i] = sc.nums[i];
+  cur_indices_sub.resize(ts.total);
+  assert (tss.prefix.size() <= cur_indices.size());
+  for (int i = 0; i < (int)tss.prefix.size(); i++) {
+    cur_indices[i] = tss.prefix[i];
   }
-  for (int i = 1; i <= (int)sc.nums.size(); i++) {
-    var_index_do_transition(
-      var_index_states[i-1],
-      var_index_transitions[cur_indices[i-1]].res,
-      var_index_states[i]);
+  for (int i = 1; i <= (int)tss.prefix.size(); i++) {
+    var_index_states[i] = this->ts.next(
+        var_index_states[i-1],
+        slice_index_map[cur_indices_sub[i-1]]);
   }
-  start_from = sc.nums.size();
-  done_cutoff = sc.nums.size();
+  start_from = tss.prefix.size();
+  done_cutoff = tss.prefix.size();
   done = false;
   finish_at_cutoff = true;
-}
-
-static void getSpaceChunk_rec(vector<SpaceChunk>& res,
-  int tree_shape_idx, TreeShape const& ts,
-  vector<int>& indices, int i, VarIndexState const& vis,
-  vector<value> const& pieces,
-  vector<VarIndexTransition> const& var_index_transitions, int sz)
-{
-  if (i == (int)indices.size()) {
-    SpaceChunk sc;
-    sc.tree_idx = tree_shape_idx;
-    sc.size = ts.total;
-    sc.nums = indices;
-    res.push_back(move(sc));
-    return;
-  }
-  SymmEdge const& symm_edge = ts.symmetry_back_edges[i];
-  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
-  for (int j = t; j < (int)pieces.size(); j++) {
-    if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
-      VarIndexState next(vis.indices.size());
-      var_index_do_transition(vis, var_index_transitions[j].res, next);
-      indices[i] = j;
-      getSpaceChunk_rec(res, tree_shape_idx, ts, indices, i+1, next,
-          pieces, var_index_transitions, sz);
-    }
-  }
-}
-
-void AltDepth2CandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
-{
-  for (int i = 0; i < (int)tree_shapes.size(); i++) {
-    //cout << tree_shapes[i].to_string() << endl;
-    int sz = tree_shapes[i].total;
-
-    int k;
-    if (sz > 4) k = sz - 2;
-    else k = 2;
-
-    int j = k < sz ? sz - k : 0;
-    VarIndexState vis = var_index_states[0];
-    vector<int> indices;
-    indices.resize(j);
-    getSpaceChunk_rec(res, i, tree_shapes[i], indices, 0, vis,
-        pieces, var_index_transitions, sz);
-  }
-  //cout << "done" << endl;
 }
 
 long long AltDepth2CandidateSolver::getPreSymmCount() {

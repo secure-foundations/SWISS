@@ -133,7 +133,7 @@ struct EnumInfo {
   EnumInfo(std::shared_ptr<Module>, value templ);
 };
 
-std::vector<TemplateDesc> count_many_templates(
+std::vector<TemplateSlice> count_many_templates(
     std::shared_ptr<Module> module,
     int maxClauses,
     bool depth2,
