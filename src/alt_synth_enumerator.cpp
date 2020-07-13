@@ -215,6 +215,8 @@ value AltDisjunctCandidateSolver::getNext() {
       return nullptr;
     }
 
+    assert(false); // TODO need to check that all vars are used
+
     for (int i = 0; i < (int)cur_indices.size(); i++) {
       cur_indices[i] = slice_index_map[cur_indices_sub[i]];
     }
@@ -360,6 +362,7 @@ body_start:
   }
 
   if (t > 0) {
+    assert(false && "need to use sub_ts here");
     var_index_states[t] = ts.next(
       var_index_states[t-1],
       slice_index_map[cur_indices_sub[t-1]]);

@@ -11,6 +11,7 @@
 #include "wpr.h"
 #include "filter.h"
 #include "template_counter.h"
+#include "template_priority.h"
 
 #include <iostream>
 #include <iterator>
@@ -104,8 +105,6 @@ int run_id;
 extern bool enable_smt_logging;
 
 struct EnumOptions {
-  string filename;
-
   int template_idx;
 
   // Naive solving
@@ -116,95 +115,13 @@ struct EnumOptions {
 struct Strategy {
   bool finisher;
   bool breadth;
-  vector<TemplateDesc> tds;
+  TemplateSpace tspace;
 
   Strategy() {
     finisher = false;
     breadth = false;
   }
 };
-
-void input_chunks(string const& filename, vector<SpaceChunk>& chunks, int chunk_size_to_use)
-{
-  FILE* f = fopen(filename.c_str(), "r");
-  assert(f != NULL);
-  int num;
-  fscanf(f, "%d", &num);
-  for (int i = 0; i < num; i++) {
-    int major_idx, size, tree_idx, count;
-    fscanf(f, "%d", &major_idx);
-    fscanf(f, "%d", &size);
-    fscanf(f, "%d", &tree_idx);
-    fscanf(f, "%d", &count);
-    SpaceChunk sc;
-    sc.major_idx = major_idx;
-    sc.tree_idx = tree_idx;
-    sc.size = size;
-    for (int j = 0; j < count; j++) {
-      int x;
-      fscanf(f, "%d", &x);
-      sc.nums.push_back(x);
-    }
-    if (chunk_size_to_use == -1 || sc.size == chunk_size_to_use) {
-      chunks.push_back(sc);
-    }
-  }
-  fclose(f);
-}
-
-void output_chunks(string const& filename, vector<SpaceChunk> const& chunks)
-{
-  FILE* f = fopen(filename.c_str(), "w");
-  fprintf(f, "%d\n", (int)chunks.size());
-  for (SpaceChunk const& sc : chunks) {
-    fprintf(f, "%d %d %d %d", sc.major_idx, sc.size, sc.tree_idx, (int)sc.nums.size());
-    for (int j : sc.nums) {
-      fprintf(f, " %d", j);
-    }
-    fprintf(f, "\n");
-  }
-  fclose(f);
-}
-
-void output_chunks_mult(
-  vector<string> const& output_chunk_files,
-  vector<SpaceChunk> const& chunks)
-{
-  for (int i = 0; i < (int)output_chunk_files.size(); i++) {
-    vector<SpaceChunk> slice;
-    for (int j = i; j < (int)chunks.size(); j += output_chunk_files.size())
-    {
-      slice.push_back(chunks[j]);
-    }
-    output_chunks(output_chunk_files[i], slice);
-  }
-}
-
-template <typename T>
-void random_sort(vector<T>& v, int a, int b)
-{
-  for (int i = a; i < b-1; i++) {
-    int j = i + (rand() % (b - i));
-    T tmp = v[i];
-    v[i] = v[j];
-    v[j] = tmp;
-  }
-}
-
-void randomize_chunks(vector<SpaceChunk>& chunks)
-{
-  // Randomly sort the chunks, but make sure they stay
-  // nondecreasing in size.
-  int a = 0;
-  while (a < (int)chunks.size()) {
-    int b = a+1;
-    while (b < (int)chunks.size() && chunks[b].size == chunks[a].size) {
-      b++;
-    }
-    random_sort(chunks, a, b);
-    a = b;
-  }
-}
 
 void split_into_invariants_conjectures(
     shared_ptr<Module> module,
@@ -279,7 +196,7 @@ shared_ptr<Module> read_module(string const& module_filename)
   return parse_module(json_src);
 }
 
-/*vector<TemplateDesc> read_template_desc_file(
+vector<TemplateSubSlice> read_template_sub_slice_file(
     shared_ptr<Module> module,
     string const& filename)
 {
@@ -294,19 +211,19 @@ shared_ptr<Module> read_module(string const& module_filename)
     f >> so;
     assert (so == module->sorts[i] && "template file uses wrong sort order");
   }
-  vector<TemplateDesc> tds;
+  vector<TemplateSubSlice> tds;
   for (int i = 0; i < sz; i++) {
-    TemplateDesc td;
+    TemplateSubSlice td;
     f >> td;
     tds.push_back(td);
   }
   return tds;
 }
 
-void write_template_desc_file(
+void write_template_sub_slice_file(
     shared_ptr<Module> module,
     string const& filename,
-    vector<TemplateDesc> const& tds) {
+    vector<TemplateSubSlice> const& tds) {
   ofstream f;
   f.open(filename);
   f << tds.size() << endl;
@@ -315,20 +232,27 @@ void write_template_desc_file(
     f << " " << so;
   }
   f << endl;
-  for (TemplateDesc const& td : tds) {
+  for (TemplateSubSlice const& td : tds) {
     f << td << endl;
   }
-}*/
+}
 
-vector<TemplateDesc> tds_from_enum_options(
+void output_sub_slices_mult(
+  shared_ptr<Module> module,
+  vector<string> const& filenames,
+  vector<vector<TemplateSubSlice>> const& sub_slices)
+{
+  assert(filenames.size() == sub_slices.size());
+  for (int i = 0; i < (int)filenames.size(); i++) {
+    write_template_sub_slice_file(module, filenames[i], sub_slices[i]);
+  }
+}
+
+TemplateSpace template_space_from_enum_options(
     shared_ptr<Module> module,
     EnumOptions const& options)
 {
-  if (options.filename) {
-    return read_template_desc_file(module, options.filename);
-  } else {
-    assert(false);
-  }
+  assert(false);
 }
 
 int main(int argc, char* argv[]) {
@@ -380,6 +304,9 @@ int main(int argc, char* argv[]) {
   int template_sorter_mvars;
   string template_outfile;
 
+  bool one_breadth = false;
+  bool one_finisher = false;
+
   int i;
   for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
@@ -404,6 +331,12 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--check-implication")) {
       check_implication = true;
+    }
+    else if (argv[i] == string("--one-finisher")) {
+      one_finisher = true;
+    }
+    else if (argv[i] == string("--one-breadth")) {
+      one_breadth = true;
     }
     else if (argv[i] == string("--finisher")) {
       break;
@@ -530,11 +463,14 @@ int main(int argc, char* argv[]) {
 
   if (template_sorter) {
     assert (template_sorter_d == 1 || template_sorter_d == 2);
-    count_many_templates(module,
+    auto slices = count_many_templates(module,
         template_sorter_k,
         template_sorter_d == 2,
         template_sorter_mvars);
     if (template_outfile != "") {
+      assert (output_chunk_files.size() > 0);
+      auto sub_slices = prioritize_sub_slices(slices, output_chunk_files.size());
+      output_sub_slices_mult(module, output_chunk_files, sub_slices);
     }
     return 0;
   }
@@ -630,11 +566,6 @@ int main(int argc, char* argv[]) {
       else if (argv[i] == string("--breadth")) {
         break;
       }
-      else if (argv[i] == string("--filename")) {
-        assert(i + 1 < argc);
-        enum_options.filename = string(argv[i+1]);
-        i++;
-      }
       else if (argv[i] == string("--template")) {
         assert(i + 1 < argc);
         enum_options.template_idx = atoi(argv[i+1]);
@@ -656,7 +587,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    strat.tds = tds_from_enum_options(module, enum_options);
+    strat.tspace = template_space_from_enum_options(module, enum_options);
 
     strats.push_back(strat);
   }
@@ -695,25 +626,41 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if (output_chunk_files.size() > 0) {
-    vector<TemplateDesc> tds;
-    for (Strategy const& strat : strats) {
-      vector_append(tds, strat.tds);
-    }
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(
-        module, tds, !strats[0].finisher);
-    vector<SpaceChunk> chunks;
-    cs->getSpaceChunk(chunks /* output */);
-    randomize_chunks(chunks);
-    output_chunks_mult(output_chunk_files, chunks);
-    return 0;
-  }
+  vector<TemplateSubSlice> sub_slices_breadth;
+  vector<TemplateSubSlice> sub_slices_finisher;
 
-  vector<SpaceChunk> chunks;
-  bool use_input_chunks = false;
   if (input_chunk_file != "") {
-    input_chunks(input_chunk_file, chunks, chunk_size_to_use);
-    use_input_chunks = true;
+    assert (output_chunk_files.size() == 0);
+    auto ss = read_template_sub_slice_file(module, input_chunk_file);
+    assert (one_breadth || one_finisher);
+    assert (!(one_breadth && one_finisher));
+    if (one_breadth) sub_slices_breadth = ss;
+    else if (one_finisher) sub_slices_finisher = ss;
+  } else {
+    if (output_chunk_files.size() > 0) {
+      vector<TemplateSlice> slices;
+      for (Strategy const& strat : strats) {
+        vector_append(slices, break_into_slices(strat.tspace));
+      }
+      auto sub_slices = prioritize_sub_slices(slices,
+          output_chunk_files.size());
+      output_sub_slices_mult(module, output_chunk_files, sub_slices);
+      return 0;
+    } else {
+      vector<TemplateSlice> slices_finisher;
+      vector<TemplateSlice> slices_breadth;
+      for (int i = 0; i < (int)strats.size(); i++) {
+        if (strats[i].breadth) {
+          vector_append(slices_breadth, break_into_slices(strats[i].tspace));
+        } else if (strats[i].finisher) {
+          vector_append(slices_finisher, break_into_slices(strats[i].tspace));
+        } else {
+          assert (false);
+        }
+      }
+      sub_slices_breadth = prioritize_sub_slices(slices_breadth, 1)[0];
+      sub_slices_finisher = prioritize_sub_slices(slices_finisher, 1)[0];
+    }
   }
 
   FormulaDump output_fd;
@@ -722,37 +669,21 @@ int main(int argc, char* argv[]) {
   output_fd.conjectures = input_fd.conjectures;
 
   if (options.get_space_size) {
-    vector<TemplateDesc> tds_b;
-    vector<TemplateDesc> tds_f;
-    int i;
-    for (i = 0; i < (int)strats.size(); i++) {
-      if (strats[i].breadth) {
-        assert (strats[0].breadth == strats[i].breadth);
-        vector_append(tds_b, strats[i].tds);
-      } else {
-        break;
-      }
-    }
-    for (; i < (int)strats.size(); i++) {
-      if (strats[i].finisher) {
-        vector_append(tds_f, strats[i].tds);
-      }
-    }
     long long b_pre_symm = -1;
     long long b_post_symm = -1;
     long long f_pre_symm = -1;
     long long f_post_symm = -1;
-    if (enum_options_b.size() > 0) {
+    if (sub_slices_breadth.size() > 0) {
       shared_ptr<CandidateSolver> cs =
-          make_candidate_solver(module, tds_b, true);
+          make_candidate_solver(module, sub_slices_breadth, true);
       b_pre_symm = cs->getPreSymmCount();
       cout << "b_pre_symm " << b_pre_symm << endl;
       b_post_symm = cs->getSpaceSize();
       cout << "b_post_symm " << b_post_symm << endl;
     }
-    if (enum_options_f.size() > 0) {
+    if (sub_slices_finisher.size() > 0) {
       shared_ptr<CandidateSolver> cs = make_candidate_solver(
-          module, tds_f, false);
+          module, sub_slices_finisher, false);
       f_pre_symm = cs->getPreSymmCount();
       cout << "f_pre_symm " << f_pre_symm << endl;
       f_post_symm = cs->getSpaceSize();
@@ -772,26 +703,15 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    int idx;
-    if (strats[0].breadth) {
-      vector<TemplateDesc> tds;
-      int i;
-      for (i = 0; i < (int)strats.size(); i++) {
-        if (strats[i].breadth) {
-          assert (strats[0].breadth == strats[i].breadth);
-          vector_append(tds, strats[i].tds);
-        } else {
-          break;
-        }
-      }
-      idx = i;
+    bool single_round = (one_breadth || one_finisher);
 
+    if (sub_slices_breadth.size()) {
       SynthesisResult synres;
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting breadth algorithm" << endl;
       cout << endl;
-      synres = synth_loop_incremental_breadth(module, tds, options,
-          use_input_chunks, chunks, input_fd);
+      synres = synth_loop_incremental_breadth(module, sub_slices_breadth, options,
+          input_fd, single_round);
 
       augment_fd(output_fd, synres);
 
@@ -801,22 +721,14 @@ int main(int argc, char* argv[]) {
       }
 
       module = module->add_conjectures(synres.new_values);
-    } else {
-      idx = 0;
     }
 
-    if (idx < (int)strats.size()) {
-      vector<TemplateDesc> tds;
-      for (int i = idx; i < (int)strats.size(); i++) {
-        assert (strats[i].finisher);
-        vector_append(tds, strats[i].tds);
-      }
-
+    if (sub_slices_finisher.size()) {
       cout << endl;
       cout << ">>>>>>>>>>>>>> Starting finisher algorithm" << endl;
       cout << endl;
-      SynthesisResult synres = synth_loop(module, tds, options,
-          use_input_chunks, chunks, input_fd);
+      SynthesisResult synres = synth_loop(module, sub_slices_finisher, options,
+          input_fd);
 
       augment_fd(output_fd, synres);
 

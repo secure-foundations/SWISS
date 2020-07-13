@@ -178,6 +178,10 @@ public:
     return -1;
   }
 
+  long long getSpaceSize() {
+    assert(false);
+  }
+
   long long getPreSymmCount() {
     long long res = 0;
     for (int i = 0; i < (int)solvers.size(); i++) {
