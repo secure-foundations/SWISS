@@ -252,7 +252,41 @@ TemplateSpace template_space_from_enum_options(
     shared_ptr<Module> module,
     EnumOptions const& options)
 {
-  assert(false);
+  TemplateSpace ts;
+
+  value templ = module->templates[
+      options.template_idx == -1 ? 0 : options.template_idx];
+  TopAlternatingQuantifierDesc taqd(templ);
+
+  for (int i = 0; i < (int)module->sorts.size(); i++) {
+    ts.vars.push_back(0);
+    ts.quantifiers.push_back(Quantifier::Forall);
+  }
+
+  for (Alternation const& alter : taqd.alternations()) {
+    for (VarDecl const& decl : alter.decls) {
+      int idx = -1;
+      for (int i = 0; i < (int)module->sorts.size(); i++) {
+        if (sorts_eq(s_uninterp(module->sorts[i]), decl.sort)) {
+          idx = i;
+          break;
+        }
+      }
+      assert (idx != -1);
+      Quantifier q = (alter.altType == AltType::Forall ? Quantifier::Forall : Quantifier::Exists);
+      if (ts.vars[idx] > 0) {
+        assert (ts.quantifiers[idx] == q);
+      }
+
+      ts.quantifiers[idx] = q;
+      ts.vars[idx]++;
+    }
+  }
+
+  ts.depth = (options.depth2_shape ? 2 : 1);
+  ts.k = options.disj_arity;
+
+  return ts;
 }
 
 int main(int argc, char* argv[]) {
