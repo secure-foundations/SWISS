@@ -23,7 +23,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
 
   assert (tspace.depth == 1);
 
-  value templ = tspace.make_templ();
+  value templ = tspace.make_templ(module);
   taqd = TopAlternatingQuantifierDesc(templ);
   EnumInfo ei(module, templ);
 

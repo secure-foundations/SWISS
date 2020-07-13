@@ -16,7 +16,7 @@ struct TemplateSpace {
   int depth;
   int k; // up to
 
-  value make_templ() const;
+  value make_templ(std::shared_ptr<Module> module) const;
 };
 
 struct TemplateSlice {
@@ -49,7 +49,9 @@ std::vector<int> get_subslice_index_map(
     std::vector<value> const& clauses,
     TemplateSlice const& ts);
 
-std::vector<TemplateSpace> spaces_containing_sub_slices(std::vector<TemplateSubSlice> const& slices);
+std::vector<TemplateSpace> spaces_containing_sub_slices(
+    std::shared_ptr<Module> module,
+    std::vector<TemplateSubSlice> const& slices);
 
 bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts);
 

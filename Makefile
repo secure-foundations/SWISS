@@ -28,6 +28,7 @@ OBJECTS = $(addprefix bin/,\
 	tree_shapes.o \
 	template_counter.o \
 	template_desc.o \
+	template_priority.o \
 	lib/json11/json11.o \
 )
 

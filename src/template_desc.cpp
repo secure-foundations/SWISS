@@ -110,3 +110,77 @@ istream& operator>>(istream& is, TemplateSubSlice& tss)
 
   return is;
 }
+
+value TemplateSpace::make_templ(shared_ptr<Module> module) const
+{
+  vector<VarDecl> decls;
+  int num = 0;
+  for (int i = 0; i < (int)vars.size(); i++) {
+    lsort so = s_uninterp(module->sorts[i]);
+    for (int j = 0; j < vars[i]; j++) {
+      string name = ::to_string(num);
+      num++;
+      int nsize = 3;
+      assert((int)name.size() <= nsize);
+      while ((int)name.size() < nsize) {
+        name = "0" + name;
+      }
+      name = "A" + name;
+      decls.push_back(VarDecl(string_to_iden(name), so));
+    }
+  }
+  return v_forall(decls, v_template_hole());
+}
+
+std::vector<TemplateSpace> spaces_containing_sub_slices(
+    shared_ptr<Module> module,
+    std::vector<TemplateSubSlice> const& slices)
+{
+  int nsorts = module->sorts.size();
+
+  vector<TemplateSpace> tspaces;
+  tspaces.resize(1 << nsorts);
+  for (int i = 0; i < (1 << nsorts); i++) {
+    tspaces[i].vars.resize(nsorts);
+    tspaces[i].quantifiers.resize(nsorts);
+    for (int j = 0; j < nsorts; j++) {
+      tspaces[i].vars[j] = -1;
+      tspaces[i].quantifiers[j] = (
+          (i>>j)&1 ? Quantifier::Exists : Quantifier::Forall);
+    }
+    tspaces[i].depth = -1;
+    tspaces[i].k = -1;
+  }
+
+  for (TemplateSubSlice const& tss : slices) {
+    int bitmask = 0;
+    for (int j = 0; j < nsorts; j++) {
+      if (tss.ts.quantifiers[j] == Quantifier::Exists) {
+        bitmask |= (1 << j);
+      }
+    }
+    for (int j = 0; j < nsorts; j++) {
+      tspaces[bitmask].vars[j] = max(
+          tspaces[bitmask].vars[j], tss.ts.vars[j]);
+    }
+    tspaces[bitmask].depth = max(
+        tspaces[bitmask].depth, tss.ts.depth);
+    tspaces[bitmask].k = max(
+        tspaces[bitmask].k, tss.ts.k);
+  }
+
+  vector<TemplateSpace> res;
+  for (int i = 0; i < (int)tspaces.size(); i++) {
+    if (tspaces[i].depth != -1) {
+      res.push_back(tspaces[i]);
+    }
+  }
+  return res;
+}
+
+std::vector<int> get_subslice_index_map(
+    std::vector<value> const& clauses,
+    TemplateSlice const& ts)
+{
+  assert(false);
+}

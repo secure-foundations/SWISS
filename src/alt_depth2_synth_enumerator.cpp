@@ -23,7 +23,7 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(
 
   assert (tspace.depth == 2);
 
-  value templ = tspace.make_templ();
+  value templ = tspace.make_templ(module);
   taqd = TopAlternatingQuantifierDesc(templ);
   EnumInfo ei(module, templ);
 

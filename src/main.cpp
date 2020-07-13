@@ -408,6 +408,7 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--chunk-size-to-use")) {
       assert(i + 1 < argc);
       chunk_size_to_use = atoi(argv[i+1]);
+      assert(false && "TODO implement");
       i++;
     }
     else if (argv[i] == string("--template-counter")) {

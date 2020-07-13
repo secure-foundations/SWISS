@@ -116,7 +116,7 @@ public:
   {
     this->sub_slices = sub_slices;
 
-    spaces = spaces_containing_sub_slices(sub_slices);
+    spaces = spaces_containing_sub_slices(module, sub_slices);
     for (int i = 0; i < (int)spaces.size(); i++) {
       cout << endl;
       cout << "--- Initializing enumerator ---" << endl;
