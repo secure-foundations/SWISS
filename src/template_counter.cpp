@@ -385,17 +385,18 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars)
 
 vector<TemplateSlice> count_many_templates(
     shared_ptr<Module> module,
+    value templ,
     int maxClauses,
     bool depth2,
     int maxVars)
 {
-  value templ = make_template_with_max_vars(module, maxVars);
-  
   EnumInfo ei(module, templ);
   TransitionSystem ts = build_transition_system(
           get_var_index_init_state(module, templ),
           ei.var_index_transitions);
-  ts = ts.cap_total_vars(maxVars);
+  if (maxVars != -1) {
+    ts = ts.cap_total_vars(maxVars);
+  }
   ts = ts.remove_unused_transitions();
   ts = ts.make_upper_triangular();
 
@@ -427,4 +428,22 @@ vector<TemplateSlice> count_many_templates(
   }
 
   return tds;
+}
+
+vector<TemplateSlice> count_many_templates(
+    shared_ptr<Module> module,
+    int maxClauses,
+    bool depth2,
+    int maxVars)
+{
+  value templ = make_template_with_max_vars(module, maxVars);
+  return count_many_templates(module, templ, maxClauses, depth2, maxVars);
+}
+
+vector<TemplateSlice> count_many_templates(
+    shared_ptr<Module> module,
+    TemplateSpace const& ts)
+{
+  value templ = ts.make_templ(module);
+  return count_many_templates(module, templ, ts.k, (ts.depth == 2), -1);
 }

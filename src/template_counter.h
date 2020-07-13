@@ -139,4 +139,8 @@ std::vector<TemplateSlice> count_many_templates(
     bool depth2,
     int maxVars);
 
+std::vector<TemplateSlice> count_many_templates(
+    std::shared_ptr<Module> module,
+    TemplateSpace const& ts);
+
 #endif

@@ -675,7 +675,7 @@ int main(int argc, char* argv[]) {
     if (output_chunk_files.size() > 0) {
       vector<TemplateSlice> slices;
       for (Strategy const& strat : strats) {
-        vector_append(slices, break_into_slices(strat.tspace));
+        vector_append(slices, break_into_slices(module, strat.tspace));
       }
       auto sub_slices = prioritize_sub_slices(slices,
           output_chunk_files.size());
@@ -686,9 +686,9 @@ int main(int argc, char* argv[]) {
       vector<TemplateSlice> slices_breadth;
       for (int i = 0; i < (int)strats.size(); i++) {
         if (strats[i].breadth) {
-          vector_append(slices_breadth, break_into_slices(strats[i].tspace));
+          vector_append(slices_breadth, break_into_slices(module, strats[i].tspace));
         } else if (strats[i].finisher) {
-          vector_append(slices_finisher, break_into_slices(strats[i].tspace));
+          vector_append(slices_finisher, break_into_slices(module, strats[i].tspace));
         } else {
           assert (false);
         }

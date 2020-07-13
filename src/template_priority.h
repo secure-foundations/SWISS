@@ -6,6 +6,7 @@
 #include <vector>
 
 std::vector<TemplateSlice> break_into_slices(
+  std::shared_ptr<Module> module,
   TemplateSpace const& ts);
 
 std::vector<std::vector<TemplateSubSlice>> 

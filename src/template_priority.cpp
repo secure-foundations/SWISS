@@ -1,11 +1,14 @@
 #include "template_priority.h"
 
+#include "template_counter.h"
+
 using namespace std;
 
 std::vector<TemplateSlice> break_into_slices(
+  shared_ptr<Module> module,
   TemplateSpace const& ts)
 {
-  assert(false);
+  return count_many_templates(module, ts);
 }
 
 std::vector<std::vector<TemplateSubSlice>> 
