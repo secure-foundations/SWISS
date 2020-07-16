@@ -136,7 +136,7 @@ value AltDepth2CandidateSolver::get_current_value()
   for (int i = 0; i < (int)ts.parts.size(); i++) {
     vector<value> mid_level;
     for (int j = 0; j < ts.parts[i]; j++) {
-      mid_level.push_back(get_clause(slice_index_map[cur_indices[k]]));
+      mid_level.push_back(get_clause(cur_indices[k]));
       k++;
     }
     top_level.push_back(
@@ -260,7 +260,7 @@ void AltDepth2CandidateSolver::dump_cur_indices()
 
 void AltDepth2CandidateSolver::increment()
 {
-  int n = pieces.size();
+  int n = slice_index_map.size();
   int t = cur_indices_sub.size();
 
   if (tree_shape_idx == -1) {
