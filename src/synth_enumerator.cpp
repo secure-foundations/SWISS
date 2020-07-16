@@ -139,7 +139,7 @@ public:
 
   void set_solver_idx() {
     if (idx < (int)sub_slices.size()) {
-      cout << "OverlordCandidateSolver: done" << sub_slices[idx] << endl;
+      cout << "OverlordCandidateSolver: " << sub_slices[idx] << endl;
       for (int i = 0; i < (int)spaces.size(); i++) {
         if (is_subspace(sub_slices[idx], spaces[i])) {
           solver_idx = i;
@@ -156,7 +156,7 @@ public:
 
   value getNext() {
     while (!done) {
-      value next = solvers[idx]->getNext();
+      value next = solvers[solver_idx]->getNext();
       if (next != nullptr) {
         return next;
       } else {
