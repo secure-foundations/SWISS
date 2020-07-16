@@ -159,7 +159,9 @@ value AltDepth2CandidateSolver::getNext() {
       if (done) {
         return nullptr;
       }
-      if (var_index_states[cur_indices.size()] == target_state) {
+      if (sub_ts.next(
+          var_index_states[cur_indices_sub.size()-1],
+          cur_indices_sub[cur_indices_sub.size()-1]) == target_state) {
         break;
       }
     }

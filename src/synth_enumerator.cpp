@@ -139,7 +139,9 @@ public:
 
   void set_solver_idx() {
     if (idx < (int)sub_slices.size()) {
-      cout << "OverlordCandidateSolver: " << sub_slices[idx] << endl;
+      cout << endl << "OverlordCandidateSolver: " << sub_slices[idx] << endl
+           << "OverlordCandidateSolver: index " << idx << " / "
+           << sub_slices.size() << endl << endl;
       for (int i = 0; i < (int)spaces.size(); i++) {
         if (is_subspace(sub_slices[idx], spaces[i])) {
           //cout << "setting to " << i << endl;
@@ -151,7 +153,7 @@ public:
       }
       assert (false);
     } else {
-      cout << "OverlordCandidateSolver: done" << endl;
+      cout << endl << "OverlordCandidateSolver: done" << endl << endl;
       done = true;
     }
   }

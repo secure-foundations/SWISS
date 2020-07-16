@@ -460,7 +460,7 @@ pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
   in_slice.resize(ts.nStates());
   for (int i = 0; i < ts.nStates(); i++) {
     in_slice[i] = true;
-    for (int j = 0; j < (int)ts.state_reps.size(); j++) {
+    for (int j = 0; j < (int)tslice.vars.size(); j++) {
       if (tslice.vars[j] < ts.state_reps[i][j]) {
         in_slice[i] = false;
         break;

@@ -29,7 +29,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
 
   pieces = ei.clauses;
 
-  cout << "Using " << pieces.size() << " terms" << endl;
+  //cout << "Using " << pieces.size() << " terms" << endl;
   //for (value p : pieces) {
   //  cout << "piece: " << p->to_string() << endl;
   //}
@@ -217,9 +217,14 @@ value AltDisjunctCandidateSolver::getNext() {
         //cout << "return nullptr" << endl;
         return nullptr;
       }
-      if (var_index_states[cur_indices.size()] == target_state) {
+      //cout << var_index_states[cur_indices.size()] << " "
+      //    << target_state << endl;
+      if (sub_ts.next(
+          var_index_states[cur_indices_sub.size()-1],
+          cur_indices_sub[cur_indices_sub.size()-1]) == target_state) {
         break;
       }
+      //cout << "bro" << endl;
     }
     progress++;
     //cout << "attempting" << endl;
@@ -236,7 +241,7 @@ value AltDisjunctCandidateSolver::getNext() {
         disjs.push_back(pieces[cur_indices[i]]);
       }
       sanity_v = disjunction_fuse(disjs);
-      //cout << "getNext: " << sanity_v->to_string() << endl;
+      cout << "getNext: " << sanity_v->to_string() << endl;
     }*/
 
     bool failed = false;
@@ -421,6 +426,10 @@ void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   this->tss = tss; 
   auto p = get_subslice_index_map(ts, tss.ts);
   slice_index_map = p.first.first;
+  //cout << "slice_index_map" << endl;
+  //for (int i : slice_index_map) {
+  //  cout << "slice_index_map " << i << endl;
+  //}
   sub_ts = p.first.second;
   target_state = p.second;
 
