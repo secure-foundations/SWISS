@@ -154,11 +154,16 @@ value AltDepth2CandidateSolver::get_current_value()
 
 value AltDepth2CandidateSolver::getNext() {
   while (true) {
-    increment();
-    progress++;
-    if (done) {
-      return nullptr;
+    while (true) {
+      increment();
+      if (done) {
+        return nullptr;
+      }
+      if (var_index_states[cur_indices.size()] == target_state) {
+        break;
+      }
     }
+    progress++;
 
     for (int i = 0; i < (int)cur_indices.size(); i++) {
       cur_indices[i] = slice_index_map[cur_indices_sub[i]];
@@ -425,8 +430,9 @@ void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
 {
   this->tss = tss; 
   auto p = get_subslice_index_map(ts, tss.ts);
-  slice_index_map = p.first;
-  sub_ts = p.second;
+  slice_index_map = p.first.first;
+  sub_ts = p.first.second;
+  target_state = p.second;
 
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
   assert (0 <= tss.tree_idx && tss.tree_idx < (int)tree_shapes.size());

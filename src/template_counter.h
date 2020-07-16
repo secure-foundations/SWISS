@@ -149,7 +149,8 @@ std::vector<TemplateSlice> count_many_templates(
     std::shared_ptr<Module> module,
     TemplateSpace const& ts);
 
-std::pair<std::vector<int>, TransitionSystem> get_subslice_index_map(
+std::pair<std::pair<std::vector<int>, TransitionSystem>, int>
+  get_subslice_index_map(
     TransitionSystem& ts,
     TemplateSlice const& tslice);
 

@@ -34,6 +34,7 @@ public:
   TemplateSubSlice tss;
   std::vector<int> slice_index_map;
   TransitionSystem sub_ts;
+  int target_state;
 
   std::vector<int> cur_indices_sub;
   std::vector<int> cur_indices;

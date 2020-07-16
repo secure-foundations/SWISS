@@ -452,7 +452,7 @@ vector<TemplateSlice> count_many_templates(
   return count_many_templates(module, templ, ts.k, (ts.depth == 2), -1);
 }
 
-std::pair<std::vector<int>, TransitionSystem> get_subslice_index_map(
+pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
     TransitionSystem& ts,
     TemplateSlice const& tslice)
 {
@@ -482,5 +482,14 @@ std::pair<std::vector<int>, TransitionSystem> get_subslice_index_map(
     }
   }
 
-  return make_pair(res, ts.remove_transitions(in_slice));
+  int target_state = -1;
+  for (int i = 0; i < ts.nStates(); i++) {
+    if (ts.state_reps[i] == tslice.vars) {
+      target_state = i;
+      break;
+    }
+  }
+  assert(target_state != -1);
+
+  return make_pair(make_pair(res, ts.remove_transitions(in_slice)), target_state);
 }
