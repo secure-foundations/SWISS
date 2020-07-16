@@ -416,6 +416,10 @@ vector<TemplateSlice> count_many_templates(
     for (int i = 0; i < ts.nStates(); i++) {
       TemplateSlice td;
       td.vars = ts.state_reps[i];
+      td.quantifiers.resize(td.vars.size());
+      for (int j = 0; j < (int)td.quantifiers.size(); j++) {
+        td.quantifiers[j] = Quantifier::Forall;
+      }
       td.k = d;
       td.depth = (depth2 ? 2 : 1);
       td.count = (depth2 && d > 1 ? 2 : 1) * counts[d].v[i];

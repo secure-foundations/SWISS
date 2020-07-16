@@ -9,10 +9,11 @@ using namespace std;
 ostream& operator<<(ostream& os, const TemplateSlice& td)
 {
   os << "TemplateSlice[ ";
-  os << td.k
-    << " " << td.depth
-    << " " << td.count\
-    << " " << td.vars.size();
+  os << "k " << td.k
+    << " d " << td.depth
+    << " count " << td.count
+    << " size " << td.vars.size()
+    << " vars";
   assert (td.vars.size() == td.quantifiers.size());
   for (int i = 0; i < (int)td.vars.size(); i++) {
     os << " " << td.vars[i]
@@ -27,11 +28,27 @@ istream& operator>>(istream& is, TemplateSlice& td)
   string b;
   is >> b;
   assert(b == "TemplateSlice[");
+
+  is >> b;
+  assert(b == "k");
   is >> td.k;
+
+  is >> b;
+  assert(b == "d");
   is >> td.depth;
+
+  is >> b;
+  assert(b == "count");
   is >> td.count;
+
+  is >> b;
+  assert(b == "size");
   int sz;
   is >> sz;
+
+  is >> b;
+  assert(b == "vars");
+
   td.vars = {};
   for (int i = 0; i < sz; i++) {
     int x;
