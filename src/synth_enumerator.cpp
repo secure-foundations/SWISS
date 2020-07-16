@@ -116,6 +116,11 @@ public:
   {
     this->sub_slices = sub_slices;
 
+    cout << "OverlordCandidateSolver" << endl;
+    for (TemplateSubSlice const& tss : sub_slices) {
+      cout << tss << endl;
+    }
+
     spaces = spaces_containing_sub_slices(module, sub_slices);
     for (int i = 0; i < (int)spaces.size(); i++) {
       cout << endl;
@@ -133,9 +138,8 @@ public:
   }
 
   void set_solver_idx() {
-    assert (false && "TODO add logging here");
-
     if (idx < (int)sub_slices.size()) {
+      cout << "OverlordCandidateSolver: done" << sub_slices[idx] << endl;
       for (int i = 0; i < (int)spaces.size(); i++) {
         if (is_subspace(sub_slices[idx], spaces[i])) {
           solver_idx = i;
@@ -145,6 +149,7 @@ public:
       }
       assert (false);
     } else {
+      cout << "OverlordCandidateSolver: done" << endl;
       done = true;
     }
   }

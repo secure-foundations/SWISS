@@ -201,3 +201,28 @@ std::vector<int> get_subslice_index_map(
 {
   assert(false);
 }
+
+bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)
+{
+  if (slice.quantifiers != space.quantifiers) {
+    return false;
+  }
+  assert (slice.vars.size() == space.vars.size());
+  for (int i = 0; i < (int)slice.vars.size(); i++) {
+    if (slice.vars[i] > space.vars[i]) {
+      return false;
+    }
+  }
+  if (slice.k > space.k) {
+    return false;
+  }
+  if (slice.depth != space.depth) {
+    return false;
+  }
+  return true;
+}
+
+bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts)
+{
+  return is_subspace(tss.ts, ts);
+}
