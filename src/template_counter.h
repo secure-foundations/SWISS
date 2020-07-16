@@ -20,6 +20,10 @@ struct TransitionSystem {
 
   // returns -1 if no edge
   int next(int state, int trans) const {
+    assert (0 <= state);
+    assert (state < (int)transitions.size());
+    assert (0 <= trans);
+    assert (trans < (int)transitions[state].size());
     return transitions[state][trans];
   }
 

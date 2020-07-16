@@ -298,7 +298,7 @@ body_start:
   if (t > 0) {
     var_index_states[t] = sub_ts.next(
       var_index_states[t-1],
-      slice_index_map[cur_indices_sub[t-1]]);
+      cur_indices_sub[t-1]);
   }
 
   {
@@ -310,7 +310,7 @@ body_start:
   goto loop_start_before_check;
 
 loop_start:
-  if (sub_ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
+  if (sub_ts.next(var_index_states[t], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
@@ -448,7 +448,7 @@ void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   for (int i = 1; i <= (int)tss.prefix.size(); i++) {
     var_index_states[i] = this->sub_ts.next(
         var_index_states[i-1],
-        slice_index_map[cur_indices_sub[i-1]]);
+        cur_indices_sub[i-1]);
   }
   start_from = tss.prefix.size();
   done_cutoff = tss.prefix.size();

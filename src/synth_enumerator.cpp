@@ -142,8 +142,10 @@ public:
       cout << "OverlordCandidateSolver: " << sub_slices[idx] << endl;
       for (int i = 0; i < (int)spaces.size(); i++) {
         if (is_subspace(sub_slices[idx], spaces[i])) {
+          //cout << "setting to " << i << endl;
           solver_idx = i;
           solvers[i]->setSubSlice(sub_slices[idx]);
+          //cout << "done set " << endl;
           return;
         }
       }
@@ -155,9 +157,13 @@ public:
   }
 
   value getNext() {
+    //cout << "getNext()" << endl;
     while (!done) {
+      //cout << "calling getNext()" << endl;
       value next = solvers[solver_idx]->getNext();
+      //cout << "done getNext()" << endl;
       if (next != nullptr) {
+        //cout << "returning" << endl;
         return next;
       } else {
         idx++;

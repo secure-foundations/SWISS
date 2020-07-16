@@ -210,8 +210,11 @@ value AltDisjunctCandidateSolver::disjunction_fuse(vector<value> values) {
 value AltDisjunctCandidateSolver::getNext() {
   while (true) {
     while (true) {
+      //cout << "start increment" << endl;
       increment();
+      //cout << "hi" << endl;
       if (done) {
+        //cout << "return nullptr" << endl;
         return nullptr;
       }
       if (var_index_states[cur_indices.size()] == target_state) {
@@ -219,6 +222,7 @@ value AltDisjunctCandidateSolver::getNext() {
       }
     }
     progress++;
+    //cout << "attempting" << endl;
 
     for (int i = 0; i < (int)cur_indices.size(); i++) {
       cur_indices[i] = slice_index_map[cur_indices_sub[i]];
@@ -365,10 +369,13 @@ body_start:
   }
 
   if (t > 0) {
-    assert(false && "need to use sub_ts here");
+    //assert (t-1 >= 0);
+    //assert (t <= (int)var_index_states.size());
+    //assert (0 <= t);
+    //assert (t-1 <= (int)cur_indices_sub.size());
     var_index_states[t] = sub_ts.next(
       var_index_states[t-1],
-      slice_index_map[cur_indices_sub[t-1]]);
+      cur_indices_sub[t-1]);
   }
 
   cur_indices_sub[t] = (t == 0 ? 0 : cur_indices_sub[t-1] + 1);
@@ -376,7 +383,14 @@ body_start:
   goto loop_start_before_check;
 
 loop_start:
-  if (sub_ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
+  //assert (t >= 0);
+  //assert (t <= (int)var_index_states.size());
+  //assert (0 <= t);
+  //assert (t <= (int)cur_indices_sub.size());
+  //cout << cur_indices_sub[t] << endl;
+  //cout << sub_ts.nTransitions() << endl;
+  //cout << slice_index_map.size() << endl;
+  if (sub_ts.next(var_index_states[t], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
@@ -421,7 +435,7 @@ void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   for (int i = 1; i <= (int)tss.prefix.size(); i++) {
     var_index_states[i] = sub_ts.next(
         var_index_states[i-1],
-        slice_index_map[cur_indices_sub[i-1]]);
+        cur_indices_sub[i-1]);
   }
   start_from = tss.prefix.size();
   done_cutoff = tss.prefix.size();
