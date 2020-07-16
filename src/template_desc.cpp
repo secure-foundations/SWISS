@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <istream>
+#include <iostream>
 #include <cassert>
 
 using namespace std;
@@ -193,13 +194,6 @@ std::vector<TemplateSpace> spaces_containing_sub_slices(
     }
   }
   return res;
-}
-
-std::vector<int> get_subslice_index_map(
-    std::vector<value> const& clauses,
-    TemplateSlice const& ts)
-{
-  assert(false);
 }
 
 bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)

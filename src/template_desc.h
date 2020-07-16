@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "logic.h"
+#include "top_quantifier_desc.h"
 
 enum class Quantifier {
   Forall,
@@ -46,6 +47,7 @@ std::ostream& operator<<(std::ostream& os, const TemplateSubSlice& tss);
 std::istream& operator>>(std::istream& is, TemplateSubSlice& tss);
 
 std::vector<int> get_subslice_index_map(
+    TopAlternatingQuantifierDesc const& taqd,
     std::vector<value> const& clauses,
     TemplateSlice const& ts);
 

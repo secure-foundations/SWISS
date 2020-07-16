@@ -85,6 +85,22 @@ struct TransitionSystem {
     return reorder_rows(rows);
   }
 
+  TransitionSystem remove_transitions(std::vector<bool> const& used) {
+    int n = nStates();
+    int m = nTransitions();
+    std::vector<std::vector<int>> transitions1;
+    for (int i = 0; i < n; i++) {
+      std::vector<int> row1;
+      for (int j = 0; j < m; j++) {
+        if (used[j]) {
+          row1.push_back(transitions[i][j]);
+        }
+      }
+      transitions1.push_back(row1);
+    }
+    return TransitionSystem(transitions1, state_reps);
+  }
+
   TransitionSystem remove_unused_transitions() {
     int n = nStates();
     int m = nTransitions();
@@ -100,17 +116,7 @@ struct TransitionSystem {
       }
       used[i] = u;
     }
-    std::vector<std::vector<int>> transitions1;
-    for (int i = 0; i < n; i++) {
-      std::vector<int> row1;
-      for (int j = 0; j < m; j++) {
-        if (used[j]) {
-          row1.push_back(transitions[i][j]);
-        }
-      }
-      transitions1.push_back(row1);
-    }
-    return TransitionSystem(transitions1, state_reps);
+    return remove_transitions(used);
   }
 };
 
@@ -142,5 +148,9 @@ std::vector<TemplateSlice> count_many_templates(
 std::vector<TemplateSlice> count_many_templates(
     std::shared_ptr<Module> module,
     TemplateSpace const& ts);
+
+std::pair<std::vector<int>, TransitionSystem> get_subslice_index_map(
+    TransitionSystem& ts,
+    TemplateSlice const& tslice);
 
 #endif

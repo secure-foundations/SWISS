@@ -363,7 +363,7 @@ body_start:
 
   if (t > 0) {
     assert(false && "need to use sub_ts here");
-    var_index_states[t] = ts.next(
+    var_index_states[t] = sub_ts.next(
       var_index_states[t-1],
       slice_index_map[cur_indices_sub[t-1]]);
   }
@@ -373,7 +373,7 @@ body_start:
   goto loop_start_before_check;
 
 loop_start:
-  if (ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
+  if (sub_ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
@@ -402,7 +402,9 @@ body_end:
 void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
 {
   this->tss = tss; 
-  slice_index_map = get_subslice_index_map(pieces, tss.ts);
+  auto p = get_subslice_index_map(ts, tss.ts);
+  slice_index_map = p.first;
+  sub_ts = p.second;
 
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
   assert (tss.ts.k > 0);
@@ -413,7 +415,7 @@ void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
     cur_indices_sub[i] = tss.prefix[i];
   }
   for (int i = 1; i <= (int)tss.prefix.size(); i++) {
-    var_index_states[i] = ts.next(
+    var_index_states[i] = sub_ts.next(
         var_index_states[i-1],
         slice_index_map[cur_indices_sub[i-1]]);
   }

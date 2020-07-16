@@ -291,7 +291,7 @@ body_start:
   }
 
   if (t > 0) {
-    var_index_states[t] = ts.next(
+    var_index_states[t] = sub_ts.next(
       var_index_states[t-1],
       slice_index_map[cur_indices_sub[t-1]]);
   }
@@ -305,7 +305,7 @@ body_start:
   goto loop_start_before_check;
 
 loop_start:
-  if (ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
+  if (sub_ts.next(var_index_states[t-1], cur_indices_sub[t]) != -1) {
     t++;
     goto body_start;
   }
@@ -423,6 +423,11 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
 
 void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
 {
+  this->tss = tss; 
+  auto p = get_subslice_index_map(ts, tss.ts);
+  slice_index_map = p.first;
+  sub_ts = p.second;
+
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
   assert (0 <= tss.tree_idx && tss.tree_idx < (int)tree_shapes.size());
   tree_shape_idx = tss.tree_idx;
@@ -435,7 +440,7 @@ void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
     cur_indices[i] = tss.prefix[i];
   }
   for (int i = 1; i <= (int)tss.prefix.size(); i++) {
-    var_index_states[i] = this->ts.next(
+    var_index_states[i] = this->sub_ts.next(
         var_index_states[i-1],
         slice_index_map[cur_indices_sub[i-1]]);
   }
