@@ -267,9 +267,9 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile, iter
     output_files[key] = output_file
 
     if invfile != None:
-      args_with_file = ["--input-formula-file", invfile] + args
+      args_with_file = ["--input-formula-file", invfile, "--one-breadth"]
     else:
-      args_with_file = args
+      args_with_file = ["--one-breadth"]
 
     t = threading.Thread(target=run_synthesis, args=
         (logfile, key, json_filename, args_add_seed(
@@ -319,9 +319,9 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, args, invfile, stats)
     output_files[key] = output_file
 
     if invfile != None:
-      args_with_file = ["--input-formula-file", invfile] + args
+      args_with_file = ["--input-formula-file", invfile, "--one-finisher"]
     else:
-      args_with_file = args
+      args_with_file = ["--one-finisher"]
 
     t = threading.Thread(target=run_synthesis, args=
         (logfile, key, json_filename, args_add_seed(

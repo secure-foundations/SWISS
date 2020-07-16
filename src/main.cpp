@@ -630,11 +630,6 @@ int main(int argc, char* argv[]) {
   printf("random seed = %d\n", seed);
   srand(seed);
 
-  if (strats.size() == 0) {
-    cout << "No strategy given ???" << endl;
-    return 1;
-  }
-
   FormulaDump input_fd;
   assert (input_formula_files.size() <= 1);
   if (input_formula_files.size() == 1) {
@@ -665,6 +660,7 @@ int main(int argc, char* argv[]) {
   vector<TemplateSubSlice> sub_slices_finisher;
 
   if (input_chunk_file != "") {
+    assert (strats.size() == 0);
     assert (output_chunk_files.size() == 0);
     auto ss = read_template_sub_slice_file(module, input_chunk_file);
     assert (one_breadth || one_finisher);
@@ -672,6 +668,11 @@ int main(int argc, char* argv[]) {
     if (one_breadth) sub_slices_breadth = ss;
     else if (one_finisher) sub_slices_finisher = ss;
   } else {
+    if (strats.size() == 0) {
+      cout << "No strategy given ???" << endl;
+      return 1;
+    }
+
     if (output_chunk_files.size() > 0) {
       vector<TemplateSlice> slices;
       for (Strategy const& strat : strats) {
