@@ -105,6 +105,13 @@ int slices_get_idx(vector<TemplateSlice> const& slices, TemplateSlice const& ts)
   assert (false);
 }
 
+vector<vector<int>> get_prefixes(
+    TemplateSlice const& slice,
+    TreeShape const& tree_shape)
+{
+  
+}
+
 std::vector<std::vector<TemplateSubSlice>> 
   prioritize_sub_slices(std::vector<TemplateSlice> const& slices, int nthreads)
 {
