@@ -498,10 +498,11 @@ int main(int argc, char* argv[]) {
 
   if (template_sorter) {
     assert (template_sorter_d == 1 || template_sorter_d == 2);
-    auto slices = count_many_templates(module,
+    auto forall_slices = count_many_templates(module,
         template_sorter_k,
         template_sorter_d == 2,
         template_sorter_mvars);
+    auto slices = quantifier_combos(module, forall_slices);
     if (template_outfile != "") {
       assert (output_chunk_files.size() > 0);
       auto sub_slices = prioritize_sub_slices(slices, output_chunk_files.size());

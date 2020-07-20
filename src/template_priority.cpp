@@ -12,8 +12,13 @@ std::vector<TemplateSlice> break_into_slices(
   shared_ptr<Module> module,
   TemplateSpace const& ts)
 {
-  vector<TemplateSlice> forall_slices = 
-      count_many_templates(module, ts);
+  return count_many_templates(module, ts);
+}
+
+vector<TemplateSlice> quantifier_combos(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& forall_slices)
+{
   vector<TemplateSlice> res;
   int nsorts = module->sorts.size();
   for (TemplateSlice const& ts : forall_slices) {
