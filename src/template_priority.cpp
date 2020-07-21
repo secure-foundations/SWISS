@@ -258,6 +258,17 @@ vector<TemplateSubSlice> split_slice_into_sub_slices(
   return sub_slices;
 }
 
+template <typename T>
+void random_sort(vector<T>& v, int a, int b)
+{
+  for (int i = a; i < b-1; i++) {
+    int j = i + (rand() % (b - i));
+    T tmp = v[i];
+    v[i] = v[j];
+    v[j] = tmp;
+  }
+}
+
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const& slices,
@@ -323,18 +334,18 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
       transition_system_for_slice_list(module, ordered_slices);
 
   assert(nthreads >= 1);
-  vector<vector<TemplateSubSlice>> sub_slices_pre_thread;
-  sub_slices_pre_thread.resize(nthreads);
+  vector<vector<TemplateSubSlice>> sub_slices_per_thread;
+  sub_slices_per_thread.resize(nthreads);
 
   for (int i = 0; i < (int)ordered_slices.size(); i++) {
     vector<TemplateSubSlice> new_slices =
         split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]);
 
-    random_sort(new_slices);
-    int k = rand() % sub_slices_pre_thread.size();
+    random_sort(new_slices, 0, new_slices.size());
+    int k = rand() % sub_slices_per_thread.size();
 
-    for (int j = 0; j < new_slices.size(); j++) {
-      sub_slices_pre_thread[k].push_back(new_slices[j]);
+    for (int j = 0; j < (int)new_slices.size(); j++) {
+      sub_slices_per_thread[k].push_back(new_slices[j]);
 
       k++;
       if (k == nthreads) { 
