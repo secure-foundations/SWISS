@@ -179,9 +179,9 @@ value AltDepth2CandidateSolver::getNext() {
     }*/
 
     // TODO comment this
-    dump_cur_indices();
-    value sanity_v = get_current_value();
-    cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
+    //dump_cur_indices();
+    //value sanity_v = get_current_value();
+    //cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
 
     bool failed = false;
 

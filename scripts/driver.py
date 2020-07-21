@@ -216,7 +216,7 @@ def chunkify(iterkey, logfile, nthreads, json_filename, args):
     chunk_file_args.append(chunk)
 
   succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
-  assert succ, "breadth chunkify failed"
+  assert succ, "chunkify failed"
   return chunk_files
 
 def get_chunk_files_for_each_size(chunk_files):
