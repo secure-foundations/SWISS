@@ -120,3 +120,16 @@ std::string TreeShape::to_string() const {
   }
   return s + "]";
 }
+
+TreeShape tree_shape_for(bool top_level_is_conj, std::vector<int> const& parts)
+{
+  TreeShape ts;
+  ts.top_level_is_conj = top_level_is_conj;
+  ts.parts = parts;
+  ts.total = 0;
+  for (int i : parts) {
+    ts.total += i;
+  }
+  make_back_edges(ts);
+  return ts;
+}

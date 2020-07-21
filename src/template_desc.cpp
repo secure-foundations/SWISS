@@ -196,6 +196,37 @@ std::vector<TemplateSpace> spaces_containing_sub_slices(
   return res;
 }
 
+TemplateSpace space_containing_slices_ignore_quants(
+    std::shared_ptr<Module> module,
+    std::vector<TemplateSlice> const& slices)
+{
+  int nsorts = module->sorts.size();
+
+  TemplateSpace tspace;
+  tspace.vars.resize(nsorts);
+  tspace.quantifiers.resize(nsorts);
+  for (int j = 0; j < nsorts; j++) {
+    tspace.vars[j] = 0;
+    tspace.quantifiers[j] = Quantifier::Forall;
+  }
+  tspace.depth = -1;
+  tspace.k = -1;
+
+  for (TemplateSlice const& ts : slices) {
+    for (int j = 0; j < nsorts; j++) {
+      tspace.vars[j] = max(
+          tspace.vars[j], ts.vars[j]);
+    }
+    tspace.depth = max(
+        tspace.depth, ts.depth);
+    tspace.k = max(
+        tspace.k, ts.k);
+  }
+
+  assert (tspace.depth != -1);
+  return tspace;
+}
+
 bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)
 {
   if (slice.quantifiers != space.quantifiers) {

@@ -5,6 +5,7 @@
 
 #include "template_counter.h"
 #include "tree_shapes.h"
+#include "utils.h"
 
 using namespace std;
 
@@ -105,16 +106,171 @@ int slices_get_idx(vector<TemplateSlice> const& slices, TemplateSlice const& ts)
   assert (false);
 }
 
-vector<vector<int>> get_prefixes(
-    TemplateSlice const& slice,
-    TreeShape const& tree_shape)
+/*
+static void getSpaceChunk_rec(vector<SpaceChunk>& res,
+  int tree_shape_idx, TreeShape const& ts,
+  vector<int>& indices, int i, VarIndexState const& vis,
+  vector<value> const& pieces,
+  vector<VarIndexTransition> const& var_index_transitions, int sz)
 {
-  
+  if (i == (int)indices.size()) {
+    SpaceChunk sc;
+    sc.tree_idx = tree_shape_idx;
+    sc.size = ts.total;
+    sc.nums = indices;
+    res.push_back(move(sc));
+    return;
+  }
+  SymmEdge const& symm_edge = ts.symmetry_back_edges[i];
+  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
+  for (int j = t; j < (int)pieces.size(); j++) {
+    if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
+      VarIndexState next(vis.indices.size());
+      var_index_do_transition(vis, var_index_transitions[j].res, next);
+      indices[i] = j;
+      getSpaceChunk_rec(res, tree_shape_idx, ts, indices, i+1, next,
+          pieces, var_index_transitions, sz);
+    }
+  }
 }
 
-std::vector<std::vector<TemplateSubSlice>> 
-  prioritize_sub_slices(std::vector<TemplateSlice> const& slices, int nthreads)
+void AltDepth2CandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
 {
+  for (int i = 0; i < (int)tree_shapes.size(); i++) {
+    //cout << tree_shapes[i].to_string() << endl;
+    int sz = tree_shapes[i].total;
+
+    int k;
+    if (sz > 4) k = sz - 2;
+    else k = 2;
+
+    int j = k < sz ? sz - k : 0;
+    VarIndexState vis = var_index_states[0];
+    vector<int> indices;
+    indices.resize(j);
+    getSpaceChunk_rec(res, i, tree_shapes[i], indices, 0, vis,
+        pieces, var_index_transitions, sz);
+  }
+  //cout << "done" << endl;
+}*/
+
+void get_prefixes_rec(
+  vector<vector<int>>& res,
+  TreeShape const& ts,
+  vector<int>& indices, int i, int vis,
+  TransitionSystem const& trans_system)
+{
+  if (i == (int)indices.size()) {
+    res.push_back(indices);
+    return;
+  }
+  SymmEdge const& symm_edge = ts.symmetry_back_edges[i];
+  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
+  for (int j = t; j < trans_system.nTransitions(); j++) {
+    if (trans_system.next(vis, j) != -1) {
+      int next = trans_system.next(vis, j);
+      indices[i] = j;
+      get_prefixes_rec(res, ts, indices, i+1, next, trans_system);
+    }
+  }
+}
+
+vector<vector<int>> get_prefixes(
+    TemplateSlice const& slice,
+    TreeShape const& tree_shape,
+    TransitionSystem const& sub_trans_system)
+{
+  vector<vector<int>> res;
+  int sz = slice.k - 2;
+  if (sz < 0) sz = 0;
+  if (sz > 2) sz = 2;
+
+  vector<int> indices;
+  indices.resize(sz);
+
+  get_prefixes_rec(
+      res,
+      tree_shape,
+      indices,
+      0,
+      0,
+      sub_trans_system);
+
+  return res;
+}
+
+vector<vector<int>> get_prefixes(
+    TemplateSlice const& slice,
+    TransitionSystem const& sub_trans_system)
+{
+  vector<int> parts;
+  parts.resize(slice.k);
+  for (int i = 0; i < slice.k; i++) {
+    parts[i] = 1;
+  }
+  TreeShape tree_shape = tree_shape_for(true, parts);
+  return get_prefixes(slice, tree_shape, sub_trans_system);
+}
+
+TransitionSystem transition_system_for_slice_list(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices)
+{
+  TemplateSpace tspace = space_containing_slices_ignore_quants(module, slices);
+  value templ = tspace.make_templ(module);
+  EnumInfo ei(module, templ);
+  return build_transition_system(
+      get_var_index_init_state(module, templ),
+      ei.var_index_transitions);
+}
+
+vector<TemplateSubSlice> split_slice_into_sub_slices(
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes,
+    TemplateSlice const& slice)
+{
+  auto p = get_subslice_index_map(trans_system, slice);
+  auto sub_trans_system = p.first.second;
+
+  vector<TemplateSubSlice> sub_slices;
+  if (slice.count != 0) {
+    if (slice.depth == 1) {
+      TemplateSubSlice tss;
+      tss.ts = slice;
+      for (vector<int> pref : get_prefixes(slice, sub_trans_system)) {
+        tss.prefix = pref;
+        sub_slices.push_back(tss);
+      }
+    } else {
+      for (int j = 0; j < (int)tree_shapes.size(); j++) {
+        if (tree_shapes[j].total == slice.k) {
+          TemplateSubSlice tss;
+          tss.ts = slice;
+          tss.tree_idx = j;
+          for (vector<int> pref : get_prefixes(slice, tree_shapes[j], sub_trans_system)) {
+            tss.prefix = pref;
+            sub_slices.push_back(tss);
+          }
+        }
+      }
+    }
+  }
+  return sub_slices;
+}
+
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
+    std::shared_ptr<Module> module,
+    std::vector<TemplateSlice> const& slices,
+    int nthreads)
+{
+  if (slices.size() == 0) {
+    assert (nthreads == 1);
+    vector<TemplateSubSlice> emp;
+    std::vector<std::vector<TemplateSubSlice>> res;
+    res.push_back(emp);
+    return res;
+  }
+
   int max_k = 1;
   
   vector<Node> nodes;
@@ -163,25 +319,13 @@ std::vector<std::vector<TemplateSubSlice>>
 
   vector<TreeShape> tree_shapes = get_tree_shapes_up_to(max_k);
 
+  TransitionSystem trans_system = 
+      transition_system_for_slice_list(module, ordered_slices);
+
   vector<TemplateSubSlice> sub_slices;
   for (int i = 0; i < (int)ordered_slices.size(); i++) {
-    TemplateSlice ts = ordered_slices[i];
-    if (ts.count != 0) {
-      if (ts.depth == 1) {
-        TemplateSubSlice tss;
-        tss.ts = ts;
-        sub_slices.push_back(tss);
-      } else {
-        for (int j = 0; j < (int)tree_shapes.size(); j++) {
-          if (tree_shapes[j].total == ts.k) {
-            TemplateSubSlice tss;
-            tss.ts = ts;
-            tss.tree_idx = j;
-            sub_slices.push_back(tss);
-          }
-        }
-      }
-    }
+    vector_append(sub_slices,
+        split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]));
   }
 
   assert (nthreads == 1);

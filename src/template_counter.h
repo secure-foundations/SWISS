@@ -89,7 +89,7 @@ struct TransitionSystem {
     return reorder_rows(rows);
   }
 
-  TransitionSystem remove_transitions(std::vector<bool> const& used) {
+  TransitionSystem remove_transitions(std::vector<bool> const& used) const {
     int n = nStates();
     int m = nTransitions();
     std::vector<std::vector<int>> transitions1;
@@ -155,7 +155,7 @@ std::vector<TemplateSlice> count_many_templates(
 
 std::pair<std::pair<std::vector<int>, TransitionSystem>, int>
   get_subslice_index_map(
-    TransitionSystem& ts,
+    TransitionSystem const& ts,
     TemplateSlice const& tslice);
 
 #endif

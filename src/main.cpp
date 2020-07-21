@@ -505,7 +505,7 @@ int main(int argc, char* argv[]) {
     auto slices = quantifier_combos(module, forall_slices);
     if (template_outfile != "") {
       assert (output_chunk_files.size() > 0);
-      auto sub_slices = prioritize_sub_slices(slices, output_chunk_files.size());
+      auto sub_slices = prioritize_sub_slices(module, slices, output_chunk_files.size());
       output_sub_slices_mult(module, output_chunk_files, sub_slices);
     }
     return 0;
@@ -679,7 +679,7 @@ int main(int argc, char* argv[]) {
       for (Strategy const& strat : strats) {
         vector_append(slices, break_into_slices(module, strat.tspace));
       }
-      auto sub_slices = prioritize_sub_slices(slices,
+      auto sub_slices = prioritize_sub_slices(module, slices,
           output_chunk_files.size());
       output_sub_slices_mult(module, output_chunk_files, sub_slices);
       return 0;
@@ -695,8 +695,8 @@ int main(int argc, char* argv[]) {
           assert (false);
         }
       }
-      sub_slices_breadth = prioritize_sub_slices(slices_breadth, 1)[0];
-      sub_slices_finisher = prioritize_sub_slices(slices_finisher, 1)[0];
+      sub_slices_breadth = prioritize_sub_slices(module, slices_breadth, 1)[0];
+      sub_slices_finisher = prioritize_sub_slices(module, slices_finisher, 1)[0];
     }
   }
 

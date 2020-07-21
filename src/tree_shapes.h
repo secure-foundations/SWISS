@@ -31,4 +31,6 @@ std::vector<TreeShape> get_tree_shapes_up_to(int n);
 
 bool is_normalized_for_tree_shape(TreeShape const& ts, std::vector<int> const& pieces);
 
+TreeShape tree_shape_for(bool top_level_is_conj, std::vector<int> const& parts);
+
 #endif

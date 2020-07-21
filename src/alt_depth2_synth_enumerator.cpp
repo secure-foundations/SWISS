@@ -179,9 +179,9 @@ value AltDepth2CandidateSolver::getNext() {
     }*/
 
     // TODO comment this
-    //dump_cur_indices();
-    //value sanity_v = get_current_value();
-    //cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
+    dump_cur_indices();
+    value sanity_v = get_current_value();
+    cout << "genning >>>>>>>>>>>>>>>>>>>>>>>>> " << sanity_v->to_string() << endl;
 
     bool failed = false;
 
@@ -445,7 +445,7 @@ void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   cur_indices_sub.resize(ts.total);
   assert (tss.prefix.size() <= cur_indices.size());
   for (int i = 0; i < (int)tss.prefix.size(); i++) {
-    cur_indices[i] = tss.prefix[i];
+    cur_indices_sub[i] = tss.prefix[i];
   }
   for (int i = 1; i <= (int)tss.prefix.size(); i++) {
     var_index_states[i] = this->sub_ts.next(

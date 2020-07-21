@@ -55,6 +55,10 @@ std::vector<TemplateSpace> spaces_containing_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSubSlice> const& slices);
 
+TemplateSpace space_containing_slices_ignore_quants(
+    std::shared_ptr<Module> module,
+    std::vector<TemplateSlice> const& slices);
+
 bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts);
 
 #endif

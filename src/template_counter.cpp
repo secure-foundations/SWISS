@@ -453,7 +453,7 @@ vector<TemplateSlice> count_many_templates(
 }
 
 pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
-    TransitionSystem& ts,
+    TransitionSystem const& ts,
     TemplateSlice const& tslice)
 {
   vector<bool> in_slice;
