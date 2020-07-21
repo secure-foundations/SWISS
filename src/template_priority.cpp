@@ -322,12 +322,26 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   TransitionSystem trans_system = 
       transition_system_for_slice_list(module, ordered_slices);
 
-  vector<TemplateSubSlice> sub_slices;
+  assert(nthreads >= 1);
+  vector<vector<TemplateSubSlice>> sub_slices_pre_thread;
+  sub_slices_pre_thread.resize(nthreads);
+
   for (int i = 0; i < (int)ordered_slices.size(); i++) {
-    vector_append(sub_slices,
-        split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]));
+    vector<TemplateSubSlice> new_slices =
+        split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]);
+
+    random_sort(new_slices);
+    int k = rand() % sub_slices_pre_thread.size();
+
+    for (int j = 0; j < new_slices.size(); j++) {
+      sub_slices_pre_thread[k].push_back(new_slices[j]);
+
+      k++;
+      if (k == nthreads) { 
+        k = 0;
+      }
+    }
   }
 
-  assert (nthreads == 1);
-  return { sub_slices };
+  return sub_slices_per_thread;
 }
