@@ -2,6 +2,7 @@
 
 #include <queue>
 #include <iostream>
+#include <cassert>
 
 #include "template_counter.h"
 #include "tree_shapes.h"
