@@ -449,7 +449,17 @@ vector<TemplateSlice> count_many_templates(
     TemplateSpace const& ts)
 {
   value templ = ts.make_templ(module);
-  return count_many_templates(module, templ, ts.k, (ts.depth == 2), -1);
+  vector<TemplateSlice> slices = count_many_templates(module, templ, ts.k, (ts.depth == 2), -1);
+  for (int i = 0; i < (int)slices.size(); i++) {
+    slices[i].quantifiers = ts.quantifiers;
+    assert (slices[i].quantifiers.size() == slices[i].vars.size());
+    for (int j = 0; j < (int)slices[i].quantifiers.size(); j++) {
+      if (slices[i].vars[j] == 0) {
+        slices[i].quantifiers[j] = Quantifier::Forall;
+      }
+    }
+  }
+  return slices;
 }
 
 pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
