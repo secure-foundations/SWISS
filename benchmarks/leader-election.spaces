@@ -1,0 +1,11 @@
+[bench basic_f]
+[finisher]
+template forall node node node # d=2 k=5
+
+[bench basic_b]
+[breadth]
+template forall node node node # d=1 k=3
+
+[bench auto]
+[breadth]
+auto # d=1 k=3 mvars=3

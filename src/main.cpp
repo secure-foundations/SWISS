@@ -106,6 +106,7 @@ extern bool enable_smt_logging;
 
 struct EnumOptions {
   int template_idx;
+  string template_str;
 
   // Naive solving
   int disj_arity;
@@ -248,14 +249,92 @@ void output_sub_slices_mult(
   }
 }
 
+value parse_templ(string const& s) {
+  vector<char> new_s;
+  for (int i = 0; i < (int)s.size(); i++) {
+    if (s[i] == '-') new_s.push_back(' ');
+    else new_s.push_back(s[i]);
+  }
+
+  string t(new_s.begin(), new_s.end());
+
+  std::stringstream ss;
+  ss << t;
+
+  vector<pair<bool, vector<VarDecl>>> all_decls;
+  bool is_forall = false;
+  bool is_exists = false;
+  vector<VarDecl> decls;
+  int varname = 0;
+  while (true) {
+    string s;
+    ss >> s;
+
+    if (s == "") {
+      break;
+    }
+
+    if (!is_forall && !is_exists) {
+      assert (s == "forall" || s == "exists");
+      if (s == "forall") {
+        is_forall = true;
+      } else {
+        is_exists = true;
+      }
+    } else if (s == ".") {
+      assert (decls.size() > 0);
+      assert (is_forall || is_exists);
+      all_decls.push_back(make_pair(is_exists, decls));
+      is_forall = false;
+      is_exists = false;
+      decls.clear();
+    } else {
+      lsort so = s_uninterp(s);
+
+      string name = to_string(varname);
+      varname++;
+      assert (name.size() <= 3);
+      while (name.size() < 3) {
+        name = "0" + name;
+      }
+      name = "A" + name;
+
+      decls.push_back(VarDecl(string_to_iden(name), so));
+    }
+  }
+
+  if (decls.size() > 0) {
+    assert (is_forall || is_exists);
+    all_decls.push_back(make_pair(is_exists, decls));
+  }
+
+  value templ = v_template_hole();
+  for (int i = (int)all_decls.size() - 1; i >= 0; i--) {
+    if (all_decls[i].first) {
+      templ = v_exists(all_decls[i].second, templ);
+    } else {
+      templ = v_forall(all_decls[i].second, templ);
+    }
+  }
+
+  cout << "parsed template " << templ->to_string() << endl;
+  return templ;
+}
+
 TemplateSpace template_space_from_enum_options(
     shared_ptr<Module> module,
     EnumOptions const& options)
 {
   TemplateSpace ts;
 
-  value templ = module->templates[
-      options.template_idx == -1 ? 0 : options.template_idx];
+  value templ;
+  if (options.template_str != "") {
+    templ = parse_templ(options.template_str);
+  } else {
+    int idx = options.template_idx == -1 ? 0 : options.template_idx;
+    assert (0 <= idx && idx < (int)module->templates.size());
+    templ = module->templates[idx];
+  }
   TopAlternatingQuantifierDesc taqd(templ);
 
   for (int i = 0; i < (int)module->sorts.size(); i++) {
@@ -601,6 +680,11 @@ int main(int argc, char* argv[]) {
       }
       else if (argv[i] == string("--breadth")) {
         break;
+      }
+      else if (argv[i] == string("--template-space")) {
+        assert(i + 1 < argc);
+        enum_options.template_str = string(argv[i+1]);
+        i++;
       }
       else if (argv[i] == string("--template")) {
         assert(i + 1 < argc);

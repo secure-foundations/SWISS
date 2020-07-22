@@ -8,9 +8,11 @@ import threading
 import traceback
 import json
 import time
-from stats import Stats
-import stats
 import random
+
+import templates
+import stats
+from stats import Stats
 
 all_procs = {}
 killing = False
@@ -105,8 +107,8 @@ def unpack_args(args):
         main_args.append(arg)
       else:
         li.append(arg)
-  assert li != None
-  iter_arg_lists.append(li)
+  if li != None:
+    iter_arg_lists.append(li)
 
   t = []
   for li in iter_arg_lists:
@@ -117,27 +119,25 @@ def unpack_args(args):
 
   return (main_args, t)
 
-def do_threading(ivy_filename, json_filename, logfile, nthreads, args, by_size):
+def do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_args, breadth_args, finisher_args, by_size):
   print(ivy_filename)
   print("json: ", json_filename)
 
-  stats = Stats(nthreads, args, ivy_filename, json_filename, logfile)
-
-  main_args, iter_arg_lists = unpack_args(args)
   invfile = None
-  i = 0
-  for iter_arg_list in iter_arg_lists:
-    i += 1
-    if iter_arg_list[0] == "--finisher":
-      success = do_finisher("finisher", logfile, nthreads, json_filename, main_args + iter_arg_list, invfile, stats)
-    elif iter_arg_list[0] == "--breadth":
-      success, invfile = do_breadth("iteration", logfile, nthreads, json_filename, main_args + iter_arg_list, invfile, stats, by_size)
-    else:
-      assert False
+  success = False
+
+  if not success and len(breadth_args) > 0:
+    success, invfile = do_breadth("iteration", logfile, nthreads, json_filename, main_args + breadth_args, invfile, stats, by_size)
+
     if success:
       print("Invariant success!")
-      break
   
+  if not success and len(finisher_args) > 0:
+    success = do_finisher("finisher", logfile, nthreads, json_filename, main_args + finisher_args, invfile, stats)
+
+    if success:
+      print("Invariant success!")
+
   statfile = logfile + ".summary"
   stats.print_stats(statfile)
   print("")
@@ -348,12 +348,13 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, args, invfile, stats)
   if not any_success:
     stats.add_finisher_result(output_files[iterkey+".thread.0"], time.time() - t1)
 
-def parse_args(args):
+def parse_args(ivy_filename, args):
   nthreads = None
   logfile = ""
   new_args = []
   use_stdout = False
   by_size = False
+  config = None
   i = 0
   while i < len(args):
     if args[i] == "--threads":
@@ -370,6 +371,9 @@ def parse_args(args):
       use_stdout = True
     elif args[i] == "--by-size":
       by_size = True
+    elif args[i] == "--config":
+      config = args[i+1]
+      i += 1
     else:
       new_args.append(args[i])
     i += 1
@@ -379,18 +383,41 @@ def parse_args(args):
       rstr += str(random.randint(0, 9))
     logfile = ("logs/log." + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
         + "-" + rstr)
-  return nthreads, logfile, by_size, new_args, use_stdout
+
+  (main_args, iter_args) = unpack_args(new_args)
+
+  if config != None:
+    assert len(iter_args) == 0
+    suite = templates.read_suite(ivy_filename)
+    bench = suite.get(config)
+    b_args = bench.breadth_space.get_args("--breadth")
+    f_args = bench.finisher_space.get_args("--finisher")
+  else:
+    assert len(iter_args) > 0
+    b_args = []
+    f_args = []
+    for iter_arg_list in iter_args:
+      if iter_arg_list[0] == "--breadth":
+        b_args = b_args + iter_arg_list
+      elif iter_arg_list[0] == "--finisher":
+        f_args = f_args + iter_arg_list
+      else:
+        assert False
+
+  return nthreads, logfile, by_size, main_args, b_args, f_args, use_stdout
 
 def main():
   ivy_filename = sys.argv[1]
   json_filename = sys.argv[2]
 
   args = sys.argv[3:]
-  nthreads, logfile, by_size, args, use_stdout = parse_args(args)
+  nthreads, logfile, by_size, main_args, breadth_args, finisher_args, use_stdout = parse_args(ivy_filename, args)
   if nthreads == None:
-    run_synthesis(logfile, "main", json_filename, args_add_seed(args), use_stdout=use_stdout)
+    all_args = main_args + breadth_args + finisher_args
+    run_synthesis(logfile, "main", json_filename, all_args, use_stdout=use_stdout)
   else:
-    do_threading(ivy_filename, json_filename, logfile, nthreads, args, by_size)
+    stats = Stats(nthreads, args, ivy_filename, json_filename, logfile)
+    do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_args, breadth_args, finisher_args, by_size)
 
 if __name__ == "__main__":
   main()
