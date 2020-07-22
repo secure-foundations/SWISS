@@ -432,6 +432,7 @@ void AltDisjunctCandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   //}
   sub_ts = p.first.second;
   target_state = p.second;
+  assert (target_state != -1);
 
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
   assert (tss.ts.k > 0);

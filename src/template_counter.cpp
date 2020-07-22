@@ -491,7 +491,7 @@ pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
       break;
     }
   }
-  assert(target_state != -1);
+  //assert(target_state != -1);
 
   return make_pair(make_pair(res, ts.remove_transitions(trans_keep)), target_state);
 }

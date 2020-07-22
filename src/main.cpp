@@ -539,12 +539,6 @@ int main(int argc, char* argv[]) {
       template_sorter_mvars = atoi(argv[i+3]);
       i += 3;
     }
-    else if (argv[i] == string("--template-outfile")) {
-      assert(i + 1 < argc);
-      assert (template_outfile == "");
-      template_outfile = argv[i+1];
-      i++;
-    }
 
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
@@ -582,8 +576,7 @@ int main(int argc, char* argv[]) {
         template_sorter_d == 2,
         template_sorter_mvars);
     auto slices = quantifier_combos(module, forall_slices);
-    if (template_outfile != "") {
-      assert (output_chunk_files.size() > 0);
+    if (output_chunk_files.size() > 0) {
       auto sub_slices = prioritize_sub_slices(module, slices, output_chunk_files.size());
       output_sub_slices_mult(module, output_chunk_files, sub_slices);
     }

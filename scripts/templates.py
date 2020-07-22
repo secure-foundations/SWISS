@@ -18,7 +18,7 @@ class BigSpace(object):
   def get_args(self, alg):
     if self.gen != None:
       assert len(self.spaces) == 0
-      return ["--template-sorter", alg,
+      return ["--template-sorter",
           str(self.gen.k), str(self.gen.d), str(self.gen.mvars)]
     elif len(self.spaces) > 0:
       res = []

@@ -101,9 +101,10 @@ int slices_get_idx(vector<TemplateSlice> const& slices, TemplateSlice const& ts)
       return i;
     }
   }
-  cout << "couldn't find" << endl;
-  cout << ts << endl;
-  assert (false);
+  //cout << "couldn't find" << endl;
+  //cout << ts << endl;
+  //assert (false);
+  return -1;
 }
 
 /*
@@ -271,9 +272,11 @@ void random_sort(vector<T>& v, int a, int b)
 
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     std::shared_ptr<Module> module,
-    std::vector<TemplateSlice> const& slices,
+    std::vector<TemplateSlice> const& _slices,
     int nthreads)
 {
+  std::vector<TemplateSlice> slices = _slices;
+
   if (slices.size() == 0) {
     assert (nthreads == 1);
     vector<TemplateSubSlice> emp;
@@ -283,11 +286,22 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   }
 
   int max_k = 1;
+
+  for (int i = 0; i < (int)slices.size(); i++) {
+    vector<TemplateSlice> preds = get_preds(slices[i]);
+    for (int j = 0; j < (int)preds.size(); j++) {
+      int idx = slices_get_idx(slices, preds[j]);
+      if (idx == -1) {
+        preds[j].count = 0;
+        slices.push_back(preds[j]);
+      }
+    }
+  }
   
   vector<Node> nodes;
   nodes.resize(slices.size());
   for (int i = 0; i < (int)slices.size(); i++) {
-    cout << slices[i] << endl;
+    //cout << slices[i] << endl;
     nodes[i].pred_count = 0;
     nodes[i].ts = slices[i];
     if (slices[i].k > max_k) {
@@ -298,6 +312,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     vector<TemplateSlice> preds = get_preds(slices[i]);
     for (int j = 0; j < (int)preds.size(); j++) {
       int idx = slices_get_idx(slices, preds[j]);
+      assert (idx != -1);
       nodes[idx].succs.push_back(&nodes[i]);
       nodes[i].pred_count++;
     }

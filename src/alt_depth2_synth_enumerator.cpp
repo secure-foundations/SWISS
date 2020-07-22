@@ -435,6 +435,7 @@ void AltDepth2CandidateSolver::setSubSlice(TemplateSubSlice const& tss)
   slice_index_map = p.first.first;
   sub_ts = p.first.second;
   target_state = p.second;
+  assert (target_state != -1);
 
   //cout << "chunk: " << sc.nums.size() << " / " << sc.size << endl;
   assert (0 <= tss.tree_idx && tss.tree_idx < (int)tree_shapes.size());
