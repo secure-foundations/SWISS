@@ -131,7 +131,7 @@ istream& operator>>(istream& is, TemplateSubSlice& tss)
 
 value TemplateSpace::make_templ(shared_ptr<Module> module) const
 {
-  vector<VarDecl> decls;
+  vector<pair<Quantifier, VarDecl>> decls;
   int num = 0;
   for (int i = 0; i < (int)vars.size(); i++) {
     lsort so = s_uninterp(module->sorts[i]);
@@ -144,10 +144,29 @@ value TemplateSpace::make_templ(shared_ptr<Module> module) const
         name = "0" + name;
       }
       name = "A" + name;
-      decls.push_back(VarDecl(string_to_iden(name), so));
+      decls.push_back(make_pair(quantifiers[i], VarDecl(string_to_iden(name), so)));
     }
   }
-  return v_forall(decls, v_template_hole());
+
+  value res = v_template_hole();
+  int b = decls.size();
+  while (b > 0) {
+    int a = b-1;
+    while (a > 0 && decls[a-1].first == decls[b-1].first) {
+      a--;
+    }
+    Quantifier q = decls[b-1].first;
+    vector<VarDecl> d;
+    for (int i = a; i < b; i++) {
+      d.push_back(decls[i].second);
+    }
+    res = (q == Quantifier::Forall
+        ? v_forall(d, res)
+        : v_exists(d, res));
+    b = a;
+  }
+
+  return res;
 }
 
 std::vector<TemplateSpace> spaces_containing_sub_slices(
