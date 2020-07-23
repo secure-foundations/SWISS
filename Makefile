@@ -29,6 +29,7 @@ OBJECTS = $(addprefix bin/,\
 	template_counter.o \
 	template_desc.o \
 	template_priority.o \
+	clause_gen.o \
 	lib/json11/json11.o \
 )
 

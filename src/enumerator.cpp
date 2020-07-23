@@ -7,30 +7,34 @@
 #include "grammar.h"
 #include "expr_gen_smt.h"
 #include "obviously_implies.h"
+#include "clause_gen.h"
 
 using namespace std;
 
 struct HoleInfo {
   vector<GrammarVar> vars;
+  vector<VarDecl> decls;
 };
 
-void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
+void getHoleInfo_(value v, vector<GrammarVar> vars, vector<VarDecl> decls, vector<HoleInfo>& res) {
   assert(v.get() != NULL);
   if (Forall* va = dynamic_cast<Forall*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
         vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
+        decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
-    getHoleInfo_(va->body, vars, res);
+    getHoleInfo_(va->body, vars, decls, res);
   }
   else if (Exists* va = dynamic_cast<Exists*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
         vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
+        decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
-    getHoleInfo_(va->body, vars, res);
+    getHoleInfo_(va->body, vars, decls, res);
   }
   else if (dynamic_cast<Var*>(v.get())) {
     return;
@@ -39,35 +43,36 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
     return;
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {
-    getHoleInfo_(va->left, vars, res);
-    getHoleInfo_(va->right, vars, res);
+    getHoleInfo_(va->left, vars, decls, res);
+    getHoleInfo_(va->right, vars, decls, res);
   }
   else if (Not* va = dynamic_cast<Not*>(v.get())) {
-    getHoleInfo_(va->val, vars, res);
+    getHoleInfo_(va->val, vars, decls, res);
   }
   else if (Implies* va = dynamic_cast<Implies*>(v.get())) {
-    getHoleInfo_(va->left, vars, res);
-    getHoleInfo_(va->right, vars, res);
+    getHoleInfo_(va->left, vars, decls, res);
+    getHoleInfo_(va->right, vars, decls, res);
   }
   else if (Apply* va = dynamic_cast<Apply*>(v.get())) {
-    getHoleInfo_(va->func, vars, res);
+    getHoleInfo_(va->func, vars, decls, res);
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, res);
+      getHoleInfo_(arg, vars, decls, res);
     }
   }
   else if (And* va = dynamic_cast<And*>(v.get())) {
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, res);
+      getHoleInfo_(arg, vars, decls, res);
     }
   }
   else if (Or* va = dynamic_cast<Or*>(v.get())) {
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, res);
+      getHoleInfo_(arg, vars, decls, res);
     }
   }
   else if (dynamic_cast<TemplateHole*>(v.get())) {
     HoleInfo hi;
     hi.vars = vars;
+    hi.decls = decls;
     res.push_back(hi);
   }
   else {
@@ -79,7 +84,7 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<HoleInfo>& res) {
 
 vector<HoleInfo> getHoleInfo(value v) {
   vector<HoleInfo> res;
-  getHoleInfo_(v, {}, res);
+  getHoleInfo_(v, {}, {}, res);
   return res;
 }
 
@@ -458,7 +463,7 @@ vector<value> enumerate_for_template(
   vector<HoleInfo> all_hole_info = getHoleInfo(templ);
   vector<vector<value>> all_hole_fills;
   for (HoleInfo hi : all_hole_info) {
-    Grammar grammar = createGrammarFromModule(module, hi.vars);
+    /*Grammar grammar = createGrammarFromModule(module, hi.vars);
     context z3_ctx;
     solver z3_solver(z3_ctx);
     SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
@@ -468,11 +473,23 @@ vector<value> enumerate_for_template(
       fills.push_back(order_and_or_eq(solver.solutionToValue()));
     }
 
-    sort_values(fills);
+    sort_values(fills);*/
 
-    //for (value v : fills) {
-    //  cout << v->to_string() << endl;
-    //}
+    vector<value> fills = gen_clauses(module, hi.decls);
+
+    /*cout << "fills" << endl;
+    cout << "===========================================" << endl;
+    for (value v : fills) {
+      cout << v->to_string() << endl;
+    }
+
+    cout << "===========================================" << endl;
+    cout << "new fills" << endl;
+    for (value v : fills1) {
+      cout << v->to_string() << endl;
+    }
+    cout << "===========================================" << endl;
+    assert(false);*/
 
     //cout << "fills len " << fills.size() << endl;
 
