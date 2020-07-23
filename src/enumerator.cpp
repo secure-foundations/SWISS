@@ -4,37 +4,32 @@
 #include <algorithm>
 
 #include "logic.h"
-#include "grammar.h"
-#include "expr_gen_smt.h"
 #include "obviously_implies.h"
 #include "clause_gen.h"
 
 using namespace std;
 
 struct HoleInfo {
-  vector<GrammarVar> vars;
   vector<VarDecl> decls;
 };
 
-void getHoleInfo_(value v, vector<GrammarVar> vars, vector<VarDecl> decls, vector<HoleInfo>& res) {
+void getHoleInfo_(value v, vector<VarDecl> decls, vector<HoleInfo>& res) {
   assert(v.get() != NULL);
   if (Forall* va = dynamic_cast<Forall*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
-        vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
         decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
-    getHoleInfo_(va->body, vars, decls, res);
+    getHoleInfo_(va->body, decls, res);
   }
   else if (Exists* va = dynamic_cast<Exists*>(v.get())) {
     for (VarDecl decl : va->decls) {
       if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
-        vars.push_back(GrammarVar(iden_to_string(decl.name), usort->name));
         decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
-    getHoleInfo_(va->body, vars, decls, res);
+    getHoleInfo_(va->body, decls, res);
   }
   else if (dynamic_cast<Var*>(v.get())) {
     return;
@@ -43,35 +38,34 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<VarDecl> decls, vecto
     return;
   }
   else if (Eq* va = dynamic_cast<Eq*>(v.get())) {
-    getHoleInfo_(va->left, vars, decls, res);
-    getHoleInfo_(va->right, vars, decls, res);
+    getHoleInfo_(va->left, decls, res);
+    getHoleInfo_(va->right, decls, res);
   }
   else if (Not* va = dynamic_cast<Not*>(v.get())) {
-    getHoleInfo_(va->val, vars, decls, res);
+    getHoleInfo_(va->val, decls, res);
   }
   else if (Implies* va = dynamic_cast<Implies*>(v.get())) {
-    getHoleInfo_(va->left, vars, decls, res);
-    getHoleInfo_(va->right, vars, decls, res);
+    getHoleInfo_(va->left, decls, res);
+    getHoleInfo_(va->right, decls, res);
   }
   else if (Apply* va = dynamic_cast<Apply*>(v.get())) {
-    getHoleInfo_(va->func, vars, decls, res);
+    getHoleInfo_(va->func, decls, res);
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, decls, res);
+      getHoleInfo_(arg, decls, res);
     }
   }
   else if (And* va = dynamic_cast<And*>(v.get())) {
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, decls, res);
+      getHoleInfo_(arg, decls, res);
     }
   }
   else if (Or* va = dynamic_cast<Or*>(v.get())) {
     for (value arg : va->args) {
-      getHoleInfo_(arg, vars, decls, res);
+      getHoleInfo_(arg, decls, res);
     }
   }
   else if (dynamic_cast<TemplateHole*>(v.get())) {
     HoleInfo hi;
-    hi.vars = vars;
     hi.decls = decls;
     res.push_back(hi);
   }
@@ -79,61 +73,12 @@ void getHoleInfo_(value v, vector<GrammarVar> vars, vector<VarDecl> decls, vecto
     //printf("value2expr got: %s\n", v->to_string().c_str());
     assert(false && "value2expr does not support this case");
   }
-
 }
 
 vector<HoleInfo> getHoleInfo(value v) {
   vector<HoleInfo> res;
-  getHoleInfo_(v, {}, {}, res);
+  getHoleInfo_(v, {}, res);
   return res;
-}
-
-void add_constraints(shared_ptr<Module> module, SMT& solver) {
-  for (string so : module->sorts) {
-    string eq = "=." + so;
-    string neq = "~=." + so;
-    solver.createBinaryAssociativeConstraints(eq); // a = b <-> b = a
-    solver.createBinaryAssociativeConstraints(neq); // a ~= b <- b ~= a
-    solver.createAllDiffConstraints(eq); // does not allow forall. x: x = x
-    solver.createAllDiffConstraints(neq); // does not allow forall. x: x ~= x
-  }
-
-  bool has_le = false;
-  for (VarDecl decl : module->functions) {
-    if (iden_to_string(decl.name) == "le") {
-      has_le = true;
-    }
-  }
-
-  //if (has_le) {
-  //  solver.createAllDiffGrandChildrenConstraints("le"); // does not allow forall. x: le (pnd x) (pnd x)
-  //  solver.createAllDiffGrandChildrenConstraints("~le"); // does not allow forall. x: ~le (pnd x) (pnd x)
-  //}
-
- bool has_btw = false;
-  for (VarDecl decl : module->functions) {
-    if (iden_to_string(decl.name) == "btw") {
-      has_btw = true;
-    }
-  }
-
-  // ring properties:
-  // ABC -> BCA -> CAB -> ABC
-  // ACB -> CBA -> BAC -> ACB
-  // only allow ABC or ACB, i.e. do not allow the others
-  if (has_btw) {
-    solver.breakOccurrences("btw","B","C","A");
-    solver.breakOccurrences("btw","C","A","B");
-    solver.breakOccurrences("btw","C","B","A");
-    solver.breakOccurrences("btw","B","A","C");
-    solver.breakOccurrences("~btw","B","C","A");
-    solver.breakOccurrences("~btw","C","A","B");
-    solver.breakOccurrences("~btw","C","B","A");
-    solver.breakOccurrences("~btw","B","A","C");
-
-    solver.createAllDiffConstraints("~btw");
-    solver.createAllDiffConstraints("btw");
-  }
 }
 
 value fill_holes_in_value(value templ, vector<value> const& fills, int& idx) {
@@ -463,18 +408,6 @@ vector<value> enumerate_for_template(
   vector<HoleInfo> all_hole_info = getHoleInfo(templ);
   vector<vector<value>> all_hole_fills;
   for (HoleInfo hi : all_hole_info) {
-    /*Grammar grammar = createGrammarFromModule(module, hi.vars);
-    context z3_ctx;
-    solver z3_solver(z3_ctx);
-    SMT solver = SMT(grammar, z3_ctx, z3_solver, 1);
-    add_constraints(module, solver);
-    vector<value> fills;
-    while (solver.solve()) {
-      fills.push_back(order_and_or_eq(solver.solutionToValue()));
-    }
-
-    sort_values(fills);*/
-
     vector<value> fills = gen_clauses(module, hi.decls);
 
     /*cout << "fills" << endl;

@@ -1,8 +1,6 @@
 #include "logic.h"
 #include "contexts.h"
 #include "model.h"
-#include "grammar.h"
-#include "expr_gen_smt.h"
 #include "benchmarking.h"
 #include "bmc.h"
 #include "enumerator.h"
@@ -12,10 +10,12 @@
 #include "filter.h"
 #include "template_counter.h"
 #include "template_priority.h"
+#include "z3++.h"
 
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <sstream>
 #include <cstdlib>
 #include <cstdio>
 #include <fstream>
