@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <unordered_map>
 
 #include "logic.h"
 #include "enumerator.h"
@@ -193,8 +194,12 @@ TransitionSystem build_transition_system(
   idx_to_state.push_back(init);
   vector<vector<int>> matrix;
 
+  unordered_map<VarIndexState, int> state_to_idx;
+  state_to_idx.insert(make_pair(init, 0));
+
   int cur = 0;
   while (cur < (int)idx_to_state.size()) {
+    //cout << "cur " << cur << endl;
     matrix.push_back(vector<int>(transitions.size()));
 
     VarIndexState cur_state = idx_to_state[cur];
@@ -208,16 +213,15 @@ TransitionSystem build_transition_system(
         //cout << "res " << transitions[i].res.to_string() << endl;
         var_index_do_transition(cur_state, transitions[i].res, next);
         //cout << "next " << next.to_string() << endl;
-        int next_idx = -1;
-        for (int j = 0; j < (int)idx_to_state.size(); j++) {
-          if (next == idx_to_state[j]) {
-            next_idx = j;
-            break;
-          }
-        }
-        if (next_idx == -1) {
+
+        int next_idx;
+        auto iter = state_to_idx.find(next);
+        if (iter == state_to_idx.end()) {
           idx_to_state.push_back(next);
+          state_to_idx.insert(make_pair(next, idx_to_state.size() - 1));
           next_idx = idx_to_state.size() - 1;
+        } else {
+          next_idx = iter->second;
         }
         matrix[cur][i] = next_idx;
       } else {

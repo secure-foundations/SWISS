@@ -32,6 +32,23 @@ struct VarIndexState {
   }
 };
 
+template <class T>
+inline void hash_combine(std::size_t& seed, T const& v)
+{
+    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+template <>
+struct std::hash<VarIndexState> {
+    size_t operator()(const VarIndexState& s) const {
+        size_t seed = 0;
+        for (int i = 0; i < (int)s.indices.size(); i++) {      
+            hash_combine(seed, s.indices[i]);
+        }
+        return seed; 
+    }
+};
+
 struct VarIndexTransitionPrecondition {
   // Largest number which needs to have been reached before going in.
   // (e.g., if the term has 1 2 5, then the index stored here would be 4.)
