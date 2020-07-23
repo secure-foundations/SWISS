@@ -8,7 +8,6 @@ OBJECTS = $(addprefix bin/,\
 	enumerator.o \
 	utils.o \
 	synth_loop.o \
-	ftree.o \
 	quantifier_permutations.o \
 	top_quantifier_desc.o \
 	strengthen_invariant.o \
