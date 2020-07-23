@@ -15,6 +15,7 @@
 #include "strengthen_invariant.h"
 #include "filter.h"
 #include "synth_enumerator.h"
+#include "utils.h"
 
 using namespace std;
 using namespace json11;
@@ -738,6 +739,7 @@ SynthesisResult synth_loop(
       if (options.with_conjs) {
         vector<value> conjs = module->conjectures;
         conjs.push_back(candidate);
+        vector_append(conjs, fd.base_invs);
         is_inv = is_itself_invariant(module, conjs);
       } else {
         is_inv = is_complete_invariant(module, candidate);
