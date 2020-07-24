@@ -2,6 +2,7 @@
 
 #include <set>
 #include <algorithm>
+#include <cassert>
 
 #include "logic.h"
 #include "obviously_implies.h"
