@@ -5,7 +5,28 @@
 #include <iostream>
 #include <cassert>
 
+#include "utils.h"
+
 using namespace std;
+
+ostream& operator<<(ostream& os, const TemplateSpace& ts)
+{
+  os << "TemplateSpace[ ";
+
+  os << "k " << ts.k
+    << " d " << ts.depth
+    << " vars (";
+
+  assert (ts.vars.size() == ts.quantifiers.size());
+  for (int i = 0; i < (int)ts.vars.size(); i++) {
+    os << " " << ts.vars[i]
+       << " " << (ts.quantifiers[i] == Quantifier::Forall ? "forall" : "exists");
+  }
+
+  os << " ) ]";
+
+  return os;
+}
 
 ostream& operator<<(ostream& os, const TemplateSlice& td)
 {
@@ -215,6 +236,188 @@ std::vector<TemplateSpace> spaces_containing_sub_slices(
   return res;
 }
 
+int vec_sum(vector<int> const& v) {
+  int sum = 0;
+  for (int i : v) sum += i;
+  return sum;
+}
+int total_vars(TemplateSlice const& ts) {
+  return vec_sum(ts.vars);
+}
+int total_vars(TemplateSpace const& ts) {
+  return vec_sum(ts.vars);
+}
+
+bool is_subspace_of_any(TemplateSlice const& slice, vector<TemplateSpace> const& spaces)
+{
+  for (TemplateSpace const& space : spaces) {
+    if (is_subspace(slice, space)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+TemplateSpace slice_to_space(TemplateSlice const& slice)
+{
+  TemplateSpace ts;
+  ts.vars = slice.vars;
+  ts.quantifiers = slice.quantifiers;
+  ts.depth = slice.depth;
+  ts.k = slice.k;
+  return ts;
+}
+
+TemplateSpace merge_slice_space(TemplateSlice const& slice, TemplateSpace space)
+{
+  assert (slice.depth == space.depth);
+  if (slice.k > space.k) space.k = slice.k;
+  for (int i = 0; i < (int)slice.vars.size(); i++) {
+    if (slice.vars[i] > space.vars[i]) space.vars[i] = slice.vars[i];
+  }
+  return space;
+}
+
+bool is_strictly_small(TemplateSlice const& ts, int thresh) {
+  return total_vars(ts) < thresh;
+}
+bool is_small(TemplateSpace const& ts, int thresh) {
+  return total_vars(ts) <= thresh;
+}
+
+long long vars_product(TemplateSpace const& space)
+{
+  long long prod = 1;
+  for (int v : space.vars) {
+    prod = prod * (long long)(v + 1);
+  }
+  return prod;
+}
+
+void sort_by_product(vector<TemplateSpace>& spaces)
+{
+  vector<pair<long long, int>> v;
+  for (int i = 0; i < (int)spaces.size(); i++) {
+    v.push_back(make_pair(vars_product(spaces[i]), i));
+  }
+  sort(v.begin(), v.end());
+  vector<TemplateSpace> res;
+  for (int i = (int)v.size() - 1; i >= 0; i--) {
+    res.push_back(spaces[v[i].second]);
+  }
+  spaces = move(res);
+}
+
+int compute_thresh(std::vector<TemplateSlice> const& slices)
+{
+  int m = 0;
+  for (TemplateSlice const& ts : slices) {
+    m = max(total_vars(ts), m);
+  }
+  m = min(m, 6);
+  return m;
+}
+
+bool is_subspace_ignoring_k(TemplateSlice const& slice, TemplateSpace const& space);
+
+std::vector<TemplateSpace> finer_spaces_containing_slices_per_quant(
+    std::vector<TemplateSlice> const& slices)
+{
+  if (slices.size() == 0) {
+    return {};
+  }
+
+  int thresh = compute_thresh(slices);
+
+  vector<TemplateSpace> res;
+  vector<TemplateSlice> small_slices;
+
+  for (TemplateSlice const& slice : slices) {
+    bool did_merge = false;
+    for (int i = 0; i < (int)res.size(); i++) {
+      if (is_subspace_ignoring_k(slice, res[i])) {
+        if (slice.k > res[i].k) {
+          res[i].k = slice.k;
+        }
+        did_merge = true;
+        break;
+      }
+    }
+
+    if (!did_merge) {
+      if (is_strictly_small(slice, thresh)) {
+        small_slices.push_back(slice);
+      } else {
+        res.push_back(slice_to_space(slice));
+      }
+    }
+  }
+
+  for (TemplateSlice const& slice : small_slices) {
+    if (!is_subspace_of_any(slice, res)) {
+      bool did_merge = false;
+      for (int i = 0; i < (int)res.size(); i++) {
+        if (is_subspace_ignoring_k(slice, res[i])) {
+          if (slice.k > res[i].k) {
+            res[i].k = slice.k;
+          }
+          did_merge = true;
+          break;
+        }
+      }
+      if (!did_merge) {
+        for (int i = 0; i < (int)res.size(); i++) {
+          TemplateSpace merged = merge_slice_space(slice, res[i]);
+          if (is_small(merged, thresh)) {
+            res[i] = merged;
+            did_merge = true;
+            break;
+          }
+        }
+      }
+      if (!did_merge) {
+        res.push_back(slice_to_space(slice));
+      }
+    } 
+  }
+
+  sort_by_product(res);
+
+  return res;
+}
+
+std::vector<TemplateSpace> finer_spaces_containing_sub_slices(
+    shared_ptr<Module> module,
+    std::vector<TemplateSubSlice> const& slices)
+{
+  int nsorts = module->sorts.size();
+
+  vector<vector<TemplateSlice>> tslices;
+  tslices.resize(1 << (nsorts+1));
+
+  for (TemplateSubSlice const& tss : slices) {
+    int bitmask = 0;
+    for (int j = 0; j < nsorts; j++) {
+      if (tss.ts.quantifiers[j] == Quantifier::Exists) {
+        bitmask |= (1 << j);
+      }
+    }
+    if (tss.ts.depth == 2) {
+      bitmask |= (1 << nsorts);
+    }
+    tslices[bitmask].push_back(tss.ts);
+  }
+
+  vector<TemplateSpace> res;
+
+  for (int i = 0; i < (int)tslices.size(); i++) {
+    vector_append(res, 
+        finer_spaces_containing_slices_per_quant(tslices[i]));
+  }
+
+  return res;
+}
+
 TemplateSpace space_containing_slices_ignore_quants(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const& slices)
@@ -246,9 +449,12 @@ TemplateSpace space_containing_slices_ignore_quants(
   return tspace;
 }
 
-bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)
+bool is_subspace_ignoring_k(TemplateSlice const& slice, TemplateSpace const& space)
 {
   if (slice.quantifiers != space.quantifiers) {
+    return false;
+  }
+  if (slice.depth != space.depth) {
     return false;
   }
   assert (slice.vars.size() == space.vars.size());
@@ -257,13 +463,15 @@ bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)
       return false;
     }
   }
+  return true;
+}
+
+bool is_subspace(TemplateSlice const& slice, TemplateSpace const& space)
+{
   if (slice.k > space.k) {
     return false;
   }
-  if (slice.depth != space.depth) {
-    return false;
-  }
-  return true;
+  return is_subspace_ignoring_k(slice, space);
 }
 
 bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts)

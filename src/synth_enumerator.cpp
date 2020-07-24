@@ -32,14 +32,15 @@ public:
     this->sub_slices = sub_slices;
 
     cout << "OverlordCandidateSolver" << endl;
-    for (TemplateSubSlice const& tss : sub_slices) {
-      cout << tss << endl;
-    }
+    //for (TemplateSubSlice const& tss : sub_slices) {
+    //  cout << tss << endl;
+    //}
 
-    spaces = spaces_containing_sub_slices(module, sub_slices);
+    spaces = finer_spaces_containing_sub_slices(module, sub_slices);
     for (int i = 0; i < (int)spaces.size(); i++) {
       cout << endl;
       cout << "--- Initializing enumerator ---" << endl;
+      cout << spaces[i] << endl;
 
       solvers.push_back(shared_ptr<CandidateSolver>(
           spaces[i].depth == 2

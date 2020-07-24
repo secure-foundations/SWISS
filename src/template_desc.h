@@ -40,6 +40,9 @@ struct TemplateSubSlice {
   TemplateSubSlice() : tree_idx(-1) { }
 };
 
+std::ostream& operator<<(std::ostream& os, const TemplateSpace& ts);
+//std::istream& operator>>(std::istream& is, TemplateSlice& tss);
+
 std::ostream& operator<<(std::ostream& os, const TemplateSlice& tss);
 std::istream& operator>>(std::istream& is, TemplateSlice& tss);
 
@@ -55,10 +58,15 @@ std::vector<TemplateSpace> spaces_containing_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSubSlice> const& slices);
 
+std::vector<TemplateSpace> finer_spaces_containing_sub_slices(
+    std::shared_ptr<Module> module,
+    std::vector<TemplateSubSlice> const& slices);
+
 TemplateSpace space_containing_slices_ignore_quants(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const& slices);
 
+bool is_subspace(TemplateSlice const& slice, TemplateSpace const& ts);
 bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts);
 
 #endif
