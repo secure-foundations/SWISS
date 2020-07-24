@@ -4,6 +4,7 @@
 #include <istream>
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 
 #include "utils.h"
 
