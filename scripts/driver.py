@@ -127,13 +127,13 @@ def do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_arg
   success = False
 
   if not success and len(breadth_args) > 0:
-    success, invfile = do_breadth("iteration", logfile, nthreads, json_filename, main_args + breadth_args, invfile, stats, by_size)
+    success, invfile = do_breadth("iteration", logfile, nthreads, json_filename, main_args, main_args + breadth_args, invfile, stats, by_size)
 
     if success:
       print("Invariant success!")
   
   if not success and len(finisher_args) > 0:
-    success = do_finisher("finisher", logfile, nthreads, json_filename, main_args + finisher_args, invfile, stats)
+    success = do_finisher("finisher", logfile, nthreads, json_filename, main_args, main_args + finisher_args, invfile, stats)
 
     if success:
       print("Invariant success!")
@@ -154,18 +154,18 @@ def parse_output_file(filename):
     j = json.loads(src)
     return (j["success"], len(j["new_invs"]) > 0)
 
-def do_breadth(iterkey, logfile, nthreads, json_filename, args, invfile, stats, by_size):
+def do_breadth(iterkey, logfile, nthreads, json_filename, main_args, args, invfile, stats, by_size):
   i = 0
   while True:
     i += 1
     success, hasany, invfile = do_breadth_single(iterkey+"."+str(i),
-          logfile, nthreads, json_filename, args, invfile, i-1, stats, by_size)
+          logfile, nthreads, json_filename, main_args, args, invfile, i-1, stats, by_size)
     if success:
       return True, invfile
     if not hasany:
       return False, invfile
 
-def do_breadth_single(iterkey, logfile, nthreads, json_filename, args, invfile, iteration_num, stats, by_size):
+def do_breadth_single(iterkey, logfile, nthreads, json_filename, main_args, args, invfile, iteration_num, stats, by_size):
   t1 = time.time()
 
   chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
@@ -174,8 +174,8 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, args, invfile, 
     total_has_any = False
     for (sz, chunks) in c_by_size:
       success, has_any, output_invfile = breadth_run_in_parallel(
-        iterkey+".size."+str(sz), logfile, json_filename,
-          ["--chunk-size-to-use", str(sz)] + args, invfile, iteration_num, stats, chunks)
+        iterkey+".size."+str(sz), logfile, json_filename, main_args,
+          ["--chunk-size-to-use", str(sz)], invfile, iteration_num, stats, chunks)
       if has_any:
         total_has_any = True
       if success:
@@ -186,7 +186,7 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, args, invfile, 
     has_any = total_has_any
     new_output_file = invfile
   else:
-    success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile,
+    success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
         iteration_num, stats, chunk_files)
 
   new_output_file = update_base_invs(new_output_file)
@@ -254,7 +254,7 @@ def coalesce(logfile, json_filename, iterkey, files):
   assert succ, "breadth coalesce failed"
   return new_output_file
 
-def breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile, iteration_num, stats, chunk_files):
+def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile, iteration_num, stats, chunk_files):
 
   nthreads = len(chunk_files)
 
@@ -274,7 +274,7 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile, iter
     t = threading.Thread(target=run_synthesis, args=
         (logfile, key, json_filename, args_add_seed(
           ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + args_with_file), q))
+           "--output-formula-file", output_file] + main_args + args_with_file), q))
     t.start()
     threads.append(t)
 
@@ -305,7 +305,7 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, args, invfile, iter
 
   return (False, has_any, new_output_file)
 
-def do_finisher(iterkey, logfile, nthreads, json_filename, args, invfile, stats):
+def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invfile, stats):
   t1 = time.time()
 
   chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
@@ -326,7 +326,7 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, args, invfile, stats)
     t = threading.Thread(target=run_synthesis, args=
         (logfile, key, json_filename, args_add_seed(
           ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + args_with_file), q))
+           "--output-formula-file", output_file] + main_args + args_with_file), q))
     t.start()
     threads.append(t)
 
