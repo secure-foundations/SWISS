@@ -51,7 +51,7 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(
       ei.var_index_transitions);
 }
 
-void AltDepth2CandidateSolver::addCounterexample(Counterexample cex, value candidate)
+void AltDepth2CandidateSolver::addCounterexample(Counterexample cex)
 {
   cout << "add counterexample" << endl;
   assert (!cex.none);

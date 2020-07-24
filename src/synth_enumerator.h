@@ -54,7 +54,7 @@ public:
   virtual ~CandidateSolver() {}
 
   virtual value getNext() = 0;
-  virtual void addCounterexample(Counterexample cex, value candidate) = 0;
+  virtual void addCounterexample(Counterexample cex) = 0;
   virtual void addExistingInvariant(value inv) = 0;
   virtual long long getProgress() = 0;
   virtual long long getPreSymmCount() = 0;

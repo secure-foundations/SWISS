@@ -14,7 +14,7 @@ public:
       TemplateSpace const& tspace);
 
   value getNext();
-  void addCounterexample(Counterexample cex, value candidate);
+  void addCounterexample(Counterexample cex);
   void addExistingInvariant(value inv);
 
   long long getProgress() { return progress; }

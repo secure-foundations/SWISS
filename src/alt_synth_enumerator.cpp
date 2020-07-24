@@ -49,7 +49,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }
 
-void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex, value candidate)
+void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex)
 {
   cout << "add counterexample" << endl;
   assert (!cex.none);

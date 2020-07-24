@@ -413,8 +413,11 @@ def main():
   args = sys.argv[3:]
   nthreads, logfile, by_size, main_args, breadth_args, finisher_args, use_stdout = parse_args(ivy_filename, args)
   if nthreads == None:
-    all_args = main_args + breadth_args + finisher_args
-    run_synthesis(logfile, "main", json_filename, all_args, use_stdout=use_stdout)
+    if "--config" in args:
+      print("You must supply --threads with --config")
+    else:
+      all_args = main_args + breadth_args + finisher_args
+      run_synthesis(logfile, "main", json_filename, all_args, use_stdout=use_stdout)
   else:
     stats = Stats(nthreads, args, ivy_filename, json_filename, logfile)
     do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_args, breadth_args, finisher_args, by_size)

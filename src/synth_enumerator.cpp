@@ -15,6 +15,12 @@ public:
   vector<TemplateSubSlice> sub_slices;
   vector<TemplateSpace> spaces;
   vector<shared_ptr<CandidateSolver>> solvers;
+
+  vector<int> cex_idx;
+  vector<int> inv_idx;
+  vector<Counterexample> cexes;
+  vector<value> invs;
+
   int idx;
   int solver_idx;
   bool done;
@@ -40,10 +46,24 @@ public:
               ? (CandidateSolver*)new AltDepth2CandidateSolver(module, spaces[i])
               : (CandidateSolver*)new AltDisjunctCandidateSolver(module, spaces[i])
           ));
+      cex_idx.push_back(0);
+      inv_idx.push_back(0);
     }
     idx = 0;
     done = false;
     set_solver_idx();
+  }
+
+  void update_cexes_invs() {
+    while (inv_idx[solver_idx] < (int)invs.size()) {
+      solvers[solver_idx]->addExistingInvariant(invs[inv_idx[solver_idx]]);
+      inv_idx[solver_idx]++;
+    }
+
+    while (cex_idx[solver_idx] < (int)cexes.size()) {
+      solvers[solver_idx]->addCounterexample(cexes[cex_idx[solver_idx]]);
+      cex_idx[solver_idx]++;
+    }
   }
 
   void set_solver_idx() {
@@ -57,6 +77,9 @@ public:
           solver_idx = i;
           solvers[i]->setSubSlice(sub_slices[idx]);
           //cout << "done set " << endl;
+
+          update_cexes_invs();
+
           return;
         }
       }
@@ -84,16 +107,16 @@ public:
     return nullptr;
   }
 
-  void addCounterexample(Counterexample cex, value candidate) {
-    for (int i = 0; i < (int)solvers.size(); i++) {
-      solvers[i]->addCounterexample(cex, candidate);
-    }
+  void addCounterexample(Counterexample cex) {
+    cexes.push_back(cex);
+    solvers[solver_idx]->addCounterexample(cex);
+    cex_idx[solver_idx]++;
   }
 
   void addExistingInvariant(value inv) {
-    for (int i = 0; i < (int)solvers.size(); i++) {
-      solvers[i]->addExistingInvariant(inv);
-    }
+    invs.push_back(inv);
+    solvers[solver_idx]->addExistingInvariant(inv);
+    inv_idx[solver_idx]++;
   }
 
   long long getProgress() {

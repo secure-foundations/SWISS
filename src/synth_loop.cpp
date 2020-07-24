@@ -758,7 +758,7 @@ SynthesisResult synth_loop(
       }
     } else {
       cex_stats(cex);
-      cs->addCounterexample(cex, candidate);
+      cs->addCounterexample(cex);
       //transcript.entries.push_back(make_pair(cex, candidate));
     }
 
@@ -946,7 +946,7 @@ SynthesisResult synth_loop_incremental_breadth(
       } else {
         cex_stats(cex);
         auto t1 = now();
-        cs->addCounterexample(cex, candidate0);
+        cs->addCounterexample(cex);
         auto t2 = now();
         addCounterexample_ns += as_ns(t2 - t1);
         addCounterexample_count++;

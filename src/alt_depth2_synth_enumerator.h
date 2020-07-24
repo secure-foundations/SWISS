@@ -15,7 +15,7 @@ public:
       TemplateSpace const& tspce);
 
   value getNext();
-  void addCounterexample(Counterexample cex, value candidate);
+  void addCounterexample(Counterexample cex);
   void addExistingInvariant(value inv);
   long long getProgress() { return progress; }
   long long getPreSymmCount();
