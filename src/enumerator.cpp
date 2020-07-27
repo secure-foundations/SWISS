@@ -18,7 +18,7 @@ void getHoleInfo_(value v, vector<VarDecl> decls, vector<HoleInfo>& res) {
   assert(v.get() != NULL);
   if (Forall* va = dynamic_cast<Forall*>(v.get())) {
     for (VarDecl decl : va->decls) {
-      if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
+      if (dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
         decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
@@ -26,7 +26,7 @@ void getHoleInfo_(value v, vector<VarDecl> decls, vector<HoleInfo>& res) {
   }
   else if (Exists* va = dynamic_cast<Exists*>(v.get())) {
     for (VarDecl decl : va->decls) {
-      if (UninterpretedSort* usort = dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
+      if (dynamic_cast<UninterpretedSort*>(decl.sort.get())) {
         decls.push_back(VarDecl(decl.name, decl.sort));
       }
     }
