@@ -305,5 +305,8 @@ class Stats(object):
       for (l, seconds) in self.all_logs:
         log(f, "time for process " + l + " is " + str(seconds) + " seconds")
 
+      log(f, "")
+      log(f, "specifics:")
+
       self.dump_individual_stats(f)
       self.stats_total(f)

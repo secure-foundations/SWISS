@@ -147,7 +147,9 @@ def do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_arg
   print("======== Summary ========")
   print("")
   with open(statfile, "r") as f:
-    print(f.read())
+    t = f.read()
+    t = t.split("specifics:")
+    print(t[0])
 
 def parse_output_file(filename):
   with open(filename) as f:
