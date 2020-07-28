@@ -240,12 +240,14 @@ void write_template_sub_slice_file(
 
 void output_sub_slices_mult(
   shared_ptr<Module> module,
-  vector<string> const& filenames,
+  string const& dir,
   vector<vector<TemplateSubSlice>> const& sub_slices)
 {
-  assert(filenames.size() == sub_slices.size());
-  for (int i = 0; i < (int)filenames.size(); i++) {
-    write_template_sub_slice_file(module, filenames[i], sub_slices[i]);
+  assert (dir != "");
+  string d = (dir[dir.size() - 1] == '/' ? dir : dir + "/");
+
+  for (int i = 0; i < (int)sub_slices.size(); i++) {
+    write_template_sub_slice_file(module, d + to_string(i+1), sub_slices[i]);
   }
 }
 
@@ -389,8 +391,9 @@ int main(int argc, char* argv[]) {
   options.non_accumulative = false;
   //options.threads = 1;
 
-  vector<string> output_chunk_files;
+  string output_chunk_dir;
   string input_chunk_file;
+  int nthreads = -1;
 
   vector<string> input_formula_files;
   string output_formula_file;
@@ -490,9 +493,16 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--minimal-models")) {
       options.minimal_models = true;
     }
-    else if (argv[i] == string("--output-chunk-file")) {
+    else if (argv[i] == string("--output-chunk-dir")) {
       assert(i + 1 < argc);
-      output_chunk_files.push_back(argv[i+1]);
+      assert (output_chunk_dir == "");
+      output_chunk_dir = argv[i+1];
+      i++;
+    }
+    else if (argv[i] == string("--nthreads")) {
+      assert(i + 1 < argc);
+      assert (nthreads == -1);
+      nthreads = atoi(argv[i+1]);
       i++;
     }
     else if (argv[i] == string("--input-module")) {
@@ -576,9 +586,10 @@ int main(int argc, char* argv[]) {
         template_sorter_d == 2,
         template_sorter_mvars);
     auto slices = quantifier_combos(module, forall_slices);
-    if (output_chunk_files.size() > 0) {
-      auto sub_slices = prioritize_sub_slices(module, slices, output_chunk_files.size());
-      output_sub_slices_mult(module, output_chunk_files, sub_slices);
+    if (output_chunk_dir != "") {
+      assert (nthreads != -1);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads);
+      output_sub_slices_mult(module, output_chunk_dir, sub_slices);
     }
     return 0;
   }
@@ -727,7 +738,7 @@ int main(int argc, char* argv[]) {
   cout << "|all_invs| = " << input_fd.all_invs.size() << endl;
   cout << "|new_invs| = " << input_fd.new_invs.size() << endl;
 
-  if (output_chunk_files.size() || input_chunk_file != "") {
+  if (output_chunk_dir != "" || input_chunk_file != "") {
     for (int i = 1; i < (int)strats.size(); i++) {
       assert (strats[0].breadth == strats[i].breadth);
       assert (strats[0].finisher == strats[i].finisher);
@@ -739,7 +750,7 @@ int main(int argc, char* argv[]) {
 
   if (input_chunk_file != "") {
     assert (strats.size() == 0);
-    assert (output_chunk_files.size() == 0);
+    assert (output_chunk_dir == "");
     auto ss = read_template_sub_slice_file(module, input_chunk_file);
     assert (one_breadth || one_finisher);
     assert (!(one_breadth && one_finisher));
@@ -751,14 +762,14 @@ int main(int argc, char* argv[]) {
       return 1;
     }
 
-    if (output_chunk_files.size() > 0) {
+    if (output_chunk_dir != "") {
       vector<TemplateSlice> slices;
       for (Strategy const& strat : strats) {
         vector_append(slices, break_into_slices(module, strat.tspace));
       }
-      auto sub_slices = prioritize_sub_slices(module, slices,
-          output_chunk_files.size());
-      output_sub_slices_mult(module, output_chunk_files, sub_slices);
+      assert (nthreads != -1);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads);
+      output_sub_slices_mult(module, output_chunk_dir, sub_slices);
       return 0;
     } else {
       vector<TemplateSlice> slices_finisher;

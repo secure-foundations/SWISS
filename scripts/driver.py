@@ -1,4 +1,5 @@
 import sys
+import os
 from datetime import datetime
 import random
 import subprocess
@@ -175,7 +176,7 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, main_args, args
     for (sz, chunks) in c_by_size:
       success, has_any, output_invfile = breadth_run_in_parallel(
         iterkey+".size."+str(sz), logfile, json_filename, main_args,
-          ["--chunk-size-to-use", str(sz)], invfile, iteration_num, stats, chunks)
+          ["--chunk-size-to-use", str(sz)], invfile, iteration_num, stats, nthreads, chunks)
       if has_any:
         total_has_any = True
       if success:
@@ -187,7 +188,7 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, main_args, args
     new_output_file = invfile
   else:
     success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
-        iteration_num, stats, chunk_files)
+        iteration_num, stats, nthreads, chunk_files)
 
   new_output_file = update_base_invs(new_output_file)
 
@@ -207,16 +208,25 @@ def update_base_invs(a):
   return c
 
 def chunkify(iterkey, logfile, nthreads, json_filename, args):
-  chunk_files = []
-  chunk_file_args = []
-  for i in range(nthreads):
-    chunk = tempfile.mktemp()
-    chunk_files.append(chunk)
-    chunk_file_args.append("--output-chunk-file")
-    chunk_file_args.append(chunk)
+  d = tempfile.mkdtemp()
+  chunk_file_args = ["--output-chunk-dir", d, "--nthreads", str(nthreads)]
 
   succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
+
   assert succ, "chunkify failed"
+
+  chunk_files = []
+  i = 0
+  while True:
+    p = os.path.join(d, str(i + 1))
+    if os.path.exists(p):
+      i += 1
+      chunk_files.append(p)
+    else:
+      break
+
+  print("chunk_files:", i)
+
   return chunk_files
 
 def get_chunk_files_for_each_size(chunk_files):
@@ -254,52 +264,59 @@ def coalesce(logfile, json_filename, iterkey, files):
   assert succ, "breadth coalesce failed"
   return new_output_file
 
-def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile, iteration_num, stats, chunk_files):
+def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile, iteration_num, stats, nthreads, chunk_files):
 
-  nthreads = len(chunk_files)
+  if invfile != None:
+    args_with_file = ["--input-formula-file", invfile, "--one-breadth"]
+  else:
+    args_with_file = ["--one-breadth"]
 
   q = queue.Queue()
   threads = [ ]
   output_files = {}
-  for i in range(nthreads):
-    output_file = tempfile.mktemp()
-    key = iterkey+".thread."+str(i)
-    output_files[key] = output_file
 
-    if invfile != None:
-      args_with_file = ["--input-formula-file", invfile, "--one-breadth"]
-    else:
-      args_with_file = ["--one-breadth"]
-
-    t = threading.Thread(target=run_synthesis, args=
-        (logfile, key, json_filename, args_add_seed(
-          ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + main_args + args_with_file), q))
-    t.start()
-    threads.append(t)
+  n_running = 0
+  i = 0
 
   has_any = False
   any_success = False
-  for i in range(nthreads):
-    synres = q.get()
-    if synres.failed and not synres.stopped:
-      kill_all_procs()
-      assert False, "breadth proper failed"
+
+  while i < len(chunk_files) or n_running > 0:
+    if i < len(chunk_files) and n_running < nthreads:
+      output_file = tempfile.mktemp()
+      key = iterkey+".thread."+str(i)
+      output_files[key] = output_file
+
+      t = threading.Thread(target=run_synthesis, args=
+          (logfile, key, json_filename, args_add_seed(
+            ["--input-chunk-file", chunk_files[i],
+             "--output-formula-file", output_file] + main_args + args_with_file), q))
+      t.start()
+      threads.append(t)
+
+      i += 1
+      n_running += 1
     else:
-      stats.add_inc_log(iteration_num, synres.logfile, synres.seconds)
-      if not synres.stopped and not killing:
-        key = synres.run_id
-        success, this_has_any = parse_output_file(output_files[key])
-        if this_has_any:
-          has_any = True
-        if success:
-          kill_all_procs()
-          any_success = True
-          success_file = output_files[key]
+      synres = q.get()
+      n_running -= 1
+      if synres.failed and not synres.stopped:
+        kill_all_procs()
+        assert False, "breadth proper failed"
+      else:
+        stats.add_inc_log(iteration_num, synres.logfile, synres.seconds)
+        if not synres.stopped and not killing:
+          key = synres.run_id
+          success, this_has_any = parse_output_file(output_files[key])
+          if this_has_any:
+            has_any = True
+          if success:
+            kill_all_procs()
+            any_success = True
+            success_file = output_files[key]
 
   if any_success:
     return (True, has_any, success_file)
-  
+
   new_output_file = coalesce(logfile, json_filename, iterkey, 
       ([] if invfile == None else [invfile]) + [output_files[key] for key in output_files])
 
@@ -310,41 +327,51 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
 
   chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
 
+  if invfile != None:
+    args_with_file = ["--input-formula-file", invfile, "--one-finisher"]
+  else:
+    args_with_file = ["--one-finisher"]
+
   q = queue.Queue()
   threads = [ ]
   output_files = {}
-  for i in range(nthreads):
-    output_file = tempfile.mktemp()
-    key = iterkey+".thread."+str(i)
-    output_files[key] = output_file
 
-    if invfile != None:
-      args_with_file = ["--input-formula-file", invfile, "--one-finisher"]
-    else:
-      args_with_file = ["--one-finisher"]
-
-    t = threading.Thread(target=run_synthesis, args=
-        (logfile, key, json_filename, args_add_seed(
-          ["--input-chunk-file", chunk_files[i],
-           "--output-formula-file", output_file] + main_args + args_with_file), q))
-    t.start()
-    threads.append(t)
+  n_running = 0
+  i = 0
 
   any_success = False
-  for i in range(nthreads):
-    synres = q.get()
-    if synres.failed and not synres.stopped:
-      kill_all_procs()
-      assert False, "finisher proper failed"
+
+  while i < len(chunk_files) or n_running > 0:
+    if i < len(chunk_files) and n_running < nthreads:
+      output_file = tempfile.mktemp()
+      key = iterkey+".thread."+str(i)
+      output_files[key] = output_file
+
+      t = threading.Thread(target=run_synthesis, args=
+          (logfile, key, json_filename, args_add_seed(
+            ["--input-chunk-file", chunk_files[i],
+             "--output-formula-file", output_file] + main_args + args_with_file), q))
+      t.start()
+      threads.append(t)
+
+      i += 1
+      n_running += 1
     else:
-      key = synres.run_id
-      stats.add_finisher_log(synres.logfile, synres.seconds)
-      if not synres.stopped and not killing:
-        success, this_has_any = parse_output_file(output_files[key])
-        if success:
-          any_success = True
-          stats.add_finisher_result(output_files[key], time.time() - t1)
-          kill_all_procs()
+      synres = q.get()
+      n_running -= 1
+      if synres.failed and not synres.stopped:
+        kill_all_procs()
+        assert False, "finisher proper failed"
+      else:
+        key = synres.run_id
+        stats.add_finisher_log(synres.logfile, synres.seconds)
+        if not synres.stopped and not killing:
+          success, this_has_any = parse_output_file(output_files[key])
+          if success:
+            any_success = True
+            stats.add_finisher_result(output_files[key], time.time() - t1)
+            kill_all_procs()
+
   if not any_success:
     stats.add_finisher_result(output_files[iterkey+".thread.0"], time.time() - t1)
 
