@@ -229,13 +229,22 @@ TransitionSystem transition_system_for_slice_list(
       ei.var_index_transitions);
 }
 
+
 vector<TemplateSubSlice> split_slice_into_sub_slices(
     TransitionSystem const& trans_system,
     vector<TreeShape> const& tree_shapes,
-    TemplateSlice const& slice)
+    TemplateSlice const& slice,
+    map<vector<int>, TransitionSystem>& sub_ts_cache)
 {
-  auto p = get_subslice_index_map(trans_system, slice);
-  auto sub_trans_system = p.first.second;
+  auto iter = sub_ts_cache.find(slice.vars);
+  TransitionSystem sub_trans_system;
+  if (iter == sub_ts_cache.end()) {
+    auto p = get_subslice_index_map(trans_system, slice);
+    sub_trans_system = p.first.second;
+    sub_ts_cache.insert(make_pair(slice.vars, sub_trans_system));
+  } else {
+    sub_trans_system = iter->second;
+  }
 
   vector<TemplateSubSlice> sub_slices;
   if (slice.count != 0) {
@@ -313,7 +322,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
       }
     }
   }
-  
+
   vector<Node> nodes;
   nodes.resize(slices.size());
   for (int i = 0; i < (int)slices.size(); i++) {
@@ -389,10 +398,13 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   for (int i = 0; i < nthreads; i++) {
     max_vars_per_thread[i].resize(nsorts);
   }
+
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+
   for (int i = 0; i < (int)ordered_slices.size(); i++) {
     TemplateSlice const& ts = ordered_slices[i];
     vector<TemplateSubSlice> new_slices =
-      split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]);
+      split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i], sub_ts_cache);
     random_sort(new_slices, 0, new_slices.size());
 
     bool from_start = (ts.count <= 100000 || is_for_breadth);

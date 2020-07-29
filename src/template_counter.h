@@ -100,7 +100,7 @@ struct TransitionSystem {
           row1.push_back(transitions[i][j]);
         }
       }
-      transitions1.push_back(row1);
+      transitions1.push_back(std::move(row1));
     }
     return TransitionSystem(transitions1, state_reps);
   }

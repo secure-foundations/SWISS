@@ -484,6 +484,7 @@ pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
 
   vector<int> res;
   vector<bool> trans_keep;
+  trans_keep.resize(ts.nTransitions());
   for (int i = 0; i < ts.nTransitions(); i++) {
     bool is_okay = false;
     for (int j = 0; j < ts.nStates(); j++) {
@@ -492,7 +493,7 @@ pair<std::pair<std::vector<int>, TransitionSystem>, int> get_subslice_index_map(
         break;
       }
     }
-    trans_keep.push_back(is_okay);
+    trans_keep[i] = is_okay;
     if (is_okay) {
       res.push_back(i);
     }
