@@ -182,10 +182,12 @@ vector<vector<int>> get_prefixes(
     TreeShape const& tree_shape,
     TransitionSystem const& sub_trans_system)
 {
+  int MAX_SZ = 1;
+
   vector<vector<int>> res;
   int sz = slice.k - 2;
   if (sz < 0) sz = 0;
-  if (sz > 2) sz = 2;
+  if (sz > MAX_SZ) sz = MAX_SZ;
 
   vector<int> indices;
   indices.resize(sz);
