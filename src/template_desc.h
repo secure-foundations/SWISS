@@ -69,4 +69,6 @@ TemplateSpace space_containing_slices_ignore_quants(
 bool is_subspace(TemplateSlice const& slice, TemplateSpace const& ts);
 bool is_subspace(TemplateSubSlice const& tss, TemplateSpace const& ts);
 
+int total_vars(TemplateSlice const& ts);
+
 #endif
