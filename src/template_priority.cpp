@@ -435,6 +435,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   for (int i = 0; i < (int)all_sub_slices_per_thread.size(); i++) {
     if (all_sub_slices_per_thread[i].size() != 0) {
       res.push_back(move(all_sub_slices_per_thread[i]));
+      cout << "partition count: " << counts[i] << endl;
     }
   }
   return res;
