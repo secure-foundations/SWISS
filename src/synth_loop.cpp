@@ -565,14 +565,32 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
 
 bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vector<value> existingInvariants, value newInvariant)
 {
-  BasicContext basic(ctx, module);
-  for (value v : existingInvariants) {
-    basic.ctx->solver.add(basic.e->value2expr(v));
+  int num_fails = 0;
+  while (true) {
+    auto my_ctx = ctx;
+    if (num_fails % 2 == 1) {
+      my_ctx = smt::context(smt::Backend::cvc4);
+    }
+
+    BasicContext basic(my_ctx, module);
+    for (value v : existingInvariants) {
+      basic.ctx->solver.add(basic.e->value2expr(v));
+    }
+    basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
+    basic.ctx->solver.set_log_info("redundancy check");
+
+    smt::SolverResult res = basic.ctx->solver.check_result();
+    if (res == smt::SolverResult::Sat) {
+      return true;
+    } else if (res == smt::SolverResult::Unsat) {
+      return false;
+    } else {
+      num_fails++;
+      numRetries++;
+      assert (num_fails < 20);
+      cout << "failure encountered, retrying" << endl;
+    }
   }
-  basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
-  basic.ctx->solver.set_log_info("redundancy check");
-  bool res = basic.ctx->solver.check_sat();
-  return res;
 }
 
 struct CexStats {
