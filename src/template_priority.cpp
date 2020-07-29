@@ -368,12 +368,71 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   assert(nthreads >= 1);
   vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
 
+  int nsorts = module->sorts.size();
+
   int max_mvars = 0;
   for (TemplateSlice const& ts : ordered_slices) {
     max_mvars = max(max_mvars, total_vars(ts));
   }
 
-  int a = 0;
+  int idx = 0;
+  vector<vector<int>> max_vars_per_thread;
+  vector<int> counts;
+  all_sub_slices_per_thread.resize(nthreads);
+  max_vars_per_thread.resize(nthreads);
+  counts.resize(nthreads);
+  for (int i = 0; i < nthreads; i++) {
+    max_vars_per_thread[i].resize(nsorts);
+  }
+  for (int i = 0; i < (int)ordered_slices.size(); i++) {
+    TemplateSlice const& ts = ordered_slices[i];
+    vector<TemplateSubSlice> new_slices =
+      split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]);
+    random_sort(new_slices, 0, new_slices.size());
+
+    vector<int> possibilities;
+    for (int j = (int)all_sub_slices_per_thread.size() - nthreads;
+        j < (int)all_sub_slices_per_thread.size(); j++)
+    {
+      int m = 0;
+      for (int k = 0; k < nsorts; k++) {
+        m += max(max_vars_per_thread[j][k], ts.vars[k]);
+      }
+      if (m <= max_mvars) {
+        possibilities.push_back(j);
+      }
+    }
+
+    if (possibilities.size() == 0) {
+      vector<int> i0 = ts.vars;
+      all_sub_slices_per_thread.push_back(new_slices);
+      max_vars_per_thread.push_back(i0);
+      counts.push_back(ts.count);
+      idx++;
+    } else {
+      int best = possibilities[0];
+      for (int j = 1; j < (int)possibilities.size(); j++) {
+        if (counts[possibilities[j]] < counts[best]) {
+          best = possibilities[j];
+        }
+      }
+      vector_append(all_sub_slices_per_thread[best], new_slices);
+      counts[best] += ts.count;
+      for (int k = 0; k < nsorts; k++) {
+        max_vars_per_thread[best][k] = max(max_vars_per_thread[best][k], ts.vars[k]);
+      }
+    }
+  }
+
+  vector<vector<TemplateSubSlice>> res;
+  for (int i = 0; i < (int)all_sub_slices_per_thread.size(); i++) {
+    if (all_sub_slices_per_thread[i].size() != 0) {
+      res.push_back(move(all_sub_slices_per_thread[i]));
+    }
+  }
+  return res;
+
+  /*int a = 0;
   while (a < (int)ordered_slices.size()) {
     int b = a;
 
@@ -429,7 +488,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     a = b;
   }
 
-  return all_sub_slices_per_thread;
+  return all_sub_slices_per_thread;*/
 
   /*
   for (int i = 0; i < (int)ordered_slices.size(); i++) {
