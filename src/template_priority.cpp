@@ -54,7 +54,7 @@ struct NodePtr {
   Node* node;
   NodePtr(Node* n) : node(n) { }
   bool operator<(NodePtr const& other) const {
-    return node->ts.count < other.node->ts.count;
+    return node->ts.count > other.node->ts.count;
   }
 };
 
@@ -288,7 +288,8 @@ vector<TemplateSlice> remove_count0(vector<TemplateSlice> const& v)
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const& _slices,
-    int nthreads)
+    int nthreads,
+    bool is_for_breadth)
 {
   std::vector<TemplateSlice> slices = _slices;
 
@@ -358,6 +359,10 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
 
   assert (ordered_slices.size() == slices.size());
 
+  for (TemplateSlice const& ts : ordered_slices) {
+    cout << ts << endl;
+  }
+
   ordered_slices = remove_count0(ordered_slices);
 
   vector<TreeShape> tree_shapes = get_tree_shapes_up_to(max_k);
@@ -390,9 +395,11 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
       split_slice_into_sub_slices(trans_system, tree_shapes, ordered_slices[i]);
     random_sort(new_slices, 0, new_slices.size());
 
+    bool from_start = (ts.count <= 100000 || is_for_breadth);
+
     vector<int> possibilities;
-    for (int j = (int)all_sub_slices_per_thread.size() - nthreads;
-        j < (int)all_sub_slices_per_thread.size(); j++)
+    int jstart = from_start ? 0 : (int)all_sub_slices_per_thread.size() - nthreads;
+    for (int j = jstart; j < (int)all_sub_slices_per_thread.size(); j++)
     {
       int m = 0;
       for (int k = 0; k < nsorts; k++) {

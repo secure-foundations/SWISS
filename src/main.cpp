@@ -588,7 +588,8 @@ int main(int argc, char* argv[]) {
     auto slices = quantifier_combos(module, forall_slices);
     if (output_chunk_dir != "") {
       assert (nthreads != -1);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads);
+      assert (one_breadth ^ one_finisher);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, one_breadth);
       output_sub_slices_mult(module, output_chunk_dir, sub_slices);
     }
     return 0;
@@ -768,7 +769,7 @@ int main(int argc, char* argv[]) {
         vector_append(slices, break_into_slices(module, strat.tspace));
       }
       assert (nthreads != -1);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, strats[0].breadth);
       output_sub_slices_mult(module, output_chunk_dir, sub_slices);
       return 0;
     } else {
@@ -783,8 +784,8 @@ int main(int argc, char* argv[]) {
           assert (false);
         }
       }
-      sub_slices_breadth = prioritize_sub_slices(module, slices_breadth, 1)[0];
-      sub_slices_finisher = prioritize_sub_slices(module, slices_finisher, 1)[0];
+      sub_slices_breadth = prioritize_sub_slices(module, slices_breadth, 1, true)[0];
+      sub_slices_finisher = prioritize_sub_slices(module, slices_finisher, 1, false)[0];
     }
   }
 

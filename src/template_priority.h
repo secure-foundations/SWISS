@@ -12,7 +12,8 @@ std::vector<TemplateSlice> break_into_slices(
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const&,
-    int nthreads);
+    int nthreads,
+    bool is_for_breadth);
 
 std::vector<TemplateSlice> quantifier_combos(
     std::shared_ptr<Module> module,
