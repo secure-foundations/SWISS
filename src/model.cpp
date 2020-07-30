@@ -661,7 +661,15 @@ vector<shared_ptr<Model>> Model::extract_minimal_models_from_z3(
       for (auto e : es) {
         all_models.push_back(extract_model_from_z3(ctx, solver, module, *e));
       }
-      sizes = new_sizes;
+
+      //sizes = new_sizes;
+      shared_ptr<Model> model0 = all_models[0];
+      for (int j = 0; j < (int)sorts.size(); j++) {
+        sizes[j] = model0->get_domain_size(sorts[j]);
+        assert (sizes[j] <= new_sizes[j]);
+      }
+
+      cout << "got sizes: "; for (int k : sizes) cout << k << " "; cout << endl; cout.flush();
 
       try_hint_sizes = false;
     } else {
