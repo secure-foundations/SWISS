@@ -18,7 +18,8 @@ enum class ModelType {
 enum class Strictness {
   Strict,
   Indef,
-  Quick
+  Quick,
+  TryHard
 };
 
 ContextSolverResult context_solve(

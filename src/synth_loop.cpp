@@ -82,7 +82,7 @@ Counterexample get_counterexample_test_with_conjs(
       "init-check",
       module,
       options.minimal_models ? ModelType::Min : ModelType::Any,
-      Strictness::Strict,
+      Strictness::TryHard,
       candidate /* hint */,
       [module, candidate](shared_ptr<BackgroundContext> bgctx)
   {
@@ -93,6 +93,10 @@ Counterexample get_counterexample_test_with_conjs(
     init_solver.set_log_info("init-check");
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
+
+  if (csr.res == smt::SolverResult::Unknown) {
+    return cex;
+  }
 
   if (csr.res == smt::SolverResult::Sat) {
     cex.is_true = csr.models[0];
@@ -106,7 +110,7 @@ Counterexample get_counterexample_test_with_conjs(
           "inductivity-check-with-conj: " + module->action_names[j],
           module,
           options.minimal_models ? ModelType::Min : ModelType::Any,
-          Strictness::Strict,
+          Strictness::TryHard,
           candidate /* hint */,
           [module, k, j, &options, cur_invariant, candidate, &conjectures](shared_ptr<BackgroundContext> bgctx)
       {
@@ -121,6 +125,10 @@ Counterexample get_counterexample_test_with_conjs(
         return vector<shared_ptr<ModelEmbedding>>{indctx->e1};
       });
 
+      if (csr.res == smt::SolverResult::Unknown) {
+        return cex;
+      }
+
       if (csr.res == smt::SolverResult::Sat) {
         cex.is_false = csr.models[0];
         printf("counterexample type: SAFETY\n");
@@ -134,7 +142,7 @@ Counterexample get_counterexample_test_with_conjs(
           "inductivity-check: " + module->action_names[j],
           module,
           options.minimal_models ? ModelType::Min : ModelType::Any,
-          Strictness::Strict,
+          Strictness::TryHard,
           candidate /* hint */,
           [module, &options, cur_invariant, candidate, &conjectures, j](shared_ptr<BackgroundContext> bgctx)
     {
@@ -150,6 +158,10 @@ Counterexample get_counterexample_test_with_conjs(
 
       return vector<shared_ptr<ModelEmbedding>>{indctx->e1, indctx->e2};
     });
+
+    if (csr.res == smt::SolverResult::Unknown) {
+      return cex;
+    }
 
     if (csr.res == smt::SolverResult::Sat) {
       cex.hypothesis = csr.models[0];
@@ -179,7 +191,7 @@ Counterexample get_counterexample_simple(
       "init-check",
       module,
       options.minimal_models ? ModelType::Min : ModelType::Any,
-      Strictness::Strict,
+      Strictness::TryHard,
       candidate /* hint */,
       [module, candidate](shared_ptr<BackgroundContext> bgctx)
   {
@@ -190,6 +202,10 @@ Counterexample get_counterexample_simple(
     init_solver.set_log_info("init-check");
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
+
+  if (csr.res == smt::SolverResult::Unknown) {
+    return cex;
+  }
 
   if (csr.res == smt::SolverResult::Sat) {
     cex.is_true = csr.models[0];
@@ -202,7 +218,7 @@ Counterexample get_counterexample_simple(
       "conj-check",
       module,
       options.minimal_models ? ModelType::Min : ModelType::Any,
-      Strictness::Strict,
+      Strictness::TryHard,
       candidate /* hint */,
       [module, candidate, &conjs, cur_invariant](shared_ptr<BackgroundContext> bgctx)
     {
@@ -216,6 +232,10 @@ Counterexample get_counterexample_simple(
       conj_solver.add(conjctx->e->value2expr(candidate));
       return vector<shared_ptr<ModelEmbedding>>{conjctx->e};
     });
+
+    if (csr.res == smt::SolverResult::Unknown) {
+      return cex;
+    }
 
     if (csr.res == smt::SolverResult::Sat) {
       cex.is_false = csr.models[0];
@@ -236,7 +256,7 @@ Counterexample get_counterexample_simple(
       "inductivity-check: " + module->action_names[j],
       module,
       options.minimal_models ? ModelType::Min : ModelType::Any,
-      Strictness::Strict,
+      Strictness::TryHard,
       candidate /* hint */,
       [module, candidate, j, cur_invariant](shared_ptr<BackgroundContext> bgctx)
     {
@@ -251,6 +271,10 @@ Counterexample get_counterexample_simple(
 
       return vector<shared_ptr<ModelEmbedding>>{indctx->e1, indctx->e2};
     });
+
+    if (csr.res == smt::SolverResult::Unknown) {
+      return cex;
+    }
 
     if (csr.res == smt::SolverResult::Sat) {
       cex.hypothesis = csr.models[0];
@@ -600,9 +624,17 @@ SynthesisResult synth_loop(
     Counterexample cex;
     if (options.with_conjs) {
       cex = get_counterexample_test_with_conjs(module, options, cur_invariant, candidate, fd.conjectures);
+      if (!cex.is_valid()) {
+        cout << "CHECK FAILED" << endl;
+        continue;
+      }
       cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
       cex = get_counterexample_simple(module, options, bmc, true, fd.conjectures, nullptr, candidate);
+      if (!cex.is_valid()) {
+        cout << "CHECK FAILED" << endl;
+        continue;
+      }
       cex = simplify_cex(module, cex, options, bmc, antibmc);
     }
 
@@ -760,6 +792,11 @@ SynthesisResult synth_loop_incremental_breadth(
                     : (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs)
                 ),
                 candidate);
+
+      if (!cex.is_valid()) {
+        cout << "CHECK FAILED" << endl;
+        continue;
+      }
 
       Benchmarking bench2;
       bench2.start("simplification");

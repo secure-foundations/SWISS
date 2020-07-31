@@ -45,6 +45,10 @@ struct Counterexample {
 
   json11::Json to_json() const;
   static Counterexample from_json(json11::Json, std::shared_ptr<Module>);
+
+  bool is_valid() const {
+    return none || is_true || is_false || (hypothesis && conclusion);
+  }
 };
 
 class CandidateSolver {

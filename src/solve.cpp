@@ -68,7 +68,12 @@ ContextSolverResult context_solve(
     bgc->solver.set_log_info(log_info);
     smt::SolverResult res = bgc->solver.check_result();
 
-    if (st != Strictness::Strict || (res != smt::SolverResult::Unknown)) {
+    if (
+         st == Strictness::Indef
+      || st == Strictness::Quick
+      || (st == Strictness::TryHard && (num_fails == 10 || res != smt::SolverResult::Unknown))
+      || (st == Strictness::Strict && res != smt::SolverResult::Unknown)
+    ) {
       ContextSolverResult csr;
       csr.res = res;
       if (es.size() > 0) {
