@@ -109,6 +109,7 @@ namespace smt {
   struct context {
     std::shared_ptr<_context> p;
 
+    context() { }
     context(Backend backend) {
       if (backend == Backend::z3) {
         p = make_z3_context();

@@ -231,6 +231,7 @@ Counterexample get_counterexample_simple(
     smt::context& ctx,
     BMCContext& bmc,
     bool check_implies_conj,
+    vector<value> const& conjs,
     value cur_invariant,
     value candidate)
 {
@@ -285,10 +286,10 @@ Counterexample get_counterexample_simple(
         my_ctx = smt::context(smt::Backend::cvc4);
       }
 
-      auto conjctx = shared_ptr<ConjectureContext>(new ConjectureContext(my_ctx, module));
+      auto conjctx = shared_ptr<BasicContext>(new BasicContext(my_ctx, module));
 
       smt::solver& conj_solver = conjctx->ctx->solver;
-      conj_solver.push();
+      conj_solver.add(conjctx->e->value2expr(v_not(v_and(conjs))));
       if (cur_invariant) {
         conj_solver.add(conjctx->e->value2expr(cur_invariant));
       }
@@ -741,7 +742,7 @@ SynthesisResult synth_loop(
       cex = get_counterexample_test_with_conjs(module, options, ctx, cur_invariant, candidate, fd.conjectures);
       cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
-      cex = get_counterexample_simple(module, options, ctx, bmc, true, nullptr, candidate);
+      cex = get_counterexample_simple(module, options, ctx, bmc, true, fd.conjectures, nullptr, candidate);
       cex = simplify_cex(module, cex, options, bmc, antibmc);
     }
 
@@ -898,7 +899,7 @@ SynthesisResult synth_loop_incremental_breadth(
       value candidate = candidate0->reduce_quants();
 
       Counterexample cex = get_counterexample_simple(
-                module, options, ctx, bmc, false /* check_implies_conj */,
+                module, options, ctx, bmc, false /* check_implies_conj */, fd.conjectures,
                 v_and(
                   options.non_accumulative
                     ? (options.breadth_with_conjs ? base_invs_plus_conjs : fd.base_invs)

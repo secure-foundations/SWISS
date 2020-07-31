@@ -67,6 +67,11 @@ public:
 
   InductionContext(smt::context& ctx, std::shared_ptr<Module> module,
       int action_idx = -1);
+  InductionContext(std::shared_ptr<BackgroundContext>, std::shared_ptr<Module> module,
+      int action_idx = -1);
+
+private:
+  void init(std::shared_ptr<Module> module);
 };
 
 class ChainContext {
@@ -75,6 +80,14 @@ public:
   std::vector<std::shared_ptr<ModelEmbedding>> es;
 
   ChainContext(smt::context& ctx, std::shared_ptr<Module> module, int numTransitions);
+};
+
+class ConjectureContext {
+public:
+  std::shared_ptr<BackgroundContext> ctx;
+  std::shared_ptr<ModelEmbedding> e;
+
+  ConjectureContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
 
 class BasicContext {
@@ -91,14 +104,10 @@ public:
   std::shared_ptr<ModelEmbedding> e;
 
   InitContext(smt::context& ctx, std::shared_ptr<Module> module);
-};
+  InitContext(std::shared_ptr<BackgroundContext>, std::shared_ptr<Module> module);
 
-class ConjectureContext {
-public:
-  std::shared_ptr<BackgroundContext> ctx;
-  std::shared_ptr<ModelEmbedding> e;
-
-  ConjectureContext(smt::context& ctx, std::shared_ptr<Module> module);
+private:
+  void init(std::shared_ptr<Module> module);
 };
 
 class InvariantsContext {
@@ -108,6 +117,7 @@ public:
 
   InvariantsContext(smt::context& ctx, std::shared_ptr<Module> module);
 };
+
 
 std::string name(std::string const& basename);
 std::string name(iden basename);

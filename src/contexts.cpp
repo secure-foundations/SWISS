@@ -1,10 +1,12 @@
 #include "contexts.h"
-#include "model.h"
-#include "wpr.h"
 
 #include <cstdlib>
 #include <iostream>
 #include <cassert>
+
+#include "model.h"
+#include "wpr.h"
+#include "solve.h"
 
 using namespace std;
 using smt::expr;
@@ -247,6 +249,20 @@ InductionContext::InductionContext(
     std::shared_ptr<Module> module,
     int action_idx)
     : ctx(new BackgroundContext(z3ctx, module)), action_idx(action_idx)
+{
+  init(module);
+}
+
+InductionContext::InductionContext(
+    shared_ptr<BackgroundContext> bgctx,
+    std::shared_ptr<Module> module,
+    int action_idx)
+    : ctx(bgctx), action_idx(action_idx)
+{
+  init(module);
+}
+
+void InductionContext::init(std::shared_ptr<Module> module)
 {
   assert(-1 <= action_idx && action_idx < (int)module->actions.size());
 
@@ -549,6 +565,20 @@ InitContext::InitContext(
     std::shared_ptr<Module> module)
     : ctx(new BackgroundContext(z3ctx, module))
 {
+  init(module);
+}
+
+InitContext::InitContext(
+    shared_ptr<BackgroundContext> bgctx,
+    std::shared_ptr<Module> module)
+    : ctx(bgctx)
+{
+  init(module);
+}
+
+
+void InitContext::init(std::shared_ptr<Module> module)
+{
   this->e = ModelEmbedding::makeEmbedding(ctx, module);
 
   // Add the axioms
@@ -764,71 +794,51 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
   return true;
 }
 
-extern const int TIMEOUT;
-extern int numRetries;
-
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
   return is_invariant_wrt(module, invariant_so_far, vector<value>{candidate});
 }
 
 bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates) {
-  smt::context ctx(smt::Backend::z3);
-  ctx.set_timeout(TIMEOUT);
-
   for (value candidate : candidates) {
-    int num_fails = 0;
-    while (true) {
-      auto my_ctx = ctx;
-      if (num_fails % 2 == 1) {
-        my_ctx = smt::context(smt::Backend::cvc4);
-      }
-
-      InitContext initctx(my_ctx, module);
+    ContextSolverResult res = context_solve(
+        "is_invariant_wrt init",
+        module,
+        ModelType::Any,
+        Strictness::Strict,
+        nullptr,
+        [module, candidate](shared_ptr<BackgroundContext> bgctx)
+    {
+      InitContext initctx(bgctx, module);
       smt::solver& init_solver = initctx.ctx->solver;
       init_solver.add(initctx.e->value2expr(v_not(candidate)));
-      init_solver.set_log_info("is_invariant_wrt init");
-      smt::SolverResult res = init_solver.check_result();
-      if (res == smt::SolverResult::Sat) {
-        return false;
-      } else if (res == smt::SolverResult::Unsat) {
-        break;
-      } else {
-        num_fails++;
-        numRetries++;
-        assert(num_fails < 20);
-        cout << "failure encountered, retrying" << endl;
-      }
+      return vector<shared_ptr<ModelEmbedding>>{};
+    });
+    if (res.res == smt::SolverResult::Sat) {
+      return false;
     }
   }
 
   for (value candidate : candidates) {
     for (int i = 0; i < (int)module->actions.size(); i++) {
-      int num_fails = 0;
-      while (true) {
-        auto my_ctx = ctx;
-        if (num_fails % 2 == 1) {
-          my_ctx = smt::context(smt::Backend::cvc4);
-        }
-
-        InductionContext indctx(my_ctx, module, i);
+      ContextSolverResult res = context_solve(
+          "is_invariant_wrt inductiveness",
+          module,
+          ModelType::Any,
+          Strictness::Strict,
+          nullptr,
+          [&candidate, candidates, module, i, invariant_so_far](shared_ptr<BackgroundContext> bgctx)
+      {
+        InductionContext indctx(bgctx, module, i);
         smt::solver& solver = indctx.ctx->solver;
         solver.set_log_info("is_invariant_wrt inductiveness");
         solver.add(indctx.e1->value2expr(invariant_so_far));
         solver.add(indctx.e1->value2expr(v_and(candidates)));
         solver.add(indctx.e2->value2expr(v_not(candidate)));
+        return vector<shared_ptr<ModelEmbedding>>{};
+      });
 
-        smt::SolverResult res = solver.check_result();
-
-        if (res == smt::SolverResult::Sat) {
-          return false;
-        } else if (res == smt::SolverResult::Unsat) {
-          break;
-        } else {
-          num_fails++;
-          numRetries++;
-          assert(num_fails < 20);
-          cout << "failure encountered, retrying" << endl;
-        }
+      if (res.res == smt::SolverResult::Sat) {
+        return false;
       }
     }
   }

@@ -1563,3 +1563,4 @@ unique_ptr<FunctionTable> FunctionTable::from_json(Json j) {
   }
   return ft;
 }
+
