@@ -439,34 +439,25 @@ vector<pair<Counterexample, value>> filter_unneeded_cexes(
   return res;
 }
 
-bool invariant_is_nonredundant(shared_ptr<Module> module, smt::context& ctx, vector<value> existingInvariants, value newInvariant)
+bool invariant_is_nonredundant(shared_ptr<Module> module, vector<value> existingInvariants, value newInvariant)
 {
-  int num_fails = 0;
-  while (true) {
-    auto my_ctx = ctx;
-    if (num_fails % 2 == 1) {
-      my_ctx = smt::context(smt::Backend::cvc4);
-    }
-
-    BasicContext basic(my_ctx, module);
+  ContextSolverResult csr = context_solve(
+      "redundancy check",
+      module,
+      ModelType::Any,
+      Strictness::Strict,
+      nullptr,
+      [module, &existingInvariants, newInvariant](shared_ptr<BackgroundContext> bgctx)
+  {
+    BasicContext basic(bgctx, module);
     for (value v : existingInvariants) {
       basic.ctx->solver.add(basic.e->value2expr(v));
     }
     basic.ctx->solver.add(basic.e->value2expr(v_not(newInvariant)));
-    basic.ctx->solver.set_log_info("redundancy check");
+    return vector<shared_ptr<ModelEmbedding>>{};
+  });
 
-    smt::SolverResult res = basic.ctx->solver.check_result();
-    if (res == smt::SolverResult::Sat) {
-      return true;
-    } else if (res == smt::SolverResult::Unsat) {
-      return false;
-    } else {
-      num_fails++;
-      numRetries++;
-      assert (num_fails < 20);
-      cout << "failure encountered, retrying" << endl;
-    }
-  }
+  return csr.res == smt::SolverResult::Sat;
 }
 
 struct CexStats {
@@ -545,12 +536,6 @@ SynthesisResult synth_loop(
 
   auto t_init = now();
 
-  smt::context ctx(smt::Backend::z3);
-  if (true) {
-    cout << "using SMT timeout " << TIMEOUT
-         << " for inductivity checks" << endl;
-    ctx.set_timeout(TIMEOUT);
-  }
   smt::context bmcctx(smt::Backend::z3);
 
   int bmc_depth = 4;
@@ -690,12 +675,6 @@ SynthesisResult synth_loop_incremental_breadth(
 {
   auto t_init = now();
 
-  smt::context ctx(smt::Backend::z3);
-  if (true) {
-    cout << "using SMT timeout " << TIMEOUT
-         << " for inductivity checks" << endl;
-    ctx.set_timeout(TIMEOUT);
-  }
   smt::context bmcctx(smt::Backend::z3);
 
   if (fd.conjectures.size() == 0) {
@@ -806,7 +785,7 @@ SynthesisResult synth_loop_incremental_breadth(
         //bench_strengthen.dump();
         cout << "strengthened " << strengthened_inv->to_string() << endl;
 
-        is_nonredundant = invariant_is_nonredundant(module, ctx,
+        is_nonredundant = invariant_is_nonredundant(module,
             (options.breadth_with_conjs ? conjs_plus_base_invs_plus_new_invs : base_invs_plus_new_invs),
             simplified_strengthened_inv);
 
