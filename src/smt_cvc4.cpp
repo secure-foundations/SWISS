@@ -117,10 +117,12 @@ namespace smt_cvc4 {
   struct context : _context {
     CVC4::ExprManager em;
     bool been_set;
+    int timeout_ms;
 
-    context() : been_set(false) { }
+    context() : been_set(false), timeout_ms(-1) { }
 
     void set_timeout(int ms) override {
+      timeout_ms = ms;
       //ctx.set("timeout", ms);
       //assert (false && "set_timeout not implemented");
     }
@@ -248,6 +250,9 @@ namespace smt_cvc4 {
   struct solver : _solver {
     CVC4::SmtEngine smt;
     solver(context& ctx) : smt(&ctx.em) {
+      if (ctx.timeout_ms != -1) {
+        smt.setTimeLimit(ctx.timeout_ms);
+      }
       if (!ctx.been_set) {
         smt.setOption("produce-models", true);
         ctx.been_set = true;

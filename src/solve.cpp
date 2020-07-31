@@ -10,6 +10,7 @@ extern int numRetries;
 smt::context _z3_ctx_normal;
 smt::context _z3_ctx_quick;
 smt::context _cvc4_ctx_normal;
+smt::context _cvc4_ctx_quick;
 
 smt::context z3_ctx_normal() {
   if (!_z3_ctx_normal.p) {
@@ -30,9 +31,19 @@ smt::context z3_ctx_quick() {
 smt::context cvc4_ctx_normal() {
   if (!_cvc4_ctx_normal.p) {
     _cvc4_ctx_normal = smt::context(smt::Backend::cvc4);
+    _cvc4_ctx_normal.set_timeout(45000);
   }
   return _cvc4_ctx_normal;
 }
+
+smt::context cvc4_ctx_quick() {
+  if (!_cvc4_ctx_quick.p) {
+    _cvc4_ctx_quick = smt::context(smt::Backend::cvc4);
+    _cvc4_ctx_quick.set_timeout(15000);
+  }
+  return _cvc4_ctx_quick;
+}
+
 
 ContextSolverResult context_solve(
     std::string const& log_info,
@@ -48,7 +59,7 @@ ContextSolverResult context_solve(
   while (true) {
     smt::context ctx = (num_fails % 2 == 0
         ? (st == Strictness::Quick ? z3_ctx_quick() : z3_ctx_normal())
-        : cvc4_ctx_normal()
+        : (st == Strictness::Quick ? cvc4_ctx_quick() : cvc4_ctx_normal())
     );
     shared_ptr<BackgroundContext> bgc;
     bgc.reset(new BackgroundContext(ctx, module));
