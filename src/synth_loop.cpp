@@ -16,6 +16,7 @@
 #include "filter.h"
 #include "synth_enumerator.h"
 #include "utils.h"
+#include "solve.h"
 
 using namespace std;
 using namespace json11;
@@ -49,13 +50,13 @@ Counterexample get_bmc_counterexample(
 shared_ptr<InductionContext> get_counterexample_test_with_conjs_make_indctx(
     shared_ptr<Module> module,
     Options const& options,
-    smt::context& ctx,
+    shared_ptr<BackgroundContext> bgctx,
     value cur_invariant,
     value candidate,
     vector<value> conjectures,
     int j)
 {
-  auto indctx = shared_ptr<InductionContext>(new InductionContext(ctx, module, j));
+  auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module, j));
   smt::solver& solver = indctx->ctx->solver;
   if (cur_invariant) {
     solver.add(indctx->e1->value2expr(cur_invariant));
@@ -70,7 +71,6 @@ shared_ptr<InductionContext> get_counterexample_test_with_conjs_make_indctx(
 Counterexample get_counterexample_test_with_conjs(
     shared_ptr<Module> module,
     Options const& options,
-    smt::context& ctx,
     value cur_invariant,
     value candidate,
     vector<value> conjectures)
@@ -78,146 +78,84 @@ Counterexample get_counterexample_test_with_conjs(
   Counterexample cex;
   cex.none = false;
 
-  int num_fails = 0;
-  while (true) {
-    auto my_ctx = ctx;
-    if (num_fails % 2 == 1) {
-      my_ctx = smt::context(smt::Backend::cvc4);
-    }
-
-    auto initctx = shared_ptr<InitContext>(new InitContext(my_ctx, module));
+  ContextSolverResult csr = context_solve(
+      "init-check",
+      module,
+      options.minimal_models ? ModelType::Min : ModelType::Any,
+      Strictness::Strict,
+      candidate /* hint */,
+      [module, candidate](shared_ptr<BackgroundContext> bgctx)
+  {
+    auto initctx = shared_ptr<InitContext>(new InitContext(bgctx, module));
     smt::solver& init_solver = initctx->ctx->solver;
     init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
     init_solver.set_log_info("init-check");
-    smt::SolverResult res = init_solver.check_result();
+    return vector<shared_ptr<ModelEmbedding>>{initctx->e};
+  });
 
-    if (res == smt::SolverResult::Sat) {
-      if (options.minimal_models) {
-        cex.is_true = Model::extract_minimal_models_from_z3(
-            initctx->ctx->ctx,
-            init_solver, module, {initctx->e}, /* hint */ candidate)[0];
-      } else {
-        cex.is_true = Model::extract_model_from_z3(
-            initctx->ctx->ctx,
-            init_solver, module, *initctx->e);
-        cex.is_true->dump_sizes();
-      }
-
-      printf("counterexample type: INIT\n");
-      //cex.is_true->dump();
-      return cex;
-    } else if (res == smt::SolverResult::Unsat) {
-      break;
-    } else {
-      num_fails++;
-      numRetries++;
-      assert(num_fails < 20);
-      cout << "failure encountered, retrying" << endl;
-    }
-  }
-
-  vector<shared_ptr<InductionContext>> indctxs;
-
-  for (int j = 0; j < (int)module->actions.size(); j++) {
-    indctxs.push_back(get_counterexample_test_with_conjs_make_indctx(
-        module, options, ctx, cur_invariant, candidate, conjectures, j));
+  if (csr.res == smt::SolverResult::Sat) {
+    cex.is_true = csr.models[0];
+    printf("counterexample type: INIT\n");
+    return cex;
   }
 
   for (int k = 0; k < (int)conjectures.size(); k++) {
     for (int j = 0; j < (int)module->actions.size(); j++) {
-      int num_fails = 0;
-      while (true) {
-        auto indctx = indctxs[j];
+      ContextSolverResult csr = context_solve(
+          "inductivity-check-with-conj: " + module->action_names[j],
+          module,
+          options.minimal_models ? ModelType::Min : ModelType::Any,
+          Strictness::Strict,
+          candidate /* hint */,
+          [module, k, j, &options, cur_invariant, candidate, &conjectures](shared_ptr<BackgroundContext> bgctx)
+      {
+        auto indctx = get_counterexample_test_with_conjs_make_indctx(
+              module, options, bgctx, cur_invariant, candidate, conjectures, j);
         smt::solver& solver = indctx->ctx->solver;
 
-        solver.push();
         solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
 
         solver.set_log_info(
             "inductivity-check-with-conj: " + module->action_names[j]);
-        smt::SolverResult res = solver.check_result();
+        return vector<shared_ptr<ModelEmbedding>>{indctx->e1};
+      });
 
-        if (res == smt::SolverResult::Sat) {
-          if (options.minimal_models) {
-            auto ms = Model::extract_minimal_models_from_z3(
-                indctx->ctx->ctx, solver, module, {indctx->e1}, /* hint */ candidate);
-            cex.is_false = ms[0];
-          } else {
-            cex.is_false = Model::extract_model_from_z3(
-                indctx->ctx->ctx, solver, module, *indctx->e1);
-            cex.is_false->dump_sizes();
-          }
-
-          printf("counterexample type: SAFETY\n");
-
-          return cex;
-        } else if (res == smt::SolverResult::Unsat) {
-          solver.pop();
-          break;
-        } else {
-          num_fails++;
-          numRetries++;
-          assert(num_fails < 20);
-          cout << "failure encountered, retrying" << endl;
-
-          auto my_ctx = ctx;
-          if (num_fails % 2 == 1) {
-            my_ctx = smt::context(smt::Backend::cvc4);
-          }
-
-          indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
-              module, options, my_ctx, cur_invariant, candidate, conjectures, j);
-        }
+      if (csr.res == smt::SolverResult::Sat) {
+        cex.is_false = csr.models[0];
+        printf("counterexample type: SAFETY\n");
+        return cex;
       }
     }
   }
 
   for (int j = 0; j < (int)module->actions.size(); j++) {
-    int num_fails = 0;
-    while (true) {
-      auto indctx = indctxs[j];
+    ContextSolverResult csr = context_solve(
+          "inductivity-check: " + module->action_names[j],
+          module,
+          options.minimal_models ? ModelType::Min : ModelType::Any,
+          Strictness::Strict,
+          candidate /* hint */,
+          [module, &options, cur_invariant, candidate, &conjectures, j](shared_ptr<BackgroundContext> bgctx)
+    {
+      auto indctx = get_counterexample_test_with_conjs_make_indctx(
+            module, options, bgctx, cur_invariant, candidate, conjectures, j);
+
       smt::solver& solver = indctx->ctx->solver;
 
       solver.add(indctx->e2->value2expr(v_not(candidate)));
 
       solver.set_log_info(
           "inductivity-check: " + module->action_names[j]);
-      smt::SolverResult res = solver.check_result();
 
-      if (res == smt::SolverResult::Sat) {
-        if (options.minimal_models) {
-          auto ms = Model::extract_minimal_models_from_z3(
-              indctx->ctx->ctx, solver, module, {indctx->e1, indctx->e2}, /* hint */ candidate);
-          cex.hypothesis = ms[0];
-          cex.conclusion = ms[1];
-        } else {
-          cex.hypothesis = Model::extract_model_from_z3(
-              indctx->ctx->ctx, solver, module, *indctx->e1);
-          cex.conclusion = Model::extract_model_from_z3(
-              indctx->ctx->ctx, solver, module, *indctx->e2);
-          cex.hypothesis->dump_sizes();
-        }
+      return vector<shared_ptr<ModelEmbedding>>{indctx->e1, indctx->e2};
+    });
 
-        printf("counterexample type: INDUCTIVE\n");
-
-        return cex;
-      } else if (res == smt::SolverResult::Unsat) {
-        break;
-      } else {
-        num_fails++;
-        numRetries++;
-        assert(num_fails < 20);
-        cout << "failure encountered, retrying" << endl;
-
-        auto my_ctx = ctx;
-        if (num_fails % 2 == 1) {
-          my_ctx = smt::context(smt::Backend::cvc4);
-        }
-
-        indctxs[j] = get_counterexample_test_with_conjs_make_indctx(
-            module, options, my_ctx, cur_invariant, candidate, conjectures, j);
-      }
+    if (csr.res == smt::SolverResult::Sat) {
+      cex.hypothesis = csr.models[0];
+      cex.conclusion = csr.models[1];
+      printf("counterexample type: INDUCTIVE\n");
+      return cex;
     }
   }
 
@@ -671,7 +609,7 @@ SynthesisResult synth_loop(
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
-  if (options.smt_retries) {
+  if (true) {
     cout << "using SMT timeout " << TIMEOUT
          << " for inductivity checks" << endl;
     ctx.set_timeout(TIMEOUT);
@@ -739,7 +677,7 @@ SynthesisResult synth_loop(
 
     Counterexample cex;
     if (options.with_conjs) {
-      cex = get_counterexample_test_with_conjs(module, options, ctx, cur_invariant, candidate, fd.conjectures);
+      cex = get_counterexample_test_with_conjs(module, options, cur_invariant, candidate, fd.conjectures);
       cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
       cex = get_counterexample_simple(module, options, ctx, bmc, true, fd.conjectures, nullptr, candidate);
@@ -816,7 +754,7 @@ SynthesisResult synth_loop_incremental_breadth(
   auto t_init = now();
 
   smt::context ctx(smt::Backend::z3);
-  if (options.smt_retries) {
+  if (true) {
     cout << "using SMT timeout " << TIMEOUT
          << " for inductivity checks" << endl;
     ctx.set_timeout(TIMEOUT);

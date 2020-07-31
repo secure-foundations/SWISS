@@ -67,6 +67,7 @@ ContextSolverResult context_solve(
               csr.models.push_back(Model::extract_model_from_z3(
                   bgc->ctx, bgc->solver, module, *es[i]));
             }
+            csr.models[0]->dump_sizes();
           } else {
             csr.models = Model::extract_minimal_models_from_z3(
                 bgc->ctx, bgc->solver, module, es, hint);

@@ -23,8 +23,6 @@ struct Options {
   bool post_bmc;
   bool minimal_models;
 
-  bool smt_retries;
-
   bool non_accumulative;
 
   //int threads;
