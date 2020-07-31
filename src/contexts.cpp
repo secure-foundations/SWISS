@@ -556,6 +556,19 @@ BasicContext::BasicContext(
   }
 }
 
+BasicContext::BasicContext(
+    std::shared_ptr<BackgroundContext> bgctx,
+    std::shared_ptr<Module> module)
+    : ctx(bgctx)
+{
+  this->e = ModelEmbedding::makeEmbedding(ctx, module);
+
+  // Add the axioms
+  for (shared_ptr<Value> axiom : module->axioms) {
+    ctx->solver.add(this->e->value2expr(axiom));
+  }
+}
+
 /*
  * InitContext
  */

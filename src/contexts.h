@@ -96,6 +96,7 @@ public:
   std::shared_ptr<ModelEmbedding> e;
 
   BasicContext(smt::context& ctx, std::shared_ptr<Module> module);
+  BasicContext(std::shared_ptr<BackgroundContext>, std::shared_ptr<Module> module);
 };
 
 class InitContext {
