@@ -22,6 +22,7 @@ using namespace std;
 using namespace json11;
 
 int numRetries = 0;
+int numTryHardFailures = 0;
 
 Counterexample get_bmc_counterexample(
     BMCContext& bmc,
@@ -517,7 +518,9 @@ void dump_stats(long long progress, CexStats const& cs,
     long long addCounterexample_ms, long long addCounterexample_count,
     long long cex_process_ns,
     long long redundant_process_ns,
-    long long nonredundant_process_ns) {
+    long long nonredundant_process_ns,
+    long long indef_count,
+    long long indef_ns) {
   cout << "================= Stats =================" << endl;
   cout << "progress: " << progress << endl;
   cout << "total time running so far: " << as_ms(now() - init)
@@ -530,6 +533,7 @@ void dump_stats(long long progress, CexStats const& cs,
   cout << "total time processing counterexamples: " << cex_process_ns / 1000000 << " ms" << endl;
   cout << "total time processing redundant: " << redundant_process_ns / 1000000 << " ms" << endl;
   cout << "total time processing nonredundant: " << nonredundant_process_ns / 1000000 << " ms" << endl;
+  cout << "total time processing indef: " << indef_ns / 1000000 << " ms" << endl;
   cs.dump();
   cout << "number of redundant invariants found: "
        << num_redundant << endl;
@@ -538,6 +542,8 @@ void dump_stats(long long progress, CexStats const& cs,
   cout << "number of finisher invariants found: "
        << num_finishers_found << endl;
   cout << "number of retries: " << numRetries << endl;
+  cout << "number of TryHard failures: " << numTryHardFailures << endl;
+  cout << "number of candidates could not determine inductiveness: " << indef_count << endl;
   cout << "number of enumerated filtered redundant invariants: " << numEnumeratedFilteredRedundantInvariants << endl;
   smt::dump_smt_stats();
   cout << "=========================================" << endl;
@@ -598,6 +604,9 @@ SynthesisResult synth_loop(
   long long num_finishers_found = 0;
   long long process_cex_ns = 0;
 
+  long long process_indef_ns = 0;
+  long long indef_count = 0;
+
   while (true) {
     num_iterations++;
 
@@ -625,14 +634,22 @@ SynthesisResult synth_loop(
     if (options.with_conjs) {
       cex = get_counterexample_test_with_conjs(module, options, cur_invariant, candidate, fd.conjectures);
       if (!cex.is_valid()) {
-        cout << "CHECK FAILED" << endl;
+        long long process_ns = as_ns(now() - process_start_t);
+        process_indef_ns += process_ns;
+        indef_count++;
+
+        cout << "WARNING: COULD NOT DETERMINE INDUCTIVENESS" << endl;
         continue;
       }
       cex = simplify_cex_nosafety(module, cex, options, bmc);
     } else {
       cex = get_counterexample_simple(module, options, bmc, true, fd.conjectures, nullptr, candidate);
       if (!cex.is_valid()) {
-        cout << "CHECK FAILED" << endl;
+        long long process_ns = as_ns(now() - process_start_t);
+        process_indef_ns += process_ns;
+        indef_count++;
+
+        cout << "WARNING: COULD NOT DETERMINE INDUCTIVENESS" << endl;
         continue;
       }
       cex = simplify_cex(module, cex, options, bmc, antibmc);
@@ -678,11 +695,11 @@ SynthesisResult synth_loop(
       process_cex_ns += process_ns;
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0);
+    dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0, indef_count, process_indef_ns);
   }
 
   //cout << transcript.to_json().dump() << endl;
-  dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0);
+  dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0, indef_count, process_indef_ns);
   cout << "complete!" << endl;
 
   return synres;
@@ -745,6 +762,9 @@ SynthesisResult synth_loop_incremental_breadth(
   long long redundant_process_ns = 0;
   long long nonredundant_process_ns = 0;
 
+  long long process_indef_ns = 0;
+  long long indef_count = 0;
+
   while (true) {
     num_iterations_outer++;
 
@@ -794,7 +814,11 @@ SynthesisResult synth_loop_incremental_breadth(
                 candidate);
 
       if (!cex.is_valid()) {
-        cout << "CHECK FAILED" << endl;
+        long long process_ns = as_ns(now() - process_start_t);
+        process_indef_ns += process_ns;
+        indef_count++;
+
+        cout << "WARNING: COULD NOT DETERMINE INDUCTIVENESS" << endl;
         continue;
       }
 
@@ -872,10 +896,10 @@ SynthesisResult synth_loop_incremental_breadth(
         redundant_process_ns += process_ns;
       }
 
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns, indef_count, process_indef_ns);
     }
 
-    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
+    dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns, indef_count, process_indef_ns);
 
     if (!any_formula_synthesized_this_round) {
       cout << "unable to synthesize any formula" << endl;
@@ -887,7 +911,7 @@ SynthesisResult synth_loop_incremental_breadth(
             v_and(base_invs_plus_new_invs), fd.conjectures))
     {
       cout << "invariant implies safety condition, done!" << endl;
-      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns);
+      dump_stats(cs->getProgress(), cexstats, t_init, num_redundant, num_nonredundant, filtering_ns/1000000, 0, addCounterexample_ns / 1000000, addCounterexample_count, cex_process_ns, redundant_process_ns, nonredundant_process_ns, indef_count, process_indef_ns);
       return SynthesisResult(true, new_invs, all_invs);
     }
 

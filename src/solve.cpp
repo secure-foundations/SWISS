@@ -6,6 +6,7 @@
 using namespace std;
 
 extern int numRetries;
+extern int numTryHardFailures;
 
 smt::context _z3_ctx_normal;
 smt::context _z3_ctx_quick;
@@ -90,6 +91,12 @@ ContextSolverResult context_solve(
           }
         }
       }
+
+      if (st == Strictness::TryHard && res == smt::SolverResult::Unknown) {
+        cout << "TryHard failure" << endl;
+        numTryHardFailures++;
+      }
+
       return csr;
     }
 
