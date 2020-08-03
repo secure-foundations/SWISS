@@ -79,7 +79,7 @@ def run_synthesis(logfile_base, run_id, json_filename, args, q=None, use_stdout=
         sys.stdout.flush()
       else:
         if ret != 0:
-          print("failed " + run_id + " (" + str(seconds) + " seconds)")
+          print("failed " + run_id + " (" + str(seconds) + " seconds) (ret " + str(ret) + ")")
           sys.stdout.flush()
         else:
           print("complete " + run_id + " (" + str(seconds) + " seconds)")
