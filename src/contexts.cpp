@@ -807,17 +807,13 @@ bool is_wpr_itself_inductive(shared_ptr<Module> module, value candidate, int wpr
   return true;
 }
 
-bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
-  return is_invariant_wrt(module, invariant_so_far, vector<value>{candidate});
-}
-
-bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates) {
+smt::SolverResult is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates, Strictness strictness) {
   for (value candidate : candidates) {
     ContextSolverResult res = context_solve(
         "is_invariant_wrt init",
         module,
         ModelType::Any,
-        Strictness::Strict,
+        strictness,
         nullptr,
         [module, candidate](shared_ptr<BackgroundContext> bgctx)
     {
@@ -826,8 +822,8 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<
       init_solver.add(initctx.e->value2expr(v_not(candidate)));
       return vector<shared_ptr<ModelEmbedding>>{};
     });
-    if (res.res == smt::SolverResult::Sat) {
-      return false;
+    if (res.res != smt::SolverResult::Unsat) {
+      return res.res;
     }
   }
 
@@ -837,7 +833,7 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<
           "is_invariant_wrt inductiveness",
           module,
           ModelType::Any,
-          Strictness::Strict,
+          strictness,
           nullptr,
           [&candidate, candidates, module, i, invariant_so_far](shared_ptr<BackgroundContext> bgctx)
       {
@@ -850,11 +846,28 @@ bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<
         return vector<shared_ptr<ModelEmbedding>>{};
       });
 
-      if (res.res == smt::SolverResult::Sat) {
-        return false;
+      if (res.res != smt::SolverResult::Unsat) {
+        return res.res;
       }
     }
   }
 
-  return true;
+  return smt::SolverResult::Unsat;
 }
+
+bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates) {
+  return is_invariant_wrt(module, invariant_so_far, candidates, Strictness::Strict) == smt::SolverResult::Unsat;
+}
+
+bool is_invariant_wrt(shared_ptr<Module> module, value invariant_so_far, value candidate) {
+  return is_invariant_wrt(module, invariant_so_far, vector<value>{candidate});
+}
+
+bool is_invariant_wrt_tryhard(shared_ptr<Module> module, value invariant_so_far, vector<value> const& candidates) {
+  return is_invariant_wrt(module, invariant_so_far, candidates, Strictness::TryHard) == smt::SolverResult::Unsat;
+}
+
+bool is_invariant_wrt_tryhard(shared_ptr<Module> module, value invariant_so_far, value candidate) {
+  return is_invariant_wrt_tryhard(module, invariant_so_far, vector<value>{candidate});
+}
+

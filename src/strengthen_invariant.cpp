@@ -33,7 +33,7 @@ value try_replacing_exists_with_forall(
 
   value inv0 = taqd_mod.with_body(body);
 
-  if (is_invariant_wrt(module, invariant_so_far, inv0)) {
+  if (is_invariant_wrt_tryhard(module, invariant_so_far, inv0)) {
     return inv0;
   }
 
@@ -62,7 +62,7 @@ value strengthen_invariant_once(
     vector<value> new_args = remove(args, i);
     value inv = taqd.with_body(v_or(new_args));
     //cout << "trying " << inv->to_string();
-    if (is_invariant_wrt(module, invariant_so_far, inv)) {
+    if (is_invariant_wrt_tryhard(module, invariant_so_far, inv)) {
       //cout << "is inv" << endl << endl;
       args = new_args;
       i--;
@@ -81,7 +81,7 @@ value strengthen_invariant_once(
         value inv0 = taqd.with_body(v_or(args));
         value inv1 = taqd.with_body(v_or(new_args));
         if (!is_satisfiable(module, v_and({invariant_so_far, inv1, v_not(inv0)}))
-            && is_invariant_wrt(module, invariant_so_far, inv1)) {
+            && is_invariant_wrt_tryhard(module, invariant_so_far, inv1)) {
           //cout << "is inv (and implies)" << endl << endl;
           args = new_args;
           a = dynamic_cast<And*>(args[i].get());

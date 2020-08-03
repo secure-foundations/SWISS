@@ -155,4 +155,9 @@ bool is_invariant_with_conjectures(std::shared_ptr<Module>, std::vector<value>);
 bool is_invariant_wrt(std::shared_ptr<Module>, value invariant_so_far, value candidate);
 bool is_invariant_wrt(std::shared_ptr<Module>, value invariant_so_far, std::vector<value> const& candidate);
 
+bool is_invariant_wrt_tryhard(
+    std::shared_ptr<Module>,
+    value invariant_so_far,
+    value candidate);
+
 #endif
