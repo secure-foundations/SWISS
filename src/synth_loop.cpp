@@ -470,7 +470,7 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, vector<value> existing
       "redundancy check",
       module,
       ModelType::Any,
-      Strictness::Strict,
+      Strictness::TryHard,
       nullptr,
       [module, &existingInvariants, newInvariant](shared_ptr<BackgroundContext> bgctx)
   {
@@ -482,7 +482,8 @@ bool invariant_is_nonredundant(shared_ptr<Module> module, vector<value> existing
     return vector<shared_ptr<ModelEmbedding>>{};
   });
 
-  return csr.res == smt::SolverResult::Sat;
+  // Assume it's nonredundant in the Unknown case.
+  return csr.res != smt::SolverResult::Unsat;
 }
 
 struct CexStats {
