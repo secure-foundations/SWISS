@@ -90,43 +90,15 @@ for minmodels in (True, False):
         benches.append("chord-gimme-1.ivy", config="basic", **args)
         benches.append("decentralized-lock-gimme-1.ivy", config="basic", **args)
 
-benches.append(PaperBench(17, "fail_wc_bt_vertical", "better-template-vertical-paxos --breadth-with-conjs--minimal-models --threads 7"))
-benches.append(PaperBench(17, "fail_wc_bt_stoppable", "better-template-stoppable-paxos --breadth-with-conjs --minimal-models --threads 7"))
-
-for seed in range(1, 8):
-  benches.append(PaperBench(18,
-      "nonacc_wc_learning_switch_seed_" + str(seed),
-      "breadth-learning-switch --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
-
 for seed in range(1, 9):
-  benches.append(PaperBench(19,
-      "wc_learning_switch_seed_" + str(seed),
-      "breadth-learning-switch --breadth-with-conjs --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+  benches.append(PaperBench("learning_switch.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
+  benches.append(PaperBench("learning_switch.ivy", "basic", threads=THREADS, seed=seed))
 
-for seed in range(1, 5):
-  benches.append(PaperBench(20,
-      "nonacc_wc_bt_paxos_seed_" + str(seed),
-      "better-template-paxos --breadth-with-conjs --by-size --non-accumulative --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
+  benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
+  benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed))
 
-for seed in range(1, 9):
-  benches.append(PaperBench(21,
-      "wc_bt_paxos_seed_" + str(seed),
-      "better-template-paxos --breadth-with-conjs --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
-
-for seed in range(1, 9):
-  benches.append(PaperBench(22,
-      "wholespace_finisher_bt_paxos_seed_" + str(seed),
-      "better-template-paxos-finisher --whole-space --minimal-models --threads " + str(THREADS) + " --seed " + str(seed)))
-
-for seed in range(1, 5):
-  benches.append(PaperBench(23,
-      "nonacc_wc_bt_paxos_breadth_seed_" + str(seed),
-      "better-template-paxos-breadth4 --breadth-with-conjs --non-accumulative --minimal-models --threads 1 --seed " + str(200 + seed)))
-for seed in range(1, 8):
-  benches.append(PaperBench(24,
-      "wc_bt_paxos_breadth_seed_" + str(seed),
-      "better-template-paxos-breadth4 --breadth-with-conjs --minimal-models --threads 1 --seed " + str(300 + seed)))
-
+  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, nonacc=True))
+  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed))
 
 all_names = [b.name for b in benches]
 assert len(all_names) == len(list(set(all_names))) # check uniqueness
