@@ -17,7 +17,7 @@ def get_num_threads(args):
   assert False
 
 class PaperBench(object):
-  def __init__(self, ivyname, config, threads=24, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False):
+  def __init__(self, ivyname, config, threads=24, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
     self.ivyname = ivyname
     self.config = config
     self.threads = threads
@@ -28,8 +28,12 @@ class PaperBench(object):
     self.nonacc = nonacc
     self.args = args
     self.whole = whole
+    self.expect_success = expect_success
 
-  def name(self):
+    self.args = self.get_args()
+    self.name = self.get_name()
+
+  def get_name(self):
     name = ""
     if self.post_bmc:
       name += "postbmc_"
@@ -49,7 +53,7 @@ class PaperBench(object):
 
     return name
 
-  def args(self):
+  def get_args(self):
     return ([self.ivyname, "--config", self.config, "--threads", str(self.threads),
         "--seed", str(self.seed), "--with-conjs", "--breadth-with-conjs"]
       + (["--minimal-models"] if self.mm else [])
@@ -72,6 +76,20 @@ THREADS = 8
 #  benches.append(PaperBench(4,
 #      "nonacc_wc_chord_t" + str(i),
 #      "chord-gimme-1 --breadth-with-conjs --by-size --non-accumulative --minimal-models --whole-space --threads " + str(i)))
+
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench("paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
+  benches.append(PaperBench("paxos.ivy", "basic_b", threads=i, expect_success=False))
+
+  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=i))
+
+  benches.append(PaperBench("chord-gimme-1.ivy", "basic", threads=i))
+  benches.append(PaperBench("chord-gimme-1.ivy", "basic", threads=i, nonacc=True))
+
+  benches.append(PaperBench("multi_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
+  benches.append(PaperBench("multi_paxos.ivy", "basic", threads=i, whole=True, expect_success=False, nonacc=True))
+  benches.append(PaperBench("flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
+  benches.append(PaperBench("flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False, nonacc=True))
 
 for minmodels in (True, False):
   for postbmc in [False]: #(False, True):
@@ -97,14 +115,26 @@ for seed in range(1, 9):
   benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
   benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed))
 
-  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, nonacc=True))
-  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed))
+  benches.append(PaperBench("paxos.ivy", "basic_b", threads=THREADS, seed=seed, nonacc=True, expect_success=False))
+  benches.append(PaperBench("paxos.ivy", "basic_b", threads=THREADS, seed=seed, expect_success=False))
 
-all_names = [b.name for b in benches]
-assert len(all_names) == len(list(set(all_names))) # check uniqueness
+  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, nonacc=True, expect_success=False))
+  benches.append(PaperBench("paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, expect_success=False))
 
-for b in benches:
-  assert 1 <= b.partition <= NUM_PARTS
+#all_names = list(set([b.name for b in benches]))
+#assert len(all_names) == len(list(set(all_names))) # check uniqueness
+
+def unique_benches(old_benches):
+  benches = []
+  names = set()
+  for b in old_benches:
+    assert 1 <= b.partition <= NUM_PARTS
+    if b.name not in names:
+      names.add(b.name)
+      benches.append(b)
+  return benches
+
+benches = unique_benches(benches)
 
 def get_statfile(out):
   for line in out.split(b'\n'):
@@ -118,6 +148,9 @@ def exists(directory, bench):
   result_filename = os.path.join(directory, bench.name)
   return os.path.exists(result_filename)
 
+def success_true(out):
+  return "\nSuccess: True" in out
+
 def run(directory, bench):
   if exists(directory, bench):
     print("already done " + bench.name)
@@ -128,7 +161,7 @@ def run(directory, bench):
 
   t1 = time.time()
 
-  proc = subprocess.Popen(["./bench.sh"] + bench.args.split(),
+  proc = subprocess.Popen(["./save.sh"] + bench.args.split(),
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
@@ -146,6 +179,10 @@ def run(directory, bench):
     print("done " + bench.name + " (" + str(seconds) + " seconds)")
     result_filename = os.path.join(directory, bench.name)
     shutil.copy(statfile, result_filename)
+
+    if not success_true(out):
+      print("WARNING: " + bench.name + " did not succeed")
+      
     return True
 
 def run_wrapper(directory, bench, idx, q):
