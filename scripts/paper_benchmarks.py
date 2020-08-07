@@ -241,6 +241,8 @@ def parse_args(args):
 
 #for b in benches:
 #  print(b.name)
+print 'IGNORING nonacc'
+benches = [b for b in benches if not b.nonacc]
 
 def main():
   args = sys.argv[1:]
