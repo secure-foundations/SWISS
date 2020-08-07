@@ -91,7 +91,6 @@ Counterexample get_counterexample_test_with_conjs(
     smt::solver& init_solver = initctx->ctx->solver;
     init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
-    init_solver.set_log_info("init-check");
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
 
@@ -121,8 +120,6 @@ Counterexample get_counterexample_test_with_conjs(
 
         solver.add(indctx->e2->value2expr(v_not(conjectures[k])));
 
-        solver.set_log_info(
-            "inductivity-check-with-conj: " + module->action_names[j]);
         return vector<shared_ptr<ModelEmbedding>>{indctx->e1};
       });
 
@@ -153,9 +150,6 @@ Counterexample get_counterexample_test_with_conjs(
       smt::solver& solver = indctx->ctx->solver;
 
       solver.add(indctx->e2->value2expr(v_not(candidate)));
-
-      solver.set_log_info(
-          "inductivity-check: " + module->action_names[j]);
 
       return vector<shared_ptr<ModelEmbedding>>{indctx->e1, indctx->e2};
     });
@@ -200,7 +194,6 @@ Counterexample get_counterexample_simple(
     smt::solver& init_solver = initctx->ctx->solver;
     init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
-    init_solver.set_log_info("init-check");
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
 
