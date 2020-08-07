@@ -399,6 +399,7 @@ def parse_args(ivy_filename, args):
     elif args[i] == "--stdout":
       use_stdout = True
     elif args[i] == "--by-size":
+      assert False, "by-size not supported yet"
       by_size = True
     elif args[i] == "--config":
       config = args[i+1]

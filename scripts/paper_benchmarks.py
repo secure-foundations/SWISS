@@ -9,13 +9,6 @@ import threading
 
 NUM_PARTS = 37
 
-def get_num_threads(args):
-  args = args.split()
-  for i in range(len(args)):
-    if args[i] == '--threads':
-      return int(args[i+1])
-  assert False
-
 class PaperBench(object):
   def __init__(self, ivyname, config, threads=24, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
     self.ivyname = ivyname
@@ -26,9 +19,10 @@ class PaperBench(object):
     self.pre_bmc = pre_bmc
     self.post_bmc = post_bmc
     self.nonacc = nonacc
-    self.args = args
     self.whole = whole
     self.expect_success = expect_success
+
+    self.partition = 1
 
     self.args = self.get_args()
     self.name = self.get_name()
@@ -49,7 +43,7 @@ class PaperBench(object):
     assert self.ivyname.endswith(".ivy")
     name += "_" + self.ivyname[:-4]
     name += "__" + self.config
-    name += "__seed_" + str(self.seed) + "_t" + str(self.threads)
+    name += "__seed" + str(self.seed) + "_t" + str(self.threads)
 
     return name
 
@@ -96,17 +90,17 @@ for minmodels in (True, False):
     for prebmc in (False, True):
       for nonacc in (True, False):
         args = {"mm" : minmodels, "post_bmc" : postbmc, "pre_bmc" : prebmc, "nonacc" : nonacc, "threads" : 8 }
-        benches.append("simple-de-lock.ivy", config="basic", **args)
-        benches.append("leader-election.ivy", config="basic_b", **args)
-        benches.append("leader-election.ivy", config="basic_f", **args)
-        benches.append("learning-switch.ivy", config="basic", **args)
-        benches.append("lock_server.ivy", config="basic", **args)
-        benches.append("2PC.ivy", config="basic", **args)
-        benches.append("paxos.ivy", config="basic", **args)
-        benches.append("multi_paxos.ivy", config="basic", **args)
-        benches.append("flexible_paxos.ivy", config="basic", **args)
-        benches.append("chord-gimme-1.ivy", config="basic", **args)
-        benches.append("decentralized-lock-gimme-1.ivy", config="basic", **args)
+        benches.append(PaperBench("simple-de-lock.ivy", config="basic", **args))
+        benches.append(PaperBench("leader-election.ivy", config="basic_b", **args))
+        benches.append(PaperBench("leader-election.ivy", config="basic_f", **args))
+        benches.append(PaperBench("learning-switch.ivy", config="basic", **args))
+        benches.append(PaperBench("lock_server.ivy", config="basic", **args))
+        benches.append(PaperBench("2PC.ivy", config="basic", **args))
+        benches.append(PaperBench("paxos.ivy", config="basic", **args))
+        benches.append(PaperBench("multi_paxos.ivy", config="basic", **args))
+        benches.append(PaperBench("flexible_paxos.ivy", config="basic", **args))
+        benches.append(PaperBench("chord-gimme-1.ivy", config="basic", **args))
+        benches.append(PaperBench("decentralized-lock-gimme-1.ivy", config="basic", **args))
 
 for seed in range(1, 9):
   benches.append(PaperBench("learning_switch.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
@@ -161,7 +155,7 @@ def run(directory, bench):
 
   t1 = time.time()
 
-  proc = subprocess.Popen(["./save.sh"] + bench.args.split(),
+  proc = subprocess.Popen(["./save.sh"] + bench.args,
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
@@ -244,6 +238,9 @@ def parse_args(args):
       res.append(args[i])
     i += 1
   return j, p, one, res
+
+#for b in benches:
+#  print(b.name)
 
 def main():
   args = sys.argv[1:]
