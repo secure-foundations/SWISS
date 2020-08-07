@@ -130,6 +130,13 @@ def unique_benches(old_benches):
 
 benches = unique_benches(benches)
 
+def get_logfile(out):
+  for line in out.split(b'\n'):
+    if line.startswith(b"logging to "):
+      t = line[len("logging to "):].strip()
+      return t.decode("utf-8")
+  return "no logfile???"
+
 def get_statfile(out):
   for line in out.split(b'\n'):
     if line.startswith(b"statfile: "):
@@ -165,12 +172,13 @@ def run(directory, bench):
   t2 = time.time()
   seconds = t2 - t1
 
+  logfile = get_logfile(out)
   statfile = get_statfile(out)
   if statfile is None:
-    print("failed " + bench.name + " (" + str(seconds) + " seconds)")
+    print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
     return False
   else:
-    print("done " + bench.name + " (" + str(seconds) + " seconds)")
+    print("done " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
     result_filename = os.path.join(directory, bench.name)
     shutil.copy(statfile, result_filename)
 
@@ -242,7 +250,7 @@ def parse_args(args):
 #for b in benches:
 #  print(b.name)
 print('IGNORING nonacc')
-benches = [b for b in benches if not b.nonacc]
+#benches = [b for b in benches if not b.nonacc]
 
 def main():
   args = sys.argv[1:]
