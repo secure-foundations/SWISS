@@ -150,7 +150,7 @@ def exists(directory, bench):
   return os.path.exists(result_filename)
 
 def success_true(out):
-  return "\nSuccess: True" in out
+  return b"\nSuccess: True" in out
 
 def run(directory, bench):
   if exists(directory, bench):
