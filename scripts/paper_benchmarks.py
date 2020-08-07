@@ -48,7 +48,7 @@ class PaperBench(object):
     return name
 
   def get_args(self):
-    return ([self.ivyname, "--config", self.config, "--threads", str(self.threads),
+    return ([os.path.join("benchmarks", self.ivyname), "--config", self.config, "--threads", str(self.threads),
         "--seed", str(self.seed), "--with-conjs", "--breadth-with-conjs"]
       + (["--minimal-models"] if self.mm else [])
       + (["--pre-bmc"] if self.pre_bmc else [])
