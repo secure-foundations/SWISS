@@ -174,7 +174,7 @@ def run(directory, bench):
     result_filename = os.path.join(directory, bench.name)
     shutil.copy(statfile, result_filename)
 
-    if not success_true(out):
+    if bench.expect_success and not success_true(out):
       print("WARNING: " + bench.name + " did not succeed")
       
     return True
