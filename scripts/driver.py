@@ -10,6 +10,7 @@ import traceback
 import json
 import time
 import random
+import shutil
 
 import templates
 import stats
@@ -41,6 +42,26 @@ class RunSynthesisResult(object):
     self.stopped = stopped
     self.failed = failed
     self.logfile = logfile
+
+def get_input_files(args):
+  t = []
+  for i in range(len(args) - 1):
+    if args[i] in ('--input-module', "--input-chunk-file", "--input-formula-file"):
+      t.append(args[i+1])
+  return t
+
+def log_inputs(logfilename, json_filename, args):
+  try:
+    input_files = [json_filename] + get_input_files(args)
+    for i in range(len(input_files)):
+      a = input_files[i]
+      b = logfilename + ".error." + str(i)
+      print(a + " -> " + b)
+      shutil.copy(input_files[i], logfilename + ".error." + str(i))
+      
+  except Exception:
+    print("failed to log_inputs")
+    pass
 
 def run_synthesis(logfile_base, run_id, json_filename, args, q=None, use_stdout=False):
   try:
@@ -79,7 +100,8 @@ def run_synthesis(logfile_base, run_id, json_filename, args, q=None, use_stdout=
         sys.stdout.flush()
       else:
         if ret != 0:
-          print("failed " + run_id + " (" + str(seconds) + " seconds) (ret " + str(ret) + ")")
+          print("failed " + run_id + " (" + str(seconds) + " seconds) (ret " + str(ret) + ") (pid " + str(proc.pid) + ")")
+          log_inputs(logfilename, json_filename, args)
           sys.stdout.flush()
         else:
           print("complete " + run_id + " (" + str(seconds) + " seconds)")
