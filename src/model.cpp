@@ -1253,7 +1253,11 @@ AlternationBitsetEvaluator AlternationBitsetEvaluator::make_evaluator(
   vector<int> sizes;
 
   vector<Alternation> alternations = taqd.alternations();
-  assert(alternations.size() > 0);
+  if (alternations.size() == 0) {
+    Alternation alt;
+    alt.altType = AltType::Forall;
+    alternations.push_back(alt);
+  }
 
   for (Alternation const& alt : alternations) {
     int prod = 1;

@@ -122,6 +122,9 @@ smt::expr ModelEmbedding::value2expr(
 {
   assert(v.get() != NULL);
   if (Forall* value = dynamic_cast<Forall*>(v.get())) {
+    if (value->decls.size() == 0) {
+      return value2expr(value->body, consts, vars);
+    }
     smt::expr_vector vec_vars(ctx->ctx);
     std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
@@ -132,6 +135,9 @@ smt::expr ModelEmbedding::value2expr(
     return smt::forall(vec_vars, value2expr(value->body, consts, new_vars));
   }
   else if (Exists* value = dynamic_cast<Exists*>(v.get())) {
+    if (value->decls.size() == 0) {
+      return value2expr(value->body, consts, vars);
+    }
     smt::expr_vector vec_vars(ctx->ctx);
     std::unordered_map<iden, smt::expr> new_vars = vars;
     for (VarDecl decl : value->decls) {
