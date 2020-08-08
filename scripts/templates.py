@@ -47,6 +47,10 @@ def parse_keyvals(line):
   for keyval in line.split():
     s = keyval.split('=')
     d[s[0]] = int(s[1])
+
+  depth = d["d"]
+  assert depth in (1, 2)
+  
   return d
 
 def parse_line(line):
