@@ -60,8 +60,6 @@ struct NodePtr {
 
 vector<TemplateSlice> get_preds(TemplateSlice const& ts)
 {
-  //cout << "    " << ts << endl;
-
   vector<TemplateSlice> res;
   assert (ts.vars.size() == ts.quantifiers.size());
   for (int i = 0; i < (int)ts.vars.size(); i++) {
@@ -86,9 +84,6 @@ vector<TemplateSlice> get_preds(TemplateSlice const& ts)
     ts1.count = -1;
     res.push_back(ts1);
   }
-  //for (TemplateSlice const& ts1 : res) {
-    //cout << "        " << ts1 << endl;
-  //}
   return res;
 }
 
@@ -103,59 +98,8 @@ int slices_get_idx(vector<TemplateSlice> const& slices, TemplateSlice const& ts)
       return i;
     }
   }
-  //cout << "couldn't find" << endl;
-  //cout << ts << endl;
-  //assert (false);
   return -1;
 }
-
-/*
-static void getSpaceChunk_rec(vector<SpaceChunk>& res,
-  int tree_shape_idx, TreeShape const& ts,
-  vector<int>& indices, int i, VarIndexState const& vis,
-  vector<value> const& pieces,
-  vector<VarIndexTransition> const& var_index_transitions, int sz)
-{
-  if (i == (int)indices.size()) {
-    SpaceChunk sc;
-    sc.tree_idx = tree_shape_idx;
-    sc.size = ts.total;
-    sc.nums = indices;
-    res.push_back(move(sc));
-    return;
-  }
-  SymmEdge const& symm_edge = ts.symmetry_back_edges[i];
-  int t = symm_edge.idx == -1 ? 0 : indices[symm_edge.idx] + symm_edge.inc;
-  for (int j = t; j < (int)pieces.size(); j++) {
-    if (var_index_is_valid_transition(vis, var_index_transitions[j].pre)) {
-      VarIndexState next(vis.indices.size());
-      var_index_do_transition(vis, var_index_transitions[j].res, next);
-      indices[i] = j;
-      getSpaceChunk_rec(res, tree_shape_idx, ts, indices, i+1, next,
-          pieces, var_index_transitions, sz);
-    }
-  }
-}
-
-void AltDepth2CandidateSolver::getSpaceChunk(std::vector<SpaceChunk>& res)
-{
-  for (int i = 0; i < (int)tree_shapes.size(); i++) {
-    //cout << tree_shapes[i].to_string() << endl;
-    int sz = tree_shapes[i].total;
-
-    int k;
-    if (sz > 4) k = sz - 2;
-    else k = 2;
-
-    int j = k < sz ? sz - k : 0;
-    VarIndexState vis = var_index_states[0];
-    vector<int> indices;
-    indices.resize(j);
-    getSpaceChunk_rec(res, i, tree_shapes[i], indices, 0, vis,
-        pieces, var_index_transitions, sz);
-  }
-  //cout << "done" << endl;
-}*/
 
 void get_prefixes_rec(
   vector<vector<int>>& res,
@@ -326,7 +270,6 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
   vector<Node> nodes;
   nodes.resize(slices.size());
   for (int i = 0; i < (int)slices.size(); i++) {
-    //cout << slices[i] << endl;
     nodes[i].pred_count = 0;
     nodes[i].ts = slices[i];
     if (slices[i].k > max_k) {
