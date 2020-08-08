@@ -32,6 +32,6 @@ ContextSolverResult context_solve(
         std::vector<std::shared_ptr<ModelEmbedding>>(std::shared_ptr<BackgroundContext>)
       > f);
 
-void context_solve_init();
+void context_reset();
 
 #endif

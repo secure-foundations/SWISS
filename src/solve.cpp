@@ -13,6 +13,13 @@ smt::context _z3_ctx_quick;
 smt::context _cvc4_ctx_normal;
 smt::context _cvc4_ctx_quick;
 
+void context_reset() {
+  _z3_ctx_normal = smt::context();
+  _z3_ctx_quick = smt::context();
+  _cvc4_ctx_normal = smt::context();
+  _cvc4_ctx_quick = smt::context();
+}
+
 smt::context z3_ctx_normal() {
   if (!_z3_ctx_normal.p) {
     _z3_ctx_normal = smt::context(smt::Backend::z3);

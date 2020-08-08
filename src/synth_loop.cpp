@@ -615,6 +615,8 @@ SynthesisResult synth_loop(
     value candidate = cs->getNext();
     filtering_ns += as_ns(now() - filtering_t1);
 
+    context_reset();
+
     auto process_start_t = now();
 
     if (!candidate) {
@@ -786,6 +788,8 @@ SynthesisResult synth_loop_incremental_breadth(
       auto filtering_t1 = now();
       value candidate0 = cs->getNext();
       filtering_ns += as_ns(now() - filtering_t1);
+
+      context_reset();
 
       auto process_start_t = now();
 
