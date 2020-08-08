@@ -48,7 +48,7 @@ AltDepth2CandidateSolver::AltDepth2CandidateSolver(
   var_index_states.resize(total_arity + 2);
   ts = build_transition_system(
       get_var_index_init_state(module, templ),
-      ei.var_index_transitions);
+      ei.var_index_transitions, -1);
 }
 
 void AltDepth2CandidateSolver::addCounterexample(Counterexample cex)

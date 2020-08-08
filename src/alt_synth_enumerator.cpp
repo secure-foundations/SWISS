@@ -44,7 +44,7 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
 
   ts = build_transition_system(
       get_var_index_init_state(module, templ),
-      ei.var_index_transitions);
+      ei.var_index_transitions, -1);
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 }

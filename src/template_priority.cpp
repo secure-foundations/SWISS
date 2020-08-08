@@ -163,14 +163,15 @@ vector<vector<int>> get_prefixes(
 
 TransitionSystem transition_system_for_slice_list(
     shared_ptr<Module> module,
-    vector<TemplateSlice> const& slices)
+    vector<TemplateSlice> const& slices,
+    int maxVars)
 {
   TemplateSpace tspace = space_containing_slices_ignore_quants(module, slices);
   value templ = tspace.make_templ(module);
   EnumInfo ei(module, templ);
   return build_transition_system(
       get_var_index_init_state(module, templ),
-      ei.var_index_transitions);
+      ei.var_index_transitions, maxVars);
 }
 
 
@@ -311,26 +312,26 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
 
   assert (ordered_slices.size() == slices.size());
 
-  for (TemplateSlice const& ts : ordered_slices) {
-    cout << ts << endl;
-  }
+  //for (TemplateSlice const& ts : ordered_slices) {
+  //  cout << ts << endl;
+  //}
+  cout << "ordered_slices: " << ordered_slices.size() << endl;
 
   ordered_slices = remove_count0(ordered_slices);
 
   vector<TreeShape> tree_shapes = get_tree_shapes_up_to(max_k);
 
-  TransitionSystem trans_system = 
-      transition_system_for_slice_list(module, ordered_slices);
-
-  assert(nthreads >= 1);
-  vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
-
   int nsorts = module->sorts.size();
-
   int max_mvars = 0;
   for (TemplateSlice const& ts : ordered_slices) {
     max_mvars = max(max_mvars, total_vars(ts));
   }
+
+  TransitionSystem trans_system = 
+      transition_system_for_slice_list(module, ordered_slices, max_mvars);
+
+  assert(nthreads >= 1);
+  vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
 
   int idx = 0;
   vector<vector<int>> max_vars_per_thread;

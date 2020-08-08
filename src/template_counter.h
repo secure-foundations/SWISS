@@ -126,7 +126,8 @@ struct TransitionSystem {
 
 TransitionSystem build_transition_system(
       VarIndexState const& init,
-      std::vector<VarIndexTransition> const& transitions);
+      std::vector<VarIndexTransition> const& transitions,
+      int maxVars);
 
 //long long count_space(std::shared_ptr<Module> module, int k, int maxVars);
 long long count_template(

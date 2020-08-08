@@ -188,7 +188,8 @@ EnumInfo::EnumInfo(std::shared_ptr<Module> module, value templ)
 
 TransitionSystem build_transition_system(
       VarIndexState const& init,
-      std::vector<VarIndexTransition> const& transitions)
+      std::vector<VarIndexTransition> const& transitions,
+      int maxVars)
 {
   vector<VarIndexState> idx_to_state;
   idx_to_state.push_back(init);
@@ -214,16 +215,29 @@ TransitionSystem build_transition_system(
         var_index_do_transition(cur_state, transitions[i].res, next);
         //cout << "next " << next.to_string() << endl;
 
-        int next_idx;
-        auto iter = state_to_idx.find(next);
-        if (iter == state_to_idx.end()) {
-          idx_to_state.push_back(next);
-          state_to_idx.insert(make_pair(next, idx_to_state.size() - 1));
-          next_idx = idx_to_state.size() - 1;
+        bool okay;
+        if (maxVars != -1) {
+          int sum = 0;
+          for (int j : next.indices) { sum += j; }
+          okay = (sum <= maxVars);
         } else {
-          next_idx = iter->second;
+          okay = true;
         }
-        matrix[cur][i] = next_idx;
+
+        if (okay) {
+          int next_idx;
+          auto iter = state_to_idx.find(next);
+          if (iter == state_to_idx.end()) {
+            idx_to_state.push_back(next);
+            state_to_idx.insert(make_pair(next, idx_to_state.size() - 1));
+            next_idx = idx_to_state.size() - 1;
+          } else {
+            next_idx = iter->second;
+          }
+          matrix[cur][i] = next_idx;
+        } else {
+          matrix[cur][i] = -1;
+        }
       } else {
         matrix[cur][i] = -1;
       }
@@ -326,7 +340,8 @@ long long count_template(
   EnumInfo ei(module, templ);
   TransitionSystem ts = build_transition_system(
           get_var_index_init_state(module, templ),
-          ei.var_index_transitions);
+          ei.var_index_transitions,
+          -1);
 
   ts = ts.cap_total_vars(get_num_vars(module, templ));
   ts = ts.remove_unused_transitions();
@@ -397,7 +412,8 @@ vector<TemplateSlice> count_many_templates(
   EnumInfo ei(module, templ);
   TransitionSystem ts = build_transition_system(
           get_var_index_init_state(module, templ),
-          ei.var_index_transitions);
+          ei.var_index_transitions,
+          maxVars);
   if (maxVars != -1) {
     ts = ts.cap_total_vars(maxVars);
   }
