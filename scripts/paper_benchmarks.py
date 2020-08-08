@@ -103,8 +103,8 @@ for minmodels in (True, False):
         benches.append(PaperBench("decentralized-lock-gimme-1.ivy", config="basic", **args))
 
 for seed in range(1, 9):
-  benches.append(PaperBench("learning_switch.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
-  benches.append(PaperBench("learning_switch.ivy", "basic", threads=THREADS, seed=seed))
+  benches.append(PaperBench("learning-switch.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
+  benches.append(PaperBench("learning-switch.ivy", "basic", threads=THREADS, seed=seed))
 
   benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
   benches.append(PaperBench("paxos.ivy", "basic", threads=THREADS, seed=seed))
