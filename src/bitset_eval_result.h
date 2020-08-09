@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <cassert>
 
 struct BitsetEvalResult {
   std::vector<uint64_t> v;
@@ -98,23 +99,23 @@ struct AlternationBitsetEvaluator {
   }
 
   void add_conj(BitsetEvalResult const& ber) {
-    for (int i = 0; i < (int)scratch.size(); i++) {
+    for (int i = 0; i < (int)ber.v.size(); i++) {
       scratch[i] &= ber.v[i];
     }
   }
   void add_disj(BitsetEvalResult const& ber) {
-    for (int i = 0; i < (int)scratch.size(); i++) {
+    for (int i = 0; i < (int)ber.v.size(); i++) {
       scratch[i] |= ber.v[i];
     }
   }
 
   void add_conj(std::vector<uint64_t> const& v) {
-    for (int i = 0; i < (int)scratch.size(); i++) {
+    for (int i = 0; i < (int)v.size(); i++) {
       scratch[i] &= v[i];
     }
   }
   void add_disj(std::vector<uint64_t> const& v) {
-    for (int i = 0; i < (int)scratch.size(); i++) {
+    for (int i = 0; i < (int)v.size(); i++) {
       scratch[i] |= v[i];
     }
   }
