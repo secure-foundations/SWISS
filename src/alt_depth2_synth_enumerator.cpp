@@ -351,8 +351,9 @@ void AltDepth2CandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe,
 
   int k = 0;
 
-  if (evaluator_buf.size() < cex_result[cur_indices[k]].first.v.size()) {
-    evaluator_buf.resize(cex_result[cur_indices[k]].first.v.size());
+  int sz = cex_result[cur_indices[k]].first.v.size();
+  if ((int)evaluator_buf.size() < sz) {
+    evaluator_buf.resize(sz);
   }
 
   for (int i = 0; i < (int)ts.parts.size(); i++) {
@@ -375,9 +376,9 @@ void AltDepth2CandidateSolver::setup_abe1(AlternationBitsetEvaluator& abe,
         k++;
       }
       if (ts.top_level_is_conj) {
-        abe.add_conj(evaluator_buf);
+        abe.add_conj(sz, evaluator_buf);
       } else {
-        abe.add_disj(evaluator_buf);
+        abe.add_disj(sz, evaluator_buf);
       }
     }
   }
@@ -396,8 +397,9 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
 
   int k = 0;
 
-  if (evaluator_buf.size() < cex_result[cur_indices[k]].second.v.size()) {
-    evaluator_buf.resize(cex_result[cur_indices[k]].second.v.size());
+  int sz = cex_result[cur_indices[k]].second.v.size();
+  if ((int)evaluator_buf.size() < sz) {
+    evaluator_buf.resize(sz);
   }
 
   for (int i = 0; i < (int)ts.parts.size(); i++) {
@@ -420,9 +422,9 @@ void AltDepth2CandidateSolver::setup_abe2(AlternationBitsetEvaluator& abe,
         k++;
       }
       if (ts.top_level_is_conj) {
-        abe.add_conj(evaluator_buf);
+        abe.add_conj(sz, evaluator_buf);
       } else {
-        abe.add_disj(evaluator_buf);
+        abe.add_disj(sz, evaluator_buf);
       }
     }
   }

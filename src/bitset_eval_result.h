@@ -109,13 +109,13 @@ struct AlternationBitsetEvaluator {
     }
   }
 
-  void add_conj(std::vector<uint64_t> const& v) {
-    for (int i = 0; i < (int)v.size(); i++) {
+  void add_conj(int sz, std::vector<uint64_t> const& v) {
+    for (int i = 0; i < sz; i++) {
       scratch[i] &= v[i];
     }
   }
-  void add_disj(std::vector<uint64_t> const& v) {
-    for (int i = 0; i < (int)v.size(); i++) {
+  void add_disj(int sz, std::vector<uint64_t> const& v) {
+    for (int i = 0; i < sz; i++) {
       scratch[i] |= v[i];
     }
   }
