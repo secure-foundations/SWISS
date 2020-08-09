@@ -34,7 +34,7 @@ def reverse_readline(filename, buf_size=8192):
         if segment is not None:
             yield segment
 
-def parse_stats(filename):
+def parse_stats(filename, cid):
   lines = []
   started = False
   for line in reverse_readline(filename):
@@ -70,6 +70,7 @@ def parse_stats(filename):
       d[key] = value
     else:
       assert False
+  d["column_id"] = str(cid)
   return d
 
 def pad(k, n):
@@ -134,13 +135,13 @@ class Stats(object):
 
     self.logfile_base = logfile
 
-  def add_inc_log(self, iternum, log, seconds):
+  def add_inc_log(self, iternum, log, seconds, cid):
     while len(self.inc_logs) <= iternum:
       self.inc_logs.append([])
       self.inc_individual_times.append([])
     self.inc_logs[-1].append(log)
     self.inc_individual_times[-1].append(seconds)
-    self.all_logs.append((log, seconds))
+    self.all_logs.append((log, seconds, cid))
 
   def add_inc_result(self, iternum, log, seconds):
     #print("inc_result_filenames", self.inc_result_filenames)
@@ -149,10 +150,10 @@ class Stats(object):
     self.inc_result_filenames.append(log)
     self.inc_times.append(seconds)
 
-  def add_finisher_log(self, filename, seconds):
+  def add_finisher_log(self, filename, seconds, cid):
     self.finisher_logs.append(filename)
     self.finisher_individual_times.append(seconds)
-    self.all_logs.append((filename, seconds))
+    self.all_logs.append((filename, seconds, cid))
 
   def add_finisher_result(self, filename, seconds):
     self.finisher_result_filename = filename
@@ -236,8 +237,8 @@ class Stats(object):
 
   def dump_individual_stats(self, f):
     self.log_stats = {}
-    for (log, seconds) in self.all_logs:
-      stats = parse_stats(log)
+    for (log, seconds, cid) in self.all_logs:
+      stats = parse_stats(log, cid)
       self.log_stats[log] = stats
       log_stats(f, stats, log)
 
@@ -302,7 +303,7 @@ class Stats(object):
           "total cpu time:", self.get_total_cpu_time(), "seconds")
 
       log(f, "")
-      for (l, seconds) in self.all_logs:
+      for (l, seconds, cid) in self.all_logs:
         log(f, "time for process " + l + " is " + str(seconds) + " seconds")
 
       log(f, "")

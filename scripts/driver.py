@@ -288,6 +288,12 @@ def coalesce(logfile, json_filename, iterkey, files):
   assert succ, "breadth coalesce failed"
   return new_output_file
 
+def remove_one(s):
+  assert len(s) > 0
+  t = min(s)
+  s.remove(t)
+  return t
+
 def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile, iteration_num, stats, nthreads, chunk_files):
 
   if invfile != None:
@@ -298,6 +304,9 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
   q = queue.Queue()
   threads = [ ]
   output_files = {}
+
+  column_ids = {} # assign each proc a column id in [1..nthreads] for graphing purposes
+  avail_column_ids = set(range(1, nthreads + 1))
 
   n_running = 0
   i = 0
@@ -310,6 +319,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
       output_file = tempfile.mktemp()
       key = iterkey+".thread."+str(i)
       output_files[key] = output_file
+      cid = remove_one(avail_column_ids)
+      column_ids[key] = cid
 
       t = threading.Thread(target=run_synthesis, args=
           (logfile, key, json_filename, args_add_seed(
@@ -322,14 +333,18 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
       n_running += 1
     else:
       synres = q.get()
+
+      key = synres.run_id
+      cid = column_ids[key]
+      avail_column_ids.add(cid)
+
       n_running -= 1
       if synres.failed and not synres.stopped:
         kill_all_procs()
         assert False, "breadth proper failed"
       else:
-        stats.add_inc_log(iteration_num, synres.logfile, synres.seconds)
+        stats.add_inc_log(iteration_num, synres.logfile, synres.seconds, cid)
         if not synres.stopped and not killing:
-          key = synres.run_id
           success, this_has_any = parse_output_file(output_files[key])
           if this_has_any:
             has_any = True
@@ -360,6 +375,9 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
   threads = [ ]
   output_files = {}
 
+  column_ids = {} # assign each proc a column id in [1..nthreads] for graphing purposes
+  avail_column_ids = set(range(1, nthreads + 1))
+
   n_running = 0
   i = 0
 
@@ -370,6 +388,8 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
       output_file = tempfile.mktemp()
       key = iterkey+".thread."+str(i)
       output_files[key] = output_file
+      cid = remove_one(avail_column_ids)
+      column_ids[key] = cid
 
       t = threading.Thread(target=run_synthesis, args=
           (logfile, key, json_filename, args_add_seed(
@@ -382,13 +402,17 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
       n_running += 1
     else:
       synres = q.get()
+
+      key = synres.run_id
+      cid = column_ids[key]
+      avail_column_ids.add(cid)
+
       n_running -= 1
       if synres.failed and not synres.stopped:
         kill_all_procs()
         assert False, "finisher proper failed"
       else:
-        key = synres.run_id
-        stats.add_finisher_log(synres.logfile, synres.seconds)
+        stats.add_finisher_log(synres.logfile, synres.seconds, cid)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if success:
