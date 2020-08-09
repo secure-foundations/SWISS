@@ -314,8 +314,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
   has_any = False
   any_success = False
 
-  while i < len(chunk_files) or n_running > 0:
-    if i < len(chunk_files) and n_running < nthreads:
+  while ((not any_success) and i < len(chunk_files)) or n_running > 0:
+    if (not any_success) and i < len(chunk_files) and n_running < nthreads:
       output_file = tempfile.mktemp()
       key = iterkey+".thread."+str(i)
       output_files[key] = output_file
@@ -383,8 +383,8 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
 
   any_success = False
 
-  while i < len(chunk_files) or n_running > 0:
-    if i < len(chunk_files) and n_running < nthreads:
+  while ((not any_success) and i < len(chunk_files)) or n_running > 0:
+    if (not any_success) and i < len(chunk_files) and n_running < nthreads:
       output_file = tempfile.mktemp()
       key = iterkey+".thread."+str(i)
       output_files[key] = output_file
