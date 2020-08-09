@@ -71,6 +71,18 @@ THREADS = 8
 #      "nonacc_wc_chord_t" + str(i),
 #      "chord-gimme-1 --breadth-with-conjs --by-size --non-accumulative --minimal-models --whole-space --threads " + str(i)))
 
+for seed in range(1, 6):
+  benches.append(PaperBench("simple-de-lock.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("leader-election.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("learning-switch.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("lock_server.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("2PC.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("paxos.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("multi_paxos.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("flexible_paxos.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("chord-gimme-1.ivy", config="auto", seed=seed))
+  benches.append(PaperBench("decentralized-lock-gimme-1.ivy", config="auto", seed=seed))
+
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench("paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
   benches.append(PaperBench("paxos.ivy", "basic_b", threads=i, expect_success=False))
