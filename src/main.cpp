@@ -417,6 +417,7 @@ int main(int argc, char* argv[]) {
   int template_sorter_k;
   int template_sorter_d;
   int template_sorter_mvars;
+  int template_sorter_e;
   string template_outfile;
 
   bool one_breadth = false;
@@ -538,12 +539,13 @@ int main(int argc, char* argv[]) {
       i += 2;
     }
     else if (argv[i] == string("--template-sorter")) {
-      assert(i + 2 < argc);
+      assert(i + 4 < argc);
       template_sorter = true;
       template_sorter_k = atoi(argv[i+1]);
       template_sorter_d = atoi(argv[i+2]);
       template_sorter_mvars = atoi(argv[i+3]);
-      i += 3;
+      template_sorter_e = atoi(argv[i+4]);
+      i += 4;
     }
 
     /*else if (argv[i] == string("--threads")) {
@@ -581,7 +583,7 @@ int main(int argc, char* argv[]) {
         template_sorter_k,
         template_sorter_d == 2,
         template_sorter_mvars);
-    auto slices = quantifier_combos(module, forall_slices);
+    auto slices = quantifier_combos(module, forall_slices, template_sorter_e);
     if (output_chunk_dir != "") {
       assert (nthreads != -1);
       assert (one_breadth ^ one_finisher);

@@ -20,7 +20,8 @@ std::vector<TemplateSlice> break_into_slices(
 
 vector<TemplateSlice> quantifier_combos(
     shared_ptr<Module> module,
-    vector<TemplateSlice> const& forall_slices)
+    vector<TemplateSlice> const& forall_slices,
+    int maxExists)
 {
   vector<TemplateSlice> res;
   int nsorts = module->sorts.size();
@@ -37,7 +38,20 @@ vector<TemplateSlice> quantifier_combos(
         }
       }
       if (okay) {
-        res.push_back(ts1);
+        if (maxExists != -1) {
+          int sumExists = 0;
+          for (int j = 0; j < nsorts; j++) {
+            if (ts1.quantifiers[j] == Quantifier::Exists) {
+              sumExists += ts1.vars[j];
+            }
+          }
+          if (sumExists > maxExists) {
+            okay = false;
+          }
+        }
+        if (okay) {
+          res.push_back(ts1);
+        }
       }
     }
   }

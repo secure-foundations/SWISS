@@ -5,10 +5,11 @@ class TemplateSpace(object):
     self.d = d
 
 class TemplateGen(object):
-  def __init__(self, k, d, mvars):
+  def __init__(self, k, d, mvars, e):
     self.k = k
     self.d = d
     self.mvars = mvars
+    self.e = e
 
 class BigSpace(object):
   def __init__(self, spaces=None, gen=None):
@@ -20,7 +21,7 @@ class BigSpace(object):
       assert len(self.spaces) == 0
       return [("--one-breadth" if alg == "--breadth" else "--one-finisher"),
           "--template-sorter",
-          str(self.gen.k), str(self.gen.d), str(self.gen.mvars)]
+          str(self.gen.k), str(self.gen.d), str(self.gen.mvars), str(self.gen.e)]
     elif len(self.spaces) > 0:
       res = []
       for space in self.spaces:
@@ -66,8 +67,11 @@ def parse_line(line):
     assert len(keyvals) == 2
     return TemplateSpace(rest, keyvals["k"], keyvals["d"])
   elif name == "auto":
-    assert len(keyvals) == 3
-    return TemplateGen(keyvals["k"], keyvals["d"], keyvals["mvars"])
+    assert len(keyvals) in (3, 4)
+    e = -1
+    if "e" in keyvals:
+      e = keyvals["e"]
+    return TemplateGen(keyvals["k"], keyvals["d"], keyvals["mvars"], e)
 
 def parse_space(lines):
   spaces = []
