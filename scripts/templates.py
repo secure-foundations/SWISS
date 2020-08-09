@@ -133,6 +133,7 @@ def read_suite(ivy_filename):
           new_bench_name = s[1][:-1]
 
           if bench_name is not None:
+            assert bench_name not in benches
             benches[bench_name] = parse_bench(cur_bench)
 
           bench_name = new_bench_name
