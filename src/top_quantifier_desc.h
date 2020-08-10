@@ -99,4 +99,6 @@ private:
     std::vector<value>& results);
 };
 
+std::pair<TopAlternatingQuantifierDesc, value> get_taqd_and_body(value);
+
 #endif

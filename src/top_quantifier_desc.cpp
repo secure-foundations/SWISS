@@ -39,6 +39,23 @@ pair<TopQuantifierDesc, value> get_tqd_and_body(value v)
   return make_pair(tqd, v);
 }
 
+pair<TopAlternatingQuantifierDesc, value> get_taqd_and_body(value v)
+{
+  TopAlternatingQuantifierDesc taqd(v);
+
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      v = f->body;
+    } else if (Exists* e = dynamic_cast<Exists*>(v.get())) {
+      v = e->body;
+    } else {
+      break;
+    }
+  }
+
+  return make_pair(taqd, v);
+}
+
 vector<VarDecl> TopQuantifierDesc::decls() const {
   vector<VarDecl> res;
   for (auto p : d) {

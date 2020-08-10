@@ -28,6 +28,7 @@ OBJECTS = $(addprefix bin/,\
 	template_priority.o \
 	clause_gen.o \
 	solve.o \
+	auto_redundancy_filters.o \
 	lib/json11/json11.o \
 )
 
