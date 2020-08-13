@@ -1,26 +1,38 @@
 #include "filter.h"
 #include "contexts.h"
+#include "solve.h"
 
 using namespace std;
 
 bool is_necessary(
-    smt::context& ctx,
     shared_ptr<Module> module,
     vector<value> const& values,
     int i)
 {
-  BasicContext basic_ctx(ctx, module);
-  smt::solver& solver = basic_ctx.ctx->solver;
+  ContextSolverResult csr = context_solve(
+      "is-necessary",
+      module,
+      ModelType::Any,
+      Strictness::TryHard,
+      nullptr,
+      [module, &values, i](shared_ptr<BackgroundContext> bgctx)
+  {
+    BasicContext basic_ctx(bgctx, module);
+    smt::solver& solver = basic_ctx.ctx->solver;
 
-  for (int j = 0; j < (int)values.size(); j++) {
-    if (j == i) {
-      solver.add(basic_ctx.e->value2expr(v_not(values[j])));
-    } else {
-      solver.add(basic_ctx.e->value2expr(values[j]));
+    for (int j = 0; j < (int)values.size(); j++) {
+      if (j == i) {
+        solver.add(basic_ctx.e->value2expr(v_not(values[j])));
+      } else {
+        solver.add(basic_ctx.e->value2expr(values[j]));
+      }
     }
-  }
 
-  return solver.check_sat();
+    return vector<shared_ptr<ModelEmbedding>>{};
+  });
+
+  // If unknown, assume necessary
+  return csr.res != smt::SolverResult::Unsat;
 }
 
 vector<value> filter_redundant_formulas(
@@ -38,10 +50,8 @@ vector<value> filter_redundant_formulas(
     }
   }
 
-  smt::context ctx(smt::Backend::z3);
-
   for (int i = 0; i < (int)values.size(); i++) {
-    if (!is_necessary(ctx, module, values, i)) {
+    if (!is_necessary(module, values, i)) {
       for (int j = i; j < (int)values.size() - 1; j++) {
         values[j] = values[j+1];
       }

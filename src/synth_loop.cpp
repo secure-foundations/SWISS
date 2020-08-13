@@ -89,7 +89,6 @@ Counterexample get_counterexample_test_with_conjs(
   {
     auto initctx = shared_ptr<InitContext>(new InitContext(bgctx, module));
     smt::solver& init_solver = initctx->ctx->solver;
-    init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
@@ -192,7 +191,6 @@ Counterexample get_counterexample_simple(
   {
     auto initctx = shared_ptr<InitContext>(new InitContext(bgctx, module));
     smt::solver& init_solver = initctx->ctx->solver;
-    init_solver.push();
     init_solver.add(initctx->e->value2expr(v_not(candidate)));
     return vector<shared_ptr<ModelEmbedding>>{initctx->e};
   });
@@ -256,7 +254,6 @@ Counterexample get_counterexample_simple(
     {
       auto indctx = shared_ptr<InductionContext>(new InductionContext(bgctx, module, j));
       smt::solver& solver = indctx->ctx->solver;
-      solver.push();
       if (cur_invariant) {
         solver.add(indctx->e1->value2expr(cur_invariant));
       }
