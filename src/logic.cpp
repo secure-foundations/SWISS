@@ -106,7 +106,10 @@ set<iden> add_names(set<iden> names, vector<VarDecl> const& decls)
 {
   for (VarDecl const& decl : decls) {
     // sanity check
-    assert (names.find(decl.name) == names.end() && "duplicate variable name in input");
+    if (names.find(decl.name) != names.end()) {
+      cout << decl.name << endl;
+      assert (false && "duplicate variable name in input");
+    }
     names.insert(decl.name);
   }
   return names;
@@ -216,6 +219,12 @@ shared_ptr<Action> json2action(Json j) {
   if (type == "localAction") {
     assert(j.array_items().size() == 3);
     return shared_ptr<Action>(new LocalAction(json2decl_array(j[1]), json2action(j[2])));
+  }
+  else if (type == "relation") {
+    assert(j.array_items().size() == 3);
+    return shared_ptr<Action>(new RelationAction(
+        json2string_array(j[1]),
+        json2value(j[2])));
   }
   else if (type == "sequence") {
     assert(j.array_items().size() == 2);

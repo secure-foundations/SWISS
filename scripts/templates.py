@@ -111,7 +111,7 @@ def parse_bench(lines):
   return Bench(parse_space(breadth_lines), parse_space(finisher_lines))
 
 def get_suite_filename(ivy_filename):
-  assert ivy_filename.endswith(".ivy")
+  assert ivy_filename.endswith(".ivy") or ivy_filename.endswith(".pyv")
   return ivy_filename[:-4] + ".config"
 
 def read_suite(ivy_filename):

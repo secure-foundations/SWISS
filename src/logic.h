@@ -514,6 +514,17 @@ public:
   virtual ~Action() {}
 };
 
+class RelationAction : public Action {
+public:
+  std::vector<std::string> mods;
+  std::shared_ptr<Value> rel;
+
+  RelationAction(
+    std::vector<std::string> const& mods,
+    std::shared_ptr<Value> rel)
+    : mods(mods), rel(rel) { }
+};
+
 class LocalAction : public Action {
 public:
   std::vector<VarDecl> args;

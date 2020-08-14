@@ -3,228 +3,203 @@ import json
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'ivy')))
+    os.path.dirname(__file__), 'mypyvy/src')))
 
-from ivy.ivy_init import ivy_init 
-from ivy.ivy_compiler import ivy_load_file
-from ivy.ivy_logic import AST
-from ivy import ivy_module as im
-from ivy import ivy_module
-from ivy import logic
-from ivy import ivy_actions
-from ivy import ivy_logic_utils
+import parser
+import typechecker
+import syntax
 
-def get_json():
-  with ivy_module.Module():
-    with open(sys.argv[1]) as f:
-      ivy_load_file(f)
+def parse_program(input, filename = None):
+    l = parser.get_lexer()
+    p = parser.get_parser(forbid_rebuild=False)
+    prog = p.parse(input=input, lexer=l, filename=filename)
+    prog.input = input
+    return prog
 
-    functions = []
-    for func in im.module.functions:
-      functions.append(logic_to_obj(func))  
+def binder_to_json(binder):
+  d = []
+  for v in binder.vs:
+    d.append(["var", v.name, sort_to_json(v.sort)])
+  return d
 
-    # XXX hack
-    #if sys.argv[1] == "examples/leader-election.ivy":
-    #  functions.append(["const", "<=", ["functionSort", [
-    #      ["uninterpretedSort", "id"],
-    #      ["uninterpretedSort", "id"]],
-    #      ["booleanSort"]]])
+class Mods(object):
+  def __init__(self, mods):
+    self.mods = mods
+    self.in_new = False
+  def with_new(self):
+    assert (self.mods != None)
+    m = Mods(self.mods)
+    m.in_new = True
+    return m
 
-    axioms = []
-    for axiom in im.module.get_axioms():
-      #print axiom
-      #print logic_to_obj(ivy_logic_utils.close_epr(axiom))
-      axioms.append(logic_to_obj(ivy_logic_utils.close_epr(axiom)))
+def expr_to_json(fs, m, vs, e):
+  if isinstance(e, syntax.QuantifierExpr):
+    assert e.quant in ("FORALL", "EXISTS")
+    is_forall = e.quant == "FORALL"
+    decls = binder_to_json(e.binder)
+    w = dict(vs)
+    for v in e.binder.vs:
+      w[v.name] = sort_to_json(v.sort)
 
-    conjectures = []
-    for conj in im.module.conjs:
-      for fmla in conj.fmlas:
-        #print fmla
-        #print logic_to_obj(ivy_logic_utils.close_epr(fmla))
-        conjectures.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
-      #conjectures.append(logic_to_obj(conj.formula))
-
-    templates = []
-    for template in im.module.labeled_templates:
-      #print template
-      #print template.formula
-      templates.append(logic_to_obj(template.formula))
-      #template = ivy_logic_utils.formula_to_clauses(template)
-      #or fmla in template.fmlas:
-      # templates.append(logic_to_obj(fmla))
-
-    inits = []
-    for fmla in im.module.init_cond.fmlas:
-      inits.append(logic_to_obj(ivy_logic_utils.close_epr(fmla)))
-
-    actions = {}
-    for name in im.module.actions:
-      action = im.module.actions[name]
-      actions[name] = action_to_obj(action)
-
-    return json.dumps({
-      "sorts": im.module.sort_order,
-      "functions": functions,
-      "inits": inits,
-      "axioms": axioms,
-      "conjectures": conjectures, #[c for c in conjectures if not has_wildcard(c)],
-      "templates": templates, #[c for c in conjectures if has_wildcard(c)],
-      "actions": actions,
-    })
-
-def has_wildcard(o):
-  if type(o) == dict:
-    for k in o:
-      if has_wildcard(o[k]):
-        return True
-    return False
-  elif type(o) == list:
-    if len(o) == 1:
-      return o[0] == '__wild'
+    body = expr_to_json(fs, m, w, e.body)
+    return ["forall" if is_forall else "exists", decls, body]
+  elif isinstance(e, syntax.AppExpr):
+    so = fs[e.callee]
+    if m.in_new and e.callee in m.mods:
+      c = ["const", e.callee + "'", so]
     else:
-      for k in xrange(0, len(o)):
-        if has_wildcard(o[k]):
-          return True
-      return False
-  else:
-    return False
-
-def action_to_obj(l):
-  if isinstance(l, ivy_actions.LocalAction):
-    return [
-      "localAction",
-      [logic_to_obj(arg) for arg in l.args[0:-1]],
-      action_to_obj(l.args[-1]),
+      c = ["const", e.callee, so]
+    return ["apply",
+      c,
+      [expr_to_json(fs, m, vs, arg) for arg in e.args]
     ]
-  elif isinstance(l, ivy_actions.Sequence):
-    return [
-      "sequence",
-      [action_to_obj(arg) for arg in l.args],
-    ]
-  elif isinstance(l, ivy_actions.AssumeAction):
-    return [
-      "assume",
-      logic_to_obj(ivy_logic_utils.close_epr(l.args[0])),
-    ]
-  elif isinstance(l, ivy_actions.AssumeAction):
-    return [
-      "assert",
-      logic_to_obj(ivy_logic_utils.close_epr(l.args[0])),
-    ]
-  elif isinstance(l, ivy_actions.AssignAction):
-    return [
-      "assign",
-      logic_to_obj(l.args[0]),
-      logic_to_obj(l.args[1]),
-    ]
-  elif isinstance(l, ivy_actions.HavocAction):
-    return [
-      "havoc",
-      logic_to_obj(l.args[0]),
-    ]
-  elif isinstance(l, ivy_actions.IfAction):
-    if len(l.args) >= 3:
-      return [
-        "ifelse",
-        logic_to_obj(l.args[0]),
-        action_to_obj(l.args[1]),
-        action_to_obj(l.args[2]),
-      ]
+  elif isinstance(e, syntax.Id):
+    if e.name in vs:
+      return ["var", e.name, vs[e.name]]
     else:
-      return [
-        "if",
-        logic_to_obj(l.args[0]),
-        action_to_obj(l.args[1]),
-      ]
+      assert e.name in fs
+      if m.in_new and e.name in m.mods:
+        return ["const", e.name + "'", fs[e.name]]
+      else:
+        return ["const", e.name, fs[e.name]]
+  elif isinstance(e, syntax.UnaryExpr):
+    if e.op == "NOT":
+      return ["not", expr_to_json(fs, m, vs, e.arg)]
+    elif e.op == "NEW":
+      return expr_to_json(fs, m.with_new(), vs, e.arg)
+    else:
+      print("unary", e.op)
+      assert False
+  elif isinstance(e, syntax.BinaryExpr):
+    if e.op == "IMPLIES":
+      return ["implies", expr_to_json(fs, m, vs, e.arg1), expr_to_json(fs, m, vs, e.arg2)]
+    elif e.op == "EQUAL":
+      return ["eq", expr_to_json(fs, m, vs, e.arg1), expr_to_json(fs, m, vs, e.arg2)]
+    elif e.op == "IFF":
+      return ["eq", expr_to_json(fs, m, vs, e.arg1), expr_to_json(fs, m, vs, e.arg2)]
+    elif e.op == "NOTEQ":
+      return ["not", ["eq", expr_to_json(fs, m, vs, e.arg1), expr_to_json(fs, m, vs, e.arg2)]]
+    else:
+      print("binary", e.op)
+      assert False
+  elif isinstance(e, syntax.NaryExpr):
+    if e.op == "AND":
+      return ["and", [expr_to_json(fs, m, vs, a) for a in e.args]]
+    if e.op == "OR":
+      return ["or", [expr_to_json(fs, m, vs, a) for a in e.args]]
+    else:
+      print("nary", e.op)
+      assert False
+  elif isinstance(e, syntax.IfThenElse):
+    return ["ite",
+        expr_to_json(fs, m, vs, e.branch),
+        expr_to_json(fs, m, vs, e.then),
+        expr_to_json(fs, m, vs, e.els)
+    ]
   else:
-    print 'action_to_obj failed', type(l)
+    print(type(e))
+    print(dir(e))
     assert False
 
-def maybe_merge_nearlys(obj):
-  if obj[0] == "nearlyforall" and obj[2][0] == "nearlyforall":
-    vs1 = obj[1]
-    vs2 = obj[2][1]
+def get_sorts(prog):
+  return [sort.name for sort in prog.sorts()]
 
-    name1 = vs1[0][1]
-    name2 = vs2[0][1]
+def sort_to_json(r):
+  return ["uninterpretedSort", r.name]
 
-    parts1 = name1.split('_')
-    parts2 = name2.split('_')
-    assert len(parts1) >= 3
-    assert len(parts2) >= 3
-    assert parts1[0] == 'Nearly'
-    assert parts2[0] == 'Nearly'
-    if parts1[1] == parts2[1]:
-      return ["nearlyforall", vs1 + vs2, obj[2][2]]
-    else:
-      return obj
-  else:
-    return obj
+def boolean_sort_json():
+  return ["booleanSort"]
 
-def sort_vars_alphabetically(vs):
-  # ["var", "Q", ["uninterpretedSort", "quorum"]]
-  return sorted(vs, key = lambda v : (v[2][1], v[1]))
+def get_functions(prog):
+  funcs = []
 
-def logic_to_obj(l):
-  if isinstance(l, logic.ForAll):
-    vs = [v for v in l.variables if v.name != "WILD"]
+  for rel in prog.relations():
+    dom = [sort_to_json(r) for r in rel.arity]
+    rng = boolean_sort_json()
+    funcs.append(["const", rel.name, ["functionSort", dom, rng]])
+
+  for c in prog.constants():
+    funcs.append(["const", c.name, sort_to_json(c.sort)])
+
+  for f in prog.functions():
+    dom = [sort_to_json(r) for r in f.arity]
+    rng = sort_to_json(f.sort)
+    funcs.append(["const", f.name, ["functionSort", dom, rng]])
+
+  return funcs
+
+def get_fs(prog):
+  fs = {}
+  for rel in prog.relations():
+    dom = [sort_to_json(r) for r in rel.arity]
+    rng = boolean_sort_json()
+    fs[rel.name] = ["functionSort", dom, rng]
+
+  for c in prog.constants():
+    fs[rel.name] = ["const", c.name, sort_to_json(c.sort)]
+
+  for f in prog.functions():
+    dom = [sort_to_json(r) for r in f.arity]
+    rng = sort_to_json(f.sort)
+    fs[f.name] = ["functionSort", dom, rng]
+
+  return fs
+
+def get_axioms(prog):
+  fs = get_fs(prog)
+  return [expr_to_json(fs, Mods(None), {}, e.expr) for e in prog.axioms()]
+
+def get_inits(prog):
+  fs = get_fs(prog)
+  return [expr_to_json(fs, Mods(None), {}, e.expr) for e in prog.inits()]
+
+def get_conjs(prog):
+  fs = get_fs(prog)
+  return [expr_to_json(fs, Mods(None), {}, e.expr) for e in prog.safeties()]
+
+def get_actions(prog):
+  fs = get_fs(prog)
+  a = {}
+  for e in prog.transitions():
+    assert (e.num_states == 2)
+    decls = binder_to_json(e.binder)
+    vs = {v.name : sort_to_json(v.sort) for v in e.binder.vs}
+    mod_names = [m.name for m in e.mods]
+    m = Mods(mod_names)
+    ex = expr_to_json(fs, m, vs, e.expr)
+
     if len(vs) > 0:
-      the_vars = [logic_to_obj(var) for var in vs]
-      is_nearly = the_vars[0][1].startswith("Nearly_")
-      name = "nearlyforall" if is_nearly else "forall"
-      the_vars = sort_vars_alphabetically(the_vars)
-      return maybe_merge_nearlys([name, the_vars, logic_to_obj(l.body)])
-    else:
-      return logic_to_obj(l.body)
-  if isinstance(l, logic.Exists):
-    vars = [logic_to_obj(var) for var in l.variables]
-    if len(vars) > 0 and vars[0][1] != 'FakeOutHackExists':
-      the_vars = [logic_to_obj(var) for var in l.variables]
-      the_vars = sort_vars_alphabetically(the_vars)
-      return ["exists", the_vars, logic_to_obj(l.body)]
-    else:
-      return logic_to_obj(l.body)
-  elif isinstance(l, logic.Var):
-    if l.name == "WILD":
-      return ["__wild"]
-    else:
-      return ["var", l.name, sort_to_obj(l.sort)]
-  elif isinstance(l, logic.Const):
-    return ["const", l.name, sort_to_obj(l.sort)]
-  elif isinstance(l, logic.Implies):
-    return ["implies", logic_to_obj(l.t1), logic_to_obj(l.t2)]
-  elif isinstance(l, logic.Eq):
-    return ["eq", logic_to_obj(l.t1), logic_to_obj(l.t2)]
-  elif isinstance(l, logic.Not):
-    return ["not", logic_to_obj(l.body)]
-  elif isinstance(l, logic.Apply):
-    return ["apply", logic_to_obj(l.func), [logic_to_obj(term) for term in l.terms]]
-  elif isinstance(l, logic.And):
-    return ["and", [logic_to_obj(o) for o in l]]
-  elif isinstance(l, logic.Or):
-    return ["or", [logic_to_obj(o) for o in l]]
-  else:
-    print l
-    print 'logic_to_obj cant do', type(l)
-    assert False
+      ex = ["exists", decls, ex]
 
-def sort_to_obj(s):
-  if isinstance(s, logic.BooleanSort):
-    return ["booleanSort"]
-  elif isinstance(s, logic.UninterpretedSort):
-    return ["uninterpretedSort", s.name]
-  elif isinstance(s, logic.FunctionSort):
-    return ["functionSort", [sort_to_obj(t) for t in s.domain], sort_to_obj(s.range)]
-  else:
-    print 'sort_to_obj cant do', type(s)
-    assert False
-
-def fmla_to_obj(fmla):
-  assert isinstance(fmla, AST)
-  return [type(fmla).__name__] + [fmla_to_obj(arg) for arg in fmla.args]
+    a[e.name] = ["relation", mod_names, ex]
+  return a
 
 def main():
-  print get_json()
+  filename = sys.argv[1]
+  with open(filename) as f:
+    contents = f.read()
+  prog = parse_program(contents, filename)
+  typechecker.typecheck_program(prog)
+
+  actions = get_actions(prog)
+
+  print(json.dumps({
+    "sorts" : get_sorts(prog),
+    "functions" : get_functions(prog),
+    "axioms" : get_axioms(prog),
+    "inits" : get_inits(prog),
+    "conjectures" : get_conjs(prog),
+    "templates" : [],
+    "actions" : get_actions(prog),
+  }))
+
+  #print(prog.constants)
+  #print(prog.decls)
+  #print(prog.sorts)
+  #print(prog.safeties)
+  #print(prog.functions)
+  #print(prog.relations)
+  #print(prog.inits)
 
 if __name__ == "__main__":
     main()
