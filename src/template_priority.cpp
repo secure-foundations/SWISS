@@ -372,12 +372,13 @@ vector<vector<TemplateSubSlice>> split_into(
   return res2;
 }
 
-std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
+std::vector<std::vector<TemplateSubSlice>> pack_tightly_dont_exceed_hull(
     shared_ptr<Module> module,
     vector<TemplateSlice> const& slices,
     int nthreads,
     TransitionSystem const& trans_system,
-    vector<TreeShape> const& tree_shapes)
+    vector<TreeShape> const& tree_shapes,
+    map<vector<int>, TransitionSystem>& sub_ts_cache)
 {
   vector<vector<int>> m = get_pareto_vars(slices);
   vector<vector<TemplateSlice>> s2;
@@ -389,7 +390,6 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
   sort_decreasing_count_order(s2);
   vector<vector<TemplateSubSlice>> res;
 
-  map<vector<int>, TransitionSystem> sub_ts_cache;
 
   for (int i = 0; i < (int)s2.size(); i++) {
     long long c = total_count(s2[i]);
@@ -400,6 +400,62 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
 
     vector_append(res, split_into(s2[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
   }
+  return res;
+}
+
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+  return pack_tightly_dont_exceed_hull(module, slices, nthreads, trans_system, tree_shapes, sub_ts_cache);
+}
+
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  for (TemplateSlice const& ts : slices) {
+    cout << ts << endl;
+  }
+
+  const long long THRES = 1000000000;
+
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+  vector<vector<TemplateSubSlice>> res;
+
+  int a = 0;
+  while (a < (int)slices.size()) {
+    int b = a+1;
+    long long tc = slices[a].count;
+    while (b < (int)slices.size() && tc + slices[b].count <= THRES) {
+      tc += slices[b].count;
+      b++;
+    }
+    if (b == a+1) {
+      while (b < (int)slices.size() && slices[b].vars == slices[a].vars) {
+        b++;
+      }
+    }
+
+    vector<TemplateSlice> my_slices;
+    for (int i = a; i < b; i++) {
+      my_slices.push_back(slices[i]);
+    }
+
+    vector_append(res, 
+      pack_tightly_dont_exceed_hull(
+        module, my_slices, nthreads, trans_system, tree_shapes, sub_ts_cache));
+
+    a = b;
+  }
+
   return res;
 }
 
@@ -504,13 +560,12 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
         trans_system,
         tree_shapes);
   } else {
-    assert (false);
-    /*return prioritize_sub_slices_finisher(
+    return prioritize_sub_slices_finisher(
         module,
         ordered_slices,
         nthreads,
         trans_system,
-        tree_shapes);*/
+        tree_shapes);
   }
 
   /*vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
