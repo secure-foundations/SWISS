@@ -253,6 +253,156 @@ vector<TemplateSlice> remove_count0(vector<TemplateSlice> const& v)
   return res;
 }
 
+long long total_count(vector<TemplateSlice> const& slices)
+{
+  long long sum = 0;
+  for (TemplateSlice const& ts : slices) {
+    sum += ts.count;
+  }
+  return sum;
+}
+
+bool strictly_dominates(vector<int> const& a, vector<int> const& b) {
+  for (int i = 0; i < (int)a.size(); i++) {
+    if (a[i] < b[i]) {
+      return false;
+    }
+  }
+  return a != b;
+}
+
+
+bool unstrictly_dominates(vector<int> const& a, vector<int> const& b) {
+  for (int i = 0; i < (int)a.size(); i++) {
+    if (a[i] < b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+vector<vector<int>> get_pareto_vars(vector<TemplateSlice> const& ts)
+{
+  vector<vector<int>> v;
+  for (int i = 0; i < (int)ts.size(); i++) {
+    bool is_p = true;
+    for (int j = 0; j < (int)ts.size(); j++) {
+      if (i != j) {
+        if (strictly_dominates(ts[j].vars, ts[i].vars)) {
+          is_p = false;
+          break;
+        }
+      }
+    }
+    if (is_p) {
+      bool is_taken = false;
+      for (int j = 0; j < (int)v.size(); j++) {
+        if (v[j] == ts[i].vars) {
+          is_taken = true;
+          break;
+        }
+      }
+      if (!is_taken) {
+        v.push_back(ts[i].vars);
+      }
+    }
+  }
+  return v;
+}
+
+int get_vars_that_slice_fits_in(
+    vector<vector<int>> const& m,
+    TemplateSlice const& ts)
+{
+  for (int i = 0; i < (int)m.size(); i++) {
+    if (unstrictly_dominates(m[i], ts.vars)) {
+      return i;
+    }
+  }
+  assert (false);
+}
+
+void sort_decreasing_count_order(vector<vector<TemplateSlice>>& s)
+{
+  vector<pair<long long, int>> cs;
+  cs.resize(s.size());
+  for (int i = 0; i < (int)s.size(); i++) {
+    cs[i].first = -total_count(s[i]);
+    cs[i].second = i;
+  }
+
+  sort(cs.begin(), cs.end());
+
+  vector<vector<TemplateSlice>> t = move(s);
+  s.clear();
+  for (int i = 0; i < (int)t.size(); i++) {
+    s.push_back(t[cs[i].second]);
+  }
+}
+
+vector<vector<TemplateSubSlice>> split_into(
+  vector<TemplateSlice> const& slices,
+  int n,
+  TransitionSystem const& trans_system,
+  map<vector<int>, TransitionSystem>& sub_ts_cache,
+  vector<TreeShape> const& tree_shapes)
+{
+  vector<vector<TemplateSubSlice>> res;
+  res.resize(n);
+  assert (n > 0);
+  for (int i = 0; i < (int)slices.size(); i++) {
+    vector<TemplateSubSlice> new_slices =
+      split_slice_into_sub_slices(trans_system, tree_shapes, slices[i], sub_ts_cache);
+    int k = rand() % n;
+    for (int j = 0; j < (int)new_slices.size(); j++) {
+      res[k].push_back(new_slices[j]);
+      k++;
+      if (k == (int)res.size()) { 
+        k = 0;
+      }
+    }
+  }
+
+  vector<vector<TemplateSubSlice>> res2;
+  for (int i = 0; i < n; i++) {
+    if (res[i].size() > 0) {
+      res2.push_back(move(res[i]));
+    }
+  }
+  return res2;
+}
+
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  vector<vector<int>> m = get_pareto_vars(slices);
+  vector<vector<TemplateSlice>> s2;
+  s2.resize(m.size());
+  for (TemplateSlice const& ts : slices) {
+    int idx = get_vars_that_slice_fits_in(m, ts);
+    s2[idx].push_back(ts);
+  }
+  sort_decreasing_count_order(s2);
+  vector<vector<TemplateSubSlice>> res;
+
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+
+  for (int i = 0; i < (int)s2.size(); i++) {
+    long long c = total_count(s2[i]);
+
+    long long my_nthreads = (c + 1000 - 1) / 1000;
+    if (my_nthreads > nthreads) my_nthreads = nthreads;
+    assert (my_nthreads > 0);
+
+    vector_append(res, split_into(s2[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
+  }
+  return res;
+}
+
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
     std::shared_ptr<Module> module,
     std::vector<TemplateSlice> const& _slices,
@@ -335,7 +485,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
 
   vector<TreeShape> tree_shapes = get_tree_shapes_up_to(max_k);
 
-  int nsorts = module->sorts.size();
+  //int nsorts = module->sorts.size();
   int max_mvars = 0;
   for (TemplateSlice const& ts : ordered_slices) {
     max_mvars = max(max_mvars, total_vars(ts));
@@ -345,7 +495,25 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
       transition_system_for_slice_list(module, ordered_slices, max_mvars);
 
   assert(nthreads >= 1);
-  vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
+
+  if (is_for_breadth) {
+    return prioritize_sub_slices_breadth(
+        module,
+        ordered_slices,
+        nthreads,
+        trans_system,
+        tree_shapes);
+  } else {
+    assert (false);
+    /*return prioritize_sub_slices_finisher(
+        module,
+        ordered_slices,
+        nthreads,
+        trans_system,
+        tree_shapes);*/
+  }
+
+  /*vector<vector<TemplateSubSlice>> all_sub_slices_per_thread;
 
   int idx = 0;
   vector<vector<int>> max_vars_per_thread;
@@ -408,7 +576,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices(
       cout << "partition count: " << counts[i] << endl;
     }
   }
-  return res;
+  return res;*/
 
   /*int a = 0;
   while (a < (int)ordered_slices.size()) {
