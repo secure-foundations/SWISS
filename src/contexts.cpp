@@ -373,6 +373,33 @@ ActionResult applyAction(
     }
     return applyAction(e, action->body, new_consts);
   }
+  else if (RelationAction* action = dynamic_cast<RelationAction*>(a.get())) {
+    unordered_map<iden, smt::func_decl> new_mapping = e->mapping;
+    unordered_map<iden, smt::func_decl> twostate_mapping = e->mapping;
+
+    for (string mod : action->mods) {
+      iden mod_iden = string_to_iden(mod);
+      smt::func_decl orig_func = e->getFunc(mod_iden);
+
+      smt::sort_vector domain(ctx->ctx);
+      for (int i = 0; i < (int)orig_func.arity(); i++) {
+        domain.push_back(orig_func.domain(i));
+      }
+      string new_name = name(mod);
+      smt::func_decl new_func = ctx->ctx.function(new_name,
+          domain, orig_func.range());
+
+      new_mapping.erase(mod_iden);
+      new_mapping.insert(make_pair(mod_iden, new_func));
+      twostate_mapping.insert(make_pair(string_to_iden(mod+"'"), new_func));
+    }
+
+    ModelEmbedding* twostate_e = new ModelEmbedding(ctx, twostate_mapping);
+    smt::expr ex = twostate_e->value2expr(action->rel, consts);
+
+    ModelEmbedding* new_e = new ModelEmbedding(ctx, new_mapping);
+    return ActionResult(shared_ptr<ModelEmbedding>(new_e), ex);
+  }
   else if (SequenceAction* action = dynamic_cast<SequenceAction*>(a.get())) {
     smt::expr_vector parts(ctx->ctx);
     for (shared_ptr<Action> sub_action : action->actions) {
