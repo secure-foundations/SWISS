@@ -24,10 +24,10 @@ bool has_subclause(value v, value sub)
   else if (NearlyForall* value = dynamic_cast<NearlyForall*>(v.get())) {
     return has_subclause(value->body, sub);
   }
-  else if (Var* value = dynamic_cast<Var*>(v.get())) {
+  else if (dynamic_cast<Var*>(v.get())) {
     return false;
   }
-  else if (Const* value = dynamic_cast<Const*>(v.get())) {
+  else if (dynamic_cast<Const*>(v.get())) {
     return false;
   }
   else if (Eq* value = dynamic_cast<Eq*>(v.get())) {
