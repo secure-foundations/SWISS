@@ -193,14 +193,15 @@ def do_breadth(iterkey, logfile, nthreads, json_filename, main_args, args, invfi
 def do_breadth_single(iterkey, logfile, nthreads, json_filename, main_args, args, invfile, iteration_num, stats, by_size):
   t1 = time.time()
 
-  chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
   if by_size:
-    c_by_size = get_chunk_files_for_each_size(chunk_files)
+    c_by_size = chunkify_by_size(iterkey, logfile, nthreads, json_filename, args)
     total_has_any = False
-    for (sz, chunks) in c_by_size:
+    sz = 0
+    for chunks in c_by_size:
+      sz += 1
       success, has_any, output_invfile = breadth_run_in_parallel(
         iterkey+".size."+str(sz), logfile, json_filename, main_args,
-          ["--chunk-size-to-use", str(sz)], invfile, iteration_num, stats, nthreads, chunks)
+          invfile, iteration_num, stats, nthreads, chunks)
       if has_any:
         total_has_any = True
       if success:
@@ -211,6 +212,7 @@ def do_breadth_single(iterkey, logfile, nthreads, json_filename, main_args, args
     has_any = total_has_any
     new_output_file = invfile
   else:
+    chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
     success, has_any, new_output_file = breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
         iteration_num, stats, nthreads, chunk_files)
 
@@ -253,30 +255,35 @@ def chunkify(iterkey, logfile, nthreads, json_filename, args):
 
   return chunk_files
 
-def get_chunk_files_for_each_size(chunk_files):
-  sizes = []
-  for c in chunk_files:
-    sizes.append(sizes_mentioned_in_chunk_file(c))
-  sz = 0
-  res = []
-  while True:
-    sz += 1
-    files = [chunk_files[i] for i in range(len(chunk_files)) if sz in sizes[i]]
-    if len(files) == 0:
-      break
-    res.append((sz, files))
-  return res
+def chunkify_by_size(iterkey, logfile, nthreads, json_filename, args):
+  d = tempfile.mkdtemp()
+  chunk_file_args = ["--output-chunk-dir", d, "--nthreads", str(nthreads), "--by-size"]
 
-def sizes_mentioned_in_chunk_file(c):
-  res = set()
-  with open(c) as f:
+  succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
+
+  assert succ, "chunkify failed"
+
+  all_chunk_files = []
+  j = 0
+  while True:
+    chunk_files = []
     i = 0
-    for l in f:
-      if i > 0:
-        sz = int(l.split()[1])
-        res.add(sz)
-      i += 1
-  return res
+    while True:
+      p = os.path.join(d, str(j + 1) + "." + str(i + 1))
+      if os.path.exists(p):
+        i += 1
+        chunk_files.append(p)
+      else:
+        break
+    if len(chunk_files) > 0:
+      all_chunk_files.append(chunk_files)
+      j += 1
+    else:
+      break
+
+  print("chunk_files by size: ", ", ".join(str(len(f)) for f in all_chunk_files))
+
+  return all_chunk_files
 
 def coalesce(logfile, json_filename, iterkey, files):
   new_output_file = tempfile.mktemp()
@@ -445,7 +452,6 @@ def parse_args(ivy_filename, args):
     elif args[i] == "--stdout":
       use_stdout = True
     elif args[i] == "--by-size":
-      assert False, "by-size not supported yet"
       by_size = True
     elif args[i] == "--config":
       config = args[i+1]

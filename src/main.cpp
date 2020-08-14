@@ -241,13 +241,25 @@ void write_template_sub_slice_file(
 void output_sub_slices_mult(
   shared_ptr<Module> module,
   string const& dir,
-  vector<vector<TemplateSubSlice>> const& sub_slices)
+  vector<vector<vector<TemplateSubSlice>>> const& sub_slices,
+  bool by_size)
 {
   assert (dir != "");
   string d = (dir[dir.size() - 1] == '/' ? dir : dir + "/");
 
-  for (int i = 0; i < (int)sub_slices.size(); i++) {
-    write_template_sub_slice_file(module, d + to_string(i+1), sub_slices[i]);
+  if (by_size) {
+    for (int i = 0; i < (int)sub_slices.size(); i++) {
+      assert (sub_slices[i].size() > 0); // driver code won't read the files right if this isn't true
+      for (int j = 0; j < (int)sub_slices[i].size(); j++) {
+        write_template_sub_slice_file(module,
+            d + to_string(i+1) + "." + to_string(j+1), sub_slices[i][j]);
+      }
+    }
+  } else {
+    assert (sub_slices.size() == 1);
+    for (int i = 0; i < (int)sub_slices[0].size(); i++) {
+      write_template_sub_slice_file(module, d + to_string(i+1), sub_slices[0][i]);
+    }
   }
 }
 
@@ -423,6 +435,8 @@ int main(int argc, char* argv[]) {
   bool one_breadth = false;
   bool one_finisher = false;
 
+  bool by_size = false;
+
   int i;
   for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
@@ -465,6 +479,9 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--non-accumulative")) {
       options.non_accumulative = true;
+    }
+    else if (argv[i] == string("--by-size")) {
+      by_size = true;
     }
     else if (argv[i] == string("--with-conjs")) {
       options.with_conjs = true;
@@ -587,8 +604,8 @@ int main(int argc, char* argv[]) {
     if (output_chunk_dir != "") {
       assert (nthreads != -1);
       assert (one_breadth ^ one_finisher);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, one_breadth);
-      output_sub_slices_mult(module, output_chunk_dir, sub_slices);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, one_breadth, by_size);
+      output_sub_slices_mult(module, output_chunk_dir, sub_slices, by_size);
     }
     return 0;
   }
@@ -767,8 +784,8 @@ int main(int argc, char* argv[]) {
         vector_append(slices, break_into_slices(module, strat.tspace));
       }
       assert (nthreads != -1);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, strats[0].breadth);
-      output_sub_slices_mult(module, output_chunk_dir, sub_slices);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, strats[0].breadth, by_size);
+      output_sub_slices_mult(module, output_chunk_dir, sub_slices, by_size);
       return 0;
     } else {
       vector<TemplateSlice> slices_finisher;
@@ -782,8 +799,10 @@ int main(int argc, char* argv[]) {
           assert (false);
         }
       }
-      sub_slices_breadth = prioritize_sub_slices(module, slices_breadth, 1, true)[0];
-      sub_slices_finisher = prioritize_sub_slices(module, slices_finisher, 1, false)[0];
+      assert (false); // TODO not implemented because the size of the return vector isn't guaranteed
+      //assert (!by_size);
+      //sub_slices_breadth = prioritize_sub_slices(module, slices_breadth, 1, true)[0];
+      //sub_slices_finisher = prioritize_sub_slices(module, slices_finisher, 1, false)[0];
     }
   }
 
