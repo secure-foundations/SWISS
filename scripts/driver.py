@@ -288,6 +288,10 @@ def chunkify(iterkey, logfile, nthreads, json_filename, args):
 
   print("chunk_files:", i)
 
+  if chunkify_only:
+    print(d)
+    sys.exit(1)
+
   return chunk_files
 
 def chunkify_by_size(iterkey, logfile, nthreads, json_filename, args):
@@ -478,6 +482,8 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
   if not any_success:
     stats.add_finisher_result(output_files[some_key], time.time() - t1)
 
+chunkify_only = False
+
 def parse_args(ivy_filename, args):
   nthreads = None
   logfile = ""
@@ -504,6 +510,9 @@ def parse_args(ivy_filename, args):
     elif args[i] == "--config":
       config = args[i+1]
       i += 1
+    elif args[i] == "--chunkify-only":
+      global chunkify_only
+      chunkify_only = True
     else:
       new_args.append(args[i])
     i += 1
