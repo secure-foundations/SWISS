@@ -380,6 +380,7 @@ vector<vector<TemplateSubSlice>> split_into(
   for (int i = 0; i < (int)slices.size(); i++) {
     vector<TemplateSubSlice> new_slices =
       split_slice_into_sub_slices(trans_system, tree_shapes, slices[i], sub_ts_cache);
+    random_sort(new_slices, 0, new_slices.size());
     int k = rand() % n;
     for (int j = 0; j < (int)new_slices.size(); j++) {
       res[k].push_back(new_slices[j]);
@@ -458,7 +459,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices_breadth_by_size(
   return res;
 }
 
-std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
+/*std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
     shared_ptr<Module> module,
     vector<TemplateSlice> const& slices,
     int nthreads,
@@ -498,6 +499,89 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
         module, my_slices, nthreads, trans_system, tree_shapes, sub_ts_cache));
 
     a = b;
+  }
+
+  return res;
+}*/
+
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  int nsorts = module->sorts.size();
+
+  int max_mvars = 0;
+  for (TemplateSlice const& ts : slices) {
+    max_mvars = max(max_mvars, total_vars(ts));
+  }
+
+  vector<vector<TemplateSlice>> all_slices_per_thread;
+
+  int idx = 0;
+  vector<vector<int>> max_vars_per_thread;
+  vector<long long> counts;
+  all_slices_per_thread.resize(nthreads);
+  max_vars_per_thread.resize(nthreads);
+  counts.resize(nthreads);
+  for (int i = 0; i < nthreads; i++) {
+    max_vars_per_thread[i].resize(nsorts);
+  }
+
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+
+  for (int i = 0; i < (int)slices.size(); i++) {
+    TemplateSlice const& ts = slices[i];
+    //vector<TemplateSubSlice> new_slices =
+    //  split_slice_into_sub_slices(trans_system, tree_shapes, slices[i], sub_ts_cache);
+    //random_sort(new_slices, 0, new_slices.size());
+
+    bool from_start = (ts.count <= 100000);
+
+    vector<int> possibilities;
+    int jstart = from_start ? 0 : (int)all_slices_per_thread.size() - nthreads;
+    for (int j = jstart; j < (int)all_slices_per_thread.size(); j++)
+    {
+      int m = 0;
+      for (int k = 0; k < nsorts; k++) {
+        m += max(max_vars_per_thread[j][k], ts.vars[k]);
+      }
+      if (m <= max_mvars) {
+        possibilities.push_back(j);
+      }
+    }
+
+    if (possibilities.size() == 0) {
+      vector<int> i0 = ts.vars;
+      all_slices_per_thread.push_back(vector<TemplateSlice>{ts});
+      max_vars_per_thread.push_back(i0);
+      counts.push_back(ts.count);
+      idx++;
+    } else {
+      int best = possibilities[0];
+      for (int j = 1; j < (int)possibilities.size(); j++) {
+        if (counts[possibilities[j]] < counts[best]) {
+          best = possibilities[j];
+        }
+      }
+      all_slices_per_thread[best].push_back(ts);
+      counts[best] += ts.count;
+      for (int k = 0; k < nsorts; k++) {
+        max_vars_per_thread[best][k] = max(max_vars_per_thread[best][k], ts.vars[k]);
+      }
+    }
+  }
+
+  vector<vector<TemplateSubSlice>> res;
+
+  for (int i = 0; i < (int)all_slices_per_thread.size(); i++) {
+    bool last = (i == (int)all_slices_per_thread.size() - 1);
+
+    long long my_nthreads = (last ? nthreads : 1);
+
+    vector_append(res, split_into(all_slices_per_thread[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
   }
 
   return res;
