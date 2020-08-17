@@ -27,6 +27,17 @@ def set_seed(seed):
 def args_add_seed(args):
   return ["--seed", str(random.randint(1, 10**6))] + args
 
+def reseed(args):
+  new_args = []
+  i = 0
+  while i < len(args):
+    if args[i] != "--seed":
+      new_args.append(args[i])
+      i += 1
+    else:
+      i += 2
+  return args_add_seed(new_args)
+
 def kill_all_procs():
   global killing
   if not killing:
@@ -63,7 +74,32 @@ def log_inputs(logfilename, json_filename, args):
     print("failed to log_inputs")
     pass
 
-def run_synthesis(logfile_base, run_id, json_filename, args, q=None, use_stdout=False):
+def run_synthesis_off_thread(logfile_base, run_id, json_filename, args, q):
+  res = run_synthesis_retry(logfile_base, run_id, json_filename, args)
+  q.put(res)
+
+def run_synthesis_retry(logfile_base, run_id, json_filename, args):
+  nfails = 0
+  all_res = []
+  while True:
+    extra = "" if nfails == 0 else ".retry." + str(nfails)
+    res = run_synthesis(logfile_base, run_id+extra, json_filename, args)
+    all_res.append(res)
+    if killing:
+      res.all_res = all_res
+      return res
+    if not res.failed:
+      res.all_res = all_res
+      return res
+    nfails += 1
+    if nfails >= 3:
+      res.all_res = all_res
+      return res
+    print('!!!!!!!!! synthesis', run_id,
+        'failed, re-seeding and trying again', '!!!!!!!!!')
+    args = reseed(args)
+
+def run_synthesis(logfile_base, run_id, json_filename, args, use_stdout=False):
   try:
     logfilename = logfile_base + "." + run_id
 
@@ -106,10 +142,8 @@ def run_synthesis(logfile_base, run_id, json_filename, args, q=None, use_stdout=
         else:
           print("complete " + run_id + " (" + str(seconds) + " seconds)")
           sys.stdout.flush()
-    if q != None:
-      q.put(RunSynthesisResult(run_id, seconds, killing, ret != 0, logfilename))
-    
-    return ret == 0
+
+    return RunSynthesisResult(run_id, seconds, killing, ret != 0, logfilename)
   except Exception:
     traceback.print_exc()
     sys.stderr.flush()
@@ -237,9 +271,9 @@ def chunkify(iterkey, logfile, nthreads, json_filename, args):
   d = tempfile.mkdtemp()
   chunk_file_args = ["--output-chunk-dir", d, "--nthreads", str(nthreads)]
 
-  succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
+  synres = run_synthesis_retry(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
 
-  assert succ, "chunkify failed"
+  assert not synres.failed, "chunkify failed"
 
   chunk_files = []
   i = 0
@@ -259,9 +293,9 @@ def chunkify_by_size(iterkey, logfile, nthreads, json_filename, args):
   d = tempfile.mkdtemp()
   chunk_file_args = ["--output-chunk-dir", d, "--nthreads", str(nthreads), "--by-size"]
 
-  succ = run_synthesis(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
+  synres = run_synthesis_retry(logfile, iterkey+".chunkify", json_filename, args_add_seed(chunk_file_args + args))
 
-  assert succ, "chunkify failed"
+  assert not synres.failed, "chunkify failed"
 
   all_chunk_files = []
   j = 0
@@ -291,8 +325,8 @@ def coalesce(logfile, json_filename, iterkey, files):
   for f in files:
     coalesce_file_args.append("--input-formula-file")
     coalesce_file_args.append(f)
-  succ = run_synthesis(logfile, iterkey+".coalesce", json_filename, args_add_seed(coalesce_file_args))
-  assert succ, "breadth coalesce failed"
+  synres = run_synthesis_retry(logfile, iterkey+".coalesce", json_filename, args_add_seed(coalesce_file_args))
+  assert not synres.failed, "breadth coalesce failed"
   return new_output_file
 
 def remove_one(s):
@@ -329,7 +363,7 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
       cid = remove_one(avail_column_ids)
       column_ids[key] = cid
 
-      t = threading.Thread(target=run_synthesis, args=
+      t = threading.Thread(target=run_synthesis_off_thread, args=
           (logfile, key, json_filename, args_add_seed(
             ["--input-chunk-file", chunk_files[i],
              "--output-formula-file", output_file] + main_args + args_with_file), q))
@@ -341,7 +375,7 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
     else:
       synres = q.get()
 
-      key = synres.run_id
+      key = synres.all_res[0].run_id
       cid = column_ids[key]
       avail_column_ids.add(cid)
 
@@ -350,7 +384,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
         kill_all_procs()
         assert False, "breadth proper failed"
       else:
-        stats.add_inc_log(iteration_num, synres.logfile, synres.seconds, cid)
+        for r in synres.all_res:
+          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if this_has_any:
@@ -398,7 +433,7 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
       cid = remove_one(avail_column_ids)
       column_ids[key] = cid
 
-      t = threading.Thread(target=run_synthesis, args=
+      t = threading.Thread(target=run_synthesis_off_thread, args=
           (logfile, key, json_filename, args_add_seed(
             ["--input-chunk-file", chunk_files[i],
              "--output-formula-file", output_file] + main_args + args_with_file), q))
@@ -410,7 +445,7 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
     else:
       synres = q.get()
 
-      key = synres.run_id
+      key = synres.all_res[0].run_id
       cid = column_ids[key]
       avail_column_ids.add(cid)
 
@@ -419,7 +454,8 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
         kill_all_procs()
         assert False, "finisher proper failed"
       else:
-        stats.add_finisher_log(synres.logfile, synres.seconds, cid)
+        for r in synres.all_res:
+          stats.add_finisher_log(r.logfile, r.seconds, cid)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if success:
