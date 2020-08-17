@@ -40,15 +40,27 @@ class PaperBench(object):
     if self.whole:
       name += "whole_"
 
-    assert self.ivyname.endswith(".ivy")
-    name += "_" + self.ivyname[:-4]
+    name += "_"
+
+    assert self.ivyname.endswith(".pyv") or self.ivyname.endswith(".ivy")
+
+    if self.ivyname.endswith(".ivy"):
+      name += self.ivyname[:-4]
+    else:
+      name += self.ivyname[:-4] + "_pyv"
+
     name += "__" + self.config
     name += "__seed" + str(self.seed) + "_t" + str(self.threads)
 
     return name
 
   def get_args(self):
-    return ([os.path.join("benchmarks", self.ivyname), "--config", self.config, "--threads", str(self.threads),
+    if self.ivyname.endswith(".ivy"):
+      p = os.path.join("benchmarks", self.ivyname)
+    else:
+      p = os.path.join("pyv_benchmarks", self.ivyname)
+
+    return ([p, "--config", self.config, "--threads", str(self.threads),
         "--seed", str(self.seed), "--with-conjs", "--breadth-with-conjs"]
       + (["--minimal-models"] if self.mm else [])
       + (["--pre-bmc"] if self.pre_bmc else [])
@@ -82,6 +94,23 @@ for seed in range(1, 6):
   benches.append(PaperBench("flexible_paxos.ivy", config="auto", seed=seed))
   benches.append(PaperBench("chord-gimme-1.ivy", config="auto", seed=seed))
   benches.append(PaperBench("decentralized-lock-gimme-1.ivy", config="auto", seed=seed))
+
+  benches.append(PaperBench("client_server_ae.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("client_server_db_ae.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("consensus_epr.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("consensus_forall.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("consensus_wo_decide.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("firewall.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("hybrid_reliable_broadcast_cisa.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("learning_switch.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("lockserv.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("ring_id.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("ring_id_not_dead.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("sharded_kv.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("sharded_kv_no_lost_keys.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("ticket.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("toy_consensus_epr.pyv", config="auto", seed=seed))
+  benches.append(PaperBench("toy_consensus_forall.pyv", config="auto", seed=seed))
 
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench("paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
