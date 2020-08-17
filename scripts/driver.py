@@ -69,7 +69,7 @@ def log_inputs(logfilename, json_filename, args):
       b = logfilename + ".error." + str(i)
       print(a + " -> " + b)
       shutil.copy(input_files[i], logfilename + ".error." + str(i))
-      
+
   except Exception:
     print("failed to log_inputs")
     pass
@@ -104,6 +104,7 @@ def run_synthesis(logfile_base, run_id, json_filename, args, use_stdout=False):
     logfilename = logfile_base + "." + run_id
 
     cmd = ["./synthesis", "--input-module", json_filename] + args
+
     print("run " + run_id + ": " + " ".join(cmd) + " > " + logfilename)
     sys.stdout.flush()
     with open(logfilename, "w") as logfile:
@@ -381,11 +382,15 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
 
       n_running -= 1
       if synres.failed and not synres.stopped:
-        kill_all_procs()
-        assert False, "breadth proper failed"
+        print("!!!!! WARNING PROC FAILED, SKIPPING !!!!!")
+        for r in synres.all_res:
+          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed)
+        output_files.pop(key)
+        #kill_all_procs()
+        #assert False, "breadth proper failed"
       else:
         for r in synres.all_res:
-          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid)
+          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if this_has_any:
@@ -451,11 +456,15 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
 
       n_running -= 1
       if synres.failed and not synres.stopped:
-        kill_all_procs()
-        assert False, "finisher proper failed"
+        print("!!!!! WARNING PROC FAILED, SKIPPING !!!!!")
+        for r in synres.all_res:
+          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed)
+        output_files.pop(key)
+        #kill_all_procs()
+        #assert False, "finisher proper failed"
       else:
         for r in synres.all_res:
-          stats.add_finisher_log(r.logfile, r.seconds, cid)
+          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if success:
@@ -463,8 +472,11 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
             stats.add_finisher_result(output_files[key], time.time() - t1)
             kill_all_procs()
 
+  some_key = None
+  for some_key in output_files:
+    break
   if not any_success:
-    stats.add_finisher_result(output_files[iterkey+".thread.0"], time.time() - t1)
+    stats.add_finisher_result(output_files[some_key], time.time() - t1)
 
 def parse_args(ivy_filename, args):
   nthreads = None
