@@ -9,7 +9,8 @@ TEMP=$(mktemp)
 
 if [ ${IVY_FILE: -4} == ".pyv" ]
 then
-  python3 file_mypyvy_to_json.py $IVY_FILE > $TEMP
+  #python3 file_mypyvy_to_json.py $IVY_FILE > $TEMP
+  TEMP=compiled_$IVY_FILE.json
 else
   python file_to_json.py $IVY_FILE > $TEMP
 fi

@@ -172,6 +172,14 @@ shared_ptr<Value> json2value(Json j, set<iden> const& names) {
     assert (j.array_items().size() == 2);
     return shared_ptr<Value>(new Or(json2value_array(j[1])));
   }
+  else if (type == "ite") {
+    assert (j.array_items().size() == 4);
+    return shared_ptr<Value>(new IfThenElse(
+        json2value(j[1]),
+        json2value(j[2]),
+        json2value(j[3])
+      ));
+  }
   else if (type == "__wild") {
     assert (j.array_items().size() == 1);
     return shared_ptr<Value>(new TemplateHole());
