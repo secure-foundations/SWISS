@@ -36,6 +36,7 @@ def reverse_readline(filename, buf_size=8192):
 
 def parse_stats(filename, cid, failure):
   lines = []
+  resulting_inv_info = []
   started = False
   for line in reverse_readline(filename):
     line = line.strip()
@@ -45,6 +46,8 @@ def parse_stats(filename, cid, failure):
       break
     elif started:
       lines.append(line)
+    elif line.startswith('Resulting invariant'):
+      resulting_inv_info.append(line)
   lines = lines[::-1]
 
   d = {}
@@ -72,7 +75,7 @@ def parse_stats(filename, cid, failure):
       assert False
   d["column_id"] = str(cid)
   d["full_process_failure"] = str(1 if failure else 0)
-  return d
+  return (d, resulting_inv_info[::-1])
 
 def pad(k, n):
   while len(k) < 50:
@@ -135,6 +138,8 @@ class Stats(object):
     self.finisher_result = None
 
     self.logfile_base = logfile
+
+    self.resulting_inv_info = []
 
   def add_inc_log(self, iternum, log, seconds, cid, failure):
     while len(self.inc_logs) <= iternum:
@@ -239,9 +244,10 @@ class Stats(object):
   def dump_individual_stats(self, f):
     self.log_stats = {}
     for (log, seconds, cid, failure) in self.all_logs:
-      stats = parse_stats(log, cid, failure)
+      stats, resulting_inv_info = parse_stats(log, cid, failure)
       self.log_stats[log] = stats
       log_stats(f, stats, log)
+      self.resulting_inv_info = self.resulting_inv_info + resulting_inv_info
 
   def stats_finisher(self, f):
     stats_list = []
@@ -313,3 +319,8 @@ class Stats(object):
 
       self.dump_individual_stats(f)
       self.stats_total(f)
+
+      log(f, "")
+
+      for line in self.resulting_inv_info:
+        log(f, line)
