@@ -450,7 +450,7 @@ def get_fs(prog):
       rng = boolean_sort_json()
       fs[f.name] = ["functionSort", dom, rng]
     elif isinstance(f, syntax.ConstantDecl):
-      fs[f.name] = ["const", f.name, sort_to_json(f.sort)]
+      fs[f.name] = sort_to_json(f.sort)
     elif isinstance(f, syntax.FunctionDecl):
       dom = [sort_to_json(r) for r in f.arity]
       rng = sort_to_json(f.sort)
