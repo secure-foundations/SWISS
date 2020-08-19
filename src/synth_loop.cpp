@@ -541,6 +541,67 @@ void dump_stats(long long progress, CexStats const& cs,
   cout.flush();
 }
 
+int get_k(value v) {
+  if (And* a = dynamic_cast<And*>(v.get())) {
+    int k = 0;
+    for (value arg : a->args) {
+      k += get_k(arg);
+    }
+    return k;
+  }
+  else if (Or* a = dynamic_cast<Or*>(v.get())) {
+    int k = 0;
+    for (value arg : a->args) {
+      k += get_k(arg);
+    }
+    return k;
+  }
+  else {
+    return 1;
+  }
+}
+
+bool has_and(value v) {
+  if (And* a = dynamic_cast<And*>(v.get())) {
+    return true;
+  }
+  else if (Or* a = dynamic_cast<Or*>(v.get())) {
+    for (value arg : a->args) {
+      bool d = has_and(arg);
+      if (d) return true;
+    }
+    return false;
+  }
+  else {
+    return false;
+  }
+}
+
+void dump_inv_params(value v)
+{
+  pair<TopAlternatingQuantifierDesc, value> p = get_taqd_and_body(v);
+  TopAlternatingQuantifierDesc taqd = p.first;
+  value body = p.second;
+
+  int m = 0, e = 0;
+  for (Alternation const& alt : taqd.alternations()) {
+    if (alt.is_exists()) {
+      e += alt.decls.size();
+    }
+    m += alt.decls.size();
+  }
+
+  int k = get_k(body);
+  int d = has_and(body) ? 2 : 1;
+
+  cout << "Resulting invariant: " << v->to_string() << endl;
+  cout << "Resulting invariant parameters: "
+       << "k=" << k << " "
+       << "d=" << d << " "
+       << "m=" << m << " "
+       << "e=" << e << endl;
+}
+
 extern const int TIMEOUT = 45 * 1000;
 
 SynthesisResult synth_loop(
@@ -597,6 +658,8 @@ SynthesisResult synth_loop(
 
   long long process_indef_ns = 0;
   long long indef_count = 0;
+
+  value result_inv;
 
   while (true) {
     num_iterations++;
@@ -669,6 +732,7 @@ SynthesisResult synth_loop(
         printf("found invariant: %s\n", candidate->to_string().c_str());
         synres.done = true;
         synres.new_values.push_back(candidate);
+        result_inv = candidate;
       } else {
         printf("ERROR: invariant is not actually invariant");
         assert(false);
@@ -693,6 +757,11 @@ SynthesisResult synth_loop(
 
   //cout << transcript.to_json().dump() << endl;
   dump_stats(cs->getProgress(), cexstats, t_init, 0, 0, filtering_ns/1000000, num_finishers_found, 0, 0, process_cex_ns, 0, 0, indef_count, process_indef_ns);
+
+  if (result_inv) {
+    dump_inv_params(result_inv);
+  }
+
   cout << "complete!" << endl;
 
   return synres;

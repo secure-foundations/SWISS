@@ -55,8 +55,8 @@ struct Alternation {
   AltType altType;
   std::vector<VarDecl> decls;
 
-  bool is_forall() { return altType == AltType::Forall; }
-  bool is_exists() { return altType == AltType::Exists; }
+  bool is_forall() const { return altType == AltType::Forall; }
+  bool is_exists() const { return altType == AltType::Exists; }
 };
 
 class TopAlternatingQuantifierDesc {
