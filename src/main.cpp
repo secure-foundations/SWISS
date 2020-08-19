@@ -382,6 +382,102 @@ TemplateSpace template_space_from_enum_options(
   return ts;
 }
 
+long long pre_symm_count_templ(shared_ptr<Module> module, int kmax, int d, int e, vector<int> const& t)
+{
+  assert (d == 1 || d == 2);
+
+  TemplateSpace ts;
+  ts.vars = t;
+  for (int i = 0; i < (int)t.size(); i++) {
+    ts.quantifiers.push_back(Quantifier::Forall);
+  }
+  ts.depth = d;
+  ts.k = kmax;
+  value templ = ts.make_templ(module);
+
+  EnumInfo ei(module, templ);
+  int numClauses = ei.clauses.size();
+
+  long long total = 0;
+  for (int k = 1; k <= kmax; k++) {
+    long long prod = 1;
+    for (int i = 0; i < k; i++) {
+      prod *= (long long)numClauses;
+    }
+    if (d == 2) {
+      prod *= 2 * (long long)((1 << (k - 1)) - 1);
+    }
+
+    total += prod;
+  }
+
+  cout << "total " << total << endl;
+
+  int nsorts = t.size();
+  long long numCombos = 0;
+  for (int j = 0; j < (1 << nsorts); j++) {
+    int num_e = 0;
+    bool okay = true;
+    for (int k = 0; k < nsorts; k++) {
+      if ((j >> k) & 1) {
+        num_e += t[k];
+        if (t[k] == 0) {
+          okay = false;
+          break;
+        }
+      }
+    }
+    if (okay && num_e <= e) {
+      numCombos++;
+    }
+  }
+
+  return total * numCombos;
+}
+
+long long pre_symm_count(shared_ptr<Module> module, int k, int d, int m, int e)
+{
+  int nsorts = module->sorts.size();
+
+  long long total = 0;
+  vector<int> t;
+  t.resize(nsorts);
+  while (true) {
+    int sum = 0;
+    for (int i = 0; i < (int)t.size(); i++) {
+      sum += t[i];
+    }
+    if (sum == m) {
+      total += pre_symm_count_templ(module, k, d, e, t);
+    }
+    int i;
+    for (i = 0; i < (int)t.size(); i++) {
+      t[i]++;
+      if (t[i] == m+1) {
+        t[i] = 0;
+      } else {
+        break;
+      }
+    }
+    if (i == (int)t.size()) {
+      break;
+    }
+  }
+  return total;
+}
+
+void do_counts(shared_ptr<Module> module, vector<TemplateSlice> const& slices, int k, int d, int m, int e)
+{
+  long long pre_count = pre_symm_count(module, k, d, m, e);
+  cout << "Pre-symmetries: " << pre_count << endl;
+
+  long long total = 0;
+  for (TemplateSlice const& ts : slices) {
+    total += ts.count;
+  }
+  cout << "Post-symmetries: " << total << endl;
+}
+
 int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     cout << argv[i] << " ";
@@ -424,6 +520,8 @@ int main(int argc, char* argv[]) {
   bool template_counter = false;
   int template_counter_k;
   int template_counter_d;
+
+  bool counts_only = false;
 
   bool template_sorter = false;
   int template_sorter_k;
@@ -564,6 +662,9 @@ int main(int argc, char* argv[]) {
       template_sorter_e = atoi(argv[i+4]);
       i += 4;
     }
+    else if (argv[i] == string("--counts-only")) {
+      counts_only = true;
+    }
 
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
@@ -601,6 +702,14 @@ int main(int argc, char* argv[]) {
         template_sorter_d == 2,
         template_sorter_mvars);
     auto slices = quantifier_combos(module, forall_slices, template_sorter_e);
+    if (counts_only) {
+      do_counts(module, slices,
+          template_sorter_k,
+          template_sorter_d,
+          template_sorter_mvars,
+          template_sorter_e);
+      return 0;
+    }
     if (output_chunk_dir != "") {
       assert (nthreads != -1);
       assert (one_breadth ^ one_finisher);
