@@ -388,13 +388,13 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
       if synres.failed and not synres.stopped:
         print("!!!!! WARNING PROC FAILED, SKIPPING !!!!!")
         for r in synres.all_res:
-          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed)
+          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed, r.stopped)
         output_files.pop(key)
         #kill_all_procs()
         #assert False, "breadth proper failed"
       else:
         for r in synres.all_res:
-          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed)
+          stats.add_inc_log(iteration_num, r.logfile, r.seconds, cid, r.failed, r.stopped)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if this_has_any:
@@ -462,13 +462,13 @@ def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invf
       if synres.failed and not synres.stopped:
         print("!!!!! WARNING PROC FAILED, SKIPPING !!!!!")
         for r in synres.all_res:
-          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed)
+          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed, r.stopped)
         output_files.pop(key)
         #kill_all_procs()
         #assert False, "finisher proper failed"
       else:
         for r in synres.all_res:
-          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed)
+          stats.add_finisher_log(r.logfile, r.seconds, cid, r.failed, r.stopped)
         if not synres.stopped and not killing:
           success, this_has_any = parse_output_file(output_files[key])
           if success:

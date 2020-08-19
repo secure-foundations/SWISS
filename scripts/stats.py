@@ -141,13 +141,13 @@ class Stats(object):
 
     self.resulting_inv_info = []
 
-  def add_inc_log(self, iternum, log, seconds, cid, failure):
+  def add_inc_log(self, iternum, log, seconds, cid, failure, stopped):
     while len(self.inc_logs) <= iternum:
       self.inc_logs.append([])
       self.inc_individual_times.append([])
     self.inc_logs[-1].append(log)
     self.inc_individual_times[-1].append(seconds)
-    self.all_logs.append((log, seconds, cid, failure))
+    self.all_logs.append((log, seconds, cid, failure, stopped))
 
   def add_inc_result(self, iternum, log, seconds):
     #print("inc_result_filenames", self.inc_result_filenames)
@@ -156,10 +156,10 @@ class Stats(object):
     self.inc_result_filenames.append(log)
     self.inc_times.append(seconds)
 
-  def add_finisher_log(self, filename, seconds, cid, failure):
+  def add_finisher_log(self, filename, seconds, cid, failure, stopped):
     self.finisher_logs.append(filename)
     self.finisher_individual_times.append(seconds)
-    self.all_logs.append((filename, seconds, cid, failure))
+    self.all_logs.append((filename, seconds, cid, failure, stopped))
 
   def add_finisher_result(self, filename, seconds):
     self.finisher_result_filename = filename
@@ -243,8 +243,8 @@ class Stats(object):
 
   def dump_individual_stats(self, f):
     self.log_stats = {}
-    for (log, seconds, cid, failure) in self.all_logs:
-      stats, resulting_inv_info = parse_stats(log, cid, failure)
+    for (log, seconds, cid, failure, stopped) in self.all_logs:
+      stats, resulting_inv_info = parse_stats(log, cid, failure and not stopped)
       self.log_stats[log] = stats
       log_stats(f, stats, log)
       self.resulting_inv_info = self.resulting_inv_info + resulting_inv_info
@@ -310,9 +310,10 @@ class Stats(object):
           "total cpu time:", self.get_total_cpu_time(), "seconds")
 
       log(f, "")
-      for (l, seconds, cid, failure) in self.all_logs:
+      for (l, seconds, cid, failure, stopped) in self.all_logs:
         log(f, "time for process " + l + " is " + str(seconds) + " seconds" +
-              (" (failure)" if failure else ""))
+              (" (stopped)" if stopped else (" (failure)" if failure else ""))
+           )
 
       log(f, "")
       log(f, "specifics:")
