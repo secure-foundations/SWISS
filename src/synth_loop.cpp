@@ -562,7 +562,7 @@ int get_k(value v) {
 }
 
 bool has_and(value v) {
-  if (And* a = dynamic_cast<And*>(v.get())) {
+  if (dynamic_cast<And*>(v.get())) {
     return true;
   }
   else if (Or* a = dynamic_cast<Or*>(v.get())) {
