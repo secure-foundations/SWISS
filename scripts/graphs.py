@@ -383,7 +383,7 @@ def make_comparison_table(input_directory, ivy):
     '$n_B$',
     '$t_B$',
     '$t_F$',
-    'Total',
+    'Total', '||',
     ('I4' if ivy else 'FOL Sep')
   ]
   def calc(r, c):

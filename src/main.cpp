@@ -713,7 +713,7 @@ int main(int argc, char* argv[]) {
     if (output_chunk_dir != "") {
       assert (nthreads != -1);
       assert (one_breadth ^ one_finisher);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, one_breadth, by_size);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, one_breadth, by_size, false);
       output_sub_slices_mult(module, output_chunk_dir, sub_slices, by_size);
     }
     return 0;
@@ -893,7 +893,7 @@ int main(int argc, char* argv[]) {
         vector_append(slices, break_into_slices(module, strat.tspace));
       }
       assert (nthreads != -1);
-      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, strats[0].breadth, by_size);
+      auto sub_slices = prioritize_sub_slices(module, slices, nthreads, strats[0].breadth, by_size, true);
       output_sub_slices_mult(module, output_chunk_dir, sub_slices, by_size);
       return 0;
     } else {

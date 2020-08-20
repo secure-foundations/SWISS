@@ -432,6 +432,33 @@ std::vector<std::vector<TemplateSubSlice>> pack_tightly_dont_exceed_hull(
   return res;
 }
 
+std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_basic(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+  return split_into(slices, nthreads, trans_system, sub_ts_cache, tree_shapes);
+}
+
+vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices_basic_by_size(
+    shared_ptr<Module> module,
+    vector<TemplateSlice> const& slices,
+    int nthreads,
+    TransitionSystem const& trans_system,
+    vector<TreeShape> const& tree_shapes)
+{
+  map<vector<int>, TransitionSystem> sub_ts_cache;
+  vector<vector<TemplateSlice>> splits = split_by_size(slices);
+  vector<vector<vector<TemplateSubSlice>>> res;
+  for (int i = 0; i < (int)splits.size(); i++) {
+    res.push_back(split_into(splits[i], nthreads, trans_system, sub_ts_cache, tree_shapes));
+  }
+  return res;
+}
+
 std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_breadth(
     shared_ptr<Module> module,
     vector<TemplateSlice> const& slices,
@@ -592,7 +619,8 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
     std::vector<TemplateSlice> const& _slices,
     int nthreads,
     bool is_for_breadth,
-    bool by_size)
+    bool by_size,
+    bool basic_split)
 {
   std::vector<TemplateSlice> slices = _slices;
 
@@ -683,7 +711,23 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
 
   assert(nthreads >= 1);
 
-  if (is_for_breadth) {
+  if (basic_split) {
+    if (by_size) {
+      return prioritize_sub_slices_basic_by_size(
+          module,
+          ordered_slices,
+          nthreads,
+          trans_system,
+          tree_shapes);
+    } else {
+      return {prioritize_sub_slices_basic(
+          module,
+          ordered_slices,
+          nthreads,
+          trans_system,
+          tree_shapes)};
+    }
+  } else if (is_for_breadth) {
     if (by_size) {
       return prioritize_sub_slices_breadth_by_size(
           module,
