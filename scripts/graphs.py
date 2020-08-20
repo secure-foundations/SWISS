@@ -165,7 +165,7 @@ class BasicStats(object):
         if line.strip() == "total":
           doing_total = True
         if line.startswith("total time: "):
-          self.total_time_sec = int(line.split()[2])
+          self.total_time_sec = float(line.split()[2])
         elif line.startswith("Number of threads: "):
           self.num_threads = int(line.split()[3])
         elif line.startswith("Number of invariants synthesized: "):
@@ -174,10 +174,14 @@ class BasicStats(object):
           self.num_breadth_iters = int(line.split()[5])
         elif line.startswith("Number of iterations of FINISHER: "):
           self.num_finisher_iters = int(line.split()[5])
+        elif line.startswith("Success: True"):
+          self.success = True
+        elif line.startswith("Success: False"):
+          self.success = False
         elif line.startswith("FINISHER time: "):
-          self.finisher_time_sec= int(line.split()[2])
+          self.finisher_time_sec= float(line.split()[2])
         elif line.startswith("BREADTH iteration "):
-          self.breadth_total_time_sec += int(line.split()[4])
+          self.breadth_total_time_sec += float(line.split()[4])
         elif doing_total:
           if line.startswith("Counterexamples of type FALSE"):
             self.cex_false = int(line.split()[-1])
@@ -226,46 +230,145 @@ class BasicStats(object):
     self.total_time_filtering_sec = (
         self.total_time_filtering_ms / 1000)
 
-    if filename == 'mm_leader_election_breadth':
-      self.b_size = 4490
-      self.f_size = -1
-    elif filename == 'mm_leader_election_fin':
-      self.b_size = -1
-      self.f_size = 56915730
-    elif filename == "mm_2pc":
-      self.b_size = 3739
-      self.f_size = -1
-    elif filename == "mm_lock_server":
-      self.b_size = -1
-      self.f_size = 11
-    elif filename == "mm_learning_switch":
-      self.b_size = 2259197
-      self.f_size = -1
-    elif filename == "mm_paxos":
-      self.b_size = 3435314 + 47972
-      self.f_size = 232460599446
-    elif filename == "paxos_depth2_finisher_t1":
-      self.b_size = 0
-      self.f_size = 232460599446
-    elif filename == "mm_flexible_paxos":
-      self.b_size = 3435314 + 47972
-      self.f_size = 232460599446
-    elif filename == "mm_multi_paxos":
-      self.b_size = 8439183 + 26290
-      self.f_size = 33589418704
-    elif filename == "mm_sdl":
-      self.b_size = 87858803
-      self.f_size = 87858803
-    elif filename == "mm_wc_sdl_one_thread":
-      self.b_size = 87858803
-      self.f_size = 87858803
+class Table(object):
+  def __init__(self, column_names, rows, calc_fn):
+    self.column_names = []
+    self.double = []
+    for c in column_names:
+      if c != '||':
+        self.column_names.append(c)
+        self.double.append(False)
+      else:
+        self.double[-1] = True
+
+    self.rows = []
+    self.rows.append(self.column_names)
+    for r in rows:
+      new_r = []
+      for c in self.column_names:
+        x = calc_fn(r, c)
+        assert x != None
+        s = str(x)
+        new_r.append(s)
+      self.rows.append(new_r)
+  def dump(self):
+    colspec = "|"
+    for d in self.double:
+      if d:
+        colspec += "l||"
+      else:
+        colspec += "l|"
+
+    s = "\\begin{tabular}{" + colspec + "}\n"
+    s += "\\hline\n"
+    column_widths = [max(len(self.rows[r][c]) for r in range(len(self.rows))) + 1 for c in range(len(self.column_names))]
+    for i in range(len(self.rows)):
+      for j in range(len(self.column_names)):
+        s += (" " * (column_widths[j] - len(self.rows[i][j]))) + self.rows[i][j]
+        if j == len(self.column_names) - 1:
+          s += " \\\\ \\hline"
+          if i == 0:
+            s += " \\hline"
+          s += "\n"
+        else:
+          s += " &"
+    s += "\\end{tabular}\n"
+    print(s)
+
+def get_bench_name(name):
+  if "pyv" in name:
+    assert False
+  else:
+    if "__simple-de-lock__" in name:
+      return 'SDL'
+    elif "__leader-election__" in name:
+      return 'Ring election'
+    elif "__learning-switch__" in name:
+      return 'Learning switch'
+    elif "__lock_server__" in name:
+      return 'Lock server'
+    elif "__2PC__" in name:
+      return 'Two-phase commit'
+    elif "__multi_paxos__" in name:
+      return 'Multi Paxos'
+    elif "__flexible_paxos__" in name:
+      return 'Flexible Paxos'
+    elif "__paxos__" in name:
+      return 'Paxos'
     else:
-      self.f_size = -1
-      self.b_size = -1
+      print("need bench name for", name)
+      assert False
 
-    self.f_b_size = self.f_size + self.b_size
+def get_basic_stats(input_directory, r):
+  try:
+    return BasicStats(input_directory, get_bench_name(r), r)
+  except FileNotFoundError:
+    return None
 
-    self.num_valid_finisher_candidates = -1
+def median(input_directory, r, a, b):
+  t = []
+  for i in range(a, b+1):
+    r1 = r.replace("#", str(i))
+    s = get_basic_stats(input_directory, r1)
+    if s == None:
+      return None
+    t.append(s)
+    
+  assert len(t) % 2 == 1
+
+  t.sort(key=lambda s : s.total_time_sec)
+
+  return t[len(t) // 2]
+
+def make_ivy_comparison_table(input_directory): 
+  rows = [
+    "mm__simple-de-lock__auto__seed#_t24",
+    "mm__leader-election__auto__seed#_t24",
+    "mm__learning-switch__auto_e0__seed#_t24",
+    "mm__lock_server__auto__seed#_t24",
+    "mm__2PC__auto__seed#_t24",
+    "mm__paxos__auto__seed#_t24",
+    "mm__multi_paxos__auto__seed#_t24",
+    "mm__flexible_paxos__auto__seed#_t24",
+  ]
+
+  stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
+  for r in rows:
+    stats[r] = median(input_directory, r, 1, 5)
+
+  cols = [
+    'Benchmark', '||',
+    '$n_B$',
+    '$t_B$',
+    '$t_F$',
+    'Total',
+    'I4',
+  ]
+  def calc(r, c):
+    if c == "Benchmark":
+      return get_bench_name(r)
+    else:
+      if stats[r] == None or not stats[r].success:
+        return "TODO"
+
+      if c == "$n_B$":
+        return stats[r].num_breadth_iters
+      elif c == "$t_F$":
+        if stats[r].num_finisher_iters > 0:
+          return int(stats[r].finisher_time_sec)
+        else:
+          return ""
+      elif c == "$t_B$":
+        return int(stats[r].breadth_total_time_sec)
+      elif c == "Total":
+        return int(stats[r].total_time_sec)
+      elif c == "I4":
+        return "TODO"
+      else:
+        assert False, c
+
+  t = Table(cols, rows, calc)
+  t.dump()
 
 def make_optimization_step_table(input_directory):
   s = [
@@ -279,30 +382,6 @@ def make_optimization_step_table(input_directory):
     #BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
     BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
   ]
-
-  presymm = {
-    "mm_wc_sdl_one_thread": (343000, 50421000000),
-    "mm_wc_leader_election_fin_one_thread": (None, 10350757530),
-    "mm_wc_leader_election_breadth_one_thread": (132651, None),
-    "mm_wc_2pc_one_thread": (103823, None),
-    "mm_wc_lock_server_one_thread": (16, None),
-    "mm_wc_learning_switch_one_thread": (69426531, None),
-    "mm_wc_bt_paxos_one_thread": (None,None),
-    "mm_wc_bt_flexible_paxos_one_thread": (None,None),
-    "mm_wc_bt_multi_paxos_one_thread": (None,None),
-  }
-
-  postsymm = {
-    "mm_wc_sdl_one_thread": (4573, 87858803),
-    "mm_wc_leader_election_fin_one_thread": (None, 56915730),
-    "mm_wc_leader_election_breadth_one_thread": (4490, None),
-    "mm_wc_2pc_one_thread": (3739, None),
-    "mm_wc_lock_server_one_thread": (11, None),
-    "mm_wc_learning_switch_one_thread": (2259197, None),
-    "mm_wc_bt_paxos_one_thread": (None,None),
-    "mm_wc_bt_flexible_paxos_one_thread": (None,None),
-    "mm_wc_bt_multi_paxos_one_thread": (None,None),
-  }
 
   columns = [
     'Benchmark',
@@ -878,4 +957,5 @@ if __name__ == '__main__':
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  make_optimization_step_table(input_directory)
+  #make_optimization_step_table(input_directory)
+  make_ivy_comparison_table(input_directory)
