@@ -5,7 +5,12 @@ set -e
 make
 
 DT=$(date +"%Y-%m-%d_%H.%M.%S")
-LOGFILE=$(mktemp "./logs/log.$DT-XXXXXXXXX")
+
+if [[ -z "${SYNTHESIS_LOGFILE}" ]]; then
+  LOGFILE=$(mktemp "./logs/log.$DT-XXXXXXXXX")
+else
+  LOGFILE=$SYNTHESIS_LOGFILE
+fi
 
 echo "logging to $LOGFILE"
 

@@ -182,13 +182,6 @@ def unique_benches(old_benches):
 
 benches = unique_benches(benches)
 
-def get_logfile(out):
-  for line in out.split(b'\n'):
-    if line.startswith(b"logging to "):
-      t = line[len("logging to "):].strip()
-      return t.decode("utf-8")
-  return "no logfile???"
-
 def get_statfile(out):
   for line in out.split(b'\n'):
     if line.startswith(b"statfile: "):
@@ -204,19 +197,48 @@ def exists(directory, bench):
 def success_true(out):
   return b"\nSuccess: True" in out
 
+def make_logfile():
+  proc = subprocess.Popen(["date", "+%Y-%m-%d_%H.%M.%S"],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ret = proc.wait()
+  assert ret == 0
+
+  dt = out.strip().decode("utf-8")
+
+  proc = subprocess.Popen(["mktemp", "./logs/log."+dt+"-XXXXXXXXX"],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ret = proc.wait()
+  assert ret == 0
+
+  logfile = out.strip()
+  assert logfile.startswith(b"./logs/log.")
+
+  return logfile.decode("utf-8")
+
 def run(directory, bench):
   if exists(directory, bench):
     print("already done " + bench.name)
     return
 
-  print("doing " + bench.name) 
+  logfile = make_logfile()
+
+  print("doing " + bench.name + "    " + logfile)
+
   sys.stdout.flush()
 
   t1 = time.time()
 
+  env = dict(os.environ)
+  env["SYNTHESIS_LOGFILE"] = logfile
+
   proc = subprocess.Popen(["./save.sh"] + bench.args,
       stdout=subprocess.PIPE,
-      stderr=subprocess.PIPE)
+      stderr=subprocess.PIPE,
+      env=env)
   out, err = proc.communicate()
   ret = proc.wait()
   assert ret == 0
@@ -224,7 +246,6 @@ def run(directory, bench):
   t2 = time.time()
   seconds = t2 - t1
 
-  logfile = get_logfile(out)
   statfile = get_statfile(out)
   if statfile is None:
     print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
