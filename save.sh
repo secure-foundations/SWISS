@@ -7,7 +7,11 @@ make
 DT=$(date +"%Y-%m-%d_%H.%M.%S")
 
 if [[ -z "${SYNTHESIS_LOGFILE}" ]]; then
-  LOGFILE=$(mktemp "./logs/log.$DT-XXXXXXXXX")
+  if [[ -z "${SCRATCH}" ]]; then
+    LOGFILE=$(mktemp "./logs/log.$DT-XXXXXXXXX")
+  else
+    LOGFILE=$(mktemp "$SCRATCH/log.$DT-XXXXXXXXX")
+  fi
 else
   LOGFILE=$SYNTHESIS_LOGFILE
 fi

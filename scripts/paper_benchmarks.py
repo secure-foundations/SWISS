@@ -207,17 +207,24 @@ def make_logfile():
 
   dt = out.strip().decode("utf-8")
 
-  proc = subprocess.Popen(["mktemp", "./logs/log."+dt+"-XXXXXXXXX"],
+  if "SCRATCH" in os.environ:
+    scratch = os.environ["SCRATCH"]
+    assert "pylon5" in scratch
+    log_start = os.path.join(scratch, "log.")
+  else:
+    log_start = "./logs/log."
+
+  proc = subprocess.Popen(["mktemp", log_start+dt+"-XXXXXXXXX"],
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
   ret = proc.wait()
   assert ret == 0
 
-  logfile = out.strip()
-  assert logfile.startswith(b"./logs/log.")
+  logfile = out.strip().decode("utf-8")
+  assert logfile.startswith(log_start)
 
-  return logfile.decode("utf-8")
+  return logfile
 
 def run(directory, bench):
   if exists(directory, bench):
