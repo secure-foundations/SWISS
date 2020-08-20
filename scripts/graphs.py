@@ -277,6 +277,28 @@ class Table(object):
 
 def get_bench_name(name):
   if "pyv" in name:
+    stuff = [
+      ("__client_server_ae_pyv__", "client-server-ae"),
+      ("__client_server_db_ae_pyv__", "client-server-db-ae"),
+      ("__toy_consensus_epr_pyv__", "toy consensus epr"),
+      ("__toy_consensus_forall_pyv__", "toy consensus forall"),
+      ("__consensus_epr_pyv__", "consensus epr"),
+      ("__consensus_forall_pyv__", "consensus forall"),
+      ("__consensus_wo_decide_pyv__", "consensus-wo-decide"),
+      ("__firewall_pyv__", "firewall"),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid reliable broadcast"),
+      ("__learning_switch_pyv__", "learning switch"),
+      ("__lockserv_pyv__", "lock server"),
+      ("__ring_id_pyv__", "ring id"),
+      ("__ring_id_not_dead_pyv__", "ring id not dead"),
+      ("__sharded_kv_pyv__", "sharded kv"),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded kv no lost keys"),
+      ("__ticket_pyv__", "ticket"),
+    ]
+    for (a,b) in stuff:
+      if a in name:
+        return b
+    print("need bench name for", name)
     assert False
   else:
     if "__simple-de-lock__" in name:
@@ -320,17 +342,37 @@ def median(input_directory, r, a, b):
 
   return t[len(t) // 2]
 
-def make_ivy_comparison_table(input_directory): 
-  rows = [
-    "mm__simple-de-lock__auto__seed#_t24",
-    "mm__leader-election__auto__seed#_t24",
-    "mm__learning-switch__auto_e0__seed#_t24",
-    "mm__lock_server__auto__seed#_t24",
-    "mm__2PC__auto__seed#_t24",
-    "mm__paxos__auto__seed#_t24",
-    "mm__multi_paxos__auto__seed#_t24",
-    "mm__flexible_paxos__auto__seed#_t24",
-  ]
+def make_comparison_table(input_directory, ivy):
+  if ivy:
+    rows = [
+      "mm__simple-de-lock__auto__seed#_t24",
+      "mm__leader-election__auto__seed#_t24",
+      "mm__learning-switch__auto_e0__seed#_t24",
+      "mm__lock_server__auto__seed#_t24",
+      "mm__2PC__auto__seed#_t24",
+      "mm__paxos__auto__seed#_t24",
+      "mm__multi_paxos__auto__seed#_t24",
+      "mm__flexible_paxos__auto__seed#_t24",
+    ]
+  else:
+    rows = [
+      "mm__client_server_ae_pyv__auto__seed#_t24",
+      "mm__client_server_db_ae_pyv__auto__seed#_t24",
+      "mm__consensus_epr_pyv__auto__seed#_t24",
+      "mm__consensus_forall_pyv__auto__seed#_t24",
+      "mm__consensus_wo_decide_pyv__auto__seed#_t24",
+      "mm__firewall_pyv__auto__seed#_t24",
+      "mm__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t24",
+      "mm__learning_switch_pyv__auto__seed#_t24",
+      "mm__lockserv_pyv__auto9__seed#_t24",
+      "mm__ring_id_pyv__auto__seed#_t24",
+      "mm__ring_id_not_dead_pyv__auto__seed#_t24",
+      "mm__sharded_kv_pyv__auto9__seed#_t24",
+      "mm__sharded_kv_no_lost_keys_pyv__auto9__seed#_t24",
+      "mm__ticket_pyv__auto__seed#_t24",
+      "mm__toy_consensus_epr_pyv__auto__seed#_t24",
+      "mm__toy_consensus_forall_pyv__auto__seed#_t24",
+    ]
 
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
@@ -342,7 +384,7 @@ def make_ivy_comparison_table(input_directory):
     '$t_B$',
     '$t_F$',
     'Total',
-    'I4',
+    ('I4' if ivy else 'FOL Sep')
   ]
   def calc(r, c):
     if c == "Benchmark":
@@ -363,6 +405,8 @@ def make_ivy_comparison_table(input_directory):
       elif c == "Total":
         return int(stats[r].total_time_sec)
       elif c == "I4":
+        return "TODO"
+      elif c == "FOL Sep":
         return "TODO"
       else:
         assert False, c
@@ -958,4 +1002,4 @@ if __name__ == '__main__':
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  make_ivy_comparison_table(input_directory)
+  make_comparison_table(input_directory, False)
