@@ -86,6 +86,7 @@ THREADS = 8
 for seed in range(1, 6):
   benches.append(PaperBench(1, "simple-de-lock.ivy", config="auto", seed=seed))
   benches.append(PaperBench(2, "leader-election.ivy", config="auto", seed=seed))
+  benches.append(PaperBench(2, "learning-switch.ivy", config="auto_e0", seed=seed))
   benches.append(PaperBench(3, "learning-switch.ivy", config="auto", seed=seed))
   benches.append(PaperBench(4, "lock_server.ivy", config="auto", seed=seed))
   benches.append(PaperBench(5, "2PC.ivy", config="auto", seed=seed))
