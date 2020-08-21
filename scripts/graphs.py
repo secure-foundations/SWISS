@@ -142,6 +142,7 @@ def get_longest(stat_list):
   return t
 
 class BasicStats(object):
+
   def __init__(self, input_directory, name, filename, I4=None):
     self.I4_time = I4
     self.name = name
@@ -280,19 +281,19 @@ def get_bench_name(name):
     stuff = [
       ("__client_server_ae_pyv__", "client-server-ae"),
       ("__client_server_db_ae_pyv__", "client-server-db-ae"),
-      ("__toy_consensus_epr_pyv__", "toy consensus epr"),
-      ("__toy_consensus_forall_pyv__", "toy consensus forall"),
-      ("__consensus_epr_pyv__", "consensus epr"),
-      ("__consensus_forall_pyv__", "consensus forall"),
+      ("__toy_consensus_epr_pyv__", "toy-consensus-epr"),
+      ("__toy_consensus_forall_pyv__", "toy-consensus-forall"),
+      ("__consensus_epr_pyv__", "consensus-epr"),
+      ("__consensus_forall_pyv__", "consensus-forall"),
       ("__consensus_wo_decide_pyv__", "consensus-wo-decide"),
       ("__firewall_pyv__", "firewall"),
-      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid reliable broadcast"),
-      ("__learning_switch_pyv__", "learning switch"),
-      ("__lockserv_pyv__", "lock server"),
-      ("__ring_id_pyv__", "ring id"),
-      ("__ring_id_not_dead_pyv__", "ring id not dead"),
-      ("__sharded_kv_pyv__", "sharded kv"),
-      ("__sharded_kv_no_lost_keys_pyv__", "sharded kv no lost keys"),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast"),
+      ("__learning_switch_pyv__", "learning-switch-mypyvy"),
+      ("__lockserv_pyv__", "lock-server-mypyvy"),
+      ("__ring_id_pyv__", "ring-election-mypyvy"),
+      ("__ring_id_not_dead_pyv__", "ring-election-not-dead"),
+      ("__sharded_kv_pyv__", "sharded-kv"),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys"),
       ("__ticket_pyv__", "ticket"),
     ]
     for (a,b) in stuff:
@@ -302,21 +303,21 @@ def get_bench_name(name):
     assert False
   else:
     if "__simple-de-lock__" in name:
-      return 'SDL'
+      return 'sdl'
     elif "__leader-election__" in name:
-      return 'Ring election'
+      return 'ring-election-ivy'
     elif "__learning-switch__" in name:
-      return 'Learning switch'
+      return 'learning-switch-ivy'
     elif "__lock_server__" in name:
-      return 'Lock server'
+      return 'lock-server-ivy'
     elif "__2PC__" in name:
-      return 'Two-phase commit'
+      return 'two-phase-commit'
     elif "__multi_paxos__" in name:
-      return 'Multi Paxos'
+      return 'multi-paxos'
     elif "__flexible_paxos__" in name:
-      return 'Flexible Paxos'
+      return 'flexible-paxos'
     elif "__paxos__" in name:
-      return 'Paxos'
+      return 'paxos'
     else:
       print("need bench name for", name)
       assert False
@@ -378,6 +379,19 @@ def make_comparison_table(input_directory, ivy):
   for r in rows:
     stats[r] = median(input_directory, r, 1, 5)
 
+  I4_times = {
+      "mm__simple-de-lock__auto__seed#_t24": -1,
+      "mm__leader-election__auto__seed#_t24" : 1.686,
+      "mm__learning-switch__auto_e0__seed#_t24" : 9.392,
+      "mm__lock_server__auto__seed#_t24" : 1.598,
+      "mm__2PC__auto__seed#_t24" : 1.994,
+      "mm__paxos__auto__seed#_t24" : None,
+      "mm__multi_paxos__auto__seed#_t24" : None,
+      "mm__flexible_paxos__auto__seed#_t24" : None,
+      "chord" : 29.193,
+      "chain" : 11.679,
+  }
+
   cols = [
     'Benchmark', '||',
     '$n_B$',
@@ -389,6 +403,14 @@ def make_comparison_table(input_directory, ivy):
   def calc(r, c):
     if c == "Benchmark":
       return get_bench_name(r)
+    elif c == "I4":
+      if I4_times[r] == None:
+        return ""
+      if I4_times[r] == -1:
+        return "TODO"
+      return int(I4_times[r])
+    elif c == "FOL Sep":
+      return "TODO"
     else:
       if stats[r] == None or not stats[r].success:
         return "TODO"
@@ -404,10 +426,6 @@ def make_comparison_table(input_directory, ivy):
         return int(stats[r].breadth_total_time_sec)
       elif c == "Total":
         return int(stats[r].total_time_sec)
-      elif c == "I4":
-        return "TODO"
-      elif c == "FOL Sep":
-        return "TODO"
       else:
         assert False, c
 
@@ -1002,4 +1020,4 @@ if __name__ == '__main__':
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory, False)
+  make_comparison_table(input_directory, True)
