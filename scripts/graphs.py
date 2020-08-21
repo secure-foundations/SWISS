@@ -277,6 +277,7 @@ class Table(object):
     print(s)
 
 def get_bench_name(name):
+  name = "_"+name
   if "pyv" in name:
     stuff = [
       ("__client_server_ae_pyv__", "client-server-ae"),
@@ -849,7 +850,7 @@ def get_total_time(input_directory, filename):
   with open(os.path.join(input_directory, filename)) as f:
     for line in f:
       if line.startswith("total time: "):
-        t = int(line.split()[2])
+        t = float(line.split()[2])
         return t
 
 def make_opt_comparison_graph(ax, input_directory, large_ones):
@@ -864,22 +865,21 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
   colors = ['black', '#ff8080', '#8080ff', '#80ff80']
 
   prob_data = [
-      ('Leader election (1)',  'leader_election_breadth'),
-      ('Leader election (2)',  'leader_election_fin'),
-      ('Two-phase commit', '2pc'),
-      #('Lock server', 'lock_server'),
-      ('Learning switch', 'learning_switch'),
-      ('Paxos', 'paxos'),
-      ('Flexible Paxos', 'flexible_paxos'),
-      ('Multi Paxos', 'multi_paxos'),
-      #('Multi-Paxos', 'multi_paxos'),
+      ('leader-election__basic_b__seed1_t8'),
+      ('2PC__basic__seed1_t8'),
+      ('learning-switch__basic__seed1_t8'),
+      ('paxos__basic__seed1_t8'),
+      ('flexible_paxos__basic__seed1_t8'),
+      ('multi_paxos__basic__seed1_t8'),
   ]
 
-  failures = ['prebmc_multi_paxos', 'multi_paxos']
+  failures = [
+    'prebmc__paxos__basic__seed1_t8',
+    'prebmc__multi_paxos__basic__seed1_t8',
+  ]
 
   ax.set_xticks([i for i in range(1, len(prob_data) + 1)])
-  ax.set_xticklabels([name for (name, prob) in prob_data])
-  probs = [prob for (name, prob) in prob_data]
+  ax.set_xticklabels([get_bench_name("_"+prob) for prob in prob_data])
 
   for tick in ax.get_xticklabels():
       tick.set_rotation(90)
@@ -887,13 +887,13 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
   patterns = [ None, "\\" , "/" , "+" ]
 
   idx = 0
-  for prob in probs:
+  for prob in prob_data:
     idx += 1
     opt_idx = -1
     for (opt, color, pattern) in zip(opts, colors, patterns):
       opt_idx += 1
 
-      name = opt + prob
+      name = opt + "_" + prob
       if name not in failures:
         t = get_total_time(input_directory, name)
         ax.bar(idx - 0.4 + 0.4/len(opts) + 0.8/len(opts) * opt_idx, t,
@@ -1014,10 +1014,10 @@ if __name__ == '__main__':
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
   #make_table(input_directory, 0)
-  #main()
+  main()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory, True)
+  #make_comparison_table(input_directory, True)
