@@ -17,10 +17,10 @@ def get_finisher_params_from_file(filename):
         params = templates.parse_keyvals(params_str)
         break
   return ["--template-sorter",
-      params["k"],
-      params["d"],
-      params["mvars"],
-      params["e"]]
+      str(params["k"]),
+      str(params["d"]),
+      str(params["m"]),
+      str(params["e"])]
 
 def get_protocol_from_file(filename):
   with open(filename) as f:
@@ -34,17 +34,17 @@ def get_config_from_file(filename):
     for line in f:
       if line.startswith('Args:'):
         params = line.split()
-        i = params.find('--config')
+        i = params.index('--config')
         return params[i+1]
   assert False
 
 def get_breadth_params_from_file(protocol_file, filename):
-  protocol_file = get_protocol_from_file[filename]
+  protocol_file = get_protocol_from_file(filename)
   suite = templates.read_suite(protocol_file)
-  config_name = get_config_from_protocol(filename)
+  config_name = get_config_from_file(filename)
   bench = suite.get(config_name)
   space = bench.breadth_space
-  return space.get_args(alg)
+  return space.get_args('breadth')
 
 def calc_counts(protocol_file, params):
   cmd = ["./run-simple.sh", protocol_file] + params + ["--counts-only"]
@@ -58,10 +58,10 @@ def calc_counts(protocol_file, params):
 
   presymm = None
   postsymm = None
-  for line in out.split():
-    if line.startswith("Pre-symmetries:"):
+  for line in out.split(b'\n'):
+    if line.startswith(b"Pre-symmetries:"):
       presymm = int(line.split()[1])
-    if line.startswith("Post-symmetries:"):
+    if line.startswith(b"Post-symmetries:"):
       postsymm = int(line.split()[1])
   assert presymm != None
   assert postsymm != None
@@ -80,3 +80,7 @@ def get_counts(filename, alg):
   presymm, postsymm = calc_counts(protocol_file, params)
 
   return CountSet(presymm, postsymm) 
+
+if __name__ == '__main__':
+  get_counts("paperlogs/2020august/mm__flexible_paxos__auto__seed1_t24",
+      "finisher")

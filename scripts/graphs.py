@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 import os
 
+import get_counts
+
 class ThreadStats(object):
   def __init__(self, input_directory, filename):
     times = {}
@@ -434,6 +436,7 @@ def make_comparison_table(input_directory, ivy):
   t.dump()
 
 def make_optimization_step_table(input_directory):
+  """
   s = [
     BasicStats(input_directory, "Simple decentralized lock", "mm_wc_sdl_one_thread"),
     BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
@@ -445,78 +448,96 @@ def make_optimization_step_table(input_directory):
     #BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
     BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
   ]
+  """
+  logfiles = [
+      "mm__simple-de-lock__auto__seed#_t24",
+      "mm__leader-election__auto__seed#_t24",
+      "mm__learning-switch__auto_e0__seed#_t24",
+      "mm__lock_server__auto__seed#_t24",
+      "mm__2PC__auto__seed#_t24",
+      "mm__paxos__auto__seed#_t24",
+      "mm__multi_paxos__auto__seed#_t24",
+      "mm__flexible_paxos__auto__seed#_t24",
+    ]
+
+  thread_stats = { }
+  counts = { }
+  rows = [ ]
+  for r in logfiles:
+    s = median(input_directory, r, 1, 5)
+    assert s.success
+    ts = ThreadStats(input_directory, s.filename)
+    thread_stats[r] = ts
+
+    full_name = os.path.join(input_directory, s.filename)
+    print(full_name)
+
+    for alg in ('breadth', 'finisher'):
+      if alg == 'breadth':
+        bs = ts.get_breadth_stats()
+        if len(bs) != 0:
+          rows.append((r, alg))
+          counts[(r, alg)] = get_counts.get_counts(full_name, alg)
+      else:
+        fs = ts.get_finisher_stats()
+        if len(fs) != 0:
+          rows.append((r, alg))
+          counts[(r, alg)] = get_counts.get_counts(full_name, alg)
 
   columns = [
     'Benchmark',
     'Baseline',
     'Symmetries',
     'Counterexample filtering',
-    'FastImplies',
+    'FastImplies', '||',
     'Invariants',
   ]
 
-  print("\\begin{tabular}{" + ('|l' * (len(columns)-1)) + "||l|}")
-  print("\\hline")
-  for i in range(len(columns)):
-    print(columns[i], "\\\\" if i == len(columns) - 1 else "&", end=" ")
-  print("")
-  print("\\hline")
-  for bench in s:
-    ts = ThreadStats(input_directory, bench.filename)
-    for alg in ('breadth', 'finisher'):
-      if alg == 'breadth':
-        bs = ts.get_breadth_stats()
-        if len(bs) == 0:
-          continue
-        stats = bs[0][0][0]
-      else:
-        fs = ts.get_finisher_stats()
-        if len(fs) == 0:
-          continue
-        stats = fs[0]
+  def calc(row, col):
+    r, alg = row
+    ts = thread_stats[r]
 
-      algkey = 0 if alg == 'breadth' else 1
+    if alg == 'breadth':
+      bs = ts.get_breadth_stats()
+      stats = bs[0][0][0]
+    else:
+      fs = ts.get_finisher_stats()
+      stats = fs[0]
 
-      for i in range(len(columns)):
-        col = columns[i]
-        if col == 'Benchmark':
-          prop = bench.name + (' (B)' if alg == 'breadth' else ' (F)')
-        elif col == 'Baseline':
-          prop = presymm[bench.filename][algkey]
-        elif col == 'Symmetries':
-          prop = postsymm[bench.filename][algkey]
-        elif col == 'Counterexample filtering':
-          prop = (stats["Counterexamples of type FALSE"]
-              + stats["Counterexamples of type TRANSITION"]
-              + stats["Counterexamples of type TRUE"]
-              + stats["number of non-redundant invariants found"]
-              + stats["number of redundant invariants found"]
-              + stats["number of finisher invariants found"]
-              + stats["number of enumerated filtered redundant invariants"]
-            )
+    if col == 'Benchmark':
+      return bench.name + (' (B)' if alg == 'breadth' else ' (F)')
+    elif col == 'Baseline':
+      return counts[row].presymm
+    elif col == 'Symmetries':
+      return counts[row].postsymm
+    elif col == 'Counterexample filtering':
+      return (stats["Counterexamples of type FALSE"]
+          + stats["Counterexamples of type TRANSITION"]
+          + stats["Counterexamples of type TRUE"]
+          + stats["number of non-redundant invariants found"]
+          + stats["number of redundant invariants found"]
+          + stats["number of finisher invariants found"]
+          + stats["number of enumerated filtered redundant invariants"]
+        )
 
-        elif col == 'FastImplies':
-          prop = (stats["Counterexamples of type FALSE"]
-              + stats["Counterexamples of type TRANSITION"]
-              + stats["Counterexamples of type TRUE"]
-              + stats["number of non-redundant invariants found"]
-              + stats["number of redundant invariants found"]
-              + stats["number of finisher invariants found"]
-            )
+    elif col == 'FastImplies':
+      return (stats["Counterexamples of type FALSE"]
+          + stats["Counterexamples of type TRANSITION"]
+          + stats["Counterexamples of type TRUE"]
+          + stats["number of non-redundant invariants found"]
+          + stats["number of redundant invariants found"]
+          + stats["number of finisher invariants found"]
+        )
 
-        elif col == 'Invariants':
-          prop = (
-                stats["number of non-redundant invariants found"]
-              + stats["number of redundant invariants found"]
-              + stats["number of finisher invariants found"]
-            )
+    elif col == 'Invariants':
+      return (
+            stats["number of non-redundant invariants found"]
+          + stats["number of redundant invariants found"]
+          + stats["number of finisher invariants found"]
+        )
 
-        print(prop, "\\\\" if i == len(columns) - 1 else "&", end=" ")
-      print("")
-      print("\\hline")
-  print("\\end{tabular}")
-
-
+  t = Table(columns, rows, calc)
+  t.dump()
 
 def make_table(input_directory, which):
   s = [
@@ -1011,13 +1032,12 @@ def main():
   plt.show()
 
 if __name__ == '__main__':
-  directory = sys.argv[1]
-  input_directory = os.path.join("paperlogs", directory)
+  input_directory = sys.argv[1]
   #make_table(input_directory, 0)
-  main()
+  #main()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
-  #make_optimization_step_table(input_directory)
+  make_optimization_step_table(input_directory)
   #make_comparison_table(input_directory, True)
