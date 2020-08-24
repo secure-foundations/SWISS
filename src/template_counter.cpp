@@ -138,32 +138,32 @@ struct GroupSpec {
   : groupSize(groupSize), nGroups(nGroups), firstMin(firstMin) { }
 };
 
-map<pair<int, int>, vector<Matrix*>> group_spec_to_matrix;
+map<pair<int, int>, vector<shared_ptr<Matrix>>> group_spec_to_matrix;
 
 Matrix* getMatrixForGroupSpec(GroupSpec gs, TransitionSystem const& ts) {
   auto key = make_pair(gs.groupSize, gs.nGroups);
   auto it = group_spec_to_matrix.find(key);
   if (it != group_spec_to_matrix.end()) {
-    return it->second[gs.firstMin];
+    return it->second[gs.firstMin].get();
   }
 
   int m = ts.nTransitions();
   int n = ts.nStates();
 
-  vector<Matrix*> res;
+  vector<shared_ptr<Matrix>> res;
   res.resize(m + 1);
 
   if (gs.nGroups == 0) {
-    res[m] = new Matrix(n);
+    res[m] = shared_ptr<Matrix>(new Matrix(n));
     res[m]->set_to_identity();
     for (int i = m-1; i >= 0; i--) {
       res[i] = res[m];
     }
   } else {
-    res[m] = new Matrix(n);
+    res[m] = shared_ptr<Matrix>(new Matrix(n));
 
     for (int i = m - 1; i >= 0; i--) {
-      res[i] = new Matrix();
+      res[i] = shared_ptr<Matrix>(new Matrix());
       res[i]->m = res[i+1]->m;
 
       if (gs.groupSize >= 2) {
@@ -184,7 +184,7 @@ Matrix* getMatrixForGroupSpec(GroupSpec gs, TransitionSystem const& ts) {
 
   group_spec_to_matrix[key] = res;
   //cout << group_spec_to_matrix.size() << endl;
-  return res[gs.firstMin];
+  return res[gs.firstMin].get();
 }
 
 
@@ -376,6 +376,8 @@ long long count_template(
     counts = countDepth1(ts, k);
   }
 
+  group_spec_to_matrix.clear();
+
   long long total = 0;
   for (int i = 1; i <= k; i++) {
     long long v = counts[i].get_entry_or_sum(final);
@@ -390,30 +392,6 @@ long long count_template(
   }
   cout << "total = " << total << endl;
   return total;
-}
-
-value make_template_with_max_vars(shared_ptr<Module> module, int maxVars)
-{
-  vector<VarDecl> decls;
-  int idx = 0;
-  int so_idx = 0;
-  for (string so_name : module->sorts) {
-    so_idx++;
-
-    //int v = (so_idx == 1 ? maxVars - 2 : 2);
-    int v = maxVars;
-
-    lsort so = s_uninterp(so_name);
-    for (int i = 0; i < v; i++) {
-      idx++;
-      string s = to_string(idx);
-      while (s.size() < 4) { s = "0" + s; }
-      s = "A" + s;
-
-      decls.push_back(VarDecl(string_to_iden(s), so));
-    }
-  }
-  return v_forall(decls, v_template_hole());
 }
 
 vector<TemplateSlice> count_many_templates(
@@ -444,6 +422,8 @@ vector<TemplateSlice> count_many_templates(
     counts = countDepth1(ts, maxClauses);
   }
 
+  group_spec_to_matrix.clear();
+
   vector<TemplateSlice> tds;
 
   for (int d = 1; d <= maxClauses; d++) {
@@ -461,11 +441,53 @@ vector<TemplateSlice> count_many_templates(
     }
   }
   sort(tds.begin(), tds.end());
-  for (TemplateSlice const& td : tds) {
+  /*for (TemplateSlice const& td : tds) {
     cout << td.to_string(module) << endl;
-  }
+  }*/
 
   return tds;
+}
+
+struct Partial {
+  int capTo;
+
+  int sort_idx;
+  int sort_exact_num;
+
+  Partial() : capTo(-1), sort_idx(-1), sort_exact_num(-1) { }
+};
+
+value make_template_with_max_vars(shared_ptr<Module> module, int maxVars,
+    Partial partial)
+{
+  vector<VarDecl> decls;
+  int idx = 0;
+  int so_idx = 0;
+  for (string so_name : module->sorts) {
+    //int v = (so_idx == 1 ? maxVars - 2 : 2);
+    int v;
+    if (partial.capTo != -1) {
+      v = partial.capTo;
+    } else if (partial.sort_idx != -1) {
+      v = (so_idx == partial.sort_idx ? partial.sort_exact_num
+          : maxVars - partial.sort_exact_num);
+    } else {
+      assert(false);
+    }
+
+    lsort so = s_uninterp(so_name);
+    for (int i = 0; i < v; i++) {
+      idx++;
+      string s = to_string(idx);
+      while (s.size() < 4) { s = "0" + s; }
+      s = "A" + s;
+
+      decls.push_back(VarDecl(string_to_iden(s), so));
+    }
+
+    so_idx++;
+  }
+  return v_forall(decls, v_template_hole());
 }
 
 vector<TemplateSlice> count_many_templates(
@@ -474,8 +496,45 @@ vector<TemplateSlice> count_many_templates(
     bool depth2,
     int maxVars)
 {
-  value templ = make_template_with_max_vars(module, maxVars);
-  return count_many_templates(module, templ, maxClauses, depth2, maxVars);
+  vector<Partial> partials;
+
+  int halfCap = maxVars / 2;
+  Partial m;
+  m.capTo = halfCap;
+  partials.push_back(m);
+
+  for (int i = 0; i < (int)module->sorts.size(); i++) {
+    for (int j = halfCap + 1; j <= maxVars; j++) {
+      Partial p;
+      p.sort_idx = i;
+      p.sort_exact_num = j;
+      partials.push_back(p);
+    }
+  }
+
+  vector<TemplateSlice> res;
+  for (Partial partial : partials) {
+    cout << "partial" << endl;
+    value templ = make_template_with_max_vars(module, maxVars, partial);
+    vector<TemplateSlice> slices = count_many_templates(module, templ, maxClauses, depth2, maxVars);
+    if (partial.sort_idx != -1) {
+      for (TemplateSlice const& ts : slices) {
+        if (ts.vars[partial.sort_idx] == partial.sort_exact_num) {
+          cout << ts << endl;
+          res.push_back(ts);
+        }
+      }
+    } else {
+      for (TemplateSlice const& ts : slices) {
+        cout << ts << endl;
+        res.push_back(ts);
+      }
+    }
+  }
+
+  sort(res.begin(), res.end());
+
+  return res;
 }
 
 vector<TemplateSlice> count_many_templates(
