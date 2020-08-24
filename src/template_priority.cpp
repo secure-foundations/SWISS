@@ -666,7 +666,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
     }
   }
 
-  priority_queue<NodePtr> q;
+  /*priority_queue<NodePtr> q;
   for (int i = 0; i < (int)slices.size(); i++) {
     if (nodes[i].pred_count == 0) {
       q.push(NodePtr(&nodes[i]));
@@ -687,10 +687,13 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
         q.push(NodePtr(succ));
       }
     }
-  }
+  }*/
+  vector<TemplateSlice> ordered_slices = slices;
+  sort(ordered_slices.begin(), ordered_slices.end());
 
   assert (ordered_slices.size() == slices.size());
 
+  //cout << "----" << endl;
   //for (TemplateSlice const& ts : ordered_slices) {
   //  cout << ts << endl;
   //}
