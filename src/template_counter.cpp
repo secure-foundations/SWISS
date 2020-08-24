@@ -42,15 +42,15 @@ struct Matrix {
   Matrix(int n) {
     m.resize(n);
     for (int i = 0; i < n; i++) {
-      m[i].resize(n);
+      m[i].resize(n-i);
     }
   }
   void add(Matrix const& a)
   {
     int n = m.size();
     for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        m[i][j] += a.m[i][j];
+      for (int j = i; j < n; j++) {
+        m[i][j-i] += a.m[i][j-i];
       }
     }
   }
@@ -60,7 +60,7 @@ struct Matrix {
     for (int i = 0; i < n; i++) {
       for (int k = i; k < n; k++) {
         for (int j = k; j < n; j++) {
-          m[i][j] += a.m[i][k] * b.m[k][j];
+          m[i][j-i] += a.m[i][k-i] * b.m[k][j-k];
         }
       }
     }
@@ -73,7 +73,7 @@ struct Matrix {
       if (i1 != -1) {
         for (int k = i1; k < n; k++) {
           for (int j = k; j < n; j++) {
-            m[i][j] += a.m[i1][k] * b.m[k][j];
+            m[i][j-i] += a.m[i1][k-i1] * b.m[k][j-k];
           }
         }
       }
@@ -86,7 +86,7 @@ struct Matrix {
       int i1 = ts.next(i, trans);
       if (i1 != -1) {
         for (int j = i1; j < n; j++) {
-          m[i][j] += a.m[i1][j];
+          m[i][j-i] += a.m[i1][j-i1];
         }
       }
     }
@@ -95,27 +95,34 @@ struct Matrix {
   {
     int n = m.size();
     for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        m[i][j] = 0;
+      for (int j = i+1; j < n; j++) {
+        m[i][j-i] = 0;
       }
-      m[i][i] = 1;
+      m[i][i-i] = 1;
     }
   }
   long long count_from_to(int from, int to) {
     if (to == -1) {
       long long res = 0;
       int n = m.size();
-      for (int i = 0; i < n; i++) {
-        res += m[from][i];
+      for (int i = from; i < n; i++) {
+        res += m[from][i-from];
       }
       return res;
     } else {
-      return m[from][to];
+      if (to >= from) {
+        return m[from][to-from];
+      } else {
+        return 0;
+      }
     }
   }
   Vector get_row(int from) {
     Vector v;
-    v.v = m[from];
+    v.v.resize(m.size());
+    for (int i = from; i < (int)m.size(); i++) {
+      v.v[i] = m[from][i-from];
+    }
     return v;
   }
 };
@@ -176,6 +183,7 @@ Matrix* getMatrixForGroupSpec(GroupSpec gs, TransitionSystem const& ts) {
   }
 
   group_spec_to_matrix[key] = res;
+  //cout << group_spec_to_matrix.size() << endl;
   return res[gs.firstMin];
 }
 
@@ -388,9 +396,15 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars)
 {
   vector<VarDecl> decls;
   int idx = 0;
+  int so_idx = 0;
   for (string so_name : module->sorts) {
+    so_idx++;
+
+    //int v = (so_idx == 1 ? maxVars - 2 : 2);
+    int v = maxVars;
+
     lsort so = s_uninterp(so_name);
-    for (int i = 0; i < maxVars; i++) {
+    for (int i = 0; i < v; i++) {
       idx++;
       string s = to_string(idx);
       while (s.size() < 4) { s = "0" + s; }
