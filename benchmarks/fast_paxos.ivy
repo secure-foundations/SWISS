@@ -98,7 +98,10 @@ action propose = {
     local r:round, q:c_quorum {
         assume r ~= none;
         assume ~proposal(r,V) & ~any_msg(r);
-        assume forall N:node. c_member(N, q) -> one_b(N,R); # rewritten
+
+        # NOTE(travis): this line was fixed, R -> r
+        #assume forall N:node. c_member(N, q) -> one_b(N,R); # rewritten
+        assume forall N:node. c_member(N, q) -> one_b(N,r); # rewritten
 
         local maxr:round, v:value {
             # find the maximal max_vote in the quorum (rewritten)
