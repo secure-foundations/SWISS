@@ -425,7 +425,7 @@ std::vector<std::vector<TemplateSubSlice>> pack_tightly_dont_exceed_hull(
     //long long my_nthreads = (c + 1000 - 1) / 1000;
     //if (my_nthreads > nthreads) my_nthreads = nthreads;
     //assert (my_nthreads > 0);
-    long long my_nthreads = (i == 0 ? 2 : 1);
+    long long my_nthreads = (c > 100000 ? (nthreads/2) : (i == 0 ? 2 : 1));
 
     vector_append(res, split_into(s2[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
   }
