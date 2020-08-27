@@ -4,6 +4,7 @@
 
 #include "benchmarking.h"
 #include "model.h"
+#include "stats.h"
 
 using namespace std;
 
@@ -513,6 +514,8 @@ namespace smt_z3 {
     if (enable_smt_logging) {
       log_smtlib(ms, res_to_string(res));
     }
+
+    global_stats.add_z3(ms);
 
     if (res == z3::sat) return smt::SolverResult::Sat;
     else if (res == z3::unsat) return smt::SolverResult::Unsat;

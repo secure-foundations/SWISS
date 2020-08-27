@@ -3,6 +3,9 @@
 #include <iostream>
 #include <cassert>
 
+#include "stats.h"
+#include "benchmarking.h"
+
 using namespace std;
 
 extern int numRetries;
@@ -63,6 +66,8 @@ ContextSolverResult context_solve(
         std::vector<std::shared_ptr<ModelEmbedding>>(std::shared_ptr<BackgroundContext>)
       > f)
 {
+  auto t1 = now();
+
   int num_fails = 0; 
   while (true) {
     smt::context ctx = (num_fails % 2 == 0
@@ -82,6 +87,10 @@ ContextSolverResult context_solve(
       || (st == Strictness::TryHard && (num_fails == 10 || res != smt::SolverResult::Unknown))
       || (st == Strictness::Strict && res != smt::SolverResult::Unknown)
     ) {
+      auto t2 = now();
+      long long ms = as_ms(t2 - t1);
+      global_stats.add_total(ms);
+
       ContextSolverResult csr;
       csr.res = res;
       if (es.size() > 0) {
@@ -93,8 +102,14 @@ ContextSolverResult context_solve(
             }
             csr.models[0]->dump_sizes();
           } else {
+            auto t1 = now();
+
             csr.models = Model::extract_minimal_models_from_z3(
                 bgc->ctx, bgc->solver, module, es, hint);
+
+            auto t2 = now();
+            long long ms = as_ms(t2 - t1);
+            global_stats.add_model_min(ms);
           }
         }
       }

@@ -9,6 +9,7 @@
 
 #include "benchmarking.h"
 #include "model.h"
+#include "stats.h"
 
 using namespace std;
 
@@ -585,6 +586,8 @@ namespace smt_cvc4 {
     if (enable_smt_logging) {
       log_smtlib(ms, res_to_string(res));
     }
+
+    global_stats.add_cvc4(ms);
 
     if (res == CVC4::Result::SAT) return smt::SolverResult::Sat;
     else if (res == CVC4::Result::UNSAT) return smt::SolverResult::Unsat;

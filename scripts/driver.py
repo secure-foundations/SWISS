@@ -74,6 +74,13 @@ def log_inputs(logfilename, json_filename, args):
     print("failed to log_inputs")
     pass
 
+all_stats_files = []
+
+def make_stats_file():
+  f = tempfile.mktemp()
+  all_stats_files.append(f)
+  return f
+
 def run_synthesis_off_thread(logfile_base, run_id, json_filename, args, q):
   res = run_synthesis_retry(logfile_base, run_id, json_filename, args)
   q.put(res)
@@ -103,7 +110,8 @@ def run_synthesis(logfile_base, run_id, json_filename, args, use_stdout=False):
   try:
     logfilename = logfile_base + "." + run_id
 
-    cmd = ["./synthesis", "--input-module", json_filename] + args
+    cmd = ["./synthesis", "--input-module", json_filename,
+        "--stats-file", make_stats_file()] + args
 
     print("run " + run_id + ": " + " ".join(cmd) + " > " + logfilename)
     sys.stdout.flush()
@@ -197,6 +205,7 @@ def do_threading(stats, ivy_filename, json_filename, logfile, nthreads, main_arg
       print("Invariant success!")
 
   statfile = logfile + ".summary"
+  stats.add_global_stat_files(all_stats_files)
   stats.print_stats(statfile)
   print("")
   print("statfile: " + statfile)

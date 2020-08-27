@@ -11,6 +11,7 @@
 #include "template_counter.h"
 #include "template_priority.h"
 #include "z3++.h"
+#include "stats.h"
 
 #include <iostream>
 #include <iterator>
@@ -21,6 +22,8 @@
 #include <fstream>
 
 using namespace std;
+
+Stats global_stats;
 
 bool do_invariants_imply_conjecture(shared_ptr<ConjectureContext> conjctx) {
   smt::solver& solver = conjctx->ctx->solver;
@@ -535,6 +538,8 @@ int main(int argc, char* argv[]) {
 
   bool by_size = false;
 
+  string stats_filename;
+
   int i;
   for (i = 1; i < argc; i++) {
     if (argv[i] == string("--random")) {
@@ -621,6 +626,12 @@ int main(int argc, char* argv[]) {
       assert(i + 1 < argc);
       assert(module_filename == "");
       module_filename = argv[i+1];
+      i++;
+    }
+    else if (argv[i] == string("--stats-file")) {
+      assert(i + 1 < argc);
+      assert(stats_filename == "");
+      stats_filename = argv[i+1];
       i++;
     }
     else if (argv[i] == string("--input-chunk-file")) {
@@ -996,6 +1007,10 @@ int main(int argc, char* argv[]) {
     if (output_formula_file != "") {
       cout << "Writing result to " << output_formula_file << endl;
       write_formulas(output_formula_file, output_fd);
+    }
+
+    if (stats_filename != "") {
+      global_stats.dump(stats_filename);
     }
 
     return 0;

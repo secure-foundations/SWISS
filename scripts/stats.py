@@ -117,6 +117,51 @@ def aggregate_stats(stats_list):
 def log(f, *args):
   print(*args, file=f)
 
+def compute_average(nums):
+  if len(nums) == 0:
+    return "undefined"
+  else:
+    return str(sum(nums) / float(len(nums)))
+
+def compute_percentiles(nums):
+  if len(nums) == 0:
+    return "undefined"
+  else:
+    x = []
+    for i in range(0, 101):
+      idx = (i * (len(nums) - 1)) // 100
+      x.append(str(nums[idx]))
+    return " ".join(x)
+
+def process_global_stats(files):
+  d = {}
+  results = {}
+  for filename in files:
+    if os.path.exists(filename):
+      key = None
+      with open(filename) as f:
+        for l in f:
+          l = l.strip()
+          i = None
+          try:
+            i = int(l)
+          except ValueError:
+            pass
+          if i is None:
+            if l != "":
+              key = l
+              if key not in d:
+                d[key] = []
+          else:
+            assert key != None
+            d[key].append(i)
+  for key in d:
+    nums = d[key]
+    nums.sort()
+    results[key + " avg"] = compute_average(nums)
+    results[key + " percentiles"] = compute_percentiles(nums)
+  return results
+
 class Stats(object):
   def __init__(self, num_threads, all_args, ivy_filename, json_filename, logfile):
     self.num_threads = num_threads
@@ -140,6 +185,9 @@ class Stats(object):
     self.logfile_base = logfile
 
     self.resulting_inv_info = []
+
+  def add_global_stat_files(self, files):
+    self.global_stats = process_global_stats(files)
 
   def add_inc_log(self, iternum, log, seconds, cid, failure, stopped):
     while len(self.inc_logs) <= iternum:
@@ -320,6 +368,11 @@ class Stats(object):
 
       self.dump_individual_stats(f)
       self.stats_total(f)
+
+      log(f, "")
+
+      for key in self.global_stats:
+        log(f, "global_stats " + key + " " + self.global_stats[key])
 
       log(f, "")
 
