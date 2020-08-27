@@ -453,8 +453,14 @@ struct Partial {
 
   int sort_idx;
   int sort_exact_num;
+  int other_bound;
 
-  Partial() : capTo(-1), sort_idx(-1), sort_exact_num(-1) { }
+  int a_idx;
+  int b_idx;
+  int v;
+  int w;
+
+  Partial() : capTo(-1), sort_idx(-1), sort_exact_num(-1), a_idx(-1), b_idx(-1) { }
 };
 
 value make_template_with_max_vars(shared_ptr<Module> module, int maxVars,
@@ -470,7 +476,10 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars,
       v = partial.capTo;
     } else if (partial.sort_idx != -1) {
       v = (so_idx == partial.sort_idx ? partial.sort_exact_num
-          : maxVars - partial.sort_exact_num);
+          : partial.other_bound);
+    } else if (partial.a_idx != -1) {
+      v = (so_idx == partial.a_idx || so_idx == partial.b_idx
+          ? partial.v : partial.w);
     } else {
       assert(false);
     }
@@ -496,38 +505,97 @@ vector<TemplateSlice> count_many_templates(
     bool depth2,
     int maxVars)
 {
-  vector<Partial> partials;
-
-  int halfCap = maxVars / 2;
-  Partial m;
-  m.capTo = halfCap;
-  partials.push_back(m);
-
-  for (int i = 0; i < (int)module->sorts.size(); i++) {
-    for (int j = halfCap + 1; j <= maxVars; j++) {
-      Partial p;
-      p.sort_idx = i;
-      p.sort_exact_num = j;
-      partials.push_back(p);
-    }
-  }
-
   vector<TemplateSlice> res;
-  for (Partial partial : partials) {
-    cout << "partial" << endl;
-    value templ = make_template_with_max_vars(module, maxVars, partial);
-    vector<TemplateSlice> slices = count_many_templates(module, templ, maxClauses, depth2, maxVars);
-    if (partial.sort_idx != -1) {
-      for (TemplateSlice const& ts : slices) {
-        if (ts.vars[partial.sort_idx] == partial.sort_exact_num) {
+
+  if (maxVars % 2 == 1 && maxVars >= 5) {
+    vector<Partial> partials;
+
+    int halfCap = maxVars / 2 - 1;
+    Partial m;
+    m.capTo = halfCap;
+    partials.push_back(m);
+
+    for (int i = 0; i < (int)module->sorts.size(); i++) {
+      for (int j = maxVars / 2; j < (int)module->sorts.size(); j++) {
+        Partial p;
+        p.sort_idx = i;
+        p.sort_exact_num = j;
+        p.other_bound = min(maxVars - j, maxVars / 2 - 1);
+        partials.push_back(p);
+      }
+    }
+
+    for (int i = 0; i < (int)module->sorts.size(); i++) {
+      for (int j = i+1; j < (int)module->sorts.size(); j++) {
+        Partial p;
+        p.a_idx = i;
+        p.b_idx = j;
+        p.v = maxVars / 2 + 1;
+        p.w = 1;
+        partials.push_back(p);
+      }
+    }
+
+    for (Partial partial : partials) {
+      cout << "partial" << endl;
+      value templ = make_template_with_max_vars(module, maxVars, partial);
+      vector<TemplateSlice> slices = count_many_templates(module, templ, maxClauses, depth2, maxVars);
+      if (partial.sort_idx != -1) {
+        for (TemplateSlice const& ts : slices) {
+          if (ts.vars[partial.sort_idx] == partial.sort_exact_num) {
+            cout << ts << endl;
+            res.push_back(ts);
+          }
+        }
+      } else if (partial.a_idx != -1) {
+        for (TemplateSlice const& ts : slices) {
+          if (ts.vars[partial.a_idx] >= partial.v - 1
+           && ts.vars[partial.b_idx] >= partial.v - 1) {
+            cout << ts << endl;
+            res.push_back(ts);
+          }
+        }
+      } else {
+        for (TemplateSlice const& ts : slices) {
           cout << ts << endl;
           res.push_back(ts);
         }
       }
-    } else {
-      for (TemplateSlice const& ts : slices) {
-        cout << ts << endl;
-        res.push_back(ts);
+    }
+  } else {
+    vector<Partial> partials;
+
+    int halfCap = maxVars / 2;
+    Partial m;
+    m.capTo = halfCap;
+    partials.push_back(m);
+
+    for (int i = 0; i < (int)module->sorts.size(); i++) {
+      for (int j = halfCap + 1; j <= maxVars; j++) {
+        Partial p;
+        p.sort_idx = i;
+        p.sort_exact_num = j;
+        p.other_bound = maxVars - j;
+        partials.push_back(p);
+      }
+    }
+
+    for (Partial partial : partials) {
+      cout << "partial" << endl;
+      value templ = make_template_with_max_vars(module, maxVars, partial);
+      vector<TemplateSlice> slices = count_many_templates(module, templ, maxClauses, depth2, maxVars);
+      if (partial.sort_idx != -1) {
+        for (TemplateSlice const& ts : slices) {
+          if (ts.vars[partial.sort_idx] == partial.sort_exact_num) {
+            cout << ts << endl;
+            res.push_back(ts);
+          }
+        }
+      } else {
+        for (TemplateSlice const& ts : slices) {
+          cout << ts << endl;
+          res.push_back(ts);
+        }
       }
     }
   }
