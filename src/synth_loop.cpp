@@ -719,15 +719,16 @@ SynthesisResult synth_loop(
       // Extra verification:
       // (If we get here, then it should definitely be invariant,
       // this is just a sanity check that our code is right.)
-      bool is_inv;
-      if (options.with_conjs) {
+      bool is_inv = true;
+      // cutting out this sanity check because it's slow :/
+      /*if (options.with_conjs) {
         vector<value> conjs = module->conjectures;
         conjs.push_back(candidate);
         vector_append(conjs, fd.base_invs);
         is_inv = is_itself_invariant(module, conjs);
       } else {
         is_inv = is_complete_invariant(module, candidate);
-      }
+      }*/
       if (is_inv) {
         printf("found invariant: %s\n", candidate->to_string().c_str());
         synres.done = true;
