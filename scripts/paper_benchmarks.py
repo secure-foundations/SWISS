@@ -10,7 +10,7 @@ import threading
 NUM_PARTS = 43
 
 class PaperBench(object):
-  def __init__(self, partition, ivyname, config, threads=24, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
+  def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
     self.partition = partition
 
     self.ivyname = ivyname
