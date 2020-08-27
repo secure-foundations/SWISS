@@ -92,7 +92,7 @@ for seed in range(1, 6):
   benches.append(PaperBench(5, "2PC.ivy", config="auto", seed=seed))
   benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed))
   benches.append(PaperBench(7, "multi_paxos.ivy", config="auto", seed=seed))
-  benches.append(PaperBench(8, "flexible_paxos.ivy", config="auto", seed=seed))
+  benches.append(PaperBench(6, "flexible_paxos.ivy", config="auto", seed=seed))
   benches.append(PaperBench(9, "chord-gimme-1.ivy", config="auto", seed=seed))
   benches.append(PaperBench(10, "decentralized-lock-gimme-1.ivy", config="auto", seed=seed))
 
