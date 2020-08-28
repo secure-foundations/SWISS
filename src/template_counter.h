@@ -130,7 +130,7 @@ TransitionSystem build_transition_system(
       int maxVars);
 
 //long long count_space(std::shared_ptr<Module> module, int k, int maxVars);
-long long count_template(
+unsigned long long count_template(
     std::shared_ptr<Module> module,
     value templ,
     int k,

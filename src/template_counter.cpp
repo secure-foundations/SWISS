@@ -4,6 +4,7 @@
 #include <cassert>
 #include <algorithm>
 #include <unordered_map>
+#include <set>
 
 #include "logic.h"
 #include "enumerator.h"
@@ -14,7 +15,7 @@
 using namespace std;
 
 struct Vector {
-  vector<long long> v;
+  vector<unsigned long long> v;
 
   void subtract(Vector const& other)
   {
@@ -23,9 +24,9 @@ struct Vector {
     }
   }
 
-  long long get_entry_or_sum(int idx) {
+  unsigned long long get_entry_or_sum(int idx) {
     if (idx == -1) {
-      long long sum = 0;
+      unsigned long long sum = 0;
       for (int i = 0; i < (int)v.size(); i++) {
         sum += v[i];
       }
@@ -37,7 +38,7 @@ struct Vector {
 };
 
 struct Matrix {
-  vector<vector<long long>> m;
+  vector<vector<unsigned long long>> m;
   Matrix() { }
   Matrix(int n) {
     m.resize(n);
@@ -101,9 +102,9 @@ struct Matrix {
       m[i][i-i] = 1;
     }
   }
-  long long count_from_to(int from, int to) {
+  unsigned long long count_from_to(int from, int to) {
     if (to == -1) {
-      long long res = 0;
+      unsigned long long res = 0;
       int n = m.size();
       for (int i = from; i < n; i++) {
         res += m[from][i-from];
@@ -338,7 +339,7 @@ int get_num_vars(shared_ptr<Module> module, value templ)
   return count;
 }
 
-long long count_template(
+unsigned long long count_template(
     shared_ptr<Module> module,
     value templ,
     int k,
@@ -378,9 +379,9 @@ long long count_template(
 
   group_spec_to_matrix.clear();
 
-  long long total = 0;
+  unsigned long long total = 0;
   for (int i = 1; i <= k; i++) {
-    long long v = counts[i].get_entry_or_sum(final);
+    unsigned long long v = counts[i].get_entry_or_sum(final);
 
     if (depth2 && i > 1) {
       v *= 2;
@@ -499,6 +500,29 @@ value make_template_with_max_vars(shared_ptr<Module> module, int maxVars,
   return v_forall(decls, v_template_hole());
 }
 
+value make_template_with_max_vars(shared_ptr<Module> module, vector<int> const& va)
+{
+  vector<VarDecl> decls;
+  int idx = 0;
+  int so_idx = 0;
+  for (string so_name : module->sorts) {
+    int v = va[so_idx];
+
+    lsort so = s_uninterp(so_name);
+    for (int i = 0; i < v; i++) {
+      idx++;
+      string s = to_string(idx);
+      while (s.size() < 4) { s = "0" + s; }
+      s = "A" + s;
+
+      decls.push_back(VarDecl(string_to_iden(s), so));
+    }
+
+    so_idx++;
+  }
+  return v_forall(decls, v_template_hole());
+}
+
 vector<TemplateSlice> count_many_templates(
     shared_ptr<Module> module,
     int maxClauses,
@@ -515,7 +539,7 @@ vector<TemplateSlice> count_many_templates(
     m.capTo = halfCap;
     partials.push_back(m);
 
-    for (int i = 0; i < (int)module->sorts.size(); i++) {
+    /*for (int i = 0; i < (int)module->sorts.size(); i++) {
       for (int j = maxVars / 2; j < (int)module->sorts.size(); j++) {
         Partial p;
         p.sort_idx = i;
@@ -523,9 +547,9 @@ vector<TemplateSlice> count_many_templates(
         p.other_bound = min(maxVars - j, maxVars / 2 - 1);
         partials.push_back(p);
       }
-    }
+    }*/
 
-    for (int i = 0; i < (int)module->sorts.size(); i++) {
+    /*for (int i = 0; i < (int)module->sorts.size(); i++) {
       for (int j = i+1; j < (int)module->sorts.size(); j++) {
         Partial p;
         p.a_idx = i;
@@ -534,7 +558,7 @@ vector<TemplateSlice> count_many_templates(
         p.w = 1;
         partials.push_back(p);
       }
-    }
+    }*/
 
     for (Partial partial : partials) {
       cout << "partial" << endl;
@@ -560,6 +584,56 @@ vector<TemplateSlice> count_many_templates(
           cout << ts << endl;
           res.push_back(ts);
         }
+      }
+    }
+
+    set<vector<int>> seen;
+    for (TemplateSlice const& ts : res) {
+      seen.insert(ts.vars);
+    }
+
+    vector<int> v;
+    v.resize(module->sorts.size());
+    while (true) {
+      bool okay = false;
+      int sum = 0;
+      for (int i = 0; i < (int)v.size(); i++) {
+        if (v[i] >= maxVars / 2) {
+          okay = true;
+        }
+        sum += v[i];
+      }
+
+      if (okay && sum == maxVars) {
+        cout << "doing ";
+        for (int w : v) cout << w << " ";
+        cout << endl;
+
+        value templ = make_template_with_max_vars(module, v);
+        vector<TemplateSlice> slices = count_many_templates(module, templ, maxClauses, depth2, maxVars);
+
+        for (TemplateSlice const& ts : slices) {
+          if (seen.find(ts.vars) == seen.end()) {
+            cout << ts << endl;
+            res.push_back(ts);
+          }
+        }
+        for (TemplateSlice const& ts : slices) {
+          seen.insert(ts.vars);
+        }
+      }
+
+      int i;
+      for (i = 0; i < (int)v.size(); i++) {
+        v[i]++;
+        if (v[i] == maxVars+1) {
+          v[i] = 0;
+        } else {
+          break;
+        }
+      }
+      if (i == (int)v.size()) {
+        break;
       }
     }
   } else {

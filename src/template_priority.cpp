@@ -253,9 +253,9 @@ vector<TemplateSlice> remove_count0(vector<TemplateSlice> const& v)
   return res;
 }
 
-long long total_count(vector<TemplateSlice> const& slices)
+unsigned long long total_count(vector<TemplateSlice> const& slices)
 {
-  long long sum = 0;
+  unsigned long long sum = 0;
   for (TemplateSlice const& ts : slices) {
     sum += ts.count;
   }
@@ -324,7 +324,7 @@ int get_vars_that_slice_fits_in(
 
 void sort_decreasing_count_order(vector<vector<TemplateSlice>>& s)
 {
-  vector<pair<long long, int>> cs;
+  vector<pair<unsigned long long, int>> cs;
   cs.resize(s.size());
   for (int i = 0; i < (int)s.size(); i++) {
     cs[i].first = -total_count(s[i]);
@@ -419,13 +419,13 @@ std::vector<std::vector<TemplateSubSlice>> pack_tightly_dont_exceed_hull(
   vector<vector<TemplateSubSlice>> res;
 
   for (int i = 0; i < (int)s2.size(); i++) {
-    long long c = total_count(s2[i]);
+    unsigned long long c = total_count(s2[i]);
     cout << i << " " << c << endl;
 
     //long long my_nthreads = (c + 1000 - 1) / 1000;
     //if (my_nthreads > nthreads) my_nthreads = nthreads;
     //assert (my_nthreads > 0);
-    long long my_nthreads = (i == 0 ? 2 : 1);
+    unsigned long long my_nthreads = (i == 0 ? 2 : 1);
 
     vector_append(res, split_into(s2[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
   }
@@ -497,7 +497,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices_breadth_by_size(
     cout << ts << endl;
   }
 
-  const long long THRES = 1000000000;
+  const unsigned long long THRES = 1000000000;
 
   map<vector<int>, TransitionSystem> sub_ts_cache;
   vector<vector<TemplateSubSlice>> res;
@@ -505,7 +505,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices_breadth_by_size(
   int a = 0;
   while (a < (int)slices.size()) {
     int b = a+1;
-    long long tc = slices[a].count;
+    unsigned long long tc = slices[a].count;
     while (b < (int)slices.size() && tc + slices[b].count <= THRES) {
       tc += slices[b].count;
       b++;
@@ -549,7 +549,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
 
   int idx = 0;
   vector<vector<int>> max_vars_per_thread;
-  vector<long long> counts;
+  vector<unsigned long long> counts;
   all_slices_per_thread.resize(nthreads);
   max_vars_per_thread.resize(nthreads);
   counts.resize(nthreads);
@@ -606,7 +606,7 @@ std::vector<std::vector<TemplateSubSlice>> prioritize_sub_slices_finisher(
   for (int i = 0; i < (int)all_slices_per_thread.size(); i++) {
     bool last = (i == (int)all_slices_per_thread.size() - 1);
 
-    long long my_nthreads = (last ? nthreads : 1);
+    unsigned long long my_nthreads = (last ? nthreads : 1);
 
     vector_append(res, split_into(all_slices_per_thread[i], my_nthreads, trans_system, sub_ts_cache, tree_shapes));
   }
@@ -824,7 +824,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
   while (a < (int)ordered_slices.size()) {
     int b = a;
 
-    long long total_count = 0;
+    unsigned long long total_count = 0;
     vector<int> vars;
     vars.resize(module->sorts.size());
 
@@ -842,7 +842,7 @@ vector<vector<vector<TemplateSubSlice>>> prioritize_sub_slices(
       b++;
     }
 
-    long long my_nthreads = (total_count + 1000 - 1) / 1000;
+    unsigned long long my_nthreads = (total_count + 1000 - 1) / 1000;
     if (my_nthreads > nthreads) my_nthreads = nthreads;
     assert (my_nthreads > 0);
 
