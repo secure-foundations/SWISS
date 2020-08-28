@@ -159,13 +159,13 @@ for seed in range(1, 9):
   benches.append(PaperBench(40, "learning-switch.ivy", "basic", threads=THREADS, seed=seed))
 
   #benches.append(PaperBench(41, "paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
-  benches.append(PaperBench(41, "paxos.ivy", "basic", threads=THREADS, seed=seed))
+  benches.append(PaperBench(6, "paxos.ivy", "basic", threads=THREADS, seed=seed))
 
   #benches.append(PaperBench(42, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, nonacc=True, expect_success=False))
-  benches.append(PaperBench(42, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, expect_success=False))
+  benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, expect_success=False))
 
   #benches.append(PaperBench(43, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, nonacc=True, expect_success=False))
-  benches.append(PaperBench(43, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, expect_success=False))
+  benches.append(PaperBench(6, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, expect_success=False))
 
 #all_names = list(set([b.name for b in benches]))
 #assert len(all_names) == len(list(set(all_names))) # check uniqueness
