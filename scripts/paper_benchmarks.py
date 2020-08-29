@@ -83,7 +83,7 @@ THREADS = 8
 #      "nonacc_wc_chord_t" + str(i),
 #      "chord-gimme-1 --breadth-with-conjs --by-size --non-accumulative --minimal-models --whole-space --threads " + str(i)))
 
-for seed in range(1, 2): #6):
+for seed in range(1, 6):
   benches.append(PaperBench(6, "simple-de-lock.ivy", config="auto", seed=seed))
   benches.append(PaperBench(6, "leader-election.ivy", config="auto", seed=seed))
   benches.append(PaperBench(6, "learning-switch.ivy", config="auto_e0", seed=seed))
