@@ -133,13 +133,15 @@ for i in range(THREADS, 0, -1):
 for minmodels in (True, False):
   for postbmc in [False]: #(False, True):
     for prebmc in (False, True):
-      for nonacc in (True, False):
+      for nonacc in (False, True):
         c = (
             (1 if minmodels else 0) +
             (2 if prebmc else 0) +
             (4 if nonacc else 0)
         )
         c += 32
+
+        c = 6
 
         args = {"mm" : minmodels, "post_bmc" : postbmc, "pre_bmc" : prebmc, "nonacc" : nonacc, "threads" : 8 }
         benches.append(PaperBench(c, "simple-de-lock.ivy", config="basic", **args))
