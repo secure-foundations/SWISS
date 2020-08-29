@@ -81,6 +81,38 @@ def get_counts(filename, alg):
 
   return CountSet(presymm, postsymm) 
 
+def sorted_counts(protocol_file, params):
+  cmd = ["./run-simple.sh", protocol_file] + params + ["--counts-only"]
+  print(' '.join(cmd))
+  proc = subprocess.Popen(cmd,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE)
+  out, err = proc.communicate()
+  ret = proc.wait()
+  assert ret == 0
+
+  res = []
+  for l in out.split(b'\n'):
+    l = l.strip()
+    if l.startswith(b"TemplateSlice["):
+      res.append(l.decode('utf-8'))
+  return sort_spaces(res)
+
+def count_of_space_str(s):
+  t = s.split()
+  assert t[5] == 'count'
+  return int(t[6])
+
+def sort_spaces(spaces):
+  t = [(count_of_space_str(space), space) for space in spaces]
+  t.sort()
+  return [x[1] for x in t]
+
+def print_sorted_spaces(protocol_file, params):
+  s = sorted_counts(protocol_file, params)
+  for l in s:
+    print(l)
+
 if __name__ == '__main__':
-  get_counts("paperlogs/2020august/mm__flexible_paxos__auto__seed1_t24",
-      "finisher")
+  print_sorted_spaces("benchmarks/decentralized-lock.ivy", '--template-sorter 9 2 6 0'.split())
+  #get_counts("paperlogs/2020august/mm__flexible_paxos__auto__seed1_t24", "finisher")

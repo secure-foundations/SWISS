@@ -116,19 +116,19 @@ for seed in range(1, 2): #6):
   benches.append(PaperBench(6, "toy_consensus_epr.pyv", config="auto", seed=seed))
   benches.append(PaperBench(6, "toy_consensus_forall.pyv", config="auto", seed=seed))
 
-#for i in range(THREADS, 0, -1):
-#  benches.append(PaperBench(27, "paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
-#  benches.append(PaperBench(27, "paxos.ivy", "basic_b", threads=i, expect_success=False))
+for i in range(THREADS, 0, -1):
+  benches.append(PaperBench(6, "paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
+  benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=i, expect_success=False))
 
-#  benches.append(PaperBench(28, "paxos_epr_missing1.ivy", "basic", threads=i))
+  benches.append(PaperBench(6, "paxos_epr_missing1.ivy", "basic", threads=i))
 
   #benches.append(PaperBench(29, "chord-gimme-1.ivy", "basic", threads=i))
   #benches.append(PaperBench(29, "chord-gimme-1.ivy", "basic", threads=i, nonacc=True))
 
-#  benches.append(PaperBench(30, "multi_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
+  benches.append(PaperBench(30, "multi_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
   #benches.append(PaperBench(30, "multi_paxos.ivy", "basic", threads=i, whole=True, expect_success=False, nonacc=True))
-#  benches.append(PaperBench(31, "flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
-#  #benches.append(PaperBench(31, "flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False, nonacc=True))
+  benches.append(PaperBench(31, "flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False))
+  #benches.append(PaperBench(31, "flexible_paxos.ivy", "basic", threads=i, whole=True, expect_success=False, nonacc=True))
 
 for minmodels in (True, False):
   for postbmc in [False]: #(False, True):
@@ -159,13 +159,13 @@ for seed in range(1, 9):
   benches.append(PaperBench(40, "learning-switch.ivy", "basic", threads=THREADS, seed=seed))
 
   #benches.append(PaperBench(41, "paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
-  benches.append(PaperBench(6, "paxos.ivy", "basic", threads=THREADS, seed=seed))
+  benches.append(PaperBench(7, "paxos.ivy", "basic", threads=THREADS, seed=seed))
 
   #benches.append(PaperBench(42, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, nonacc=True, expect_success=False))
-  benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, expect_success=False))
+  benches.append(PaperBench(7, "paxos.ivy", "basic_b", threads=THREADS, seed=seed, expect_success=False))
 
   #benches.append(PaperBench(43, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, nonacc=True, expect_success=False))
-  benches.append(PaperBench(6, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, expect_success=False))
+  benches.append(PaperBench(7, "paxos_epr_missing1.ivy", "basic", threads=THREADS, whole=True, seed=seed, expect_success=False))
 
 #all_names = list(set([b.name for b in benches]))
 #assert len(all_names) == len(list(set(all_names))) # check uniqueness
