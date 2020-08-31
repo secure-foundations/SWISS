@@ -19,7 +19,12 @@ class ThreadStats(object):
         if line.startswith("time for process "):
           l = line.split()
           name = self.get_name_from_log(l[3])
-          secs = float(l[-2])
+          if l[-1] == "seconds":
+            secs = float(l[-2])
+          elif l[-2] == "seconds":
+            secs = float(l[-3])
+          else:
+            assert False
           times[name] = secs
         elif state == 0 and (line.startswith("./logs/log.") or line.startswith("/pylon5/ms5pijp/tjhance/log.")):
           cur_name = self.get_name_from_log(line.strip())
@@ -349,51 +354,51 @@ def median(input_directory, r, a, b):
 def make_comparison_table(input_directory, ivy):
   if ivy:
     rows = [
-      "mm__simple-de-lock__auto__seed#_t24",
-      "mm__leader-election__auto__seed#_t24",
-      "mm__learning-switch__auto_e0__seed#_t24",
-      "mm__lock_server__auto__seed#_t24",
-      "mm__2PC__auto__seed#_t24",
-      "mm__paxos__auto__seed#_t24",
-      "mm__multi_paxos__auto__seed#_t24",
-      "mm__flexible_paxos__auto__seed#_t24",
+      "mm__simple-de-lock__auto__seed#_t8",
+      "mm__leader-election__auto__seed#_t8",
+      "mm__learning-switch__auto_e0__seed#_t8",
+      "mm__lock_server__auto__seed#_t8",
+      "mm__2PC__auto__seed#_t8",
+      "mm__paxos__auto__seed#_t8",
+      "mm__multi_paxos__auto__seed#_t8",
+      "mm__flexible_paxos__auto__seed#_t8",
     ]
   else:
     rows = [
-      "mm__client_server_ae_pyv__auto__seed#_t24",
-      "mm__client_server_db_ae_pyv__auto__seed#_t24",
-      "mm__consensus_epr_pyv__auto__seed#_t24",
-      "mm__consensus_forall_pyv__auto__seed#_t24",
-      "mm__consensus_wo_decide_pyv__auto__seed#_t24",
-      "mm__firewall_pyv__auto__seed#_t24",
-      "mm__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t24",
-      "mm__learning_switch_pyv__auto__seed#_t24",
-      "mm__lockserv_pyv__auto9__seed#_t24",
-      "mm__ring_id_pyv__auto__seed#_t24",
-      "mm__ring_id_not_dead_pyv__auto__seed#_t24",
-      "mm__sharded_kv_pyv__auto9__seed#_t24",
-      "mm__sharded_kv_no_lost_keys_pyv__auto9__seed#_t24",
-      "mm__ticket_pyv__auto__seed#_t24",
-      "mm__toy_consensus_epr_pyv__auto__seed#_t24",
-      "mm__toy_consensus_forall_pyv__auto__seed#_t24",
+      "mm__client_server_ae_pyv__auto__seed#_t8",
+      "mm__client_server_db_ae_pyv__auto__seed#_t8",
+      "mm__consensus_epr_pyv__auto__seed#_t8",
+      "mm__consensus_forall_pyv__auto__seed#_t8",
+      "mm__consensus_wo_decide_pyv__auto__seed#_t8",
+      "mm__firewall_pyv__auto__seed#_t8",
+      "mm__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
+      "mm__learning_switch_pyv__auto__seed#_t8",
+      "mm__lockserv_pyv__auto9__seed#_t8",
+      "mm__ring_id_pyv__auto__seed#_t8",
+      "mm__ring_id_not_dead_pyv__auto__seed#_t8",
+      "mm__sharded_kv_pyv__auto9__seed#_t8",
+      "mm__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
+      "mm__ticket_pyv__auto__seed#_t8",
+      "mm__toy_consensus_epr_pyv__auto__seed#_t8",
+      "mm__toy_consensus_forall_pyv__auto__seed#_t8",
     ]
 
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
     stats[r] = median(input_directory, r, 1, 5)
 
-  I4_times = {
-      "mm__simple-de-lock__auto__seed#_t24": -1,
-      "mm__leader-election__auto__seed#_t24" : 1.686,
-      "mm__learning-switch__auto_e0__seed#_t24" : 9.392,
-      "mm__lock_server__auto__seed#_t24" : 1.598,
-      "mm__2PC__auto__seed#_t24" : 1.994,
-      "mm__paxos__auto__seed#_t24" : None,
-      "mm__multi_paxos__auto__seed#_t24" : None,
-      "mm__flexible_paxos__auto__seed#_t24" : None,
-      "chord" : 29.193,
-      "chain" : 11.679,
-  }
+  #I4_times = {
+  #    "mm__simple-de-lock__auto__seed#_t8": -1,
+  #    "mm__leader-election__auto__seed#_t8" : 1.686,
+  #    "mm__learning-switch__auto_e0__seed#_t8" : 9.392,
+  #    "mm__lock_server__auto__seed#_t8" : 1.598,
+  #    "mm__2PC__auto__seed#_t8" : 1.994,
+  #    "mm__paxos__auto__seed#_t8" : None,
+  #    "mm__multi_paxos__auto__seed#_t8" : None,
+  #    "mm__flexible_paxos__auto__seed#_t8" : None,
+  #    "chord" : 29.193,
+  #    "chain" : 11.679,
+  #}
 
   cols = [
     'Benchmark', '||',
@@ -407,11 +412,12 @@ def make_comparison_table(input_directory, ivy):
     if c == "Benchmark":
       return get_bench_name(r)
     elif c == "I4":
-      if I4_times[r] == None:
-        return ""
-      if I4_times[r] == -1:
-        return "TODO"
-      return int(I4_times[r])
+      return "TODO"
+      #if I4_times[r] == None:
+      #  return ""
+      #if I4_times[r] == -1:
+      #  return "TODO"
+      #return int(I4_times[r])
     elif c == "FOL Sep":
       return "TODO"
     else:
@@ -450,14 +456,14 @@ def make_optimization_step_table(input_directory):
   ]
   """
   logfiles = [
-      "mm__simple-de-lock__auto__seed#_t24",
-      "mm__leader-election__auto__seed#_t24",
-      "mm__learning-switch__auto_e0__seed#_t24",
-      "mm__lock_server__auto__seed#_t24",
-      "mm__2PC__auto__seed#_t24",
-      "mm__paxos__auto__seed#_t24",
-      "mm__multi_paxos__auto__seed#_t24",
-      "mm__flexible_paxos__auto__seed#_t24",
+      "mm__simple-de-lock__auto__seed#_t8",
+      "mm__leader-election__auto__seed#_t8",
+      "mm__learning-switch__auto_e0__seed#_t8",
+      "mm__lock_server__auto__seed#_t8",
+      "mm__2PC__auto__seed#_t8",
+      "mm__paxos__auto__seed#_t8",
+      "mm__multi_paxos__auto__seed#_t8",
+      "mm__flexible_paxos__auto__seed#_t8",
     ]
 
   thread_stats = { }
@@ -657,21 +663,17 @@ def make_nonacc_cmp_graph(ax, input_directory):
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
-def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False):
+def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False, graph_title=None):
   suffix = ''
   if graph_cex_count:
     suffix = ' (cex)'
   if graph_inv_count:
     suffix = ' (invs)'
   
-  if name == "paxos_depth2_finisher":
-    ax.set_title("Paxos Finisher")
-  elif name == "paxos_breadth":
-    ax.set_title("Paxos BreadthAccumulative")
-  elif name == "nonacc_paxos_breadth":
-    ax.set_title("Paxos Breadth")
-  else:
+  if graph_title == None:
     ax.set_title("parallel " + name + suffix)
+  else:
+    ax.set_title(graph_title)
 
   ax.set_ylabel("seconds")
   ax.set_xlabel("threads")
@@ -874,16 +876,26 @@ def get_total_time(input_directory, filename):
         t = float(line.split()[2])
         return t
 
-def make_opt_comparison_graph(ax, input_directory, large_ones):
+def make_opt_comparison_graph(ax, input_directory, opt_name):
   ax.set_yscale('log')
+
   #opts = ['mm_', 'postbmc_mm_', 'prebmc_mm_', 'postbmc_prebmc_mm_']
-  opts = ['', 'mm_', 'prebmc_', 'prebmc_mm_'] #, 'postbmc_']
   #if large_ones:
   #  probs = ['flexible_paxos', 'learning_switch', 'paxos']
   #else:
   #  probs = ['2pc', 'leader_election_breadth', 'leader_election_fin', 'lock_server']
 
-  colors = ['black', '#ff8080', '#8080ff', '#80ff80']
+  if opt_name == 'bmc':
+    opts = ['mm_', 'prebmc_mm_'] #, 'postbmc_']
+    names = ['Baseline', 'With BMC']
+  elif opt_name == 'mm':
+    opts = ['', 'mm_'] #, 'postbmc_']
+    names = ['Baseline', 'With minimal-models']
+  else:
+    assert False
+
+  #colors = ['black', '#ff8080', '#8080ff', '#80ff80']
+  colors = ['black', '#E69F00']
 
   prob_data = [
       ('leader-election__basic_b__seed1_t8'),
@@ -921,14 +933,8 @@ def make_opt_comparison_graph(ax, input_directory, large_ones):
             bottom=0, width=0.8/len(opts), color=color, edgecolor='black') #hatch=pattern)
 
   p = []
-  for (opt, color, pattern) in zip(opts, colors, patterns):
-    opt_name = {
-      '': "Baseline",
-      'mm_': "Minimal models",
-      'prebmc_': "BMC",
-      'prebmc_mm_': "Minimal models + BMC",
-    }[opt]
-    p.append(patches.Patch(color=color, label=opt_name))
+  for (opt, opt_name_label, color, pattern) in zip(opts, names, colors, patterns):
+    p.append(patches.Patch(color=color, label=opt_name_label))
   ax.legend(handles=p)
   
 def make_parallel_graphs(input_directory, save=False):
@@ -944,13 +950,17 @@ def make_parallel_graphs(input_directory, save=False):
   ax.flat[4].set_ylim(bottom=0, top=1500)
   ax.flat[5].set_ylim(bottom=0, top=1500)
 
-  make_parallel_graph(ax.flat[0], input_directory, "wc_bt_paxos_depth2_finisher")
-  make_parallel_graph(ax.flat[1], input_directory, "paxos_wc_bt_breadth")
-  make_parallel_graph(ax.flat[2], input_directory, "nonacc_wc_bt_paxos_breadth", collapse_size_split=True)
+  finisher = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
+  breadth_acc = "mm__paxos__basic_b__seed1"
+  breadth_nonacc = "mm_nonacc__paxos__basic_b__seed1"
 
-  make_parallel_graph(ax.flat[3], input_directory, "wc_bt_paxos_depth2_finisher", collapsed_breakdown=True)
-  make_parallel_graph(ax.flat[4], input_directory, "paxos_wc_bt_breadth", collapsed_breakdown=True)
-  make_parallel_graph(ax.flat[5], input_directory, "nonacc_wc_bt_paxos_breadth", collapsed_breakdown=True)
+  make_parallel_graph(ax.flat[0], input_directory, finisher, graph_title="Paxos Finisher")
+  make_parallel_graph(ax.flat[1], input_directory, breadth_acc, graph_title="Paxos BreadthAccumulative")
+  make_parallel_graph(ax.flat[2], input_directory, breadth_nonacc, collapse_size_split=True, graph_title="Paxos Breadth")
+
+  make_parallel_graph(ax.flat[3], input_directory, finisher, collapsed_breakdown=True, graph_title="Paxos Finisher")
+  make_parallel_graph(ax.flat[4], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="Paxos BreadthAccumulative")
+  make_parallel_graph(ax.flat[5], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Paxos Breadth")
 
   plt.tight_layout()
 
@@ -959,7 +969,7 @@ def make_parallel_graphs(input_directory, save=False):
   else:
     plt.show()
 
-def make_opt_graphs_main(input_directory, save=False):
+def make_opt_graphs_main(input_directory, save=False, mm=False):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
@@ -967,10 +977,16 @@ def make_opt_graphs_main(input_directory, save=False):
   plt.gcf().subplots_adjust(bottom=0.45)
   ax.set_ylabel("seconds")
 
-  make_opt_comparison_graph(ax, input_directory, True)
+  if mm:
+    make_opt_comparison_graph(ax, input_directory, 'mm')
+  else:
+    make_opt_comparison_graph(ax, input_directory, 'bmc')
 
   if save:
-    plt.savefig(os.path.join(output_directory, 'opt-comparison.png'))
+    if mm:
+      plt.savefig(os.path.join(output_directory, 'opt-comparison-mm.png'))
+    else:
+      plt.savefig(os.path.join(output_directory, 'opt-comparison-bmc.png'))
   else:
     plt.show()
 
@@ -1013,8 +1029,8 @@ def main():
   #make_seed_graph(ax.flat[7], input_directory, "learning_switch", True)
   #make_seed_graph(ax.flat[8], input_directory, "paxos_breadth", True)
 
-  make_opt_comparison_graph(ax.flat[10], input_directory, False)
-  make_opt_comparison_graph(ax.flat[11], input_directory, True)
+  make_opt_comparison_graph(ax.flat[10], input_directory)
+  make_opt_comparison_graph(ax.flat[11], input_directory)
 
   #make_nonacc_cmp_graph(ax.flat[12], input_directory)
 
@@ -1038,6 +1054,6 @@ if __name__ == '__main__':
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
-  #make_opt_graphs_main(input_directory)
-  make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory, True)
+  make_opt_graphs_main(input_directory)
+  #make_optimization_step_table(input_directory)
+  #make_comparison_table(input_directory, False)
