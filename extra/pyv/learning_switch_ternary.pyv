@@ -1,0 +1,134 @@
+sort packet
+sort host
+
+mutable relation dom(host,host)            # domain of the function
+mutable relation tc(host,host,host)   # transitive closure of the function
+
+safety tc(H,X,X)                          # Reflexivity
+safety tc(H,X, Y) & tc(H,Y, Z) -> tc(H,X, Z)  # transitivity
+safety tc(H,X, Y) & tc(H,Y, X) -> X = Y     # anti-symmetry
+safety tc(H,X, Y) & tc(H,X, Z) -> (tc(H,Y, Z) | tc(H,Z, Y)) # linearity
+
+init !dom(H,X)
+init (tc(H,X,Y) -> X = Y)     #initially empty
+init (X = Y -> tc(H,X,Y))     #initially empty
+
+mutable relation pending(packet, host, host) 
+immutable function src(packet) : host
+immutable function dst(packet) : host
+immutable relation link(host, host)
+
+axiom !link(X, X)                          # no self-loops
+axiom !link(X, Y) | link(Y, X)             # symmetric
+
+# The initial state of the network (empty)
+
+init !pending(P,S,T)
+
+transition receive(p0:packet, sw0:host, sw1:host, sw2:host, s0:host, t0:host)
+  modifies pending, dom, tc
+    ########################################
+    # The action's guard. 
+    & t0 = old(dst(p0))
+    & s0 = old(src(p0))
+    & (old(pending(p0, sw0, sw1)) | s0 = sw1 & sw0 = sw1)
+    & (
+      if !old(dom(s0,sw1)) & sw0 != sw1 & s0 != sw1
+      then
+        & (forall A,B . dom(A,B) <-> (old(dom(A,B)) | (A=s0 & B=sw1)))
+        & (forall A,X,Y . tc(A,X,Y) <->
+            (if A=s0
+              then old(tc(s0,X, Y) | tc(s0,X, sw1) &  tc(s0,sw0, Y))
+              else old(tc(A,X,Y))
+            ))
+      else
+        & (forall A,B . dom(A,B) <-> old(dom(A,B)))
+        & (forall A,B,C . tc(A,B,C) <-> old(tc(A,B,C)))
+    )
+
+    ########################################
+    # learn: if no route from receiving switch back to source...
+    #if (!dom(s0,sw1) & sw0 != sw1 & s0 != sw1) {
+    #    dom(s0,sw1) := true;              
+    #    tc(s0,X, Y) := tc(s0,X, Y) | tc(s0,X, sw1) &  tc(s0,sw0, Y)
+    #};
+
+    & (
+      if t0 != sw1 then (
+        if !dom(t0, sw1) then (
+          & (forall A,B,Y .
+            if A=p0 & B=sw1 then
+              pending(A,B,C) <-> (link(sw1, Y) & Y != sw0)
+            else (
+              if A = p0 & B = sw0 & Y = sw1 then
+                (old(pending(p0,sw0,sw1)) |
+                  (pending(A,B,C) <-> old(pending(A,B,C))))
+              else
+                pending(A,B,C) <-> old(pending(A,B,C))
+            )
+          )
+        ) else (
+          & tc(t0,sw1,sw2) & !(tc(t0,sw1,X) & tc(t0,X,sw2) & X != sw1 & X != sw2)
+          & (forall A,B,C .
+            if A=p0 & B=sw1 & C=sw2 then
+              pending(A,B,C)
+            else (
+              if A = p0 & B = sw0 & C = sw1 then
+                (old(pending(p0,sw0,sw1)) |
+                  (pending(A,B,C) <-> old(pending(A,B,C))))
+              else
+                pending(A,B,C) <-> old(pending(A,B,C))
+            )
+          )
+        )
+      ) else (
+        & (forall A,B,C .
+          if A = p0 & B = sw0 & C = sw1 then
+            (old(pending(p0,sw0,sw1)) |
+              (pending(A,B,C) <-> old(pending(A,B,C))))
+          else
+              pending(A,B,C) <-> old(pending(A,B,C))
+        )
+      )
+    )
+
+
+    ########################################
+    # Abstract the number of times that the same packet recieved
+
+    #if (pending(p0,sw0, sw1)) {
+    #    pending(p0, sw0, sw1) := *
+    #};
+
+    ########################################
+    # forward the packet if dest is not self
+    #if t0 != sw1 {
+#
+#      if !dom(t0,sw1) {                            # if no route to dest...
+#        pending(p0, sw1, Y) := link(sw1, Y) & Y != sw0  # flood
+#      }
+#      else {
+#        #assert dom(sw1);                 # (3)
+#        assume tc(t0,sw1,sw2) & !(tc(t0,sw1,X) & tc(t0,X,sw2) & X != sw1 & X != sw2);
+#
+#        pending(p0, sw1, sw2) := true                   # route the packet there
+#      }
+#    }
+#  }
+#}
+
+#conjecture !(dom(S,V0) & !tc(S, V0, S))
+#conjecture !dom(V0,V0)
+#conjecture !(pending(P, V0, V1) & dst(P) = V0)
+#conjecture !(pending(P, V0, V1) & !dom(src(P),V0) & V0 != src(P))
+#conjecture !(tc(S, V0, V1) & !V0 = V1 & !dom(S, V0))
+#conjecture !(tc(S, V0, V1) & !V0 = V1 & S != V1 & !dom(S, V1)) # TODO: needed?
+#conjecture !(!V0 = S & tc(S, S, V0))
+
+# SAFETY CONDITION
+# This corresponds to commented assert (1) above
+safety ((pending(P0, SW0, SW1) | S0 = SW1 & SW0 = SW1) & (!dom(S0,SW1) & SW0 != SW1 & S0 != SW1)) -> !tc(S0,SW0,SW1)
+
+#conjecture !(pending(P, V0, V1) & src(P) = V1)
+
+#conjecture !(pending(P, V0, V1) & src(P)=S & !dom(S,V0))
