@@ -4,10 +4,6 @@ sort host
 mutable relation dom(host,host)            # domain of the function
 mutable relation tc(host,host,host)   # transitive closure of the function
 
-safety tc(H,X,X)                          # Reflexivity
-safety tc(H,X, Y) & tc(H,Y, Z) -> tc(H,X, Z)  # transitivity
-safety tc(H,X, Y) & tc(H,Y, X) -> X = Y     # anti-symmetry
-safety tc(H,X, Y) & tc(H,X, Z) -> (tc(H,Y, Z) | tc(H,Z, Y)) # linearity
 
 init !dom(H,X)
 init (tc(H,X,Y) -> X = Y)     #initially empty
@@ -29,6 +25,14 @@ transition receive(p0:packet, sw0:host, sw1:host, sw2:host, s0:host, t0:host)
   modifies pending, dom, tc
     ########################################
     # The action's guard. 
+
+    & old(
+      & (forall H,X . tc(H,X,X))
+      & (forall H,X,Y,Z . tc(H,X, Y) & tc(H,Y, Z) -> tc(H,X, Z))
+      & (forall H,X,Y . tc(H,X, Y) & tc(H,Y, X) -> X = Y)
+      & (forall H,X,Y,Z . tc(H,X, Y) & tc(H,X, Z) -> (tc(H,Y, Z) | tc(H,Z, Y)))
+    )
+
     & t0 = old(dst(p0))
     & s0 = old(src(p0))
     & (old(pending(p0, sw0, sw1)) | s0 = sw1 & sw0 = sw1)
