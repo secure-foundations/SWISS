@@ -777,6 +777,7 @@ bool is_itself_invariant(shared_ptr<Module> module, vector<value> candidates) {
       init_solver.set_log_info("is_itself_invariant-init");
       //printf("checking init condition...\n");
       if (init_solver.check_sat()) {
+        //cout << "failed init with candidate " << candidate->to_string() << endl;
         return false;
       }
     }

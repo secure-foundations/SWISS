@@ -1,0 +1,175 @@
+sort node
+
+immutable relation btw(node,node, node) # Y is on the acyclic path from X to Z
+
+axiom btw(W, Y, Z) & btw(W, X, Y) -> btw(X, Y, Z)
+axiom btw(W, X, Z) & btw(X, Y, Z) -> btw(W, X, Y)
+axiom btw(W, X, Z) & btw(X, Y, Z) -> btw(W, Y, Z)
+axiom btw(W, Y, Z) & btw(W, X, Y) -> btw(W, X, Z)
+axiom W = X | btw(W, X, W)
+axiom !btw(X, X, Y)
+axiom !btw(X, Y, Y)
+axiom btw(X,Y,Z) |  Y = Z |  btw(X,Z,Y)
+axiom btw(X,Y,Z) |  Y = X |  btw(Y,X,Z)
+
+mutable relation a(node)                    # active set
+mutable relation s1(node, node)         # first successor
+mutable relation in_s1(node)
+mutable relation s2(node, node)         # second successor
+mutable relation in_s2(node)
+mutable relation p(node, node)          # predecessor
+
+immutable constant org : node
+immutable constant other : node
+axiom other != org
+
+mutable relation reach(node)
+mutable relation error(node)
+
+init a(X) -> (X = org | X = other)
+init (X = org | X = other) -> a(X)
+init s1(X, Y) -> ((X = org & Y = other) | (X = other & Y = org))
+init ((X = org & Y = other) | (X = other & Y = org)) -> s1(X, Y)
+init in_s1(X) -> (X = org | X = other)
+init (X = org | X = other) -> in_s1(X)
+init !s2(X, Y)
+init !in_s2(X)
+init p(X, Y) -> ((X = org & Y = other) | (X = other & Y = org))
+init ((X = org & Y = other) | (X = other & Y = org)) -> p(X, Y)
+init reach(X) -> (X = org)
+init (X = org) -> reach(X)
+init !error(X)
+
+transition join(x : node, y : node)
+  modifies a, s1, in_s1, s2, in_s2, p
+  & old(
+    & !a(x)
+    & a(y)
+    & !btw(x, org, y)
+  )
+  & (forall A . a(A) <-> ((A=x) | old(a(A))))
+  & (forall A,Y . s1(A,B) <-> (if A=x then (y=Y) else old(s1(A,B))))
+  & (forall A . in_s1(A) <-> ((A=x) | old(in_s1(A))))
+  & (forall A,B . s2(A,B) <-> (A!=x & old(s1(A,B))))
+  & (forall A . in_s2(x) <-> (A!=x & old(in_s2(A))))
+  & (forall A,B . p(A,B) <-> (A!=x & old(p(A,B))))
+
+transition stabilize(x : node, y : node, z : node)
+  modifies s1, in_s1, s2, in_s2
+  & old (
+    & a(x)
+    & s1(x, y)
+    & a(y)
+    & p(y, z)
+    & btw(x, z, y)
+  )
+  & (forall A,Z . s1(A,Z) <-> (if A=x then Z=z else old(s1(A,Z))))
+  & (forall A,Y . s2(A,Y) <-> (if A=x then Y=y else old(s2(A,Y))))
+
+  & (forall A . in_s1(A) <-> ((A=x) | old(in_s1(A))))
+  & (forall A . in_s2(A) <-> ((A=x) | old(in_s2(A))))
+
+transition notify(x : node, y : node, z : node)
+  modifies p
+  & old (
+    & a(x)
+    & s1(x, y)
+    & a(y)
+    & (forall X . p(y, z) | !p(y, X))
+    & btw(z, x, y)
+  )
+  & (forall A,X . p(A,X) <-> (if A=y then (X=x) else old(p(A,X))))
+
+transition inherit(x : node, y : node, z : node)
+  modifies s2, in_s2
+  & old(
+    & a(x)
+    & s1(x, y)
+    & a(y)
+    & s1(y, z)
+  )
+  & (forall A,Z . s2(A,Z) <-> (if A=x then (Z=z) else old(s2(A,Z))))
+  & (forall A . in_s2(A) <-> (A=x | old(in_s2(A))))
+
+transition remove(x : node, y : node, z : node)
+  modifies s1, in_s1, s2, in_s2
+  & old (
+    & a(x)
+    & s1(x, y)
+    & !a(y)
+    & s2(x, z)
+  )
+  & (forall A,Z . s1(A,Z) <-> (if A=x then (Z=z) else old(s1(A,Z))))
+  & (forall A . in_s1(A) <-> ((A=x) | old(in_s1(A))))
+  & (forall A . in_s2(x) <-> (A!=x & old(in_s2(A))))
+  & (forall A,Y . s2(A,Y) <-> (A!=x & old(s2(A,Y))))
+
+transition fail(x : node)
+  modifies a, p, s1, in_s1, s2, in_s2
+  & old (
+    & a(x)
+    & x != org
+    & (forall Y. (s1(Y, x)) -> in_s2(Y))
+    & (forall Y,Z . (s1(Y, x) & s2(Y, Z)) -> a(Z))
+    & (forall X,Y . (s1(X, Y) & s2(X, x)) -> (Y != x & a(Y)))
+  )
+
+  & (forall A . in_s1(x) <-> (A!=x & old(in_s1(A))))
+  & (forall A . in_s2(x) <-> (A!=x & old(in_s2(A))))
+  & (forall A,Y . s1(A,Y) <-> (A!=x & old(s1(A,Y))))
+  & (forall A,Y . s2(A,Y) <-> (A!=x & old(s2(A,Y))))
+  & (forall A . a(A) <-> (A!=x & old(a(A))))
+  & (forall A,Y . p(A,Y) <-> (A!=x & old(p(A,Y))))
+
+transition reach_org(x : node, y : node, z : node)
+  modifies reach
+  & old (
+    (s1(x, y) & a(y) & reach(y)) | (s1(x, y) & !a(y) & s2(x, z) & a(z) & reach(z))
+  )
+  & (forall A . reach(A) <-> (A=x | old(reach(A))))
+
+transition remove_org(x : node, y : node, z : node)
+  modifies reach
+  & old (
+    & x != org
+    & s1(x, y)
+    & (!a(y) | !reach(y))
+    & (forall Z . !a(y) -> (!s2(x, Z) | s2(x, z)))
+    & ((!a(y) & s2(x, z)) -> (!a(z) | !reach(z)))
+  )
+  & (forall A . reach(A) <-> (A!=x & old(reach(A))))
+
+transition test(x : node)
+  modifies error
+  & old(
+    & (forall X,Y . (s1(X, Y) & a(Y) & reach(Y)) -> reach(X))
+    & (forall X,Y,Z . (s1(X, Y) & !a(Y) & s2(X, Z) & a(Z) & reach(Z)) -> reach(X))
+    & (forall Y . (btw(x, Y, org) & a(Y)) -> reach(Y))
+    & a(x)
+    & !reach(x)
+    & (in_s1(x) -> exists Y. s1(x, Y))
+    & (in_s2(x) -> exists Y. s2(x, Y))
+  )
+  & (forall A . error(A) <-> (A=x | old(error(A))))
+
+invariant s1(X,Y) -> in_s1(X)
+invariant s2(X,Y) -> in_s2(X)
+invariant reach(org)
+invariant s1(X,Y) & s1(X,Z) -> Y=Z
+invariant s2(X,Y) & s2(X,Z) -> Y=Z
+invariant p(X,Y) & p(X,Z) -> Y=Z
+invariant (a(X) | X != org)
+invariant (a(X) | !p(Y, X) | !s1(X, Y)) 
+invariant (a(X) | p(Y, X) | !s1(X, Y)) 
+invariant (a(X) | !s2(X, Y)) 
+invariant (in_s1(X) | !a(X))
+invariant (a(Y) | a(Z) | !s1(X, Y) | !s2(X, Z)) 
+invariant (a(Y) | in_s2(X) | !a(X) | !s1(X, Y)) 
+invariant p(A,B) -> a(A)
+
+invariant a(X) & p(Y,X) & s1(X,Y) -> a(Y)
+invariant (!btw(X, org, Y) | !s1(X, Y)) 
+invariant !(s1(V0, V1) & V1 != org & s2(V0, V2) & btw(V0, org, V2))
+
+# invariant condition:
+safety !error(N)

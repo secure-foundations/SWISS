@@ -1,0 +1,101 @@
+sort node
+sort epoch
+
+# epochs are totally ordered with a least element called zero
+immutable relation le(epoch, epoch)
+
+axiom le(X,X)                        # Reflexivity
+axiom le(X, Y) & le(Y, Z) -> le(X, Z)  # Transitivity
+axiom le(X, Y) & le(Y, X) -> X = Y    # Anti-symmetry
+axiom le(X, Y) | le(Y, X)             # Totality
+
+immutable constant zero: epoch
+
+axiom le(zero, X)
+mutable function ep(node) : epoch # ep(n) is the current epoch of node n
+
+mutable relation held(node) # held(n) is true iff the lock is currently held by node n
+
+# transfer messages
+mutable relation transfer(epoch, node)  # the node is the message destination
+
+# locked messages
+mutable relation locked(epoch, node)  # the node is the message source
+
+################################################################################
+#
+# Protocol description
+#
+################################################################################
+
+immutable constant first:node
+
+init held(X) <-> (X=first)
+init N != first -> ep(N) = zero
+init ep(first) != zero
+init !transfer(E,N)
+init !locked(E,N)
+
+transition grant(n1:node, n2:node, e:epoch)
+  modifies transfer, held
+  & old (
+    & held(n1)
+    & !le(e, ep(n1))
+  )
+  & (forall A,B . transfer(A,B) <-> ((A=e & B=n2) | old(transfer(A,B))))
+  & (forall A . held(A) <-> (!(A=n1) & old(held(A))))
+
+transition accept(n:node, e:epoch)
+  modifies held, ep, locked
+  & old(
+    transfer(e,n)
+  )
+  & (if old(!le(e, ep(n))) then (
+    & (forall N . held(N) <-> (N=n | old(held(N))))
+    & (forall N . ep(N) = (if N=n then e else old(ep(N))))
+    & (forall E,N . locked(E,N) <-> ((E=e & N=n) | old(locked(E,N))))
+  ) else (
+    & (forall N . held(N) <-> old(held(N)))
+    & (forall N . ep(N) = old(ep(N)))
+    & (forall E,N . locked(E,N) <-> old(locked(E,N)))
+  ))
+
+invariant held(N) & held(M) -> N=M
+
+invariant (
+    transfer(E1, N1) & !le(E1, ep(N1))
+  & transfer(E2, N2) & !le(E2, ep(N2))
+  ) -> (E1=E2 & N1=N2)
+
+invariant (
+    transfer(E1, N1) & !le(E1, ep(N1))
+  ) -> !held(N2)
+
+invariant locked(E,N) -> transfer(E,N)
+
+invariant held(N) -> le(ep(N1), ep(N))
+invariant held(N) & transfer(E1,N1) -> le(E1,ep(N))
+invariant (
+    transfer(E, N) & !le(E, ep(N))
+  ) -> !le(E, ep(N1))
+invariant (
+    transfer(E, N) & !le(E, ep(N))
+  ) & transfer(E1, N1) & (N!=N1 | E!=E1) -> !le(E,E1)
+
+# safety condition
+safety locked(E, N1) & locked(E, N2) -> N1 = N2
+
+#safety transfer(E, N1) & transfer(E, N2) -> N1 = N2
+
+#safety transfer(E, N1) & locked(E, N2) -> N1 = N2
+#safety locked(E, N1) -> transfer(E, N1)
+
+
+#safety held(N) -> le(ep(N1), ep(N))
+
+#safety held(N) & transfer(E1,N1) -> le(E1,ep(N))
+
+
+
+
+
