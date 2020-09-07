@@ -400,6 +400,7 @@ def make_comparison_table(input_directory, ivy):
       "mm__toy_consensus_epr_pyv__auto__seed#_t8",
       "mm__toy_consensus_forall_pyv__auto__seed#_t8",
     ]
+  rows = ["mm_nonacc" + r[2:] for r in rows]
 
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
