@@ -324,6 +324,18 @@ def get_bench_name(name):
       return 'multi-paxos'
     elif "__flexible_paxos__" in name:
       return 'flexible-paxos'
+    elif "__full_paxos__" in name:
+      return 'full-paxos'
+    elif "__vertical_paxos__" in name:
+      return 'vertical-paxos'
+    elif "__stoppable_paxos__" in name:
+      return 'stoppable-paxos'
+    elif "__chain__" in name:
+      return 'chain'
+    elif "__chord__" in name:
+      return 'chord'
+    elif "__distributed_lock__" in name:
+      return 'distributed-lock'
     elif "__paxos__" in name:
       return 'paxos'
     else:
@@ -362,6 +374,12 @@ def make_comparison_table(input_directory, ivy):
       "mm__paxos__auto__seed#_t8",
       "mm__multi_paxos__auto__seed#_t8",
       "mm__flexible_paxos__auto__seed#_t8",
+      "mm__full_paxos__auto__seed#_t8",
+      "mm__stoppable_paxos__auto__seed#_t8",
+      "mm__vertical_paxos__auto__seed#_t8",
+      "mm__chain__auto__seed#_t8",
+      "mm__chord__auto__seed#_t8",
+      "mm__distributed_lock__auto__seed#_t8",
     ]
   else:
     rows = [
@@ -370,12 +388,12 @@ def make_comparison_table(input_directory, ivy):
       "mm__consensus_epr_pyv__auto__seed#_t8",
       "mm__consensus_forall_pyv__auto__seed#_t8",
       "mm__consensus_wo_decide_pyv__auto__seed#_t8",
-      "mm__firewall_pyv__auto__seed#_t8",
+      #"mm__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
       "mm__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
       "mm__learning_switch_pyv__auto__seed#_t8",
       "mm__lockserv_pyv__auto9__seed#_t8",
       "mm__ring_id_pyv__auto__seed#_t8",
-      "mm__ring_id_not_dead_pyv__auto__seed#_t8",
+      #"mm__ring_id_not_dead_pyv__auto__seed#_t8", # ignoring because not EPR
       "mm__sharded_kv_pyv__auto9__seed#_t8",
       "mm__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
       "mm__ticket_pyv__auto__seed#_t8",

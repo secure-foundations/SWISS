@@ -9,6 +9,8 @@ import threading
 
 NUM_PARTS = 43
 
+TIMEOUT_SECS = 6*3600
+
 class PaperBench(object):
   def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
     self.partition = partition
@@ -248,26 +250,42 @@ def run(directory, bench):
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
       env=env)
-  out, err = proc.communicate()
-  ret = proc.wait()
-  assert ret == 0
 
-  t2 = time.time()
-  seconds = t2 - t1
-
-  statfile = get_statfile(out)
-  if statfile is None:
-    print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
+  try:
+    out, err = proc.communicate(timeout=TIMEOUT_SECS)
+    timed_out = False
+  except subprocess.TimeoutExpired:
+    proc.kill()
+    timed_out = True
+  
+  if timed_out:
+    print("timed out " + bench.name + " (" + str(TIMEOUT_SECS) + " seconds) " + logfile)
+    result_filename = os.path.join(directory, bench.name)
+    with open(result_filename, "w") as f:
+      f.write(" ".join(["./save.sh"] + bench.args) + "\n")
+      f.write("TIMED OUT " + str(TIMEOUT_SECS) + " seconds\n")
+      f.write(logfile + "\n")
     return False
   else:
-    print("done " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
-    result_filename = os.path.join(directory, bench.name)
-    shutil.copy(statfile, result_filename)
+    ret = proc.wait()
+    assert ret == 0
 
-    if bench.expect_success and not success_true(out):
-      print("WARNING: " + bench.name + " did not succeed")
-      
-    return True
+    t2 = time.time()
+    seconds = t2 - t1
+
+    statfile = get_statfile(out)
+    if statfile is None:
+      print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
+      return False
+    else:
+      print("done " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
+      result_filename = os.path.join(directory, bench.name)
+      shutil.copy(statfile, result_filename)
+
+      if bench.expect_success and not success_true(out):
+        print("WARNING: " + bench.name + " did not succeed")
+        
+      return True
 
 def run_wrapper(directory, bench, idx, q):
   run(directory, bench)
