@@ -137,3 +137,19 @@ conjecture ((pending(P0, SW0, SW1) | S0 = SW1 & SW0 = SW1) & (~dom(S0,SW1) & SW0
 #template forall A:host . forall P:packet . WILD
 #template forall A:host . forall B:host . forall P:packet . WILD
 template forall A:host . forall B:host . forall C:host . forall P:packet . WILD
+
+
+#conjecture forall P . (~(dom(src(P), src(P))))
+#conjecture forall B . (~(dom(B, B))) 
+#conjecture forall P . (~(pending(P, dst(P), src(P))))
+#conjecture forall P . (~(pending(P, dst(P), dst(P))))
+#conjecture forall B, P . (~(pending(P, dst(P), B))) 
+#conjecture forall A, B . (((A) = (B)) | (~(tc(B, B, A))))
+#conjecture forall P . ((~(tc(src(P), src(P), dst(P)))) | (forall A, C . (~(pending(P, A, C)))))
+#conjecture forall A, P . ((dom(dst(P), A)) | (~(pending(P, A, A))))
+#conjecture forall A, P . ((tc(src(P), src(P), A)) | (forall B . ((dom(B, src(P))) | (~(tc(B, src(P), A))))))
+#conjecture forall P . ((dom(src(P), dst(P))) | (forall C . (((dst(P)) = (C)) | (~(tc(src(P), dst(P), C))))))
+#conjecture forall A, B . ((link(A, B)) | (forall P . ((tc(dst(P), B, A)) | (~(pending(P, B, A))))))
+#conjecture forall A, B . ((tc(A, A, B)) | (forall C . ((dom(C, A)) | (~(tc(C, A, B))))))
+#conjecture forall C, P . ((tc(src(P), C, src(P))) | (dom(src(P), C)) | (forall A . (~(pending(P, C, A)))))
+#conjecture forall B, C . ((tc(B, C, B)) | (~(dom(B, C))))

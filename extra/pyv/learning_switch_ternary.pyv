@@ -62,17 +62,18 @@ transition receive(p0:packet, sw0:host, sw1:host, sw2:host, s0:host, t0:host)
         if !dom(t0, sw1) then (
           & (forall A,B,Y .
             if A=p0 & B=sw1 then
-              pending(A,B,C) <-> (link(sw1, Y) & Y != sw0)
+              pending(A,B,Y) <-> (link(sw1, Y) & Y != sw0)
             else (
               if A = p0 & B = sw0 & Y = sw1 then
                 (old(pending(p0,sw0,sw1)) |
-                  (pending(A,B,C) <-> old(pending(A,B,C))))
+                  (pending(A,B,Y) <-> old(pending(A,B,Y))))
               else
-                pending(A,B,C) <-> old(pending(A,B,C))
+                pending(A,B,Y) <-> old(pending(A,B,Y))
             )
           )
         ) else (
-          & tc(t0,sw1,sw2) & !(tc(t0,sw1,X) & tc(t0,X,sw2) & X != sw1 & X != sw2)
+          & tc(t0,sw1,sw2) &
+          & (forall X . !(tc(t0,sw1,X) & tc(t0,X,sw2) & X != sw1 & X != sw2))
           & (forall A,B,C .
             if A=p0 & B=sw1 & C=sw2 then
               pending(A,B,C)
@@ -121,18 +122,22 @@ transition receive(p0:packet, sw0:host, sw1:host, sw2:host, s0:host, t0:host)
 #  }
 #}
 
-#conjecture !(dom(S,V0) & !tc(S, V0, S))
-#conjecture !dom(V0,V0)
-#conjecture !(pending(P, V0, V1) & dst(P) = V0)
-#conjecture !(pending(P, V0, V1) & !dom(src(P),V0) & V0 != src(P))
-#conjecture !(tc(S, V0, V1) & !V0 = V1 & !dom(S, V0))
-#conjecture !(tc(S, V0, V1) & !V0 = V1 & S != V1 & !dom(S, V1)) # TODO: needed?
-#conjecture !(!V0 = S & tc(S, S, V0))
 
 # SAFETY CONDITION
-# This corresponds to commented assert (1) above
 safety ((pending(P0, SW0, SW1) | S0 = SW1 & SW0 = SW1) & (!dom(S0,SW1) & SW0 != SW1 & S0 != SW1)) -> !tc(S0,SW0,SW1)
 
-#conjecture !(pending(P, V0, V1) & src(P) = V1)
 
-#conjecture !(pending(P, V0, V1) & src(P)=S & !dom(S,V0))
+invariant forall P . (!(dom(src(P), src(P))))
+invariant forall B . (!(dom(B, B))) 
+invariant forall P . (!(pending(P, dst(P), src(P))))
+invariant forall P . (!(pending(P, dst(P), dst(P))))
+invariant forall B, P . (!(pending(P, dst(P), B))) 
+invariant forall A, B . (((A) = (B)) | (!(tc(B, B, A))))
+invariant forall P . ((!(tc(src(P), src(P), dst(P)))) | (forall A, C . (!(pending(P, A, C)))))
+invariant forall A, P . ((dom(dst(P), A)) | (!(pending(P, A, A))))
+invariant forall A, P . ((tc(src(P), src(P), A)) | (forall B . ((dom(B, src(P))) | (!(tc(B, src(P), A))))))
+invariant forall P . ((dom(src(P), dst(P))) | (forall C . (((dst(P)) = (C)) | (!(tc(src(P), dst(P), C))))))
+invariant forall A, B . ((link(A, B)) | (forall P . ((tc(dst(P), B, A)) | (!(pending(P, B, A))))))
+invariant forall A, B . ((tc(A, A, B)) | (forall C . ((dom(C, A)) | (!(tc(C, A, B))))))
+invariant forall C, P . ((tc(src(P), C, src(P))) | (dom(src(P), C)) | (forall A . (!(pending(P, C, A)))))
+invariant forall B, C . ((tc(B, C, B)) | (!(dom(B, C))))
