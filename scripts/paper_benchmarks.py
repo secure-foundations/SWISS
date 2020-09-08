@@ -85,6 +85,9 @@ THREADS = 8
 #      "nonacc_wc_chord_t" + str(i),
 #      "chord-gimme-1 --breadth-with-conjs --by-size --non-accumulative --minimal-models --whole-space --threads " + str(i)))
 
+benches.append(PaperBench(2, "paxos.ivy", config="auto_breadth", nonacc=True))
+benches.append(PaperBench(2, "paxos.ivy", config="auto_finisher", nonacc=True))
+
 for seed in range(1, 6):
   benches.append(PaperBench(6, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "leader-election.ivy", config="auto", seed=seed, nonacc=True))
