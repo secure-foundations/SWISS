@@ -1,0 +1,87 @@
+#lang ivy1.6
+
+type thread
+type ticket
+
+relation le(T:ticket, S:ticket)
+axiom le(X,X)
+axiom le(X, Y) & le(Y, Z) -> le(X, Z)
+axiom le(X, Y) & le(Y, X) -> X = Y
+axiom le(X, Y) | le(Y, X)
+individual zero:ticket
+axiom forall X. le(zero, X)
+
+relation pc1(T:thread)
+relation pc2(T:thread)
+relation pc3(T:thread)
+individual service: ticket
+individual next_ticket: ticket
+relation m(T:thread, S:ticket)  # use relation and not a function to be in EPR
+
+init pc1(T)
+init ~pc2(T)
+init ~pc3(T)
+init service = zero
+init next_ticket = zero
+init m(T,K) -> K = zero
+init K = zero -> m(T,K)
+
+#definition succ(x: ticket, y:ticket) = (~le(y,x) & forall Z:ticket. ~le(Z,x) -> le(y,Z))
+
+
+action step12 = {
+  local t:thread, new_next_ticket:ticket {
+    assume (pc1(t));
+
+    m(t,K) := (K = next_ticket);
+
+    assume (~le(new_next_ticket,next_ticket) & forall Z:ticket. ~le(Z,next_ticket) -> le(new_next_ticket,Z));
+    next_ticket := new_next_ticket;
+
+    pc1(t) := false;
+    pc2(t) := true;
+  }
+}
+
+action step23 = {
+  local t:thread, k:ticket {
+    assume (pc2(t));
+    assume (m(t,k));
+    assume le(k, (service));
+
+    pc2(t) := false;
+    pc3(t) := true;
+  }
+}
+
+action step31 = {
+  local t:thread, new_service:ticket {
+    assume (pc3(t));
+
+    assume (~le(new_service,(service)) & forall Z:ticket. ~le(Z,(service)) -> le(new_service,Z));
+    service := new_service;
+
+    pc3(t) := false;
+    pc1(t) := true;
+  }
+}
+
+# safety property
+conjecture pc3(T1) & pc3(T2) -> T1 = T2
+
+# ecoding conjectures
+#conjecture pc1(T) | pc2(T) | pc3(T)
+#conjecture ~pc1(T) | ~pc2(T)
+#conjecture ~pc1(T) | ~pc3(T)
+#conjecture ~pc2(T) | ~pc3(T)
+#conjecture m(T,K1) & m(T,K2) -> K1 = K2
+
+# inductive conjecture for proving safety
+#conjecture next_ticket = zero -> m(T,zero)
+#conjecture next_ticket ~= zero & m(T,M) -> ~le(next_ticket,M)
+#conjecture (pc2(T) | pc3(T)) -> next_ticket ~= zero
+#conjecture m(T1,M) & m(T2,M) & M ~= zero -> T1 = T2
+#conjecture pc2(T) & m(T,M) -> le(service,M)
+#conjecture pc3(T) -> m(T,service)
+#conjecture le(service,next_ticket)
+#conjecture ~(~pc1(T1) & ~pc1(T2) & m(T1,zero) & m(T2,zero) & T1 ~= T2)

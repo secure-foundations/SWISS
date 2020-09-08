@@ -1,0 +1,44 @@
+#lang ivy1.6
+
+# This example has a forall-exists invariant, but actually it also has a universal invariant
+
+type node
+
+relation table(N:node, M:node, P:node)
+relation pending(N:node, M:node, P:node, Q:node)
+
+init table(T, N1, N2) -> N1 = N2
+init N1 = N2 -> table(T, N1, N2) init ~pending(PS, PD, S, D)
+
+action new_packet = {
+  local ps: node, pd: node {
+    pending(ps, pd, ps, ps) := true;
+  }
+}
+
+action forward = {
+  local ps: node, pd: node, sw0: node, sw1: node, nondet: node {
+    assume (pending(ps, pd, sw0, sw1));
+    pending(PS, PD, S, D) := (pending(PS,PD,S,D) & (PS=nondet)) | (PS=ps & PD=pd & S=sw1);
+    table(T,N1,N2) :=
+        (table(T,N1,N2)) |
+        (T = ps & ps ~= sw1 &
+        (forall W. W ~= sw1 -> ~(table(T, sw1, W))) &
+        (table(T, N1, sw1)) &
+        (table(T, sw0, N2)));
+  }
+}
+
+# four safety conditions:
+conjecture table(T,X,X)
+conjecture table(T,X,Y) & table(T,Y,Z) -> table(T,X,Z)
+conjecture table(T,X,Y) & table(T,Y,X) -> X = Y
+conjecture table(T,X,Y) & table(T,X,Z) -> table(T,Y,Z) | table(T,Z,Y)
+
+# invariant pending(PS,PD,S,D) & PS ~= S -> exists W. table(PS,S,W) & W ~= S
+# invariant table(T,X,Y) & T ~= Y & X ~= Y -> exists W. table(T,Y,W) & W ~= Y
+
+# alternative which is purely universally quantified:
+#conjecture pending(PS,PD,S,D) & PS ~= S -> table(PS,S,PS)
+#conjecture table(T,X,Y) & T ~= Y & X ~= Y -> table(T,Y,T)
+
