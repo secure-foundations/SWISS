@@ -241,17 +241,23 @@ class BasicStats(object):
 class Table(object):
   def __init__(self, column_names, rows, calc_fn):
     self.column_names = []
-    self.double = []
+    self.column_double = []
     for c in column_names:
       if c != '||':
         self.column_names.append(c)
-        self.double.append(False)
+        self.column_double.append(False)
       else:
-        self.double[-1] = True
+        self.column_double[-1] = True
 
     self.rows = []
     self.rows.append(self.column_names)
+    self.row_double = []
     for r in rows:
+      if r == '||':
+        self.row_double[-1] = True
+        continue
+      self.row_double.append(False)
+
       new_r = []
       for c in self.column_names:
         x = calc_fn(r, c)
@@ -261,7 +267,7 @@ class Table(object):
       self.rows.append(new_r)
   def dump(self):
     colspec = "|"
-    for d in self.double:
+    for d in self.column_double:
       if d:
         colspec += "l||"
       else:
@@ -275,7 +281,7 @@ class Table(object):
         s += (" " * (column_widths[j] - len(self.rows[i][j]))) + self.rows[i][j]
         if j == len(self.column_names) - 1:
           s += " \\\\ \\hline"
-          if i == 0:
+          if i == 0 or self.row_double[i-1]:
             s += " \\hline"
           s += "\n"
         else:
@@ -296,9 +302,9 @@ def get_bench_name(name):
       ("__consensus_wo_decide_pyv__", "consensus-wo-decide"),
       ("__firewall_pyv__", "firewall"),
       ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast"),
-      ("__learning_switch_pyv__", "learning-switch-mypyvy"),
-      ("__lockserv_pyv__", "lock-server-mypyvy"),
-      ("__ring_id_pyv__", "ring-election-mypyvy"),
+      ("__learning_switch_pyv__", "learning-switch-quad"),
+      ("__lockserv_pyv__", "lock-server-async"),
+      #("__ring_id_pyv__", "ring-election-mypyvy"),
       ("__ring_id_not_dead_pyv__", "ring-election-not-dead"),
       ("__sharded_kv_pyv__", "sharded-kv"),
       ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys"),
@@ -313,11 +319,11 @@ def get_bench_name(name):
     if "__simple-de-lock__" in name:
       return 'sdl'
     elif "__leader-election__" in name:
-      return 'ring-election-ivy'
+      return 'ring-election'
     elif "__learning-switch__" in name:
-      return 'learning-switch-ivy'
+      return 'learning-switch-ternary'
     elif "__lock_server__" in name:
-      return 'lock-server-ivy'
+      return 'lock-server-sync'
     elif "__2PC__" in name:
       return 'two-phase-commit'
     elif "__multi_paxos__" in name:
@@ -363,48 +369,50 @@ def median(input_directory, r, a, b):
 
   return t[len(t) // 2]
 
-def make_comparison_table(input_directory, ivy):
-  if ivy:
-    rows = [
-      "mm__simple-de-lock__auto__seed#_t8",
-      "mm__leader-election__auto__seed#_t8",
-      "mm__learning-switch__auto_e0__seed#_t8",
-      "mm__lock_server__auto__seed#_t8",
-      "mm__2PC__auto__seed#_t8",
-      "mm__paxos__auto__seed#_t8",
-      "mm__multi_paxos__auto__seed#_t8",
-      "mm__flexible_paxos__auto__seed#_t8",
-      "mm__full_paxos__auto__seed#_t8",
-      "mm__stoppable_paxos__auto__seed#_t8",
-      "mm__vertical_paxos__auto__seed#_t8",
-      "mm__chain__auto__seed#_t8",
-      "mm__chord__auto__seed#_t8",
-      "mm__distributed_lock__auto__seed#_t8",
-    ]
-  else:
-    rows = [
-      "mm__client_server_ae_pyv__auto__seed#_t8",
-      "mm__client_server_db_ae_pyv__auto__seed#_t8",
-      "mm__consensus_epr_pyv__auto__seed#_t8",
-      "mm__consensus_forall_pyv__auto__seed#_t8",
-      "mm__consensus_wo_decide_pyv__auto__seed#_t8",
-      #"mm__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
-      "mm__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
-      "mm__learning_switch_pyv__auto__seed#_t8",
-      "mm__lockserv_pyv__auto9__seed#_t8",
-      "mm__ring_id_pyv__auto__seed#_t8",
-      #"mm__ring_id_not_dead_pyv__auto__seed#_t8", # ignoring because not EPR
-      "mm__sharded_kv_pyv__auto9__seed#_t8",
-      "mm__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
-      "mm__ticket_pyv__auto__seed#_t8",
-      "mm__toy_consensus_epr_pyv__auto__seed#_t8",
-      "mm__toy_consensus_forall_pyv__auto__seed#_t8",
-    ]
-  rows = ["mm_nonacc" + r[2:] for r in rows]
+def make_comparison_table(input_directory):
+  rows = [
+    "mm_nonacc__simple-de-lock__auto__seed#_t8",
+    "mm_nonacc__leader-election__auto__seed#_t8",
+    "mm_nonacc__learning-switch__auto_e0__seed#_t8",
+    "mm_nonacc__lock_server__auto__seed#_t8",
+    "mm_nonacc__2PC__auto__seed#_t8",
+    "mm_nonacc__chain__auto__seed#_t8",
+    "mm_nonacc__chord__auto__seed#_t8",
+    "mm_nonacc__distributed_lock__auto__seed#_t8",
+
+    "||",
+
+    "mm_nonacc__client_server_ae_pyv__auto__seed#_t8",
+    "mm_nonacc__client_server_db_ae_pyv__auto__seed#_t8",
+    "mm_nonacc__consensus_epr_pyv__auto__seed#_t8",
+    "mm_nonacc__consensus_forall_pyv__auto__seed#_t8",
+    "mm_nonacc__consensus_wo_decide_pyv__auto__seed#_t8",
+    #"mm_nonacc__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
+    "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
+    "mm_nonacc__learning_switch_pyv__auto__seed#_t8",
+    "mm_nonacc__lockserv_pyv__auto9__seed#_t8",
+    #"mm_nonacc__ring_id_pyv__auto__seed#_t8",
+    #"mm_nonacc__ring_id_not_dead_pyv__auto__seed#_t8", # ignoring because not EPR
+    "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
+    "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
+    "mm_nonacc__ticket_pyv__auto__seed#_t8",
+    "mm_nonacc__toy_consensus_epr_pyv__auto__seed#_t8",
+    "mm_nonacc__toy_consensus_forall_pyv__auto__seed#_t8",
+
+    "||",
+
+    "mm_nonacc__paxos__auto__seed#_t8",
+    "mm_nonacc__multi_paxos__auto__seed#_t8",
+    "mm_nonacc__flexible_paxos__auto__seed#_t8",
+    "mm_nonacc__full_paxos__auto__seed#_t8",
+    "mm_nonacc__stoppable_paxos__auto__seed#_t8",
+    "mm_nonacc__vertical_paxos__auto__seed#_t8",
+  ]
 
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
-    stats[r] = median(input_directory, r, 1, 5)
+    if r != '||':
+      stats[r] = median(input_directory, r, 1, 5)
 
   #I4_times = {
   #    "mm__simple-de-lock__auto__seed#_t8": -1,
@@ -420,24 +428,21 @@ def make_comparison_table(input_directory, ivy):
   #}
 
   cols = [
-    'Benchmark', '||',
-    '$n_B$',
-    '$t_B$',
-    '$t_F$',
-    'Total', '||',
-    ('I4' if ivy else 'FOL Sep')
+    'Benchmark', 'size', '$\\exists$?', '||',
+    'I4~\\cite{I4}', 'FOL~\\cite{fol-sep}', '\\name', '||',
+    '$t_B$', '$t_F$', '$n_B$', 'size',
   ]
   def calc(r, c):
     if c == "Benchmark":
       return get_bench_name(r)
-    elif c == "I4":
+    elif c == "I4~\\cite{I4}":
       return "TODO"
       #if I4_times[r] == None:
       #  return ""
       #if I4_times[r] == -1:
       #  return "TODO"
       #return int(I4_times[r])
-    elif c == "FOL Sep":
+    elif c == "FOL~\\cite{fol-sep}":
       return "TODO"
     else:
       if stats[r] == None or not stats[r].success:
@@ -452,8 +457,12 @@ def make_comparison_table(input_directory, ivy):
           return ""
       elif c == "$t_B$":
         return int(stats[r].breadth_total_time_sec)
-      elif c == "Total":
+      elif c == "\\name":
         return int(stats[r].total_time_sec)
+      elif c == 'size':
+        return "TODO"
+      elif c == '$\\exists$?':
+        return "TODO"
       else:
         assert False, c
 
@@ -1075,5 +1084,4 @@ if __name__ == '__main__':
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory, False)
-  make_comparison_table(input_directory, True)
+  make_comparison_table(input_directory)
