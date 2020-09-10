@@ -404,44 +404,47 @@ def get_bench_name(name):
 def get_bench_existential(name):
   return get_bench_info(name)[2]
 
+def get_bench_num_handwritten_invs(name):
+  return get_bench_info(name)[3]
+
 def get_bench_info(name):
   name = "_"+name
 
   if "pyv" in name:
     stuff = [
-      ("__client_server_ae_pyv__", "client-server-ae", True),
-      ("__client_server_db_ae_pyv__", "client-server-db-ae", True),
-      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True),
-      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False),
-      ("__consensus_epr_pyv__", "consensus-epr", True),
-      ("__consensus_forall_pyv__", "consensus-forall", False),
-      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False),
+      ("__client_server_ae_pyv__", "client-server-ae", True, 1),
+      ("__client_server_db_ae_pyv__", "client-server-db-ae", True, 4),
+      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True, 3),
+      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False, 3),
+      ("__consensus_epr_pyv__", "consensus-epr", True, 6),
+      ("__consensus_forall_pyv__", "consensus-forall", False, 6),
+      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False, 4),
       ("__firewall_pyv__", "firewall", True),
-      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True),
-      ("__learning_switch_pyv__", "learning-switch-quad", False),
-      ("__lockserv_pyv__", "lock-server-async", False),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True, 7),
+      ("__learning_switch_pyv__", "learning-switch-quad", False, 2),
+      ("__lockserv_pyv__", "lock-server-async", False, 8),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
-      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True),
-      ("__sharded_kv_pyv__", "sharded-kv", False),
-      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True),
-      ("__ticket_pyv__", "ticket", False),
+      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True, 4),
+      ("__sharded_kv_pyv__", "sharded-kv", False, 4),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True, 1),
+      ("__ticket_pyv__", "ticket", False, 13),
     ]
   else:
     stuff = [
-      ("__simple-de-lock__", 'sdl', False),
-      ("__leader-election__", 'ring-election', False),
-      ("__learning-switch__", 'learning-switch-ternary', False),
-      ("__lock_server__", 'lock-server-sync', False),
-      ("__2PC__", 'two-phase-commit', False),
-      ("__multi_paxos__", 'multi-paxos', True),
-      ("__flexible_paxos__", 'flexible-paxos', True),
-      ("__fast_paxos__", 'fast-paxos', True),
-      ("__vertical_paxos__", 'vertical-paxos', True),
-      ("__stoppable_paxos__", 'stoppable-paxos', True),
-      ("__chain__", 'chain', False),
-      ("__chord__", 'chord', False),
-      ("__distributed_lock__", 'distributed-lock', False),
-      ("__paxos__", 'paxos', True),
+      ("__simple-de-lock__", 'sdl', False, 3),
+      ("__leader-election__", 'ring-election', False, 3),
+      ("__learning-switch__", 'learning-switch-ternary', False, 4),
+      ("__lock_server__", 'lock-server-sync', False, 1),
+      ("__2PC__", 'two-phase-commit', False, 8),
+      ("__multi_paxos__", 'multi-paxos', True, 11),
+      ("__flexible_paxos__", 'flexible-paxos', True, 10),
+      ("__fast_paxos__", 'fast-paxos', True, 16),
+      ("__vertical_paxos__", 'vertical-paxos', True, 19),
+      ("__stoppable_paxos__", 'stoppable-paxos', True, 14),
+      ("__chain__", 'chain', False, -1),
+      ("__chord__", 'chord', False, 17),
+      ("__distributed_lock__", 'distributed-lock', False, -1),
+      ("__paxos__", 'paxos', True, 10),
     ]
 
   for a in stuff:
@@ -493,22 +496,24 @@ def make_comparison_table(input_directory):
 
     "||",
 
-    "mm_nonacc__client_server_ae_pyv__auto__seed#_t8",
-    "mm_nonacc__client_server_db_ae_pyv__auto__seed#_t8",
-    "mm_nonacc__consensus_epr_pyv__auto__seed#_t8",
+    "mm_nonacc__toy_consensus_forall_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_forall_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_wo_decide_pyv__auto__seed#_t8",
-    #"mm_nonacc__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
-    "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
     "mm_nonacc__learning_switch_pyv__auto__seed#_t8",
     "mm_nonacc__lockserv_pyv__auto9__seed#_t8",
+    "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
+    "mm_nonacc__ticket_pyv__auto__seed#_t8",
+
+    "mm_nonacc__toy_consensus_epr_pyv__auto__seed#_t8",
+    "mm_nonacc__consensus_epr_pyv__auto__seed#_t8",
+    "mm_nonacc__client_server_ae_pyv__auto__seed#_t8",
+    "mm_nonacc__client_server_db_ae_pyv__auto__seed#_t8",
+    "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
+    "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
+
+    #"mm_nonacc__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
     #"mm_nonacc__ring_id_pyv__auto__seed#_t8",
     #"mm_nonacc__ring_id_not_dead_pyv__auto__seed#_t8", # ignoring because not EPR
-    "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
-    "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
-    "mm_nonacc__ticket_pyv__auto__seed#_t8",
-    "mm_nonacc__toy_consensus_epr_pyv__auto__seed#_t8",
-    "mm_nonacc__toy_consensus_forall_pyv__auto__seed#_t8",
 
     "||",
 
@@ -576,6 +581,12 @@ def make_comparison_table(input_directory):
         return str(int(float(folsep_time)))
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
+    elif c == 'size':
+      x = get_bench_num_handwritten_invs(r)
+      if x == -1:
+        return "TODO"
+      else:
+        return str(x)
     else:
       if stats[r] == None:
         return "TODO"

@@ -153,3 +153,9 @@ template forall A:host . forall B:host . forall C:host . forall P:packet . WILD
 #conjecture forall A, B . ((tc(A, A, B)) | (forall C . ((dom(C, A)) | (~(tc(C, A, B))))))
 #conjecture forall C, P . ((tc(src(P), C, src(P))) | (dom(src(P), C)) | (forall A . (~(pending(P, C, A)))))
 #conjecture forall B, C . ((tc(B, C, B)) | (~(dom(B, C))))
+
+# just these suffice:
+#conjecture forall A, B . (((A) = (B)) | (~(tc(B, B, A))))
+#conjecture forall A, B . ((tc(A, A, B)) | (forall C . ((dom(C, A)) | (~(tc(C, A, B))))))
+#conjecture forall C, P . ((tc(src(P), C, src(P))) | (dom(src(P), C)) | (forall A . (~(pending(P, C, A)))))
+#conjecture forall B, C . ((tc(B, C, B)) | (~(dom(B, C))))
