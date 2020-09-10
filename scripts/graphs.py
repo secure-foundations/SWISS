@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 import sys
 import os
+import json
 
 import get_counts
 
@@ -169,6 +170,7 @@ class BasicStats(object):
       self.total_time_filtering_ms = 0
       self.total_inductivity_check_time_ms = 0
       self.num_inductivity_checks = 0
+      self.timed_out_6_hours = False
       for line in f:
         if line.strip() == "total":
           doing_total = True
@@ -190,6 +192,9 @@ class BasicStats(object):
           self.finisher_time_sec= float(line.split()[2])
         elif line.startswith("BREADTH iteration "):
           self.breadth_total_time_sec += float(line.split()[4])
+        elif line.strip() == "TIMED OUT 21600 seconds":
+          self.timed_out_6_hours = True
+          self.total_time_sec = 21600
         elif doing_total:
           if line.startswith("Counterexamples of type FALSE"):
             self.cex_false = int(line.split()[-1])
@@ -289,64 +294,158 @@ class Table(object):
     s += "\\end{tabular}\n"
     print(s)
 
+def read_I4_data(input_directory):
+  def real_line_parse_secs(l):
+    # e.g., real	0m0.285s
+    k = l.split('\t')[1]
+    t = k.split('m')
+    minutes = int(t[0])
+    assert t[1][-1] == "s"
+    seconds = float(t[1][:-1])
+    return minutes*60.0 + seconds
+
+  d = {}
+  with open(os.path.join(input_directory, "I4-output.txt")) as f:
+    last_real_line = None
+    for line in f:
+      line = line.strip()
+      if line.startswith("real\t"):
+        last_real_line = line
+      elif line.endswith(" done!"):
+        secs = real_line_parse_secs(last_real_line)
+        last_real_line = None
+
+        name = line[:-6]
+
+        d[name] = secs
+  return d
+
+def I4_get_res(d, r):
+  name = get_bench_name(r)
+  if name in ("ticket", "learning-switch-quad", "sdl"):
+    return None
+
+  if get_bench_existential(r):
+    return None
+
+  I4_name = {
+      "toy-consensus-forall": "toy_consensus_forall",
+      "consensus-forall": "consensus_forall",
+      "consensus-wo-decide": "consensus_wo_decide",
+      "lock-server-async": "lockserv",
+      "sharded-kv": "sharded_kv",
+      "ticket": "ticket",
+
+      'sdl': "simple-de-lock",
+      'ring-election': "leader election",
+      'learning-switch-ternary': "learning switch",
+      'lock-server-sync': "lock server",
+      'two-phase-commit': "two phase commit",
+      'chain': "database chain replication",
+      'chord': "chord ring",
+      'distributed-lock': "distributed lock",
+  }[name]
+
+  return d[I4_name]
+  
+
+def read_folsep_json(input_directory):
+  with open(os.path.join(input_directory, "folsep.json")) as f:
+    j = f.read()
+  return json.loads(j)
+
+def folsep_json_get_res(j, r):
+  name = get_bench_name(r)
+  fol_name = {
+      "client-server-ae": "client_server_ae",
+      "client-server-db-ae": "client_server_db_ae",
+      "toy-consensus-epr": "toy_consensus_epr",
+      "toy-consensus-forall": "toy_consensus_forall",
+      "consensus-epr": "consensus_epr",
+      "consensus-forall": "consensus_forall",
+      "consensus-wo-decide": "consensus_wo_decide",
+      "hybrid-reliable-broadcast": "hybrid_reliable_broadcast_cisa",
+      "learning-switch-quad": "learning_switch",
+      "lock-server-async": "lockserv",
+      "sharded-kv": "sharded_kv",
+      "sharded-kv-no-lost-keys": "sharded_kv_no_lost_keys",
+      "ticket": "ticket",
+
+      'sdl': "simple-de-lock",
+      'ring-election': "ring_id",
+      'learning-switch-ternary': "learning_switch_ternary",
+      'lock-server-sync': "lock_server",
+      'two-phase-commit': "2PC",
+      'multi-paxos': "multi_paxos",
+      'flexible-paxos': "flexible_paxos",
+      'fast-paxos': "fast_paxos",
+      'vertical-paxos': "vertical_paxos",
+      'stoppable-paxos': "stoppable_paxos",
+      'chain': "chain",
+      'chord': "chord",
+      'distributed-lock': "distributed_lock",
+      'paxos': "paxos",
+  }[name]
+
+  for entry in j:
+    if entry["name"] == fol_name:
+      if entry["success"]:
+        return entry["elapsed"]
+      else:
+        return None
+  assert False, fol_name
+
 def get_bench_name(name):
+  return get_bench_info(name)[1]
+
+def get_bench_existential(name):
+  return get_bench_info(name)[2]
+
+def get_bench_info(name):
   name = "_"+name
+
   if "pyv" in name:
     stuff = [
-      ("__client_server_ae_pyv__", "client-server-ae"),
-      ("__client_server_db_ae_pyv__", "client-server-db-ae"),
-      ("__toy_consensus_epr_pyv__", "toy-consensus-epr"),
-      ("__toy_consensus_forall_pyv__", "toy-consensus-forall"),
-      ("__consensus_epr_pyv__", "consensus-epr"),
-      ("__consensus_forall_pyv__", "consensus-forall"),
-      ("__consensus_wo_decide_pyv__", "consensus-wo-decide"),
-      ("__firewall_pyv__", "firewall"),
-      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast"),
-      ("__learning_switch_pyv__", "learning-switch-quad"),
-      ("__lockserv_pyv__", "lock-server-async"),
+      ("__client_server_ae_pyv__", "client-server-ae", True),
+      ("__client_server_db_ae_pyv__", "client-server-db-ae", True),
+      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True),
+      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False),
+      ("__consensus_epr_pyv__", "consensus-epr", True),
+      ("__consensus_forall_pyv__", "consensus-forall", False),
+      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False),
+      ("__firewall_pyv__", "firewall", True),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True),
+      ("__learning_switch_pyv__", "learning-switch-quad", False),
+      ("__lockserv_pyv__", "lock-server-async", False),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
-      ("__ring_id_not_dead_pyv__", "ring-election-not-dead"),
-      ("__sharded_kv_pyv__", "sharded-kv"),
-      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys"),
-      ("__ticket_pyv__", "ticket"),
+      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True),
+      ("__sharded_kv_pyv__", "sharded-kv", False),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True),
+      ("__ticket_pyv__", "ticket", False),
     ]
-    for (a,b) in stuff:
-      if a in name:
-        return b
-    print("need bench name for", name)
-    assert False
   else:
-    if "__simple-de-lock__" in name:
-      return 'sdl'
-    elif "__leader-election__" in name:
-      return 'ring-election'
-    elif "__learning-switch__" in name:
-      return 'learning-switch-ternary'
-    elif "__lock_server__" in name:
-      return 'lock-server-sync'
-    elif "__2PC__" in name:
-      return 'two-phase-commit'
-    elif "__multi_paxos__" in name:
-      return 'multi-paxos'
-    elif "__flexible_paxos__" in name:
-      return 'flexible-paxos'
-    elif "__full_paxos__" in name:
-      return 'full-paxos'
-    elif "__vertical_paxos__" in name:
-      return 'vertical-paxos'
-    elif "__stoppable_paxos__" in name:
-      return 'stoppable-paxos'
-    elif "__chain__" in name:
-      return 'chain'
-    elif "__chord__" in name:
-      return 'chord'
-    elif "__distributed_lock__" in name:
-      return 'distributed-lock'
-    elif "__paxos__" in name:
-      return 'paxos'
-    else:
-      print("need bench name for", name)
-      assert False
+    stuff = [
+      ("__simple-de-lock__", 'sdl', False),
+      ("__leader-election__", 'ring-election', False),
+      ("__learning-switch__", 'learning-switch-ternary', False),
+      ("__lock_server__", 'lock-server-sync', False),
+      ("__2PC__", 'two-phase-commit', False),
+      ("__multi_paxos__", 'multi-paxos', True),
+      ("__flexible_paxos__", 'flexible-paxos', True),
+      ("__fast_paxos__", 'fast-paxos', True),
+      ("__vertical_paxos__", 'vertical-paxos', True),
+      ("__stoppable_paxos__", 'stoppable-paxos', True),
+      ("__chain__", 'chain', False),
+      ("__chord__", 'chord', False),
+      ("__distributed_lock__", 'distributed-lock', False),
+      ("__paxos__", 'paxos', True),
+    ]
+
+  for a in stuff:
+    if a[0] in name:
+      return a
+  print("need bench name for", name)
+  assert False
 
 def get_basic_stats(input_directory, r):
   try:
@@ -359,15 +458,24 @@ def median(input_directory, r, a, b):
   for i in range(a, b+1):
     r1 = r.replace("#", str(i))
     s = get_basic_stats(input_directory, r1)
-    if s == None:
+    if s != None:
+      t.append(s)
+
+  if len(t) == b - a + 1:
+    assert len(t) % 2 == 1
+
+    t.sort(key=lambda s : s.total_time_sec)
+
+    return t[len(t) // 2]
+  else:
+    if len(t) == 0:
       return None
-    t.append(s)
-    
-  assert len(t) % 2 == 1
 
-  t.sort(key=lambda s : s.total_time_sec)
-
-  return t[len(t) // 2]
+    all_timeout = all(s.timed_out_6_hours for s in t)
+    if all_timeout:
+      return t[0]
+    else:
+      return None
 
 def make_comparison_table(input_directory):
   rows = [
@@ -404,7 +512,7 @@ def make_comparison_table(input_directory):
     "mm_nonacc__paxos__auto__seed#_t8",
     "mm_nonacc__multi_paxos__auto__seed#_t8",
     "mm_nonacc__flexible_paxos__auto__seed#_t8",
-    "mm_nonacc__full_paxos__auto__seed#_t8",
+    "mm_nonacc__fast_paxos__auto__seed#_t8",
     "mm_nonacc__stoppable_paxos__auto__seed#_t8",
     "mm_nonacc__vertical_paxos__auto__seed#_t8",
   ]
@@ -430,22 +538,36 @@ def make_comparison_table(input_directory):
   cols = [
     'Benchmark', 'size', '$\\exists$?', '||',
     'I4~\\cite{I4}', 'FOL~\\cite{fol-sep}', '\\name', '||',
-    '$t_B$', '$t_F$', '$n_B$', 'size',
+    '$t_B$', '$t_F$', '$n_B$', '{\\name} size',
   ]
+
+  folsep_json = read_folsep_json(input_directory)
+  i4_data = read_I4_data(input_directory)
+
   def calc(r, c):
     if c == "Benchmark":
       return get_bench_name(r)
     elif c == "I4~\\cite{I4}":
-      return "TODO"
-      #if I4_times[r] == None:
-      #  return ""
-      #if I4_times[r] == -1:
-      #  return "TODO"
-      #return int(I4_times[r])
+      i4_time = I4_get_res(i4_data, r)
+
+      if i4_time == None:
+        return ""
+      else:
+        return str(int(float(i4_time)))
     elif c == "FOL~\\cite{fol-sep}":
-      return "TODO"
+      folsep_time = folsep_json_get_res(folsep_json, r)
+      if folsep_time == None:
+        return ""
+      else:
+        return str(int(float(folsep_time)))
+    elif c == '$\\exists$?':
+      return "$\\checkmark$" if get_bench_existential(r) else ""
     else:
-      if stats[r] == None or not stats[r].success:
+      if stats[r] == None:
+        return "TODO"
+      if stats[r].timed_out_6_hours:
+        return ""
+      if not stats[r].success:
         return "TODO"
 
       if c == "$n_B$":
@@ -454,15 +576,15 @@ def make_comparison_table(input_directory):
         if stats[r].num_finisher_iters > 0:
           return int(stats[r].finisher_time_sec)
         else:
-          return ""
+          return "-"
       elif c == "$t_B$":
         return int(stats[r].breadth_total_time_sec)
       elif c == "\\name":
         return int(stats[r].total_time_sec)
       elif c == 'size':
         return "TODO"
-      elif c == '$\\exists$?':
-        return "TODO"
+      elif c == '{\\name} size':
+        return str(stats[r].num_inv)
       else:
         assert False, c
 

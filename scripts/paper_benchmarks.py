@@ -95,6 +95,9 @@ benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="wrong4", nonacc=T
 benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="wrong5", nonacc=True, expect_success=False))
 
 for seed in range(1, 6):
+  benches.append(PaperBench(1, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True))
+
+for seed in range(1, 6):
   benches.append(PaperBench(6, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "leader-election.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "learning-switch.ivy", config="auto_e0", seed=seed, nonacc=True))
