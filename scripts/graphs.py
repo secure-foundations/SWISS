@@ -246,11 +246,14 @@ class BasicStats(object):
 class Table(object):
   def __init__(self, column_names, rows, calc_fn):
     self.column_names = []
+    self.column_alignments = []
     self.column_double = []
-    for c in column_names:
-      if c != '||':
+    for stuff in column_names:
+      if stuff != '||':
+        alignment, c = stuff
         self.column_names.append(c)
         self.column_double.append(False)
+        self.column_alignments.append(alignment)
       else:
         self.column_double[-1] = True
 
@@ -272,11 +275,11 @@ class Table(object):
       self.rows.append(new_r)
   def dump(self):
     colspec = "|"
-    for d in self.column_double:
+    for (al, d) in zip(self.column_alignments, self.column_double):
       if d:
-        colspec += "l||"
+        colspec += al+"||"
       else:
-        colspec += "l|"
+        colspec += al+"|"
 
     s = "\\begin{tabular}{" + colspec + "}\n"
     s += "\\hline\n"
@@ -486,7 +489,7 @@ def make_comparison_table(input_directory):
     "mm_nonacc__2PC__auto__seed#_t8",
     "mm_nonacc__chain__auto__seed#_t8",
     "mm_nonacc__chord__auto__seed#_t8",
-    "mm_nonacc__distributed_lock__auto__seed#_t8",
+    "mm_nonacc__distributed_lock__auto9__seed#_t8",
 
     "||",
 
@@ -535,10 +538,21 @@ def make_comparison_table(input_directory):
   #    "chain" : 11.679,
   #}
 
+  # l|r|c||r|r|r||r|r|r|r
+
   cols = [
-    'Benchmark', 'size', '$\\exists$?', '||',
-    'I4~\\cite{I4}', 'FOL~\\cite{fol-sep}', '\\name', '||',
-    '$t_B$', '$t_F$', '$n_B$', '{\\name} size',
+    ('l', 'Benchmark'),
+    ('r', 'size'),
+    ('c', '$\\exists$?'),
+    '||',
+    ('r', 'I4~\\cite{I4}'),
+    ('r', 'FOL~\\cite{fol-sep}'),
+    ('r', '\\name'),
+    '||',
+    ('r', '$t_B$'),
+    ('r', '$t_F$'),
+    ('r', '$n_B$'),
+    ('r', '{\\name} size'),
   ]
 
   folsep_json = read_folsep_json(input_directory)

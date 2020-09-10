@@ -107,7 +107,7 @@ for seed in range(1, 6):
   benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "multi_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "flexible_paxos.ivy", config="auto", seed=seed, nonacc=True))
-  benches.append(PaperBench(1, "full_paxos.ivy", config="auto", seed=seed, nonacc=True))
+  benches.append(PaperBench(1, "fast_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "stoppable_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "vertical_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "chain.ivy", config="auto", seed=seed, nonacc=True))
