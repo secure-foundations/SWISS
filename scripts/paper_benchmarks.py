@@ -99,6 +99,10 @@ for seed in range(1, 6):
   benches.append(PaperBench(1, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True))
 
 for seed in range(1, 6):
+  benches.append(PaperBench(5, "vertical_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+  benches.append(PaperBench(5, "stoppable_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+  benches.append(PaperBench(5, "fast_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+
   benches.append(PaperBench(6, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "leader-election.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "learning-switch.ivy", config="auto_e0", seed=seed, nonacc=True))
