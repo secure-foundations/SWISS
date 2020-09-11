@@ -441,7 +441,7 @@ def get_bench_info(name):
       ("__fast_paxos__", 'fast-paxos', True, 16),
       ("__vertical_paxos__", 'vertical-paxos', True, 19),
       ("__stoppable_paxos__", 'stoppable-paxos', True, 14),
-      ("__chain__", 'chain', False, -1),
+      ("__chain__", 'chain', False, 7),
       ("__chord__", 'chord', False, 11),
       ("__distributed_lock__", 'distributed-lock', False, 8),
       ("__paxos__", 'paxos', True, 10),
