@@ -243,6 +243,10 @@ class BasicStats(object):
     self.total_time_filtering_sec = (
         self.total_time_filtering_ms / 1000)
 
+class Hatch(object):
+  def __init__(self):
+    pass
+
 class Table(object):
   def __init__(self, column_names, rows, calc_fn):
     self.column_names = []
@@ -260,6 +264,8 @@ class Table(object):
     self.rows = []
     self.rows.append(self.column_names)
     self.row_double = []
+    hatch_ctr = 0
+    self.hatch_lines = []
     for r in rows:
       if r == '||':
         self.row_double[-1] = True
@@ -267,11 +273,19 @@ class Table(object):
       self.row_double.append(False)
 
       new_r = []
-      for c in self.column_names:
+      for column_double, c in zip(self.column_double, self.column_names):
         x = calc_fn(r, c)
-        assert x != None
-        s = str(x)
-        new_r.append(s)
+        if isinstance(x, Hatch):
+          hatch_ctr += 1
+          if column_double:
+            new_r.append("\\hatchdouble{" + str(hatch_ctr) + "}{1}")
+          else:
+            new_r.append("\\hatch{" + str(hatch_ctr) + "}{1}")
+          self.hatch_lines.append("\\HatchedCell{start"+str(hatch_ctr)+"}{end"+str(hatch_ctr)+"}{pattern color=black!70,pattern=north east lines}")
+        else:
+          assert x != None
+          s = str(x)
+          new_r.append(s)
       self.rows.append(new_r)
   def dump(self):
     colspec = "|"
@@ -295,6 +309,8 @@ class Table(object):
         else:
           s += " &"
     s += "\\end{tabular}\n"
+    for h in self.hatch_lines:
+      s += h + "\n"
     print(s)
 
 def read_I4_data(input_directory):
@@ -570,13 +586,13 @@ def make_comparison_table(input_directory):
       i4_time = I4_get_res(i4_data, r)
 
       if i4_time == None:
-        return ""
+        return Hatch()
       else:
         return str(int(float(i4_time)))
     elif c == "FOL~\\cite{fol-sep}":
       folsep_time = folsep_json_get_res(folsep_json, r)
       if folsep_time == None:
-        return ""
+        return Hatch()
       else:
         return str(int(float(folsep_time)))
     elif c == '$\\exists$?':
@@ -591,7 +607,10 @@ def make_comparison_table(input_directory):
       if stats[r] == None:
         return "TODO"
       if stats[r].timed_out_6_hours:
-        return ""
+        if c == "\\name":
+          return Hatch()
+        else:
+          return ""
       if not stats[r].success:
         return "TODO"
 

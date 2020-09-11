@@ -95,6 +95,10 @@ benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="wrong3", nonacc=T
 benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="wrong4", nonacc=True, expect_success=False))
 benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="wrong5", nonacc=True, expect_success=False))
 
+benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="basic", nonacc=True, expect_success=False, whole=True))
+
+benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="basic2", nonacc=True, expect_success=False, whole=True))
+
 for seed in range(1, 6):
   benches.append(PaperBench(1, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True))
 
