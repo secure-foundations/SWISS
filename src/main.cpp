@@ -479,6 +479,27 @@ void do_counts(shared_ptr<Module> module, vector<TemplateSlice> const& slices, i
     total += ts.count;
   }
   cout << "Post-symmetries: " << total << endl;
+  cout << "Num template slices: " << slices.size() << endl;
+
+  /*int i = 0;
+  for (TemplateSlice const& ts : slices) {
+    if (ts.vars[0] == 2
+      && ts.vars[1] == 2
+      && ts.vars[2] == 1
+      && ts.vars[3] == 1)
+    {
+      cout << i+4 << endl;
+      cout << ts.count << endl;
+      return;
+    }
+
+    i++;
+    for (int j = 0; j < 4; j++) {
+      if (ts.vars[j] == 1) {
+        i++;
+      }
+    }
+  }*/
 }
 
 int main(int argc, char* argv[]) {

@@ -423,44 +423,48 @@ def get_bench_existential(name):
 def get_bench_num_handwritten_invs(name):
   return get_bench_info(name)[3]
 
+def get_bench_num_handwritten_terms(name):
+  return get_bench_info(name)[4]
+
 def get_bench_info(name):
   name = "_"+name
 
   if "pyv" in name:
     stuff = [
-      ("__client_server_ae_pyv__", "client-server-ae", True, 1),
-      ("__client_server_db_ae_pyv__", "client-server-db-ae", True, 4),
-      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True, 3),
-      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False, 3),
-      ("__consensus_epr_pyv__", "consensus-epr", True, 6),
-      ("__consensus_forall_pyv__", "consensus-forall", False, 6),
-      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False, 4),
-      ("__firewall_pyv__", "firewall", True),
-      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True, 7),
-      ("__learning_switch_pyv__", "learning-switch-quad", False, 2),
-      ("__lockserv_pyv__", "lock-server-async", False, 8),
+      ("__client_server_ae_pyv__", "client-server-ae", True, 1, 3),
+      ("__client_server_db_ae_pyv__", "client-server-db-ae", True, 4, 12),
+      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True, 3, 8),
+      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False, 3, 8),
+      ("__consensus_epr_pyv__", "consensus-epr", True, 6, 15),
+      ("__consensus_forall_pyv__", "consensus-forall", False, 6, 15),
+      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False, 4, 10),
+      ("__firewall_pyv__", "firewall", True, 1, 3),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True, 7, 30),
+      ("__learning_switch_pyv__", "learning-switch-quad", False, 2, 7),
+      ("__lockserv_pyv__", "lock-server-async", False, 8, 18),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
-      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True, 4),
-      ("__sharded_kv_pyv__", "sharded-kv", False, 4),
-      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True, 1),
-      ("__ticket_pyv__", "ticket", False, 13),
+      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True, 4, 11),
+      ("__sharded_kv_pyv__", "sharded-kv", False, 4, 11),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True, 1, 2),
+      ("__ticket_pyv__", "ticket", False, 13, 35),
     ]
   else:
     stuff = [
-      ("__simple-de-lock__", 'sdl', False, 3),
-      ("__leader-election__", 'ring-election', False, 3),
-      ("__learning-switch__", 'learning-switch-ternary', False, 4),
-      ("__lock_server__", 'lock-server-sync', False, 1),
-      ("__2PC__", 'two-phase-commit', False, 8),
-      ("__multi_paxos__", 'multi-paxos', True, 11),
-      ("__flexible_paxos__", 'flexible-paxos', True, 10),
-      ("__fast_paxos__", 'fast-paxos', True, 16),
-      ("__vertical_paxos__", 'vertical-paxos', True, 19),
-      ("__stoppable_paxos__", 'stoppable-paxos', True, 14),
-      ("__chain__", 'chain', False, 7),
-      ("__chord__", 'chord', False, 11),
-      ("__distributed_lock__", 'distributed-lock', False, 8),
-      ("__paxos__", 'paxos', True, 10),
+      ("__simple-de-lock__", 'sdl', False, 3, 8),
+      ("__leader-election__", 'ring-election', False, 3, 9),
+      ("__learning-switch__", 'learning-switch-ternary', False, 4, 10),
+      ("__lock_server__", 'lock-server-sync', False, 1, 2),
+      ("__2PC__", 'two-phase-commit', False, 8, 18),
+      ("__multi_paxos__", 'multi-paxos', True, 11, 34),
+      ("__flexible_paxos__", 'flexible-paxos', True, 10, 31),
+      ("__fast_paxos__", 'fast-paxos', True, 16, 60),
+      ("__vertical_paxos__", 'vertical-paxos', True, 19, 61),
+      ("__stoppable_paxos__", 'stoppable-paxos', True, 14, 50),
+      ("__chain__", 'chain', False, 7, 24),
+      ("__chord__", 'chord', False, 11, 31),
+      ("__distributed_lock__", 'distributed-lock', False, 8, 28),
+      ("__paxos__", 'paxos', True, 10, 34),
+      ("__paxos_epr_missing1__", 'paxos-missing1', True, 10, 34),
     ]
 
   for a in stuff:
@@ -541,6 +545,38 @@ def make_comparison_table(input_directory):
     "mm_nonacc__vertical_paxos__auto__seed#_t8",
   ]
 
+  terms_entries = """mm_nonacc__simple-de-lock__auto__seed3_t8 7
+    mm_nonacc__leader-election__auto__seed4_t8 13
+    mm_nonacc__learning-switch__auto_e0__seed3_t8 21
+    mm_nonacc__lock_server__auto__seed2_t8 2
+    mm_nonacc__2PC__auto__seed3_t8 24
+    mm_nonacc__chain__auto__seed1_t8 TIMEOUT
+    mm_nonacc__chord__auto__seed1_t8 TIMEOUT
+    mm_nonacc__distributed_lock__auto9__seed1_t8 TIMEOUT
+    mm_nonacc__toy_consensus_forall_pyv__auto__seed3_t8 14
+    mm_nonacc__consensus_forall_pyv__auto__seed5_t8 24
+    mm_nonacc__consensus_wo_decide_pyv__auto__seed5_t8 22
+    mm_nonacc__learning_switch_pyv__auto__seed1_t8 79
+    mm_nonacc__lockserv_pyv__auto9__seed4_t8 8
+    mm_nonacc__sharded_kv_pyv__auto9__seed3_t8 10
+    mm_nonacc__ticket_pyv__auto__seed1_t8 TIMEOUT
+    mm_nonacc__toy_consensus_epr_pyv__auto__seed5_t8 11
+    mm_nonacc__consensus_epr_pyv__auto__seed3_t8 15
+    mm_nonacc__client_server_ae_pyv__auto__seed2_t8 9
+    mm_nonacc__client_server_db_ae_pyv__auto__seed4_t8 34
+    mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8 TIMEOUT
+    mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8 TIMEOUT
+    mm_nonacc__paxos__auto__seed5_t8 42
+    mm_nonacc__multi_paxos__auto__seed1_t8 TIMEOUT
+    mm_nonacc__flexible_paxos__auto__seed1_t8 42
+    mm_nonacc__fast_paxos__auto__seed1_t8 TIMEOUT
+    mm_nonacc__stoppable_paxos__auto__seed1_t8 TIMEOUT
+    mm_nonacc__vertical_paxos__auto__seed1_t8 TIMEOUT""".split('\n')
+  terms = {}
+  for te in terms_entries:
+    x = te.split()
+    terms[x[0]] = x[1]
+
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
     if r != '||':
@@ -564,6 +600,7 @@ def make_comparison_table(input_directory):
   cols = [
     ('l', 'Benchmark'),
     ('r', 'size'),
+    ('r', 'terms'),
     ('c', '$\\exists$?'),
     '||',
     ('r', 'I4~\\cite{I4}'),
@@ -574,6 +611,7 @@ def make_comparison_table(input_directory):
     ('r', '$t_F$'),
     ('r', '$n_B$'),
     ('r', '{\\name} size'),
+    ('r', '{\\name} terms'),
   ]
 
   folsep_json = read_folsep_json(input_directory)
@@ -599,6 +637,12 @@ def make_comparison_table(input_directory):
       return "$\\checkmark$" if get_bench_existential(r) else ""
     elif c == 'size':
       x = get_bench_num_handwritten_invs(r)
+      if x == -1:
+        return "TODO"
+      else:
+        return str(x)
+    elif c == 'terms':
+      x = get_bench_num_handwritten_terms(r)
       if x == -1:
         return "TODO"
       else:
@@ -629,6 +673,8 @@ def make_comparison_table(input_directory):
         return "TODO"
       elif c == '{\\name} size':
         return str(stats[r].num_inv)
+      elif c == '{\\name} terms':
+        return str(terms[stats[r].filename])
       else:
         assert False, c
 
@@ -1130,6 +1176,8 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
   for (opt, opt_name_label, color, pattern) in zip(opts, names, colors, patterns):
     p.append(patches.Patch(color=color, label=opt_name_label))
   ax.legend(handles=p)
+
+PAXOS_FINISHER_THREAD_BENCH = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
   
 def make_parallel_graphs(input_directory, save=False):
   output_directory = "graphs"
@@ -1144,7 +1192,8 @@ def make_parallel_graphs(input_directory, save=False):
   ax.flat[4].set_ylim(bottom=0, top=1500)
   ax.flat[5].set_ylim(bottom=0, top=1500)
 
-  finisher = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
+  #finisher = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
+  finisher = PAXOS_FINISHER_THREAD_BENCH
   breadth_acc = "mm__paxos__basic_b__seed1"
   breadth_nonacc = "mm_nonacc__paxos__basic_b__seed1"
 
@@ -1203,8 +1252,33 @@ def make_seed_graphs_main(input_directory, save=False):
   else:
     plt.show()
 
+def misc_stats(input_directory):
+  def p(key, value, comment=""):
+    print("\\newcommand{\\" + key + "}{" + str(value) + "}" +
+        ("" if comment == "" else " % " + str(comment)))
 
-def main():
+  paxos_1_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t1")
+  paxos_2_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t2")
+  paxos_8_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t8")
+
+  def speedup(s, t):
+    x = t.total_time_sec / s.total_time_sec
+    return "{:.1f}".format(x)
+
+  p("paxosTwoThreadSpeedup", speedup(paxos_2_threads, paxos_1_threads))
+  p("paxosEightThreadSpeedup", speedup(paxos_8_threads, paxos_1_threads))
+  p("learningSwitchTernaryAutoEZeroNumTemplates", 45)
+  p("learningSwitchTernaryAutoEZeroTotalSize", "\\ensuremath{\\sim 10^8}", 102141912)
+  p("learningSwitchTernaryAutoNumTemplates", 69)
+  p("learningSwitchTernaryAutoTotalSize", "\\ensuremath{\\sim 10^8}",      142327951)
+  p("learningSwitchQuadAutoNumTemplates", 21)
+  p("learningSwitchQuadAutoTotalSize", "\\ensuremath{8\\times 10^6}", 8174934)
+  p("paxosBreadthNumTemplates", 684)
+  p("paxosBreadthTotalSize", "\\ensuremath{3 \\times 10^5}", 366402)
+  p("paxosFinisherTheOneSize", "\\ensuremath{1.6 \\times 10^{10}}", 16862630188)
+  p("paxosBreadthNth", "\\ensuremath{569^{\\text{th}}}")
+
+def stuff():
   directory = sys.argv[1]
   input_directory = os.path.join("paperlogs", directory)
   output_directory = os.path.join("graphs", directory)
@@ -1241,13 +1315,17 @@ def main():
   #plt.savefig(os.path.join(output_directory, 'graphs.png'))
   plt.show()
 
-if __name__ == '__main__':
+def main():
   input_directory = sys.argv[1]
   #make_table(input_directory, 0)
-  #main()
+  #stuff()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory)
+  #make_comparison_table(input_directory)
+  misc_stats(input_directory)
+
+if __name__ == '__main__':
+  main()
