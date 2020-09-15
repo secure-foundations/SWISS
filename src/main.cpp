@@ -559,6 +559,8 @@ int main(int argc, char* argv[]) {
 
   bool by_size = false;
 
+  int big_impl_check = -1;
+
   string stats_filename;
 
   int i;
@@ -697,6 +699,11 @@ int main(int argc, char* argv[]) {
     else if (argv[i] == string("--counts-only")) {
       counts_only = true;
     }
+    else if (argv[i] == string("--big-impl-check")) {
+      assert (i + 1 < argc);
+      big_impl_check = atoi(argv[i+1]);
+      i += 1;
+    }
 
     /*else if (argv[i] == string("--threads")) {
       assert(i + 1 < argc);
@@ -710,6 +717,36 @@ int main(int argc, char* argv[]) {
   }
 
   shared_ptr<Module> module = read_module(module_filename);
+
+  if (big_impl_check != -1) {
+    vector<value> a;
+    vector<value> b;
+    for (int i = 0; i < (int)module->conjectures.size() - big_impl_check; i++) {
+      a.push_back(module->conjectures[i]);
+    }
+    for (int i = (int)module->conjectures.size() - big_impl_check; i < (int)module->conjectures.size(); i++) {
+      b.push_back(module->conjectures[i]);
+    }
+    //assert (is_itself_invariant(module, a));
+    //cout << "is inv" << endl;
+
+    int total = 0;
+    for (int i = 0; i < (int)a.size(); i++) {
+      cout << i << endl;
+      vector<value> vs;
+      for (value v : b) {
+        vs.push_back(v);
+      }
+      vs.push_back(v_not(a[i]));
+
+      if (!is_satisfiable(module, v_and(vs))) {
+        total++;
+      }
+    }
+
+    cout << "could prove " << total << " / " << a.size() << endl;
+    return 0;
+  }
 
   cout << "conjectures:" << endl;
   for (value v : module->conjectures) {

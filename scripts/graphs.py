@@ -1442,9 +1442,9 @@ def main():
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory)
+  make_comparison_table(input_directory)
   #misc_stats(input_directory)
-  templates_table(input_directory)
+  #templates_table(input_directory)
 
 if __name__ == '__main__':
   main()
