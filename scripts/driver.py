@@ -500,6 +500,7 @@ def parse_args(ivy_filename, args):
   use_stdout = False
   by_size = False
   config = None
+  finisher_only = False
   i = 0
   while i < len(args):
     if args[i] == "--threads":
@@ -516,6 +517,8 @@ def parse_args(ivy_filename, args):
       use_stdout = True
     elif args[i] == "--by-size":
       by_size = True
+    elif args[i] == "--finisher-only":
+      finisher_only = True
     elif args[i] == "--config":
       config = args[i+1]
       i += 1
@@ -540,7 +543,10 @@ def parse_args(ivy_filename, args):
     bench = suite.get(config)
     b_args = bench.breadth_space.get_args("--breadth")
     f_args = bench.finisher_space.get_args("--finisher")
+    if finisher_only:
+      b_args = []
   else:
+    assert not finisher_only
     assert len(iter_args) > 0
     b_args = []
     f_args = []

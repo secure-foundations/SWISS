@@ -7,6 +7,7 @@ import os
 import json
 
 import get_counts
+import templates
 
 class ThreadStats(object):
   def __init__(self, input_directory, filename):
@@ -1178,6 +1179,7 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
   ax.legend(handles=p)
 
 PAXOS_FINISHER_THREAD_BENCH = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
+PAXOS_NONACC_THREAD_BENCH = "mm_nonacc__paxos__basic_b__seed1"
   
 def make_parallel_graphs(input_directory, save=False):
   output_directory = "graphs"
@@ -1195,7 +1197,7 @@ def make_parallel_graphs(input_directory, save=False):
   #finisher = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
   finisher = PAXOS_FINISHER_THREAD_BENCH
   breadth_acc = "mm__paxos__basic_b__seed1"
-  breadth_nonacc = "mm_nonacc__paxos__basic_b__seed1"
+  breadth_nonacc = PAXOS_NONACC_THREAD_BENCH
 
   make_parallel_graph(ax.flat[0], input_directory, finisher, graph_title="Paxos Finisher")
   make_parallel_graph(ax.flat[1], input_directory, breadth_acc, graph_title="Paxos BreadthAccumulative")
@@ -1261,12 +1263,17 @@ def misc_stats(input_directory):
   paxos_2_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t2")
   paxos_8_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t8")
 
+  paxos_b_1_threads = get_basic_stats(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t1")
+  paxos_b_8_threads = get_basic_stats(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t8")
+
   def speedup(s, t):
     x = t.total_time_sec / s.total_time_sec
     return "{:.1f}".format(x)
 
   p("paxosTwoThreadSpeedup", speedup(paxos_2_threads, paxos_1_threads))
   p("paxosEightThreadSpeedup", speedup(paxos_8_threads, paxos_1_threads))
+  p("paxosBreadthNonaccEightThreadsSpeedup", speedup(paxos_b_8_threads, paxos_b_1_threads))
+
   p("learningSwitchTernaryAutoEZeroNumTemplates", 45)
   p("learningSwitchTernaryAutoEZeroTotalSize", "\\ensuremath{\\sim 10^8}", 102141912)
   p("learningSwitchTernaryAutoNumTemplates", 69)
@@ -1277,6 +1284,117 @@ def misc_stats(input_directory):
   p("paxosBreadthTotalSize", "\\ensuremath{3 \\times 10^5}", 366402)
   p("paxosFinisherTheOneSize", "\\ensuremath{1.6 \\times 10^{10}}", 16862630188)
   p("paxosBreadthNth", "\\ensuremath{569^{\\text{th}}}")
+
+def templates_table(input_directory):
+  rows = [
+    "mm_nonacc_whole__paxos_epr_missing1__basic__seed1_t8",
+    "mm_nonacc_whole__paxos_epr_missing1__basic2__seed1_t8",
+    "||",
+    "mm_nonacc__paxos_epr_missing1__wrong1__seed1_t8",
+    "mm_nonacc__paxos_epr_missing1__wrong2__seed1_t8",
+    "mm_nonacc__paxos_epr_missing1__wrong3__seed1_t8",
+    "mm_nonacc__paxos_epr_missing1__wrong5__seed1_t8",
+    "mm_nonacc__paxos_epr_missing1__wrong4__seed1_t8",
+  ]
+
+  cols = [
+    ('l', 'Template'),
+    ('c', 'Inv?'),
+    ('r', 'Size'),
+    ('r', 'Time'),
+  ]
+
+  suite = templates.read_suite("benchmarks/paxos_epr_missing1.ivy")
+  def q_string(q):
+    s = q.split()
+    sorts = s[1:]
+    assert s[0] in ('forall', 'exists')
+    res = "\\" + s[0] + " "
+
+    seen = set()
+    a = 0
+    while a < len(sorts):
+      assert sorts[a] not in seen
+      seen.add(sorts[a])
+
+      b = a+1
+      while b < len(sorts) and sorts[b] == sorts[a]:
+        b += 1
+
+      n_occur = b-a
+      l = sorts[a][0]
+      if a > 0:
+        res += ", "
+      res += ",".join(l+"_{"+str(i)+"}" for i in range(1,n_occur+1))
+      res += ":\\sort{" + sorts[a] + "}"
+
+      a = b
+
+    return res+".~"
+
+  def templ_string(r):
+    config_name = r.split('__')[2]
+    bench = suite.get(config_name)
+    t = bench.finisher_space.spaces[0].templ
+    qs = t.split('.')
+    return "$" + " ".join(q_string(q) for q in qs) + "*" + "$"
+
+  def read_counts():
+    d = []
+    with open("scripts/paxos-spaces-sorted.txt") as f:
+      for l in f:
+        s = l.split()
+        k = int(s[2])
+        count = int(s[6])
+        vs = [int(s[8]), int(s[12]), int(s[16]), int(s[20])]
+        d.append((k, count, vs))
+    return d
+
+  counts = read_counts()
+
+  def sum_counts(counts, max_k, max_vs):
+    total = 0
+    for (k, count, vs) in counts:
+      if (k <= max_k and 
+          vs[0] <= max_vs[0] and
+          vs[1] <= max_vs[1] and
+          vs[2] <= max_vs[2] and
+          vs[3] <= max_vs[3]):
+        total += count
+    return total
+
+  sizes = {
+    #"basic": 16862630188
+    #"basic2": 16862630188
+    #"wrong1": 16862630188
+    "basic": sum_counts(counts, 6, [2,2,1,1]),
+    "basic2": sum_counts(counts, 6, [2,2,1,1]),
+    "wrong1": sum_counts(counts, 6, [2,2,1,1]),
+    "wrong2": sum_counts(counts, 6, [1,3,0,1]),
+    "wrong3": sum_counts(counts, 6, [1,1,0,4]),
+    "wrong4": sum_counts(counts, 6, [2,2,0,2]),
+    "wrong5": sum_counts(counts, 6, [2,1,2,1]),
+  }
+
+  def calc(r, c):
+    if c == 'Template':
+      return templ_string(r)
+    elif c == 'Inv?':
+      if 'wrong' in r:
+        return ''
+      else:
+        return '$\\checkmark$'
+    elif c == 'Size':
+      return sizes[r.split('__')[2]]
+    elif c == 'Time':
+      stats = get_basic_stats(input_directory, r)
+      if stats.timed_out_6_hours:
+        return '$>21600$'
+      else:
+        return stats.total_time_sec
+
+  t = Table(cols, rows, calc)
+  t.dump()
 
 def stuff():
   directory = sys.argv[1]
@@ -1325,7 +1443,8 @@ def main():
   #make_opt_graphs_main(input_directory)
   #make_optimization_step_table(input_directory)
   #make_comparison_table(input_directory)
-  misc_stats(input_directory)
+  #misc_stats(input_directory)
+  templates_table(input_directory)
 
 if __name__ == '__main__':
   main()

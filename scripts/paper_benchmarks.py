@@ -12,7 +12,7 @@ NUM_PARTS = 43
 TIMEOUT_SECS = 6*3600
 
 class PaperBench(object):
-  def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True):
+  def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False):
     self.partition = partition
 
     self.ivyname = ivyname
@@ -25,6 +25,7 @@ class PaperBench(object):
     self.nonacc = nonacc
     self.whole = whole
     self.expect_success = expect_success
+    self.finisher_only = finisher_only
 
     self.args = self.get_args()
     self.name = self.get_name()
@@ -41,6 +42,8 @@ class PaperBench(object):
       name += "nonacc_"
     if self.whole:
       name += "whole_"
+    if self.finisher_only:
+      name += "fonly_"
 
     name += "_"
 
@@ -69,6 +72,7 @@ class PaperBench(object):
       + (["--post-bmc"] if self.post_bmc else [])
       + (["--by-size", "--non-accumulative"] if self.nonacc else [])
       + (["--whole-space"] if self.whole else [])
+      + (["--finisher-only"] if self.finisher_only else [])
     )
 
 benches = [ ]
@@ -84,6 +88,55 @@ THREADS = 8
 #  benches.append(PaperBench(4,
 #      "nonacc_wc_chord_t" + str(i),
 #      "chord-gimme-1 --breadth-with-conjs --by-size --non-accumulative --minimal-models --whole-space --threads " + str(i)))
+
+for seed in range(1, 2):
+  #benches.append(PaperBench(5, "vertical_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+  #benches.append(PaperBench(5, "stoppable_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+  #benches.append(PaperBench(5, "fast_paxos_start_with_hard.ivy", config="auto", seed=seed, nonacc=True))
+
+  #benches.append(PaperBench(5, "vertical_paxos_start_with_hard.ivy", config="basic", seed=seed, nonacc=True))
+  #benches.append(PaperBench(5, "stoppable_paxos_start_with_hard.ivy", config="basic", seed=seed, nonacc=True))
+  #benches.append(PaperBench(5, "fast_paxos_start_with_hard.ivy", config="basic", seed=seed, nonacc=True))
+
+  benches.append(PaperBench(8, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "leader-election.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "learning-switch.ivy", config="auto_e0_full", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(6, "learning-switch.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "lock_server.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "2PC.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(4, "multi_paxos.ivy", config="basic", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "multi_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(6, "flexible_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "fast_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "stoppable_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "vertical_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "chain.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "chord.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(1, "distributed_lock.ivy", config="auto9", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(9, "chord-gimme-1.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(10, "decentralized-lock-gimme-1.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+
+  benches.append(PaperBench(8, "client_server_ae.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "consensus_epr.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "consensus_forall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "consensus_wo_decide.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "firewall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "hybrid_reliable_broadcast_cisa.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "learning_switch.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(19, "lockserv.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "lockserv.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "ring_id.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "ring_id_not_dead.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(22, "sharded_kv.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "sharded_kv.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "sharded_kv_no_lost_keys.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "sharded_kv_no_lost_keys.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "ticket.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "toy_consensus_epr.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(9, "toy_consensus_forall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=True))
+
 
 
 benches.append(PaperBench(2, "paxos.ivy", config="auto_breadth", nonacc=True, expect_success=False))
@@ -127,7 +180,7 @@ for seed in range(1, 6):
   benches.append(PaperBench(1, "chain.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "chord.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "distributed_lock.ivy", config="auto9", seed=seed, nonacc=True))
-  benches.append(PaperBench(9, "chord-gimme-1.ivy", config="auto", seed=seed, nonacc=True))
+  benches.append(PaperBench(10, "chord-gimme-1.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(10, "decentralized-lock-gimme-1.ivy", config="auto", seed=seed, nonacc=True))
 
   benches.append(PaperBench(6, "client_server_ae.pyv", config="auto", seed=seed, nonacc=True))
