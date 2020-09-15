@@ -685,6 +685,25 @@ bool is_satisfiable(shared_ptr<Module> module, value candidate)
   return solver.check_sat();
 }
 
+bool is_satisfiable_tryhard(shared_ptr<Module> module, value candidate)
+{
+  ContextSolverResult res = context_solve(
+        "is_invariant_wrt init",
+        module,
+        ModelType::Any,
+        Strictness::TryHard,
+        nullptr,
+        [module, candidate](shared_ptr<BackgroundContext> bgctx)
+  {
+    BasicContext basicctx(bgctx, module);
+    smt::solver& solver = basicctx.ctx->solver;
+    solver.add(basicctx.e->value2expr(candidate));
+    return vector<shared_ptr<ModelEmbedding>>{};
+  });
+  return res.res != smt::SolverResult::Unsat;
+}
+
+
 bool is_complete_invariant(shared_ptr<Module> module, value candidate) {
   smt::context ctx(smt::Backend::z3);
 

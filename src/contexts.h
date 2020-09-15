@@ -139,6 +139,7 @@ ActionResult applyAction(
     std::unordered_map<iden, smt::expr> const& consts);
 
 bool is_satisfiable(std::shared_ptr<Module>, value);
+bool is_satisfiable_tryhard(std::shared_ptr<Module>, value);
 
 bool is_complete_invariant(std::shared_ptr<Module>, value);
 

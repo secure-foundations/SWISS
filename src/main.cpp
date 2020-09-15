@@ -739,7 +739,7 @@ int main(int argc, char* argv[]) {
       }
       vs.push_back(v_not(a[i]));
 
-      if (!is_satisfiable(module, v_and(vs))) {
+      if (!is_satisfiable_tryhard(module, v_and(vs))) {
         total++;
       }
     }
