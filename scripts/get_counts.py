@@ -10,17 +10,13 @@ class CountSet(object):
     self.postsymm = postsymm
 
 def get_finisher_params_from_file(filename):
-  with open(filename) as f:
-    for line in f:
-      if line.startswith('Resulting invariant parameters:'):
-        params_str = line.split(':')[1]
-        params = templates.parse_keyvals(params_str)
-        break
-  return ["--template-sorter",
-      str(params["k"]),
-      str(params["d"]),
-      str(params["m"]),
-      str(params["e"])]
+  protocol_file = get_protocol_from_file(filename)
+  suite = templates.read_suite(protocol_file)
+  config_name = get_config_from_file(filename)
+  bench = suite.get(config_name)
+  space = bench.finisher_space
+  return space.get_args('--finisher')
+
 
 def get_protocol_from_file(filename):
   with open(filename) as f:
@@ -44,11 +40,11 @@ def get_breadth_params_from_file(protocol_file, filename):
   config_name = get_config_from_file(filename)
   bench = suite.get(config_name)
   space = bench.breadth_space
-  return space.get_args('breadth')
+  return space.get_args('--breadth')
 
 def calc_counts(protocol_file, params):
-  cmd = ["./run-simple.sh", protocol_file] + params + ["--counts-only"]
-  print(' '.join(cmd))
+  cmd = ["./run-simple.sh", protocol_file] + ["--counts-only"] + params
+  #print(' '.join(cmd))
   proc = subprocess.Popen(cmd,
       stdin=subprocess.PIPE,
       stdout=subprocess.PIPE)
@@ -65,7 +61,7 @@ def calc_counts(protocol_file, params):
       postsymm = int(line.split()[1])
   assert presymm != None
   assert postsymm != None
-  print(presymm, postsymm)
+  #print(presymm, postsymm)
   return presymm, postsymm
 
 def get_counts(filename, alg):

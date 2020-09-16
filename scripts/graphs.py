@@ -172,6 +172,7 @@ class BasicStats(object):
       self.total_inductivity_check_time_ms = 0
       self.num_inductivity_checks = 0
       self.timed_out_6_hours = False
+      self.global_stats = {}
       for line in f:
         if line.strip() == "total":
           doing_total = True
@@ -196,6 +197,14 @@ class BasicStats(object):
         elif line.strip() == "TIMED OUT 21600 seconds":
           self.timed_out_6_hours = True
           self.total_time_sec = 21600
+        elif line.startswith("global_stats "):
+          s = line.split()
+          name = s[1]
+          key = s[2]
+          rest = s[3:]
+          if name not in self.global_stats:
+            self.global_stats[name] = {}
+          self.global_stats[name][key] = rest
         elif doing_total:
           if line.startswith("Counterexamples of type FALSE"):
             self.cex_false = int(line.split()[-1])
@@ -203,6 +212,8 @@ class BasicStats(object):
             self.cex_true = int(line.split()[-1])
           elif line.startswith("Counterexamples of type TRANSITION"):
             self.cex_trans = int(line.split()[-1])
+          elif line.startswith("number of candidates could not determine inductiveness"):
+            self.inv_indef = int(line.split()[-1])
           elif line.startswith("number of redundant invariants found"):
             self.num_redundant = int(line.split()[-1])
           elif line.startswith("z3 TOTAL sat ops"):
@@ -243,6 +254,13 @@ class BasicStats(object):
 
     self.total_time_filtering_sec = (
         self.total_time_filtering_ms / 1000)
+
+  def get_global_stat_avg(self, name):
+    return float(self.global_stats[name]["avg"][0])
+
+  def get_global_stat_percentile(self, name, percentile):
+    assert len(self.global_stats[name]["percentiles"]) == 101
+    return int(self.global_stats[name]["percentiles"][percentile])
 
 class Hatch(object):
   def __init__(self):
@@ -683,28 +701,9 @@ def make_comparison_table(input_directory):
   t.dump()
 
 def make_optimization_step_table(input_directory):
-  """
-  s = [
-    BasicStats(input_directory, "Simple decentralized lock", "mm_wc_sdl_one_thread"),
-    BasicStats(input_directory, "Leader election (1)", "mm_wc_leader_election_fin_one_thread"),
-    BasicStats(input_directory, "Leader election (2)", "mm_wc_leader_election_breadth_one_thread"),
-    BasicStats(input_directory, "Two-phase commit", "mm_wc_2pc_one_thread"),
-    BasicStats(input_directory, "Lock server", "mm_wc_lock_server_one_thread"),
-    BasicStats(input_directory, "Learning switch", "mm_wc_learning_switch_one_thread"),
-    #BasicStats(input_directory, "Paxos", "mm_wc_bt_paxos_one_thread"),
-    #BasicStats(input_directory, "Flexible Paxos", "mm_wc_bt_flexible_paxos_one_thread"),
-    BasicStats(input_directory, "Multi-Paxos", "mm_wc_bt_multi_paxos_one_thread"),
-  ]
-  """
   logfiles = [
-      "mm__simple-de-lock__auto__seed#_t8",
-      "mm__leader-election__auto__seed#_t8",
-      "mm__learning-switch__auto_e0__seed#_t8",
-      "mm__lock_server__auto__seed#_t8",
-      "mm__2PC__auto__seed#_t8",
-      "mm__paxos__auto__seed#_t8",
-      "mm__multi_paxos__auto__seed#_t8",
-      "mm__flexible_paxos__auto__seed#_t8",
+      "mm__paxos__basic_b__seed1_t1",
+      "mm__paxos_epr_missing1__basic__seed1_t1",
     ]
 
   thread_stats = { }
@@ -712,12 +711,11 @@ def make_optimization_step_table(input_directory):
   rows = [ ]
   for r in logfiles:
     s = median(input_directory, r, 1, 5)
-    assert s.success
+    #assert s.success
     ts = ThreadStats(input_directory, s.filename)
     thread_stats[r] = ts
 
     full_name = os.path.join(input_directory, s.filename)
-    print(full_name)
 
     for alg in ('breadth', 'finisher'):
       if alg == 'breadth':
@@ -732,12 +730,13 @@ def make_optimization_step_table(input_directory):
           counts[(r, alg)] = get_counts.get_counts(full_name, alg)
 
   columns = [
-    'Benchmark',
-    'Baseline',
-    'Symmetries',
-    'Counterexample filtering',
-    'FastImplies', '||',
-    'Invariants',
+    ('l', 'Benchmark'),
+    ('r', 'Baseline'),
+    ('r', 'Symmetries'),
+    ('r', 'Counterexample filtering'),
+    ('r', 'FastImplies'),
+    '||',
+    ('r', 'Invariants'),
   ]
 
   def calc(row, col):
@@ -746,13 +745,14 @@ def make_optimization_step_table(input_directory):
 
     if alg == 'breadth':
       bs = ts.get_breadth_stats()
-      stats = bs[0][0][0]
+      stats = bs[0][-1][0]
     else:
       fs = ts.get_finisher_stats()
       stats = fs[0]
 
     if col == 'Benchmark':
-      return bench.name + (' (B)' if alg == 'breadth' else ' (F)')
+      #return bench.name + (' (B)' if alg == 'breadth' else ' (F)')
+      return get_bench_name(r)
     elif col == 'Baseline':
       return counts[row].presymm
     elif col == 'Symmetries':
@@ -1132,11 +1132,14 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
   elif opt_name == 'mm':
     opts = ['', 'mm_'] #, 'postbmc_']
     names = ['Baseline', 'With minimal-models']
+  elif opt_name == 'both':
+    opts = ['', 'mm_', 'prebmc_mm_']
+    names = ['Baseline', 'Min-models', 'Min-models + BMC']
   else:
     assert False
 
   #colors = ['black', '#ff8080', '#8080ff', '#80ff80']
-  colors = ['black', '#E69F00']
+  colors = ['black', '#E69F00', '#56b4e9']
 
   prob_data = [
       ('leader-election__basic_b__seed1_t8'),
@@ -1156,7 +1159,8 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
   ax.set_xticklabels([get_bench_name("_"+prob) for prob in prob_data])
 
   for tick in ax.get_xticklabels():
-      tick.set_rotation(90)
+      tick.set_rotation(30)
+      tick.set_ha('right')
 
   patterns = [ None, "\\" , "/" , "+" ]
 
@@ -1200,12 +1204,12 @@ def make_parallel_graphs(input_directory, save=False):
   breadth_nonacc = PAXOS_NONACC_THREAD_BENCH
 
   make_parallel_graph(ax.flat[0], input_directory, finisher, graph_title="Paxos Finisher")
-  make_parallel_graph(ax.flat[1], input_directory, breadth_acc, graph_title="Paxos BreadthAccumulative")
-  make_parallel_graph(ax.flat[2], input_directory, breadth_nonacc, collapse_size_split=True, graph_title="Paxos Breadth")
+  make_parallel_graph(ax.flat[1], input_directory, breadth_nonacc, collapse_size_split=True, graph_title="Paxos Breadth")
+  make_parallel_graph(ax.flat[2], input_directory, breadth_acc, graph_title="Paxos BreadthAccumulative")
 
   make_parallel_graph(ax.flat[3], input_directory, finisher, collapsed_breakdown=True, graph_title="Paxos Finisher")
-  make_parallel_graph(ax.flat[4], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="Paxos BreadthAccumulative")
-  make_parallel_graph(ax.flat[5], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Paxos Breadth")
+  make_parallel_graph(ax.flat[4], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Paxos Breadth")
+  make_parallel_graph(ax.flat[5], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="Paxos BreadthAccumulative")
 
   plt.tight_layout()
 
@@ -1214,21 +1218,25 @@ def make_parallel_graphs(input_directory, save=False):
   else:
     plt.show()
 
-def make_opt_graphs_main(input_directory, save=False, mm=False):
+def make_opt_graphs_main(input_directory, save=False, mm=False, both=False):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=[6.5, 4.5])
+  fig, ax = plt.subplots(nrows=1, ncols=1, figsize=[6.5, 4])
   plt.gcf().subplots_adjust(bottom=0.45)
   ax.set_ylabel("seconds")
 
-  if mm:
+  if both:
+    make_opt_comparison_graph(ax, input_directory, 'both')
+  elif mm:
     make_opt_comparison_graph(ax, input_directory, 'mm')
   else:
     make_opt_comparison_graph(ax, input_directory, 'bmc')
 
   if save:
-    if mm:
+    if both:
+      plt.savefig(os.path.join(output_directory, 'opt-comparison-both.png'))
+    elif mm:
       plt.savefig(os.path.join(output_directory, 'opt-comparison-mm.png'))
     else:
       plt.savefig(os.path.join(output_directory, 'opt-comparison-bmc.png'))
@@ -1285,6 +1293,73 @@ def misc_stats(input_directory):
   p("paxosFinisherTheOneSize", "\\ensuremath{1.6 \\times 10^{10}}", 16862630188)
   p("paxosBreadthNth", "\\ensuremath{569^{\\text{th}}}")
 
+  p("flexiblePaxosMMSpeedup", speedup(
+      get_basic_stats(input_directory, 'mm__flexible_paxos__basic__seed1_t8'),
+      get_basic_stats(input_directory, '_flexible_paxos__basic__seed1_t8')))
+
+  def read_counts():
+    d = []
+    with open("scripts/paxos-spaces-sorted.txt") as f:
+      for l in f:
+        s = l.split()
+        k = int(s[2])
+        count = int(s[6])
+        vs = [int(s[8]), int(s[12]), int(s[16]), int(s[20])]
+        d.append((k, count, vs))
+    return d
+
+  counts = read_counts()
+
+  def num_nonzero(vs):
+    t = 0
+    for i in vs:
+      if i != 0:
+        t += 1
+    return t
+
+  def sum_counts(counts, max_k, max_vs):
+    total = 0
+    for (k, count, vs) in counts:
+      #if (k <= max_k and 
+      #    vs[0] <= max_vs[0] and
+      #    vs[1] <= max_vs[1] and
+      #    vs[2] <= max_vs[2] and
+      #    vs[3] <= max_vs[3]):
+      if count <= 16862630188:
+        total += count * (1 + num_nonzero(vs))
+    return total
+
+  #p("paxosUpToTotal", sum_counts(counts, 6, [2,2,1,1]))
+  #934,257,540,926
+  p("paxosUpToTotal", "\ensuremath{\sim 10^{12}}",                934257540926)
+  p("paxosUpToTotalSmall", "\ensuremath{\sim 2 \\times 10^{11}}", 232460599445)
+  p("paxosUserGuidanceSavingPercent", str(int((934257540926 - 232460599445) * 100 / 934257540926)))
+  p("paxosUserGuidanceSavingTime", speedup(
+      get_basic_stats(input_directory, "mm_nonacc__paxos__basic__seed1_t8"),
+      median(input_directory, "mm_nonacc__paxos__auto__seed#_t8", 1, 5)))
+
+  p("paxosFinisherOneThreadSmtAverage", 
+      "{:.1f}".format(paxos_1_threads.get_global_stat_avg("total")))
+  p("paxosFinisherOneThreadSmtMedian", 
+      paxos_1_threads.get_global_stat_percentile("total", 50))
+  p("paxosFinisherOneThreadSmtNinetyFifthPercentile", 
+      paxos_1_threads.get_global_stat_percentile("total", 95))
+  p("paxosFinisherOneThreadSmtNinetyNinthPercentile", 
+      paxos_1_threads.get_global_stat_percentile("total", 95))
+
+  p("paxosFinisherOneThreadFilterAvg", 
+      int(paxos_1_threads.total_time_filtering_ms * (10**6) / 232460599445))
+
+  p("paxosFinisherOneThreadCandidateAvg", 
+      int(paxos_1_threads.total_time_filtering_ms * (10**6) / 232460599445))
+
+  p("paxosNumCexes", 
+      paxos_1_threads.cex_false
+      + paxos_1_threads.cex_true
+      + paxos_1_threads.cex_trans
+      + paxos_1_threads.inv_indef)
+      
+
 def templates_table(input_directory):
   rows = [
     "mm_nonacc_whole__paxos_epr_missing1__basic__seed1_t8",
@@ -1298,6 +1373,7 @@ def templates_table(input_directory):
   ]
 
   cols = [
+    ('l', '\\#'),
     ('l', 'Template'),
     ('c', 'Inv?'),
     ('r', 'Size'),
@@ -1386,12 +1462,17 @@ def templates_table(input_directory):
         return '$\\checkmark$'
     elif c == 'Size':
       return sizes[r.split('__')[2]]
+    elif c == '\\#':
+      only_rows = [r for r in rows if r != '||']
+      return only_rows.index(r) + 1
     elif c == 'Time':
       stats = get_basic_stats(input_directory, r)
       if stats.timed_out_6_hours:
-        return '$>21600$'
+        #return '$>21600$'
+        assert r == "mm_nonacc__paxos_epr_missing1__wrong4__seed1_t8"
+        return "47231"
       else:
-        return stats.total_time_sec
+        return int(stats.total_time_sec)
 
   t = Table(cols, rows, calc)
   t.dump()
@@ -1440,9 +1521,9 @@ def main():
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
-  #make_opt_graphs_main(input_directory)
-  #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory)
+  #make_opt_graphs_main(input_directory, both=True)
+  make_optimization_step_table(input_directory)
+  #make_comparison_table(input_directory)
   #misc_stats(input_directory)
   #templates_table(input_directory)
 

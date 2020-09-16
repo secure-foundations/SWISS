@@ -502,6 +502,50 @@ void do_counts(shared_ptr<Module> module, vector<TemplateSlice> const& slices, i
   }*/
 }
 
+long long presymm_of_template_space(shared_ptr<Module> module, TemplateSpace const& ts)
+{
+  value templ = ts.make_templ(module);
+  EnumInfo ei(module, templ);
+
+  long long c = ei.clauses.size();
+
+  long long total = 0;
+
+  for (int k = 1; k <= ts.k; k++) {
+    long long p = 1;
+    for (int i = 0; i < k; i++) {
+      p *= (long long)c;
+    }
+
+    if (ts.depth == 2) {
+      p *= 2 * (long long)((1 << (k - 1)) - 1);
+    }
+
+    total += p;
+  }
+
+  return total;
+}
+
+void count_strats(shared_ptr<Module> module, vector<Strategy> const& strats) {
+  long long pre_count = 0;
+
+  vector<TemplateSlice> slices;
+  for (Strategy const& strat : strats) {
+    vector_append(slices, break_into_slices(module, strat.tspace));
+    pre_count += presymm_of_template_space(module, strat.tspace);
+  }
+
+  cout << "Pre-symmetries: " << pre_count << endl;
+
+  long long total = 0;
+  for (TemplateSlice const& ts : slices) {
+    total += ts.count;
+  }
+
+  cout << "Post-symmetries: " << total << endl;
+}
+
 int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     cout << argv[i] << " ";
@@ -956,7 +1000,10 @@ int main(int argc, char* argv[]) {
       return 1;
     }
 
-    if (output_chunk_dir != "") {
+    if (counts_only) {
+      count_strats(module, strats);
+      return 0;
+    } else if (output_chunk_dir != "") {
       vector<TemplateSlice> slices;
       for (Strategy const& strat : strats) {
         vector_append(slices, break_into_slices(module, strat.tspace));

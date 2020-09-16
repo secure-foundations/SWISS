@@ -688,7 +688,7 @@ bool is_satisfiable(shared_ptr<Module> module, value candidate)
 bool is_satisfiable_tryhard(shared_ptr<Module> module, value candidate)
 {
   ContextSolverResult res = context_solve(
-        "is_invariant_wrt init",
+        "is_satisfiable",
         module,
         ModelType::Any,
         Strictness::TryHard,

@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 import queue
 import threading
+import signal
 
 NUM_PARTS = 43
 
@@ -207,7 +208,7 @@ for i in range(THREADS, 0, -1):
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=i, expect_success=False))
 
-  benches.append(PaperBench(6, "paxos_epr_missing1.ivy", "basic", threads=i))
+  benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=i, whole=True, expect_success=False))
 
   #benches.append(PaperBench(29, "chord-gimme-1.ivy", "basic", threads=i))
   #benches.append(PaperBench(29, "chord-gimme-1.ivy", "basic", threads=i, nonacc=True))
@@ -334,13 +335,14 @@ def run(directory, bench):
   proc = subprocess.Popen(["./save.sh"] + bench.args,
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
-      env=env)
+      env=env,
+      preexec_fn=os.setsid)
 
   try:
     out, err = proc.communicate(timeout=TIMEOUT_SECS)
     timed_out = False
   except subprocess.TimeoutExpired:
-    proc.kill()
+    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
     timed_out = True
   
   if timed_out:
