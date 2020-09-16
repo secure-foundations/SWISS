@@ -616,9 +616,12 @@ def make_comparison_table(input_directory):
 
   # l|r|c||r|r|r||r|r|r|r
 
+  SWISS_INVS = '\\begin{tabular}{@{}c@{}}\\name \\\\ invs\\end{tabular}'
+  SWISS_TERMS = '\\begin{tabular}{@{}c@{}}\\name \\\\ terms\\end{tabular}'
+
   cols = [
     ('l', 'Benchmark'),
-    ('r', 'size'),
+    ('r', 'invs'),
     ('r', 'terms'),
     ('c', '$\\exists$?'),
     '||',
@@ -629,8 +632,9 @@ def make_comparison_table(input_directory):
     ('r', '$t_B$'),
     ('r', '$t_F$'),
     ('r', '$n_B$'),
-    ('r', '{\\name} size'),
-    ('r', '{\\name} terms'),
+    ('r', SWISS_INVS),
+    ('r', SWISS_TERMS),
+    ('r', 'Partial'),
   ]
 
   folsep_json = read_folsep_json(input_directory)
@@ -654,7 +658,7 @@ def make_comparison_table(input_directory):
         return str(int(float(folsep_time)))
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
-    elif c == 'size':
+    elif c == 'invs':
       x = get_bench_num_handwritten_invs(r)
       if x == -1:
         return "TODO"
@@ -666,6 +670,27 @@ def make_comparison_table(input_directory):
         return "TODO"
       else:
         return str(x)
+    elif c == 'Partial':
+      partial_inv_counts = {
+        "mm_nonacc__chain__auto__seed1_t8"  :  6,
+        "mm_nonacc__chord__auto__seed1_t8"  :  8,
+        "mm_nonacc__distributed_lock__auto9__seed1_t8"  :   1,
+        "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8"  :   1,
+        "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8"  :   0,
+        "mm_nonacc__ticket_pyv__auto__seed1_t8"  :   5,
+        "mm_nonacc__multi_paxos__auto__seed1_t8"  :   6,
+        "mm_nonacc__vertical_paxos__auto__seed1_t8"  :   15,
+        "mm_nonacc__fast_paxos__auto__seed1_t8" :   8,
+        "mm_nonacc__stoppable_paxos__auto__seed1_t8" :   6,
+      }
+      if stats[r].filename in partial_inv_counts:
+        return (
+          str(partial_inv_counts[stats[r].filename])
+          + ' / ' +
+          str(get_bench_num_handwritten_invs(r))
+        )
+      else:
+        return ''
     else:
       if stats[r] == None:
         return "TODO"
@@ -688,11 +713,9 @@ def make_comparison_table(input_directory):
         return int(stats[r].breadth_total_time_sec)
       elif c == "\\name":
         return int(stats[r].total_time_sec)
-      elif c == 'size':
-        return "TODO"
-      elif c == '{\\name} size':
+      elif c == SWISS_INVS:
         return str(stats[r].num_inv)
-      elif c == '{\\name} terms':
+      elif c == SWISS_TERMS:
         return str(terms[stats[r].filename])
       else:
         assert False, c
@@ -1525,8 +1548,8 @@ def main():
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
-  make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory)
+  #make_optimization_step_table(input_directory)
+  make_comparison_table(input_directory)
   #misc_stats(input_directory)
   #templates_table(input_directory)
 

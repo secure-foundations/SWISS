@@ -26,6 +26,7 @@ def run(newname, num_conjs):
   proc = subprocess.Popen(["./run-simple.sh", newname, "--big-impl-check", str(num_conjs)],
       stdout=subprocess.PIPE)
   out, err = proc.communicate()
+  print(out.decode('utf-8'))
   ret = proc.wait()
   assert ret == 0
 
@@ -40,12 +41,12 @@ def go(ffile, pfile):
   print(ffile, " : ", ans)
 
 go("partial_invs/mm_nonacc__chain__auto__seed1_t8", "answers/chain.ivy")
-go("partial_invs/mm_nonacc__chord__auto__seed1_t8", "answers/chord.ivy")
-go("partial_invs/mm_nonacc__distributed_lock__auto9__seed1_t8", "answers/distributed_lock.ivy")
-go("partial_invs/mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8", "answers/hybrid_reliable_broadcast_cisa.pyv")
-go("partial_invs/mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8", "answers/sharded_kv_no_lost_keys.pyv")
-go("partial_invs/mm_nonacc__ticket_pyv__auto__seed1_t8", "answers/ticket.pyv")
-go("partial_invs/mm_nonacc__multi_paxos__auto__seed1_t8", "answers/multi_paxos.ivy")
-go("partial_invs/mm_nonacc__vertical_paxos__auto__seed1_t8", "answers/vertical_paxos.ivy")
-go("partial_invs/mm_nonacc__fast_paxos__auto__seed1_t8", "answers/fast_paxos.ivy")
-go("partial_invs/mm_nonacc__stoppable_paxos__auto__seed1_t8", "answers/stoppable_paxos.ivy")
+#go("partial_invs/mm_nonacc__chord__auto__seed1_t8", "answers/chord.ivy")
+#go("partial_invs/mm_nonacc__distributed_lock__auto9__seed1_t8", "answers/distributed_lock.ivy")
+#go("partial_invs/mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8", "answers/hybrid_reliable_broadcast_cisa.pyv")
+#go("partial_invs/mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8", "answers/sharded_kv_no_lost_keys.pyv")
+#go("partial_invs/mm_nonacc__ticket_pyv__auto__seed1_t8", "answers/ticket.pyv")
+#go("partial_invs/mm_nonacc__multi_paxos__auto__seed1_t8", "answers/multi_paxos.ivy")
+#go("partial_invs/mm_nonacc__vertical_paxos__auto__seed1_t8", "answers/vertical_paxos.ivy")
+#go("partial_invs/mm_nonacc__fast_paxos__auto__seed1_t8", "answers/fast_paxos.ivy")
+#go("partial_invs/mm_nonacc__stoppable_paxos__auto__seed1_t8", "answers/stoppable_paxos.ivy")

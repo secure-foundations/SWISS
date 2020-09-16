@@ -785,6 +785,9 @@ int main(int argc, char* argv[]) {
 
       if (!is_satisfiable_tryhard(module, v_and(vs))) {
         total++;
+        cout << "is provable: " << a[i]->to_string() << endl;
+      } else {
+        cout << "is not provable: " << a[i]->to_string() << endl;
       }
     }
 
