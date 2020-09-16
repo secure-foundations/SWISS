@@ -752,7 +752,10 @@ def make_optimization_step_table(input_directory):
 
     if col == 'Benchmark':
       #return bench.name + (' (B)' if alg == 'breadth' else ' (F)')
-      return get_bench_name(r)
+      rname = get_bench_name(r)
+      if rname == 'paxos-missing1':
+        rname = 'paxos'
+      return rname + (' (B)' if alg == 'breadth' else ' (F)')
     elif col == 'Baseline':
       return counts[row].presymm
     elif col == 'Symmetries':

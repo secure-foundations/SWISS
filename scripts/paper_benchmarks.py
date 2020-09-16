@@ -204,6 +204,14 @@ for seed in range(1, 6):
   benches.append(PaperBench(6, "toy_consensus_epr.pyv", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "toy_consensus_forall.pyv", config="auto", seed=seed, nonacc=True))
 
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=1, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=2, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=4, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=3, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=5, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=6, whole=True, expect_success=False))
+benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=7, whole=True, expect_success=False))
+
 for i in range(THREADS, 0, -1):
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=i, expect_success=False))
