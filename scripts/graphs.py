@@ -546,7 +546,7 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__consensus_epr_pyv__auto__seed#_t8",
     "mm_nonacc__client_server_ae_pyv__auto__seed#_t8",
     "mm_nonacc__client_server_db_ae_pyv__auto__seed#_t8",
-    "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed#_t8",
+    "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto_e2__seed#_t8",
     "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed#_t8",
 
     #"mm_nonacc__firewall_pyv__auto__seed#_t8", # ignoring because not EPR
@@ -594,6 +594,7 @@ def make_comparison_table(input_directory):
     mm_nonacc__flexible_paxos__auto__seed1_t8 42
     mm_nonacc__fast_paxos__auto__seed1_t8 TIMEOUT
     mm_nonacc__stoppable_paxos__auto__seed1_t8 TIMEOUT
+    mm_nonacc__sharded_kv_no_lost_keys_pyv__auto_e2__seed4_t8 6
     mm_nonacc__vertical_paxos__auto__seed1_t8 TIMEOUT""".split('\n')
   terms = {}
   for te in terms_entries:
@@ -1449,6 +1450,10 @@ def misc_stats(input_directory):
         fonly_name = maps[r]
 
       fonly_stats = get_basic_stats(input_directory, fonly_name)
+
+      if r == 'mm_nonacc__sharded_kv_no_lost_keys_pyv__auto_e2__seed#_t8':
+        total_solved_finisher_only += 1
+        continue
 
       if fonly_stats == None:
         pass #print(r)
