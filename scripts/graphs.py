@@ -150,6 +150,15 @@ def get_longest(stat_list):
       t = l
   return t
 
+def get_longest_that_succeed(stat_list):
+  assert len(stat_list) > 0
+  t = stat_list[0]
+  for l in stat_list:
+    if l["total_time"] > t["total_time"] and l["number of finisher invariants found"] > 0:
+      t = l
+  return t
+
+
 class BasicStats(object):
 
   def __init__(self, input_directory, name, filename, I4=None):
@@ -267,7 +276,8 @@ class Hatch(object):
     pass
 
 class Table(object):
-  def __init__(self, column_names, rows, calc_fn):
+  def __init__(self, column_names, rows, calc_fn, source_column=False):
+    self.source_column = source_column
     self.column_names = []
     self.column_alignments = []
     self.column_double = []
@@ -308,22 +318,45 @@ class Table(object):
       self.rows.append(new_r)
   def dump(self):
     colspec = "|"
+    if self.source_column:
+      colspec = "c|"
     for (al, d) in zip(self.column_alignments, self.column_double):
       if d:
         colspec += al+"||"
       else:
         colspec += al+"|"
 
+    source_col = [
+      "\\multirow{1}{*}{\\S\\ref{sec-sdl}}",
+      "\\multirow{8}{*}{\\cite{I4}}",
+      "\\multirow{13}{*}{\\cite{fol-sep}}",
+      "\\multirow{7}{*}{\\cite{paxos-made-epr}}",
+    ]
+    source_col_idx = 0
+
     s = "\\begin{tabular}{" + colspec + "}\n"
     s += "\\hline\n"
     column_widths = [max(len(self.rows[r][c]) for r in range(len(self.rows))) + 1 for c in range(len(self.column_names))]
     for i in range(len(self.rows)):
+      if self.source_column:
+        if i == 0:
+          s += "Source &"
+        else:
+          s += "       &"
+
       for j in range(len(self.column_names)):
         s += (" " * (column_widths[j] - len(self.rows[i][j]))) + self.rows[i][j]
         if j == len(self.column_names) - 1:
-          s += " \\\\ \\hline"
           if i == 0 or self.row_double[i-1]:
-            s += " \\hline"
+            s += " \\\\ \\hline \\hline"
+            if self.source_column:
+              s += "\n" + source_col[source_col_idx]
+              source_col_idx += 1
+          else:
+            if self.source_column and i != len(self.rows) - 1:
+              s += " \\\\ \\cline{2-13}"
+            else:
+              s += " \\\\ \\hline"
           s += "\n"
         else:
           s += " &"
@@ -357,6 +390,15 @@ def read_I4_data(input_directory):
 
         d[name] = secs
   return d
+
+def commaify(n):
+  n = str(n)
+  s = ""
+  for i in range(0, len(n))[::-1]:
+    if len(n) - i > 1 and (len(n) - i) % 3 == 1:
+      s = "," + s
+    s = n[i] + s
+  return s
 
 def I4_get_res(d, r):
   name = get_bench_name(r)
@@ -524,6 +566,9 @@ def median(input_directory, r, a, b):
 
 MAIN_TABLE_ROWS = [
     "mm_nonacc__simple-de-lock__auto__seed#_t8",
+
+    "||",
+
     "mm_nonacc__leader-election__auto__seed#_t8",
     "mm_nonacc__learning-switch__auto_e0__seed#_t8",
     "mm_nonacc__lock_server__auto__seed#_t8",
@@ -624,14 +669,17 @@ def make_comparison_table(input_directory):
   SWISS_INVS = '\\begin{tabular}{@{}c@{}}\\name \\\\ invs\\end{tabular}'
   SWISS_TERMS = '\\begin{tabular}{@{}c@{}}\\name \\\\ terms\\end{tabular}'
 
+  I4_COL = '\\begin{tabular}{@{}c@{}}I4 \\\\ \\cite{I4}\\end{tabular}'
+  FOL_COL = '\\begin{tabular}{@{}c@{}}FOL \\\\ \\cite{fol-sep}\\end{tabular}'
+
   cols = [
     ('l', 'Benchmark'),
     ('r', 'invs'),
     ('r', 'terms'),
     ('c', '$\\exists$?'),
     '||',
-    ('r', 'I4~\\cite{I4}'),
-    ('r', 'FOL~\\cite{fol-sep}'),
+    ('r', I4_COL),
+    ('r', FOL_COL),
     ('r', '\\name'),
     '||',
     ('r', '$t_B$'),
@@ -645,25 +693,32 @@ def make_comparison_table(input_directory):
   folsep_json = read_folsep_json(input_directory)
   i4_data = read_I4_data(input_directory)
 
+  def format_secs(s):
+    s = float(s)
+    if s < 1.0:
+      return "{:.1f}".format(s)
+    else:
+      return str(int(s))
+
   def calc(r, c):
     if c == "Benchmark":
       bname = get_bench_name(r)
       if bname == "multi-paxos" and "basic" in r:
         return bname + "$^*$"
       return bname
-    elif c == "I4~\\cite{I4}":
+    elif c == I4_COL:
       i4_time = I4_get_res(i4_data, r)
 
       if i4_time == None:
         return Hatch()
       else:
-        return str(int(float(i4_time)))
-    elif c == "FOL~\\cite{fol-sep}":
+        return format_secs(i4_time)
+    elif c == FOL_COL:
       folsep_time = folsep_json_get_res(folsep_json, r)
       if folsep_time == None:
         return Hatch()
       else:
-        return str(int(float(folsep_time)))
+        return format_secs(folsep_time)
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
     elif c == 'invs':
@@ -711,13 +766,13 @@ def make_comparison_table(input_directory):
         return stats[r].num_breadth_iters
       elif c == "$t_F$":
         if stats[r].num_finisher_iters > 0:
-          return int(stats[r].finisher_time_sec)
+          return format_secs(stats[r].finisher_time_sec)
         else:
           return "-"
       elif c == "$t_B$":
-        return int(stats[r].breadth_total_time_sec)
+        return format_secs(stats[r].breadth_total_time_sec)
       elif c == "\\name":
-        return int(stats[r].total_time_sec)
+        return format_secs(stats[r].total_time_sec)
       elif c == SWISS_INVS:
         return str(stats[r].num_inv)
       elif c == SWISS_TERMS:
@@ -725,7 +780,7 @@ def make_comparison_table(input_directory):
       else:
         assert False, c
 
-  t = Table(cols, rows, calc)
+  t = Table(cols, rows, calc, source_column=True)
   t.dump()
 
 def make_optimization_step_table(input_directory):
@@ -785,11 +840,11 @@ def make_optimization_step_table(input_directory):
         rname = 'paxos'
       return rname + (' (B)' if alg == 'breadth' else ' (F)')
     elif col == 'Baseline':
-      return counts[row].presymm
+      return commaify(counts[row].presymm)
     elif col == 'Symmetries':
-      return counts[row].postsymm
+      return commaify(counts[row].postsymm)
     elif col == 'Counterexample filtering':
-      return (stats["Counterexamples of type FALSE"]
+      return commaify(stats["Counterexamples of type FALSE"]
           + stats["Counterexamples of type TRANSITION"]
           + stats["Counterexamples of type TRUE"]
           + stats["number of non-redundant invariants found"]
@@ -799,7 +854,7 @@ def make_optimization_step_table(input_directory):
         )
 
     elif col == 'FastImplies':
-      return (stats["Counterexamples of type FALSE"]
+      return commaify(stats["Counterexamples of type FALSE"]
           + stats["Counterexamples of type TRANSITION"]
           + stats["Counterexamples of type TRUE"]
           + stats["number of non-redundant invariants found"]
@@ -808,7 +863,7 @@ def make_optimization_step_table(input_directory):
         )
 
     elif col == 'Invariants':
-      return (
+      return commaify(
             stats["number of non-redundant invariants found"]
           + stats["number of redundant invariants found"]
           + stats["number of finisher invariants found"]
@@ -1002,13 +1057,15 @@ def group_by_thread(s):
     a = b
   return res
 
-segment1_color = '#009e73'
-segment2_color = '#f0e442'
+segment1_color = 'white' #'#009e73'
+segment2_color = 'white' #'#f0e442'
 filter_color = 'black'
 cex_color =  '#d55e00'
 redundant_color = '#0072b2'
 nonredundant_color = '#56b4e9'
-other_color = '#cc79a7'
+inv_color = 'white' #'#0072b2'
+other_color = 'white' #'#cc79a7'
+other_hatch = '////'
 
 def make_segmented_graph(ax, input_directory, name, suffix,
         include_threads=False,
@@ -1024,11 +1081,11 @@ def make_segmented_graph(ax, input_directory, name, suffix,
 
   if legend:
     p = [
-      patches.Patch(color=filter_color, label='Filtering'),
-      patches.Patch(color=cex_color, label='Counterex.'),
-      patches.Patch(color=redundant_color, label='Redundant'),
-      #patches.Patch(color=nonredundant_color, label='Non-red.'),
-      patches.Patch(color=other_color, label='Other'),
+      patches.Patch(edgecolor='black', facecolor=filter_color, label='Filtering'),
+      patches.Patch(edgecolor='black', facecolor=cex_color, label='Counterex.'),
+      patches.Patch(edgecolor='black', facecolor=inv_color, label='Inv.'),
+      #patches.Patch(edgecolor='black', facecolor=nonredundant_color, label='Non-red.'),
+      #patches.Patch(edgecolor='black', facecolor=other_color, label='Other', hatch=other_hatch)
     ]
     ax.legend(handles=p)
 
@@ -1045,8 +1102,15 @@ def make_segmented_graph(ax, input_directory, name, suffix,
     if smaller:
       columns = [c for c in columns if c[1] in (1,2,4,8)]
 
-  ax.set_xticks([a[1] for a in columns])
-  ax.set_xticklabels([a[2] for a in columns]) 
+  if smaller:
+    labels = [1,2,4,8]
+    ticks = [1,2,3,4]
+  else:
+    labels = [a[2] for a in columns]
+    ticks = [a[1] for a in columns]
+
+  ax.set_xticks(ticks)
+  ax.set_xticklabels(labels)
 
   for (filename, idx, label) in columns:
       ts = ThreadStats(input_directory, filename)
@@ -1098,7 +1162,7 @@ def make_segmented_graph(ax, input_directory, name, suffix,
         if len(fs) > 0:
           time_per_thread = sorted([s["total_time"] for s in fs])
           thread_times.append(time_per_thread)
-          longest = get_longest(fs)
+          longest = get_longest_that_succeed(fs)
           breakdowns.append(Breakdown(longest))
           times.append(longest["total_time"])
 
@@ -1149,8 +1213,8 @@ def make_segmented_graph(ax, input_directory, name, suffix,
               center = idx + 0.2
               width = 0.4
 
-            ax.bar(center, b-a, bottom=a, width=width, color=other_color, edgecolor='black')
-            ax.bar(center, c-b, bottom=b, width=width, color=redundant_color, edgecolor='black')
+            ax.bar(center, b-a, bottom=a, width=width, color=other_color, edgecolor='black', hatch=other_hatch)
+            ax.bar(center, c-b, bottom=b, width=width, color=inv_color, edgecolor='black')
             ax.bar(center, d-c, bottom=c, width=width, color=nonredundant_color, edgecolor='black')
             ax.bar(center, e-d, bottom=d, width=width, color=cex_color, edgecolor='black')
             ax.bar(center, top-e, bottom=e, width=width, color=filter_color, edgecolor='black')
@@ -1243,7 +1307,7 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
     p.append(patches.Patch(color=color, label=opt_name_label))
   ax.legend(handles=p)
 
-PAXOS_FINISHER_THREAD_BENCH = "mm__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
+PAXOS_FINISHER_THREAD_BENCH = "mm_whole__paxos_epr_missing1__basic__seed1" # _t1 _t2 ... _t8
 PAXOS_NONACC_THREAD_BENCH = "mm_nonacc__paxos__basic_b__seed1"
   
 def make_parallel_graphs(input_directory, save=False):
@@ -1417,8 +1481,14 @@ def misc_stats(input_directory):
   p("paxosNumCexes", 
       paxos_1_threads.cex_false
       + paxos_1_threads.cex_true
+      + paxos_1_threads.cex_trans)
+
+  p("paxosNumInductivityChecks", 
+      paxos_1_threads.cex_false
+      + paxos_1_threads.cex_true
       + paxos_1_threads.cex_trans
-      + paxos_1_threads.inv_indef)
+      + paxos_1_threads.inv_indef
+      + ThreadStats(input_directory, paxos_1_threads.filename).get_finisher_stats()[0]["number of finisher invariants found"])
 
   total_solved = 0
   total_solved_breadth_only = 0
@@ -1477,6 +1547,13 @@ def templates_table(input_directory):
     "mm_nonacc__paxos_epr_missing1__wrong5__seed1_t8",
     "mm_nonacc__paxos_epr_missing1__wrong4__seed1_t8",
   ]
+
+  unwhole_map = {
+    "mm_nonacc_whole__paxos_epr_missing1__basic__seed1_t8":
+      "mm_nonacc__paxos_epr_missing1__basic__seed1_t8",
+    "mm_nonacc_whole__paxos_epr_missing1__basic2__seed1_t8":
+      "mm_nonacce__paxos_epr_missing1__basic2__seed1_t8",
+  }
 
   cols = [
     ('l', '\\#'),
@@ -1567,7 +1644,7 @@ def templates_table(input_directory):
       else:
         return '$\\checkmark$'
     elif c == 'Size':
-      return sizes[r.split('__')[2]]
+      return commaify(sizes[r.split('__')[2]])
     elif c == '\\#':
       only_rows = [r for r in rows if r != '||']
       return only_rows.index(r) + 1
@@ -1579,6 +1656,13 @@ def templates_table(input_directory):
         return "47231"
       else:
         return int(stats.total_time_sec)
+    #elif c == 'Solve time':
+    #  if r in unwhole_map:
+    #    r2 = unwhole_map[r]
+    #    stats = get_basic_stats(input_directory, r2)
+    #    return int(stats.total_time_sec)
+    #  else:
+    #    return ''
 
   t = Table(cols, rows, calc)
   t.dump()
@@ -1624,13 +1708,13 @@ def main():
   input_directory = sys.argv[1]
   #make_table(input_directory, 0)
   #stuff()
-  #make_parallel_graphs(input_directory)
+  make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
   #make_comparison_table(input_directory)
-  misc_stats(input_directory)
+  #misc_stats(input_directory)
   #templates_table(input_directory)
 
 if __name__ == '__main__':
