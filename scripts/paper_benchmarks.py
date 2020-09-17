@@ -153,6 +153,15 @@ benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="basic", nonacc=Tr
 
 benches.append(PaperBench(3, "paxos_epr_missing1.ivy", config="basic2", nonacc=True, expect_success=False, whole=True))
 
+
+for seed in range(1, 6):
+  benches.append(PaperBench(4, "sharded_kv_no_lost_keys.pyv", config="auto_e2", seed=seed, nonacc=True))
+
+benches.append(PaperBench(4, "paxos_epr_missing1.ivy", config="basic", nonacc=True))
+benches.append(PaperBench(4, "paxos_epr_missing1.ivy", config="basic2", nonacc=True))
+
+benches.append(PaperBench(4, "sharded_kv_no_lost_keys.pyv", config="auto_e2", seed=1, nonacc=True, finisher_only=True))
+
 for seed in range(1, 6):
   benches.append(PaperBench(1, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True))
 
@@ -172,7 +181,7 @@ for seed in range(1, 6):
   benches.append(PaperBench(6, "lock_server.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "2PC.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True))
-  benches.append(PaperBench(4, "multi_paxos.ivy", config="basic", seed=seed, nonacc=True))
+  benches.append(PaperBench(1, "multi_paxos.ivy", config="basic", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "multi_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "flexible_paxos.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(1, "fast_paxos.ivy", config="auto", seed=seed, nonacc=True))

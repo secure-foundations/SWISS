@@ -522,8 +522,7 @@ def median(input_directory, r, a, b):
     else:
       return None
 
-def make_comparison_table(input_directory):
-  rows = [
+MAIN_TABLE_ROWS = [
     "mm_nonacc__simple-de-lock__auto__seed#_t8",
     "mm_nonacc__leader-election__auto__seed#_t8",
     "mm_nonacc__learning-switch__auto_e0__seed#_t8",
@@ -557,12 +556,16 @@ def make_comparison_table(input_directory):
     "||",
 
     "mm_nonacc__paxos__auto__seed#_t8",
-    "mm_nonacc__multi_paxos__auto__seed#_t8",
     "mm_nonacc__flexible_paxos__auto__seed#_t8",
+    "mm_nonacc__multi_paxos__auto__seed#_t8",
+    "mm_nonacc__multi_paxos__basic__seed1_t8",
     "mm_nonacc__fast_paxos__auto__seed#_t8",
     "mm_nonacc__stoppable_paxos__auto__seed#_t8",
     "mm_nonacc__vertical_paxos__auto__seed#_t8",
   ]
+
+def make_comparison_table(input_directory):
+  rows = MAIN_TABLE_ROWS
 
   terms_entries = """mm_nonacc__simple-de-lock__auto__seed3_t8 7
     mm_nonacc__leader-election__auto__seed4_t8 13
@@ -587,6 +590,7 @@ def make_comparison_table(input_directory):
     mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8 TIMEOUT
     mm_nonacc__paxos__auto__seed5_t8 42
     mm_nonacc__multi_paxos__auto__seed1_t8 TIMEOUT
+    mm_nonacc__multi_paxos__basic__seed1_t8 56
     mm_nonacc__flexible_paxos__auto__seed1_t8 42
     mm_nonacc__fast_paxos__auto__seed1_t8 TIMEOUT
     mm_nonacc__stoppable_paxos__auto__seed1_t8 TIMEOUT
@@ -634,7 +638,7 @@ def make_comparison_table(input_directory):
     ('r', '$n_B$'),
     ('r', SWISS_INVS),
     ('r', SWISS_TERMS),
-    ('r', 'Partial'),
+    #('r', 'Partial'),
   ]
 
   folsep_json = read_folsep_json(input_directory)
@@ -642,7 +646,10 @@ def make_comparison_table(input_directory):
 
   def calc(r, c):
     if c == "Benchmark":
-      return get_bench_name(r)
+      bname = get_bench_name(r)
+      if bname == "multi-paxos" and "basic" in r:
+        return bname + "$^*$"
+      return bname
     elif c == "I4~\\cite{I4}":
       i4_time = I4_get_res(i4_data, r)
 
@@ -670,33 +677,30 @@ def make_comparison_table(input_directory):
         return "TODO"
       else:
         return str(x)
-    elif c == 'Partial':
-      partial_inv_counts = {
-        "mm_nonacc__chain__auto__seed1_t8"  :  6,
-        "mm_nonacc__chord__auto__seed1_t8"  :  8,
-        "mm_nonacc__distributed_lock__auto9__seed1_t8"  :   1,
-        "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8"  :   1,
-        "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8"  :   0,
-        "mm_nonacc__ticket_pyv__auto__seed1_t8"  :   5,
-        "mm_nonacc__multi_paxos__auto__seed1_t8"  :   6,
-        "mm_nonacc__vertical_paxos__auto__seed1_t8"  :   15,
-        "mm_nonacc__fast_paxos__auto__seed1_t8" :   8,
-        "mm_nonacc__stoppable_paxos__auto__seed1_t8" :   6,
-      }
-      if stats[r].filename in partial_inv_counts:
-        return (
-          str(partial_inv_counts[stats[r].filename])
-          + ' / ' +
-          str(get_bench_num_handwritten_invs(r))
-        )
-      else:
-        return ''
     else:
       if stats[r] == None:
         return "TODO"
       if stats[r].timed_out_6_hours:
         if c == "\\name":
-          return Hatch()
+          partial_inv_counts = {
+            "mm_nonacc__chain__auto__seed1_t8"  :  6,
+            "mm_nonacc__chord__auto__seed1_t8"  :  8,
+            "mm_nonacc__distributed_lock__auto9__seed1_t8"  :   1,
+            "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8"  :   1,
+            "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8"  :   0,
+            "mm_nonacc__ticket_pyv__auto__seed1_t8"  :   5,
+            "mm_nonacc__multi_paxos__auto__seed1_t8"  :   6,
+            "mm_nonacc__vertical_paxos__auto__seed1_t8"  :   15,
+            "mm_nonacc__fast_paxos__auto__seed1_t8" :   8,
+            "mm_nonacc__stoppable_paxos__auto__seed1_t8" :   6,
+          }
+          assert stats[r].filename
+          return (
+            '(' + str(partial_inv_counts[stats[r].filename])
+            + ' / ' +
+            str(get_bench_num_handwritten_invs(r)) + ')'
+          )
+
         else:
           return ""
       if not stats[r].success:
@@ -726,7 +730,7 @@ def make_comparison_table(input_directory):
 def make_optimization_step_table(input_directory):
   logfiles = [
       "mm__paxos__basic_b__seed1_t1",
-      "mm__paxos_epr_missing1__basic__seed1_t1",
+      "mm_whole__paxos_epr_missing1__basic__seed1_t1"
     ]
 
   thread_stats = { }
@@ -930,7 +934,7 @@ def make_nonacc_cmp_graph(ax, input_directory):
   ax.set_title("accumulation (paxos)")
   make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
-def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False, graph_title=None):
+def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False, graph_title=None, smaller=False, legend=False):
   suffix = ''
   if graph_cex_count:
     suffix = ' (cex)'
@@ -946,7 +950,7 @@ def make_parallel_graph(ax, input_directory, name, include_threads=False, includ
   ax.set_xlabel("threads")
   make_segmented_graph(ax, input_directory, name, "_t", include_threads=include_threads, include_breakdown=include_breakdown, 
       collapsed_breakdown=collapsed_breakdown,
-      graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count, collapse_size_split=collapse_size_split)
+      graph_cex_count=graph_cex_count, graph_inv_count=graph_inv_count, collapse_size_split=collapse_size_split, smaller=smaller,legend=legend)
 
 def make_seed_graph(ax, input_directory, name, title=None, include_threads=False, include_breakdown=False, skip_b=False, skip_f=False):
   if title is None:
@@ -997,6 +1001,14 @@ def group_by_thread(s):
     a = b
   return res
 
+segment1_color = '#009e73'
+segment2_color = '#f0e442'
+filter_color = 'black'
+cex_color =  '#d55e00'
+redundant_color = '#0072b2'
+nonredundant_color = '#56b4e9'
+other_color = '#cc79a7'
+
 def make_segmented_graph(ax, input_directory, name, suffix,
         include_threads=False,
         include_breakdown=False,
@@ -1006,7 +1018,19 @@ def make_segmented_graph(ax, input_directory, name, suffix,
         skip_b=False,
         skip_f=False,
         collapse_size_split=False,
-        collapsed_breakdown=False):
+        collapsed_breakdown=False,
+        smaller=False, legend=False):
+
+  if legend:
+    p = [
+      patches.Patch(color=filter_color, label='Filtering'),
+      patches.Patch(color=cex_color, label='Counterex.'),
+      patches.Patch(color=redundant_color, label='Redundant'),
+      #patches.Patch(color=nonredundant_color, label='Non-red.'),
+      patches.Patch(color=other_color, label='Other'),
+    ]
+    ax.legend(handles=p)
+
   if graph_cex_count or graph_inv_count:
     include_breakdown = True
 
@@ -1017,6 +1041,8 @@ def make_segmented_graph(ax, input_directory, name, suffix,
         idx = int(filename[len(name + suffix) : ])
         x_label = idx
         columns.append((filename, idx, x_label))
+    if smaller:
+      columns = [c for c in columns if c[1] in (1,2,4,8)]
 
   ax.set_xticks([a[1] for a in columns])
   ax.set_xticklabels([a[2] for a in columns]) 
@@ -1053,18 +1079,18 @@ def make_segmented_graph(ax, input_directory, name, suffix,
               times.append(longest["total_time"])
 
               if odd1:
-                colors.append(red if inner_odd else lightred)
+                colors.append(segment1_color)
               else:
-                colors.append(orange if inner_odd else lightorange)
+                colors.append(segment2_color)
 
             this_size_time += longest["total_time"]
 
           if collapse_size_split:
             times.append(this_size_time)
             if odd1:
-              colors.append(lightred)
+              colors.append(segment1_color)
             else:
-              colors.append(lightorange)
+              colors.append(segment2_color)
 
       if not skip_f:
         fs = ts.get_finisher_stats()
@@ -1075,28 +1101,31 @@ def make_segmented_graph(ax, input_directory, name, suffix,
           breakdowns.append(Breakdown(longest))
           times.append(longest["total_time"])
 
-          colors.append(blue)
+          colors.append(segment1_color)
 
       if collapsed_breakdown:
         assert not include_threads
         times = [sum(times)]
         breakdowns = [sum_breakdowns(breakdowns)]
 
+      if smaller:
+        idx = {1: 1, 2: 2, 4: 3, 8: 4}[idx]
+
       bottom = 0
       for i in range(len(times)):
         if graph_cex_count or graph_inv_count:
           breakdown = breakdowns[i]
           c = (breakdown.total_cex if graph_cex_count else breakdown.total_invs)
-          ax.bar(idx, c, bottom=bottom, color=colors[i])
+          ax.bar(idx, c, bottom=bottom, color=colors[i], edgecolor='black')
           bottom += c
         else:
           t = times[i]
 
           if not collapsed_breakdown:
             if include_breakdown:
-              ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i])
+              ax.bar(idx - 0.2, t, bottom=bottom, width=0.4, color=colors[i], edgecolor='black')
             else:
-              ax.bar(idx, t, bottom=bottom, color=colors[i])
+              ax.bar(idx, t, bottom=bottom, color=colors[i], edgecolor='black')
 
           if include_breakdown or collapsed_breakdown:
             breakdown = breakdowns[i]
@@ -1106,6 +1135,11 @@ def make_segmented_graph(ax, input_directory, name, suffix,
             d = c + breakdown.nonredundant_secs
             e = d + breakdown.redundant_secs
             top = bottom + breakdown.stats["total_time"]
+            e = top - breakdown.filter_secs
+            d = e - breakdown.cex_secs
+            c = d - breakdown.nonredundant_secs
+            b = c - breakdown.redundant_secs
+            a = bottom
 
             if collapsed_breakdown:
               center = idx
@@ -1114,11 +1148,11 @@ def make_segmented_graph(ax, input_directory, name, suffix,
               center = idx + 0.2
               width = 0.4
 
-            ax.bar(center, b-a, bottom=a, width=width, color='#b0ffb0')
-            ax.bar(center, c-b, bottom=b, width=width, color='#ff2020')
-            ax.bar(center, d-c, bottom=c, width=width, color='blue')
-            ax.bar(center, e-d, bottom=d, width=width, color='#8080ff')
-            ax.bar(center, top-e, bottom=e, width=width, color='gray')
+            ax.bar(center, b-a, bottom=a, width=width, color=other_color, edgecolor='black')
+            ax.bar(center, c-b, bottom=b, width=width, color=redundant_color, edgecolor='black')
+            ax.bar(center, d-c, bottom=c, width=width, color=nonredundant_color, edgecolor='black')
+            ax.bar(center, e-d, bottom=d, width=width, color=cex_color, edgecolor='black')
+            ax.bar(center, top-e, bottom=e, width=width, color=filter_color, edgecolor='black')
 
           if not collapsed_breakdown:
             if include_threads:
@@ -1128,11 +1162,11 @@ def make_segmented_graph(ax, input_directory, name, suffix,
                 if include_breakdown:
                   ax.bar(idx - 0.4 + 0.4 * (j / float(m)) + 0.2 / float(m),
                       thread_time, bottom=bottom, width = 0.4 / float(m),
-                      color=slightly_darken(colors[i]))
+                      color=colors[i])
                 else:
                   ax.bar(idx - 0.4 + 0.8 * (j / float(m)) + 0.4 / float(m),
                       thread_time, bottom=bottom, width = 0.8 / float(m),
-                      color=slightly_darken(colors[i]))
+                      color=colors[i])
 
           bottom += t
 
@@ -1215,7 +1249,7 @@ def make_parallel_graphs(input_directory, save=False):
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
-  fig, ax = plt.subplots(nrows=2, ncols=3, figsize=[15, 6])
+  fig, ax = plt.subplots(nrows=2, ncols=3, figsize=[7, 6])
 
   plt.gcf().subplots_adjust(bottom=0.20)
 
@@ -1229,13 +1263,13 @@ def make_parallel_graphs(input_directory, save=False):
   breadth_acc = "mm__paxos__basic_b__seed1"
   breadth_nonacc = PAXOS_NONACC_THREAD_BENCH
 
-  make_parallel_graph(ax.flat[0], input_directory, finisher, graph_title="Paxos Finisher")
-  make_parallel_graph(ax.flat[1], input_directory, breadth_nonacc, collapse_size_split=True, graph_title="Paxos Breadth")
-  make_parallel_graph(ax.flat[2], input_directory, breadth_acc, graph_title="Paxos BreadthAccumulative")
+  make_parallel_graph(ax.flat[0], input_directory, finisher, graph_title="Finisher", smaller=True)
+  make_parallel_graph(ax.flat[1], input_directory, breadth_nonacc, collapse_size_split=True, graph_title="Breadth", smaller=True)
+  make_parallel_graph(ax.flat[2], input_directory, breadth_acc, graph_title="BreadthAccumulative", smaller=True)
 
-  make_parallel_graph(ax.flat[3], input_directory, finisher, collapsed_breakdown=True, graph_title="Paxos Finisher")
-  make_parallel_graph(ax.flat[4], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Paxos Breadth")
-  make_parallel_graph(ax.flat[5], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="Paxos BreadthAccumulative")
+  make_parallel_graph(ax.flat[3], input_directory, finisher, collapsed_breakdown=True, graph_title="Finisher", smaller=True)
+  make_parallel_graph(ax.flat[4], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Breadth", smaller=True)
+  make_parallel_graph(ax.flat[5], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="BreadthAccumulative", smaller=True, legend=True)
 
   plt.tight_layout()
 
@@ -1384,6 +1418,47 @@ def misc_stats(input_directory):
       + paxos_1_threads.cex_true
       + paxos_1_threads.cex_trans
       + paxos_1_threads.inv_indef)
+
+  total_solved = 0
+  total_solved_breadth_only = 0
+  total_solved_finisher_only = 0
+
+  for r in MAIN_TABLE_ROWS:
+    if r == '||':
+      continue
+    stats = median(input_directory, r, 1, 5)  
+    if not stats.timed_out_6_hours and stats.success:
+      total_solved += 1
+      if stats.num_finisher_iters == 0:
+        total_solved_breadth_only += 1
+      s = r.replace('#', '1').split('__')
+      s[0] += "_fonly"
+      fonly_name = '__'.join(s)
+
+      maps = {
+        "mm_nonacc__leader-election__auto__seed#_t8":
+            "mm_nonacc_fonly__leader-election__auto_full__seed1_t8",
+        "mm_nonacc__learning-switch__auto_e0__seed#_t8":
+            "mm_nonacc_fonly__learning-switch__auto_e0_full__seed1_t8",
+        "mm_nonacc__lock_server__auto__seed#_t8":
+            "mm_nonacc_fonly__lock_server__auto_full__seed1_t8",
+        "mm_nonacc__2PC__auto__seed#_t8":
+            "mm_nonacc_fonly__2PC__auto_full__seed1_t8",
+      }
+      if r in maps:
+        fonly_name = maps[r]
+
+      fonly_stats = get_basic_stats(input_directory, fonly_name)
+
+      if fonly_stats == None:
+        pass #print(r)
+      else:
+        if not fonly_stats.timed_out_6_hours and fonly_stats.success:
+          total_solved_finisher_only += 1
+
+  p("totalSolved", total_solved)
+  p("totalSolvedBreadthOnly", total_solved_breadth_only)
+  p("totalSolvedFinisherOnly", total_solved_finisher_only)
       
 
 def templates_table(input_directory):
@@ -1549,8 +1624,8 @@ def main():
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory)
-  #misc_stats(input_directory)
+  #make_comparison_table(input_directory)
+  misc_stats(input_directory)
   #templates_table(input_directory)
 
 if __name__ == '__main__':
