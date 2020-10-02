@@ -7,10 +7,13 @@ from pathlib import Path
 import queue
 import threading
 import signal
+import atexit
 
-NUM_PARTS = 43
+NUM_PARTS = 100
 
-TIMEOUT_SECS = 6*3600
+TIMEOUT_SECS = 10 #6*3600
+
+all_procs = []
 
 class PaperBench(object):
   def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False):
@@ -355,11 +358,13 @@ def run(directory, bench):
       env=env,
       preexec_fn=os.setsid)
 
+  all_procs.append(proc)
+
   try:
     out, err = proc.communicate(timeout=TIMEOUT_SECS)
     timed_out = False
   except subprocess.TimeoutExpired:
-    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     timed_out = True
   
   if timed_out:
@@ -376,6 +381,8 @@ def run(directory, bench):
 
     t2 = time.time()
     seconds = t2 - t1
+
+    all_procs.remove(proc)
 
     statfile = get_statfile(out)
     if statfile is None:
@@ -455,6 +462,17 @@ def parse_args(args):
 #  print(b.name)
 #print('IGNORING nonacc')
 #benches = [b for b in benches if not b.nonacc]
+
+def cleanup():
+  for proc in all_procs: # list of your processes
+    try:
+      print('killing pid ' + str(proc.pid))
+      os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except Exception:
+      print("warning: could not kill sub process " + str(proc.pid))
+      pass
+
+atexit.register(cleanup)
 
 def main():
   args = sys.argv[1:]
