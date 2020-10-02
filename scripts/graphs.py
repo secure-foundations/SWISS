@@ -515,7 +515,7 @@ def get_bench_info(name):
       ("__simple-de-lock__", 'sdl', False, 3, 8),
       ("__leader-election__", 'ring-election', False, 3, 9),
       ("__learning-switch-ternary__", 'learning-switch-ternary', False, 4, 10),
-      ("__lock_server__", 'lock-server-sync', False, 1, 2),
+      ("__lock-server-sync__", 'lock-server-sync', False, 1, 2),
       ("__2PC__", 'two-phase-commit', False, 8, 18),
       ("__multi_paxos__", 'multi-paxos', True, 11, 34),
       ("__flexible_paxos__", 'flexible-paxos', True, 10, 31),
@@ -572,7 +572,7 @@ MAIN_TABLE_ROWS = [
 
     "mm_nonacc__leader-election__auto__seed#_t8",
     "mm_nonacc__learning-switch-ternary__auto_e0__seed#_t8",
-    "mm_nonacc__lock_server__auto__seed#_t8",
+    "mm_nonacc__lock-server-sync__auto__seed#_t8",
     "mm_nonacc__2PC__auto__seed#_t8",
     "mm_nonacc__chain__auto__seed#_t8",
     "mm_nonacc__chord__auto__seed#_t8",
@@ -616,7 +616,7 @@ def make_comparison_table(input_directory):
   terms_entries = """mm_nonacc__simple-de-lock__auto__seed3_t8 7
     mm_nonacc__leader-election__auto__seed4_t8 13
     mm_nonacc__learning-switch-ternary__auto_e0__seed3_t8 21
-    mm_nonacc__lock_server__auto__seed2_t8 2
+    mm_nonacc__lock-server-sync__auto__seed2_t8 2
     mm_nonacc__2PC__auto__seed3_t8 24
     mm_nonacc__chain__auto__seed1_t8 TIMEOUT
     mm_nonacc__chord__auto__seed1_t8 TIMEOUT
@@ -656,7 +656,7 @@ def make_comparison_table(input_directory):
   #    "mm__simple-de-lock__auto__seed#_t8": -1,
   #    "mm__leader-election__auto__seed#_t8" : 1.686,
   #    "mm__learning-switch-ternary__auto_e0__seed#_t8" : 9.392,
-  #    "mm__lock_server__auto__seed#_t8" : 1.598,
+  #    "mm__lock-server-sync__auto__seed#_t8" : 1.598,
   #    "mm__2PC__auto__seed#_t8" : 1.994,
   #    "mm__paxos__auto__seed#_t8" : None,
   #    "mm__multi_paxos__auto__seed#_t8" : None,
@@ -1529,8 +1529,8 @@ def misc_stats(input_directory):
             "mm_nonacc_fonly__leader-election__auto_full__seed1_t8",
         "mm_nonacc__learning-switch-ternary__auto_e0__seed#_t8":
             "mm_nonacc_fonly__learning-switch-ternary__auto_e0_full__seed1_t8",
-        "mm_nonacc__lock_server__auto__seed#_t8":
-            "mm_nonacc_fonly__lock_server__auto_full__seed1_t8",
+        "mm_nonacc__lock-server-sync__auto__seed#_t8":
+            "mm_nonacc_fonly__lock-server-sync__auto_full__seed1_t8",
         "mm_nonacc__2PC__auto__seed#_t8":
             "mm_nonacc_fonly__2PC__auto_full__seed1_t8",
       }

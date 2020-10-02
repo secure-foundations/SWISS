@@ -1,5 +1,7 @@
 #lang ivy1.5
 
+# renamed from I4's "lock_server" benchmark
+
 type client
 type server
 
