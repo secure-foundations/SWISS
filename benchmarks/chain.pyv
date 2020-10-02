@@ -1,0 +1,166 @@
+sort transaction
+sort node
+sort key
+sort operation
+
+# a total order on the transaction timestamps
+immutable relation le(transaction, transaction)  # le(X,Y) means X is before Y
+
+axiom le(X,X)                        # Reflexivity
+axiom le(X, Y) & le(Y, Z) -> le(X, Z)  # Transitivity
+axiom le(X, Y) & le(Y, X) -> X = Y    # Anti-symmetry
+axiom le(X, Y) | le(Y, X)             # Totality
+
+# transaction zero is a special transaction, before every transaction,
+# and it reads and writes to all keys
+immutable constant zero:transaction
+axiom le(zero, X)
+
+# Each operation reads and writes one key
+immutable relation op_reads_key(operation, key) # OP reads k
+#instantiate lone(op_reads_key)
+axiom (op_reads_key(X, Y1) & op_reads_key(X, Y2)) -> Y1 = Y2
+
+immutable relation op_writes_key(operation, key) # OP writes k
+#instantiate lone(op_writes_key)
+axiom (op_writes_key(X, Y1) & op_writes_key(X, Y2)) -> Y1 = Y2
+
+# Do not read and write the same key.
+axiom op_reads_key(OP, K1) & op_writes_key(OP, K2) -> K1 != K2
+
+# The operation in each node
+immutable relation op_node(operation, node) # The node on which an operation is applied
+#instantiate lone(op_node)
+axiom (op_node(X, Y1) & op_node(X, Y2)) -> Y1 = Y2
+
+immutable relation node_for_key(key,  node) # Key is at node n
+#instantiate lone(node_for_key)
+axiom (node_for_key(X, Y1) & node_for_key(X, Y2)) -> Y1 = Y2
+axiom op_reads_key(OP, K) & node_for_key(K, N1)  & op_node(OP, N2) -> N1 = N2  #Operations must be local
+axiom op_writes_key(OP, K) & node_for_key(K, N1) &  op_node(OP, N2) -> N1 = N2 #Operations must be local
+
+# The relation between operations and transactions and an order on operations
+
+immutable relation op_in_tx(transaction, operation) # An operation of transaction is op
+axiom (op_in_tx(X1, Y) & op_in_tx(X2, Y)) -> X1 = X2
+
+immutable relation oporder(operation, operation)
+axiom oporder(X, X) # Reflexive
+axiom oporder(X, Y) & oporder(Y, Z) -> oporder(X, Z) # Transitive
+axiom oporder(X, Y) & oporder(Y, X) -> X = Y # Anti-symmetric
+axiom (op_in_tx(T, X) & op_in_tx(T, Y)) -> (oporder(X, Y) | oporder(Y, X)) # total for operations in the same transaction
+axiom (op_in_tx(T, X) & (oporder(X, Y) | oporder(Y, X))) -> op_in_tx(T, Y) # op_in_tx is closed under the order
+
+# different operations in the same transaction are in different nodes
+axiom op_in_tx(T, O1) & op_in_tx(T, O2) & O1 != O2 & op_node(O1, N1) & op_node(O2, N2) -> N1 != N2
+
+mutable relation precommit_tx(transaction, node) # Is transaction tx precommitted at n
+mutable relation abort_tx(transaction)
+mutable relation commit_tx(transaction) # Is tx committed
+mutable relation depends_tx(transaction, key, transaction) #Flow values between commited transactions
+
+mutable relation read_tx(transaction, key)
+mutable relation write_tx(transaction, key)
+
+init T=zero -> precommit_tx(T, N)
+init precommit_tx(T, N) -> T=zero
+init !abort_tx(T)
+init T=zero -> commit_tx(T)
+init commit_tx(T) -> T=zero
+init depends_tx(T1, K, T2) -> (T1 = zero & T2 = zero)
+init (T1 = zero & T2 = zero) -> depends_tx(T1, K, T2)
+init read_tx(TX, K) -> (TX = zero)
+init (TX = zero) -> read_tx(TX, K)
+init write_tx(TX, K) -> (TX = zero)
+init (TX = zero) -> write_tx(TX, K)
+
+transition do_abort(tx: transaction, op: operation, n: node, kw: key, kr: key, luwkw: transaction, lurkw: transaction, luwkr: transaction, lcwkr: transaction, ht: transaction)
+  modifies abort_tx
+  & old(
+    & op_in_tx(tx, op)
+    & (!abort_tx(tx) & !commit_tx(tx))
+
+    & ((oporder(X, op) & X != op & op_node(X, N)) -> precommit_tx(tx, N))
+                   # Ensures that the previous operation was successfully precommitted
+    & op_node(op, n)
+    & !precommit_tx(tx, n)
+    & (!op_writes_key(op, K) | op_writes_key(op, kw))
+    & (op_writes_key(op, kw) -> node_for_key(kw, n))
+
+    & (!op_reads_key(op, K) | op_reads_key(op, kr))
+    & (op_reads_key(op, kr) -> node_for_key(kr, n))
+
+    & (write_tx(luwkw, kw) & (!abort_tx(luwkw)) & (write_tx(T, kw) -> (le(T, luwkw) | abort_tx(T))))
+    & (depends_tx(lurkw, kw, ht) & (!abort_tx(lurkw)) & (read_tx(T, kw) -> le(T, lurkw) | abort_tx(T)))
+
+    & (write_tx(luwkr, kr) & le(luwkr, tx) & (!abort_tx(luwkr)) & (write_tx(T, kr) -> (le(T, luwkr) | le(tx, T) | abort_tx(T))))
+    & (commit_tx(lcwkr) & write_tx(lcwkr, kr) & le(lcwkr, tx) & ((commit_tx(T) & write_tx(T, kr)) -> (le(T, lcwkr) | le(tx, T))))
+
+    & ((op_writes_key(op, kw) & (le(tx, luwkw) | le(tx, lurkw))) | (op_reads_key(op, kr) & luwkr != lcwkr & le(luwkr, tx)))
+  )
+
+    & (forall A . abort_tx(A) <-> (A=tx) | old(abort_tx(A)))
+
+transition do_progress(tx: transaction, op: operation, n: node, kw: key, kr: key, luwkw: transaction, lurkw: transaction, luwkr: transaction, lcwkr: transaction, ht: transaction)
+  modifies write_tx, depends_tx, read_tx, precommit_tx, commit_tx
+  & old (
+    & op_in_tx(tx, op)
+    & (!abort_tx(tx) & !commit_tx(tx))
+
+    & ((oporder(X, op) & X != op & op_node(X, N)) -> precommit_tx(tx, N))
+                   # Ensures that the previous operation was successfully precommitted
+    & op_node(op, n)
+    & !precommit_tx(tx, n)
+    & (!op_writes_key(op, K) | op_writes_key(op, kw))
+    & (op_writes_key(op, kw) -> node_for_key(kw, n))
+
+    & (!op_reads_key(op, K) | op_reads_key(op, kr))
+    & (op_reads_key(op, kr) -> node_for_key(kr, n))
+
+    & (write_tx(luwkw, kw) & (!abort_tx(luwkw)) & (write_tx(T, kw) -> (le(T, luwkw) | abort_tx(T))))
+    & (depends_tx(lurkw, kw, ht) & (!abort_tx(lurkw)) & (read_tx(T, kw) -> le(T, lurkw) | abort_tx(T)))
+
+    & (write_tx(luwkr, kr) & le(luwkr, tx) & (!abort_tx(luwkr)) & (write_tx(T, kr) -> (le(T, luwkr) | le(tx, T) | abort_tx(T))))
+    & (commit_tx(lcwkr) & write_tx(lcwkr, kr) & le(lcwkr, tx) & ((commit_tx(T) & write_tx(T, kr)) -> (le(T, lcwkr) | le(tx, T))))
+
+    & (!((op_writes_key(op, kw) & (le(tx, luwkw) | le(tx, lurkw))) | (op_reads_key(op, kr) & luwkr != lcwkr & le(luwkr, tx))))
+  )
+
+  & (if old(op_writes_key(op, kw)) then (
+    (forall A,B . write_tx(A,B) <-> ((A=tx & B=kw) | old(write_tx(A,B))))
+  ) else (
+    (forall A,B . write_tx(A,B) <-> (old(write_tx(A,B))))
+  ))
+
+  & (if old(op_reads_key(op, kr)) then (
+    & (forall A,B,C . depends_tx(A,B,C) <-> ((A=tx & B=kr & C=lcwkr) | old(depends_tx(A,B,C))))
+    & (forall A,B . read_tx(A,B) <-> ((A=tx & B=kr) | old(read_tx(A,B))))
+  ) else (
+    & (forall A,B,C . depends_tx(A,B,C) <-> (old(depends_tx(A,B,C))))
+    & (forall A,B . read_tx(A,B) <-> (old(read_tx(A,B))))
+  ))
+
+  & (forall A,B . precommit_tx(A,B) <-> ((A=tx & B=n) | old(precommit_tx(A,B))))
+
+  & (if old(forall O. (oporder(op, O) -> O = op)) then (
+    & (forall A . commit_tx(A) <-> ((A=tx) | old(commit_tx(A))))
+  ) else (
+    & (forall A . commit_tx(A) <-> (old(commit_tx(A))))
+  ))
+
+safety (!(TX1 != TX2 &
+	    commit_tx(TX1) &
+	    commit_tx(TX2)  &
+	    le(TX1,TX2) & # TX1 was before TX2
+	    write_tx(TX1, K) & # TX1 wrote K
+	    depends_tx(TX2, K, T3) & # TX2 read K
+	    !le(TX1, T3)))
+        & ((commit_tx(T) & op_in_tx(T, O) & op_node(O, N)) -> precommit_tx(T, N))   # Safety: Atomicity
+
+invariant depends_tx(T1, K, T2) -> (le(T2, T1) & (T1 != T2 | T1 = zero))
+invariant !abort_tx(TX) | !commit_tx(TX) # Abort and commit are disjoint
+invariant (!precommit_tx(T, N) & !abort_tx(T) & node_for_key(K, N)) -> !write_tx(T, K)
+invariant (!precommit_tx(T, N) & !abort_tx(T) & node_for_key(K, N)) -> !depends_tx(T, K, T2) 
+invariant commit_tx(zero)
+invariant !(!read_tx(T1, K0) & depends_tx(T1, K0, T0))
+invariant !(T0 != T2 & le(T0, T1) & le(T2, T0) & (!abort_tx(T0)) & (!abort_tx(T1))& depends_tx(T1, K0, T2) & write_tx(T0, K0))
