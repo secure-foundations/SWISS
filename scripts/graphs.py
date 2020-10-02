@@ -413,7 +413,7 @@ def I4_get_res(d, r):
       "toy-consensus-forall": "toy_consensus_forall",
       "consensus-forall": "consensus_forall",
       "consensus-wo-decide": "consensus_wo_decide",
-      "lock-server-async": "lockserv",
+      "lock-server-async": "lock-server-async",
       "sharded-kv": "sharded_kv",
       "ticket": "ticket",
 
@@ -447,7 +447,7 @@ def folsep_json_get_res(j, r):
       "consensus-wo-decide": "consensus_wo_decide",
       "hybrid-reliable-broadcast": "hybrid_reliable_broadcast_cisa",
       "learning-switch-quad": "learning_switch",
-      "lock-server-async": "lockserv",
+      "lock-server-async": "lock-server-async",
       "sharded-kv": "sharded_kv",
       "sharded-kv-no-lost-keys": "sharded_kv_no_lost_keys",
       "ticket": "ticket",
@@ -503,7 +503,7 @@ def get_bench_info(name):
       ("__firewall_pyv__", "firewall", True, 1, 3),
       ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True, 7, 30),
       ("__learning_switch_pyv__", "learning-switch-quad", False, 2, 7),
-      ("__lockserv_pyv__", "lock-server-async", False, 8, 18),
+      ("__lock-server-async_pyv__", "lock-server-async", False, 8, 18),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
       ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True, 4, 11),
       ("__sharded_kv_pyv__", "sharded-kv", False, 4, 11),
@@ -584,7 +584,7 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__consensus_forall_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_wo_decide_pyv__auto__seed#_t8",
     "mm_nonacc__learning_switch_pyv__auto__seed#_t8",
-    "mm_nonacc__lockserv_pyv__auto9__seed#_t8",
+    "mm_nonacc__lock-server-async_pyv__auto9__seed#_t8",
     "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
     "mm_nonacc__ticket_pyv__auto__seed#_t8",
 
@@ -625,7 +625,7 @@ def make_comparison_table(input_directory):
     mm_nonacc__consensus_forall_pyv__auto__seed5_t8 24
     mm_nonacc__consensus_wo_decide_pyv__auto__seed5_t8 22
     mm_nonacc__learning_switch_pyv__auto__seed1_t8 79
-    mm_nonacc__lockserv_pyv__auto9__seed4_t8 8
+    mm_nonacc__lock-server-async_pyv__auto9__seed4_t8 8
     mm_nonacc__sharded_kv_pyv__auto9__seed3_t8 10
     mm_nonacc__ticket_pyv__auto__seed1_t8 TIMEOUT
     mm_nonacc__toy_consensus_epr_pyv__auto__seed5_t8 11
