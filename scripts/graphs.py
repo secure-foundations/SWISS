@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 from pathlib import Path
+import matplotlib.transforms as mtrans
 import sys
 import os
 import json
@@ -319,7 +320,7 @@ class Table(object):
   def dump(self):
     colspec = "|"
     if self.source_column:
-      colspec = "c|"
+      colspec = "|c|"
     for (al, d) in zip(self.column_alignments, self.column_double):
       if d:
         colspec += al+"||"
@@ -1335,6 +1336,23 @@ def make_parallel_graphs(input_directory, save=False):
   make_parallel_graph(ax.flat[3], input_directory, finisher, collapsed_breakdown=True, graph_title="Finisher", smaller=True)
   make_parallel_graph(ax.flat[4], input_directory, breadth_nonacc, collapsed_breakdown=True, graph_title="Breadth", smaller=True)
   make_parallel_graph(ax.flat[5], input_directory, breadth_acc, collapsed_breakdown=True, graph_title="BreadthAccumulative", smaller=True, legend=True)
+
+  #https://stackoverflow.com/questions/26084231/draw-a-separator-or-lines-between-subplots
+  # Get the bounding boxes of the axes including text decorations
+  axes = ax
+  r = fig.canvas.get_renderer()
+  get_bbox = lambda ax: ax.get_tightbbox(r).transformed(fig.transFigure.inverted())
+  bboxes = np.array(list(map(get_bbox, axes.flat)), mtrans.Bbox).reshape(axes.shape)
+
+  #Get the minimum and maximum extent, get the coordinate half-way between those
+  ymax = np.array(list(map(lambda b: b.y1, bboxes.flat))).reshape(axes.shape).max(axis=1)
+  ymin = np.array(list(map(lambda b: b.y0, bboxes.flat))).reshape(axes.shape).min(axis=1)
+  ys = np.c_[ymax[1:], ymin[:-1]].mean(axis=1)
+
+  # Draw a horizontal lines at those coordinates
+  for y in ys:
+      line = plt.Line2D([0,1],[y-0.025,y-0.025], transform=fig.transFigure, color="black")
+      fig.add_artist(line)
 
   plt.tight_layout()
 
