@@ -1,0 +1,24 @@
+sort client
+sort server
+
+mutable relation link(client, server)
+mutable relation semaphore(server)
+
+init semaphore(W)
+init !link(X,Y)
+
+transition connect(x:client, y:server)
+  modifies link, semaphore
+    & old(semaphore(y))
+    & (forall X,Y. link(X,Y) <-> ((X=x & Y=y) | old(link(X,Y))))
+    & (forall Y. semaphore(Y) <-> ((Y != y) & old(semaphore(Y))))
+
+transition disconnect(x:client, y:server)
+  modifies link, semaphore
+    & old(link(x,y))
+    & (forall X,Y. link(X,Y) <-> (!(X=x & Y=y) & old(link(X,Y))))
+    & (forall Y. semaphore(Y) <-> ((Y = y) | old(semaphore(Y))))
+
+invariant link(X, Y) -> !semaphore(Y)
+
+safety link(C1, S) & link(C2, S) -> C1 = C2
