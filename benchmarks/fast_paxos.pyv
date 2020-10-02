@@ -1,0 +1,172 @@
+sort node
+sort value
+# classic quorums:
+sort c_quorum
+# fast quorums:
+sort f_quorum
+sort round
+
+immutable constant none: round
+immutable relation le(round, round)
+
+axiom le(X,X)                        # Reflexivity
+axiom le(X, Y) & le(Y, Z) -> le(X, Z)  # Transitivity
+axiom le(X, Y) & le(Y, X) -> X = Y    # Anti-symmetry
+axiom le(X, Y) | le(Y, X)             # Totality
+
+# some rounds are fast rounds:
+immutable relation fast(round)
+
+immutable relation c_member(node, c_quorum)
+immutable relation f_member(node, f_quorum)
+# classic quorums intersect
+axiom exists N:node. c_member(N, Q1) & c_member(N, Q2)
+# a classic quorum and a two fast quorums intersect
+axiom exists N:node . c_member(N,Q1) & f_member(N,Q2) & f_member(N, Q3)
+
+mutable relation one_a(round)
+mutable relation one_b(node, round)
+mutable relation one_b_max_vote(node, round, round, value)
+mutable relation proposal(round, value) # 2a
+mutable relation vote(node, round, value) # 2b
+mutable relation decision(node,round, value) # got 2b from a c_quorum
+mutable relation left_rnd(node, round) # left_rnd(n,r) means node n is no longer in round r
+mutable relation any_msg(round) # an "any" message in a fast round.
+
+init !one_a(R)
+init !one_b(N,R)
+init !one_b_max_vote(N,R1,R2,V)
+init !proposal(R,V)
+init !vote(N,R,V)
+init !decision(N,R,V)
+init !left_rnd(N, R)
+init !any_msg(R)
+
+transition send_1a(r:round)
+  modifies one_a
+  & old (
+    r != none
+  )
+  & (forall A . one_a(A) <-> (A=r) | old(one_a(A)))
+
+transition join_round(n:node, r:round, maxr:round, v:value)
+  modifies one_b_max_vote, one_b, left_rnd
+  & old (
+      & r != none
+      & one_a(r)
+      & !left_rnd(n,r)
+      & (((maxr = none & forall MAXR:round,V:value. !(!le(r,MAXR) & vote(n,MAXR,V))) |
+                    (maxr != none & !le(r,maxr) & vote(n,maxr,v) &
+                    (forall MAXR:round,V:value. (!le(r,MAXR) & vote(n,MAXR,V)) -> le(MAXR,maxr))
+                   )))
+  )
+  & (forall A,B,C,D . one_b_max_vote(A,B,C,D) <->
+      ((A=n & B=r & C=maxr & D=v) | old(one_b_max_vote(A,B,C,D))))
+  & (forall A,B . one_b(A,B) <->
+      ((A=n & B=r) | old(one_b(A,B))))
+  & (forall A,R . left_rnd(A,R) <->
+      (if A=n then old(left_rnd(n,R)) | !le(r,R) else old(left_rnd(A,R))))
+
+transition propose(r:round, q:c_quorum, maxr:round, v:value, v2: value)
+  modifies proposal, any_msg
+  & old(
+        & r != none
+        & (!proposal(r,V) & !any_msg(r))
+
+        & (forall N:node. c_member(N, q) -> one_b(N,r))
+        & ((maxr = none & forall N:node,MAXR:round,V:value. !(c_member(N, q) & !le(r,MAXR) & vote(N,MAXR,V))) |
+                    (maxr != none &
+                    (exists N:node. c_member(N, q) & !le(r,maxr) & vote(N,maxr,v)) &
+                    (forall N:node,MAXR:round,V:value. (c_member(N, q) & !le(r,MAXR) & vote(N,MAXR,V)) -> le(MAXR,maxr))
+                    ))
+  )
+  & (if maxr != none then (
+        & old (((exists F:f_quorum. forall N:node. !(f_member(N,F) & c_member(N,q) & !vote(N,maxr,v2))) |
+                (v2 = v &
+                 forall V2:value, F:f_quorum. exists N:node. f_member(N,F) & c_member(N,q) & !vote(N,maxr,V2)
+                )))
+      & (forall A,B . proposal(A,B) <->
+          ((A=r & B=v2) | old(proposal(A,B))))
+      & (forall A . any_msg(A) = old(any_msg(A)))
+  ) else (
+    if old(fast(r)) then (
+        & (forall A . any_msg(A) <-> ((A=r) | old(any_msg(A))))
+        & (forall A,B . proposal(A,B) <-> old(proposal(A,B)))
+    ) else (
+      & (forall A,B . proposal(A,B) <->
+          ((A=r & B=v) | old(proposal(A,B))))
+      & (forall A . any_msg(A) = old(any_msg(A)))
+    )
+  ))
+
+transition cast_vote(n:node, v:value, r:round)
+  modifies vote
+    & old (
+        & r != none
+        & !left_rnd(n, r)
+        & (forall V . !vote(n, r, V))
+        & (proposal(r, v) | any_msg(r))
+    )
+  & (forall A,B,C . vote(A,B,C) <-> old(vote(A,B,C)) | (A=n & B=r & C=v))
+
+transition c_decide(n:node, r:round, v:value, q:c_quorum)
+  modifies decision
+    & old(
+        & r != none
+        & !fast(r)
+        & (forall N . c_member(N, q) -> vote(N, r, v))
+    )
+  & (forall A,B,C . decision(A,B,C) <-> old(decision(A,B,C)) | (A=n & B=r & C=v))
+
+transition f_decide(n:node, r:round, v:value, q:f_quorum)
+  modifies decision
+    & old(
+        & r != none
+        & fast(r)
+        & (forall N . f_member(N, q) -> vote(N, r, v))
+    )
+  & (forall A,B,C . decision(A,B,C) <-> old(decision(A,B,C)) | (A=n & B=r & C=v))
+
+# invariant property:
+safety (
+    decision(N1,R1,V1) &
+    decision(N2,R2,V2)
+) -> V1 = V2
+
+invariant proposal(R,V1) & proposal(R,V2) -> V1 = V2
+
+# any messages are sent only in fast rounds
+invariant any_msg(R) -> fast(R)
+
+# decisions come from quorums of votes:
+invariant !fast(R) & (exists N. decision(N,R,V)) -> exists Q:c_quorum . forall N:node . c_member(N, Q) -> vote(N,R,V)
+invariant  fast(R) & (exists N. decision(N,R,V)) -> exists Q:f_quorum . forall N:node . f_member(N, Q) -> vote(N,R,V)
+
+# only vote for proposed values in classic rounds
+invariant !fast(R) & vote(N,R,V) -> proposal(R,V)
+
+# votes in fast rounds
+invariant fast(R) & vote(N,R,V) -> (proposal(R,V) | any_msg(R))
+invariant !(any_msg(R) & proposal(R,V))
+invariant fast(R) & vote(N,R,V1) & vote(N,R,V2) -> V1 = V2
+
+# properties of choosable, proposal, any_msg (classic round)
+invariant forall R1:round, R2:round, V1:value, V2:value, Q:c_quorum.
+    !fast(R1) & !le(R2,R1) & ((proposal(R2,V2) & V1 != V2) | any_msg(R2)) ->
+    exists N:node. c_member(N,Q) & left_rnd(N,R1) & !vote(N,R1,V1)
+# properties of choosable, proposal, any_msg (fast round)
+invariant forall R1:round, R2:round, V1:value, V2:value, Q:f_quorum.
+     fast(R1) & !le(R2,R1) & ((proposal(R2,V2) & V1 != V2) | any_msg(R2)) ->
+    exists N:node. f_member(N,Q) & left_rnd(N,R1) & !vote(N,R1,V1)
+
+# properties of one_b_max_vote
+invariant one_b_max_vote(N,R2,none,V1) & !le(R2,R1) -> !vote(N,R1,V2)
+invariant one_b_max_vote(N,R,RMAX,V) & RMAX != none -> !le(R,RMAX) & vote(N,RMAX,V)
+invariant one_b_max_vote(N,R,RMAX,V) & RMAX != none & !le(R,ROTHER) & !le(ROTHER,RMAX) -> !vote(N,ROTHER,VOTHER)
+
+# properties of one_b, left_rnd
+invariant one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
+invariant one_b(N,R2) & !le(R2,R1) -> left_rnd(N,R1)
+
+# properties of none
+invariant !vote(N,none,V)
