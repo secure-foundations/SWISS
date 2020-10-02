@@ -104,8 +104,8 @@ for seed in range(1, 2):
 
   benches.append(PaperBench(8, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
   benches.append(PaperBench(8, "leader-election.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
-  benches.append(PaperBench(8, "learning-switch.ivy", config="auto_e0_full", seed=seed, nonacc=True, finisher_only=True))
-  #benches.append(PaperBench(6, "learning-switch.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
+  benches.append(PaperBench(8, "learning-switch-ternary.ivy", config="auto_e0_full", seed=seed, nonacc=True, finisher_only=True))
+  #benches.append(PaperBench(6, "learning-switch-ternary.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
   benches.append(PaperBench(8, "lock_server.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
   benches.append(PaperBench(8, "2PC.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=True))
   #benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=True))
@@ -179,8 +179,8 @@ for seed in range(1, 6):
 
   benches.append(PaperBench(6, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "leader-election.ivy", config="auto", seed=seed, nonacc=True))
-  benches.append(PaperBench(6, "learning-switch.ivy", config="auto_e0", seed=seed, nonacc=True))
-  benches.append(PaperBench(6, "learning-switch.ivy", config="auto", seed=seed, nonacc=True))
+  benches.append(PaperBench(6, "learning-switch-ternary.ivy", config="auto_e0", seed=seed, nonacc=True))
+  benches.append(PaperBench(6, "learning-switch-ternary.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "lock_server.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "2PC.ivy", config="auto", seed=seed, nonacc=True))
   benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True))
@@ -255,7 +255,7 @@ for minmodels in (True, False):
         benches.append(PaperBench(c, "simple-de-lock.ivy", config="basic", **args))
         benches.append(PaperBench(c, "leader-election.ivy", config="basic_b", **args))
         benches.append(PaperBench(c, "leader-election.ivy", config="basic_f", **args))
-        benches.append(PaperBench(c, "learning-switch.ivy", config="basic", **args))
+        benches.append(PaperBench(c, "learning-switch-ternary.ivy", config="basic", **args))
         benches.append(PaperBench(c, "lock_server.ivy", config="basic", **args))
         benches.append(PaperBench(c, "2PC.ivy", config="basic", **args))
         benches.append(PaperBench(c, "paxos.ivy", config="basic", **args))
@@ -265,8 +265,8 @@ for minmodels in (True, False):
         #benches.append(PaperBench(c, "decentralized-lock-gimme-1.ivy", config="basic", **args))
 
 for seed in range(1, 9):
-  #benches.append(PaperBench(40, "learning-switch.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
-  benches.append(PaperBench(40, "learning-switch.ivy", "basic", threads=THREADS, seed=seed))
+  #benches.append(PaperBench(40, "learning-switch-ternary.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
+  benches.append(PaperBench(40, "learning-switch-ternary.ivy", "basic", threads=THREADS, seed=seed))
 
   #benches.append(PaperBench(41, "paxos.ivy", "basic", threads=THREADS, seed=seed, nonacc=True))
   benches.append(PaperBench(7, "paxos.ivy", "basic", threads=THREADS, seed=seed))
