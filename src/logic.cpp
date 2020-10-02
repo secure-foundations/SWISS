@@ -410,7 +410,7 @@ string Forall::to_string() const {
     if (i > 0) {
       res += ", ";
     }
-    res += iden_to_string(decls[i].name);
+    res += iden_to_string(decls[i].name) + ":" + decls[i].sort->to_string();
   }
   res += " . (" + body->to_string() + ")";
   return res;
@@ -422,12 +422,11 @@ string NearlyForall::to_string() const {
     if (i > 0) {
       res += ", ";
     }
-    res += iden_to_string(decls[i].name);
+    res += iden_to_string(decls[i].name) + ":" + decls[i].sort->to_string();
   }
   res += " . (" + body->to_string() + ")";
   return res;
 }
-
 
 string Exists::to_string() const {
   string res = "exists ";
@@ -435,7 +434,7 @@ string Exists::to_string() const {
     if (i > 0) {
       res += ", ";
     }
-    res += iden_to_string(decls[i].name);
+    res += iden_to_string(decls[i].name) + ":" + decls[i].sort->to_string();
   }
   res += " . (" + body->to_string() + ")";
   return res;
