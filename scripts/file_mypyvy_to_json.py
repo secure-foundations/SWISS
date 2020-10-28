@@ -7,7 +7,7 @@ import argparse
 from typing import cast
 
 sys.path.insert(0, os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'mypyvy/src')))
+    os.path.dirname(__file__), '../mypyvy/src')))
 
 import mypyvy
 import utils

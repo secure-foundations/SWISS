@@ -26,6 +26,8 @@ struct Options {
   bool non_accumulative;
 
   //int threads;
+
+  std::string invariant_log_filename;
 };
 
 struct Counterexample {

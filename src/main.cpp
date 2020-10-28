@@ -740,6 +740,12 @@ int main(int argc, char* argv[]) {
       template_sorter_e = atoi(argv[i+4]);
       i += 4;
     }
+    else if (argv[i] == string("--invariant-log-file")) {
+      assert(i + 1 < argc);
+      assert(options.invariant_log_filename == "");
+      options.invariant_log_filename = argv[i+1];
+      i++;
+    }
     else if (argv[i] == string("--counts-only")) {
       counts_only = true;
     }

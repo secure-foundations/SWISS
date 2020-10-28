@@ -4,34 +4,33 @@ set -e
 
 make
 
-DT=$(date +"%Y-%m-%d_%H.%M.%S")
-
-if [[ -z "${SYNTHESIS_LOGFILE}" ]]; then
+if [[ -z "${SYNTHESIS_LOGDIR}" ]]; then
+  DT=$(date +"%Y-%m-%d_%H.%M.%S")
   if [[ -z "${SCRATCH}" ]]; then
-    LOGFILE=$(mktemp "./logs/log.$DT-XXXXXXXXX")
+    LOGDIR=$(mktemp -d "./logs/log.$DT-XXXXXXXXX")
   else
-    LOGFILE=$(mktemp "$SCRATCH/log.$DT-XXXXXXXXX")
+    LOGDIR=$(mktemp -d "$SCRATCH/log.$DT-XXXXXXXXX")
   fi
 else
-  LOGFILE=$SYNTHESIS_LOGFILE
+  LOGDIR=$SYNTHESIS_LOGDIR
 fi
 
-echo "logging to $LOGFILE"
+echo "logging to $LOGDIR/driver"
 
-echo "./run.sh $@" >> $LOGFILE
-echo "" >> $LOGFILE
+echo "python3 scripts/driver.py $@" >> $LOGDIR/driver
+echo "" >> $LOGDIR/driver
 
-z3 --version >> $LOGFILE
-echo "" >> $LOGFILE
-git rev-parse --verify HEAD >> $LOGFILE
-echo "" >> $LOGFILE
-git diff >> $LOGFILE
-echo "" >> $LOGFILE
+z3 --version >> $LOGDIR/driver
+echo "" >> $LOGDIR/driver
+git rev-parse --verify HEAD >> $LOGDIR/driver
+echo "" >> $LOGDIR/driver
+git diff >> $LOGDIR/driver
+echo "" >> $LOGDIR/driver
 
 set +e
 
-{ time ./run.sh $@ --logfile $LOGFILE ; } 2>&1 | tee -a $LOGFILE
+{ time python3 ./scripts/driver.py $@ --logdir $LOGDIR ; } 2>&1 | tee -a $LOGDIR/driver
 
-echo "logged to $LOGFILE"
+echo "logged to $LOGDIR/driver"
 
 exit $RETCODE

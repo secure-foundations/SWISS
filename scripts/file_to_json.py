@@ -3,7 +3,7 @@ import json
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'ivy')))
+    os.path.dirname(__file__), '../ivy')))
 
 from ivy.ivy_init import ivy_init 
 from ivy.ivy_compiler import ivy_load_file

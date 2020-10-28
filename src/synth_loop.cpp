@@ -651,6 +651,13 @@ SynthesisResult synth_loop(
     exit(0);
   }
 
+  bool logging_invs = false;
+  ofstream inv_log;
+  if (options.invariant_log_filename != "") {
+    logging_invs = true;
+    inv_log.open(options.invariant_log_filename);
+  }
+
   long long filtering_ns = 0;
 
   long long num_finishers_found = 0;
@@ -734,6 +741,10 @@ SynthesisResult synth_loop(
         synres.done = true;
         synres.new_values.push_back(candidate);
         result_inv = candidate;
+
+        if (logging_invs) {
+          inv_log << candidate->to_json().dump() << endl;
+        }
       } else {
         printf("ERROR: invariant is not actually invariant");
         assert(false);
@@ -809,6 +820,13 @@ SynthesisResult synth_loop_incremental_breadth(
   printf("bmc_depth = %d\n", bmc_depth);
   BMCContext bmc(bmcctx, module, bmc_depth);
   bmcctx.set_timeout(15000); // 15 seconds
+
+  bool logging_invs = false;
+  ofstream inv_log;
+  if (options.invariant_log_filename != "") {
+    logging_invs = true;
+    inv_log.open(options.invariant_log_filename);
+  }
 
   int num_iterations_total = 0;
   int num_iterations_outer = 0;
@@ -927,6 +945,10 @@ SynthesisResult synth_loop_incremental_breadth(
           cout << "\nfound new invariant! all so far:\n";
           for (value found_inv : new_invs) {
             cout << "    " << found_inv->to_string() << endl;
+          }
+
+          if (logging_invs) {
+            inv_log << simplified_strengthened_inv->to_json().dump() << endl;
           }
 
           //if (!options.whole_space && is_invariant_with_conjectures(module, filtered_simplified_strengthened_invs)) {
