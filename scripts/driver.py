@@ -220,6 +220,15 @@ def do_threading(stats, ivy_filename, json_filename, logdir, nthreads, main_args
     t = t.split("specifics:")
     print(t[0])
 
+  final_inv_file = logdir + "/invariants"
+  with open(final_inv_file, "w") as f:
+    if stats.was_success():
+      f.write("# Success: True\n")
+    else:
+      f.write("# Success: False\n")
+    for inv in stats.get_invariants():
+      f.write("conjecture " + protocol_parsing.value_json_to_string(inv) + "\n")
+
 def parse_output_file(filename):
   with open(filename) as f:
     src = f.read()
@@ -535,8 +544,8 @@ def parse_args(ivy_filename, args):
     rstr = ""
     for i in range(9):
       rstr += str(random.randint(0, 9))
-    logdir = ("logs/log." + datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-        + "-" + rstr)
+    logdir = ("logs/log." + datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + "-" + rstr)
+    os.mkdir(logdir)
 
   (main_args, iter_args) = unpack_args(new_args)
 
@@ -569,6 +578,7 @@ def main():
 
   args = sys.argv[2:]
   nthreads, logdir, by_size, main_args, breadth_args, finisher_args, use_stdout = parse_args(ivy_filename, args)
+
   if nthreads == None:
     if "--config" in args:
       print("You must supply --threads with --config")

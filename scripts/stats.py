@@ -257,6 +257,16 @@ class Stats(object):
     return (self.total_number_of_invariants_incremental()
         + self.total_number_of_invariants_finisher())
 
+  def get_invariants(self):
+    if self.finisher_result:
+      res = self.finisher_result
+    elif len(self.inc_results) > 0:
+      res = self.inc_results[-1]
+    else:
+      return []
+
+    return res["base_invs"] + res["new_invs"]
+
   def get_breadth_time(self, i):
     return self.inc_times[i]
 
