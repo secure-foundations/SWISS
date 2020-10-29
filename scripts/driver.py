@@ -345,9 +345,11 @@ def chunkify_by_size(iterkey, logfile, nthreads, json_filename, args):
 
   return all_chunk_files
 
-def coalesce(logfile, json_filename, iterkey, files):
+def coalesce(logfile, json_filename, iterkey, files, whole_space=False):
   new_output_file = tempfile.mktemp()
   coalesce_file_args = ["--coalesce", "--output-formula-file", new_output_file]
+  if whole_space:
+    coalesce_file_args.append("--whole-space")
   for f in files:
     coalesce_file_args.append("--input-formula-file")
     coalesce_file_args.append(f)
@@ -429,7 +431,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
     return (True, has_any, success_file)
 
   new_output_file = coalesce(logfile, json_filename, iterkey, 
-      ([] if invfile == None else [invfile]) + [output_files[key] for key in output_files])
+      ([] if invfile == None else [invfile]) + [output_files[key] for key in output_files],
+      whole_space=('--whole-space' in main_args))
 
   return (False, has_any, new_output_file)
 

@@ -546,6 +546,21 @@ void count_strats(shared_ptr<Module> module, vector<Strategy> const& strats) {
   cout << "Post-symmetries: " << total << endl;
 }
 
+void maybe_set_success(shared_ptr<Module> module, FormulaDump& fd)
+{
+  cout << "checking if we're done" << endl;
+
+  vector<value> t;
+  for (value v : fd.base_invs) { t.push_back(v); }
+  for (value v : fd.new_invs) { t.push_back(v); }
+
+  if (is_invariant_wrt(module, v_and(t), fd.conjectures)) {
+    cout << "is invariant!" << endl;
+    fd.success = true;
+  }
+  cout << "is not invariant" << endl;
+}
+
 int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     cout << argv[i] << " ";
@@ -902,8 +917,14 @@ int main(int argc, char* argv[]) {
     res_fd.new_invs = filter_redundant_formulas(module, res_fd.new_invs);
     res_fd.all_invs = filter_unique_formulas(res_fd.all_invs);
     res_fd.conjectures = filter_unique_formulas(res_fd.conjectures);
+
+    if (!options.whole_space && !res_fd.success && input_formula_files.size() > 1) {
+      maybe_set_success(module, res_fd);
+    }
+
     assert (output_formula_file != "");
     write_formulas(output_formula_file, res_fd);
+
     return 0;
   }
 
