@@ -43,5 +43,30 @@ def validate_run_invariants(logdir):
     proc = subprocess.Popen(["./synthesis", "--input-module", tmpjson, "--check-inductiveness"])
     ret = proc.wait()
 
+def count_terms_of_tmpfile(logdir):
+  with open(os.path.join(logdir, "invariants")) as f:
+    inv_contents = f.read()
+  protocol_filename = get_protocol_filename(logdir)
+  j, invs = protocol_parsing.parse_invs(protocol_filename, inv_contents)
+
+  def count_terms(v):
+    if v[0] in ('forall', 'exists'):
+      return count_terms(v[2])
+    elif v[0] in ('and', 'or'):
+      return sum(count_terms(t) for t in v[1])
+    elif v[0] == 'not':
+      return count_terms(v[1])
+    elif v[0] == 'apply':
+      return 1
+    elif v[0] == 'eq':
+      return 1
+    else:
+      print(v)
+      assert False
+
+  count = sum(count_terms(i) for i in invs)
+  print("total terms: " + str(count))
+
 if __name__ == '__main__':
-  validate_run_invariants(sys.argv[1])
+  #validate_run_invariants(sys.argv[1])
+  count_terms_of_tmpfile(sys.argv[1])
