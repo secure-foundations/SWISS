@@ -14,7 +14,7 @@ import json
 
 NUM_PARTS = 100
 
-TIMEOUT_SECS = 45 #6*3600
+TIMEOUT_SECS = 6*3600
 
 all_procs = []
 
@@ -86,7 +86,7 @@ benches = [ ]
 
 THREADS = 8
 
-#benches.append(PaperBench(99, "leader-election.ivy", config="auto", seed=1, nonacc=True))
+benches.append(PaperBench(99, "leader-election.ivy", config="auto", seed=1, nonacc=True))
 #benches.append(PaperBench(99, "paxos.ivy", config="auto", seed=5, nonacc=True))
 
 #for i in range(THREADS, 0, -1):
@@ -358,6 +358,28 @@ def collect_partial_invariants(logdir):
     print("WARNING: failed to collect partial invariants for " + logdir)
     traceback.print_exc()
 
+def copy_dir(out_directory, logdir, bench, out):
+  summary_filename = os.path.join(logdir, "summary")
+  inv_filename = os.path.join(logdir, "invariants")
+
+  if (
+      not os.path.exists(summary_filename) or
+      not os.path.exists(inv_filename)):
+    return "crash"
+
+  newdir = os.path.join(out_directory, bench.name)
+  summary_filename_new = os.path.join(newdir, "summary")
+  inv_filename_new = os.path.join(newdir, "invariants")
+
+  os.mkdir(newdir)
+  shutil.copy(summary_filename, summary_filename_new)
+  shutil.copy(inv_filename, inv_filename_new)
+
+  if success_true(out):
+    return "success"
+  else:
+    return "fail"
+
 def make_logfile():
   proc = subprocess.Popen(["date", "+%Y-%m-%d_%H.%M.%S"],
       stdout=subprocess.PIPE,
@@ -436,19 +458,17 @@ def run(directory, bench):
 
     all_procs.remove(proc)
 
-    statfile = get_statfile(out)
-    if statfile is None:
+    result = copy_dir(directory, logdir, bench, out)
+
+    assert result in ('crash', 'success', 'fail')
+
+    if result == "crash":
       print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logdir)
       return False
     else:
       print("done " + bench.name + " (" + str(seconds) + " seconds) " + logdir)
-      result_filename = os.path.join(directory, bench.name)
-      shutil.copy(statfile, result_filename)
-
-      if bench.expect_success and not success_true(out):
+      if bench.expect_success and result != 'success':
         print("WARNING: " + bench.name + " did not succeed")
-        
-      return True
 
 def run_wrapper(directory, bench, idx, q):
   run(directory, bench)
