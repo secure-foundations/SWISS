@@ -77,6 +77,32 @@ def log_inputs(logfilename, json_filename, args):
     print("failed to log_inputs")
     pass
 
+class PartialInvariantLogger(object):
+  def __init__(self, logdir):
+    self.logdir = logdir
+    self.base = 0
+    self.idx = 0
+
+  def new_base(self, inv_tmp_file):
+    self.base += 1
+    self.idx = 0
+
+    filename = os.path.join(self.logdir, "partial_invs." + str(self.base) + ".base")
+
+    if inv_tmp_file == None:
+      with open(filename, "w") as f:
+        f.write("empty\n")
+    else:
+      shutil.copy(inv_tmp_file, filename)
+
+  def new_file_for_partial(self):
+    self.idx += 1
+
+    return os.path.join(self.logdir,
+        "partial_invs." + str(self.base) + "." + str(self.idx))
+
+partialInvariantLogger = None
+
 all_stats_files = []
 
 def make_stats_file():
@@ -364,6 +390,7 @@ def remove_one(s):
   return t
 
 def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile, iteration_num, stats, nthreads, chunk_files):
+  partialInvariantLogger.new_base(invfile)
 
   if invfile != None:
     args_with_file = ["--input-formula-file", invfile, "--one-breadth"]
@@ -393,7 +420,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
 
       t = threading.Thread(target=run_synthesis_off_thread, args=
           (logfile, key, json_filename, args_add_seed(
-            ["--input-chunk-file", chunk_files[i],
+            ["--invariant-log-file", partialInvariantLogger.new_file_for_partial(),
+             "--input-chunk-file", chunk_files[i],
              "--output-formula-file", output_file] + main_args + args_with_file), q))
       t.start()
       threads.append(t)
@@ -437,6 +465,8 @@ def breadth_run_in_parallel(iterkey, logfile, json_filename, main_args, invfile,
   return (False, has_any, new_output_file)
 
 def do_finisher(iterkey, logfile, nthreads, json_filename, main_args, args, invfile, stats):
+  partialInvariantLogger.new_base(invfile)
+
   t1 = time.time()
 
   chunk_files = chunkify(iterkey, logfile, nthreads, json_filename, args)
@@ -580,7 +610,11 @@ def main():
   json_filename = protocol_parsing.protocol_file_json_file(ivy_filename)
 
   args = sys.argv[2:]
-  nthreads, logdir, by_size, main_args, breadth_args, finisher_args, use_stdout = parse_args(ivy_filename, args)
+  nthreads, logdir, by_size, main_args, breadth_args, finisher_args, use_stdout = (
+          parse_args(ivy_filename, args))
+
+  global partialInvariantLogger
+  partialInvariantLogger = PartialInvariantLogger(logdir)
 
   if nthreads == None:
     if "--config" in args:

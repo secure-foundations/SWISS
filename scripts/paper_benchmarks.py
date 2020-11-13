@@ -8,10 +8,13 @@ import queue
 import threading
 import signal
 import atexit
+import traceback
+import protocol_parsing
+import json
 
 NUM_PARTS = 100
 
-TIMEOUT_SECS = 10 #6*3600
+TIMEOUT_SECS = 45 #6*3600
 
 all_procs = []
 
@@ -82,6 +85,9 @@ class PaperBench(object):
 benches = [ ]
 
 THREADS = 8
+
+#benches.append(PaperBench(99, "leader-election.ivy", config="auto", seed=1, nonacc=True))
+#benches.append(PaperBench(99, "paxos.ivy", config="auto", seed=5, nonacc=True))
 
 #for i in range(THREADS, 0, -1):
 #  benches.append(PaperBench(25,
@@ -307,6 +313,51 @@ def exists(directory, bench):
 def success_true(out):
   return b"\nSuccess: True" in out
 
+def collect_partial_invariants(logdir):
+  try:
+    inv_file = os.path.join(logdir, "invariants")
+    if os.path.exists(inv_file):
+      print("WARNING: invariants file already exists, this is unexpected")
+      return
+
+    i = 0
+    while True:
+      if os.path.exists(os.path.join(logdir, "partial_invs." + str(i+1) + ".base")):
+        i += 1
+      else:
+        break
+    if i == 0:
+      print("WARNING: collect_partial_invariants found no base file???")
+      return
+
+    t = []
+
+    with open(os.path.join(logdir, "partial_invs." + str(i) + ".base")) as f:
+      j = f.read()
+      if j != "empty\n":
+        j = json.loads(j)
+        t = j["base_invs"] + j["new_invs"]
+
+    for fname in os.listdir(logdir):
+      if fname.startswith("partial_invs." + str(i) + "."):
+        spl = fname.split('.')
+        if spl[2] != 'base':
+          with open(os.path.join(logdir, fname), "r") as f:
+            for line in f:
+              if line.strip() != '':
+                j = json.loads(line)
+                assert type(j) == list
+                t.extend(j)
+
+    with open(os.path.join(logdir, "invariants"), "w") as f:
+      f.write("# timed out and extracted\n")
+      for j in t:
+        f.write("conjecture " + protocol_parsing.value_json_to_string(j) + "\n")
+        
+  except Exception:
+    print("WARNING: failed to collect partial invariants for " + logdir)
+    traceback.print_exc()
+
 def make_logfile():
   proc = subprocess.Popen(["date", "+%Y-%m-%d_%H.%M.%S"],
       stdout=subprocess.PIPE,
@@ -324,7 +375,7 @@ def make_logfile():
   else:
     log_start = "./logs/log."
 
-  proc = subprocess.Popen(["mktemp", log_start+dt+"-XXXXXXXXX"],
+  proc = subprocess.Popen(["mktemp", "-d", log_start+dt+"-XXXXXXXXX"],
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
   out, err = proc.communicate()
@@ -341,16 +392,16 @@ def run(directory, bench):
     print("already done " + bench.name)
     return
 
-  logfile = make_logfile()
+  logdir = make_logfile()
 
-  print("doing " + bench.name + "    " + logfile)
+  print("doing " + bench.name + "    " + logdir)
 
   sys.stdout.flush()
 
   t1 = time.time()
 
   env = dict(os.environ)
-  env["SYNTHESIS_LOGFILE"] = logfile
+  env["SYNTHESIS_LOGDIR"] = logdir
 
   proc = subprocess.Popen(["./save.sh"] + bench.args,
       stdout=subprocess.PIPE,
@@ -368,12 +419,13 @@ def run(directory, bench):
     timed_out = True
   
   if timed_out:
-    print("timed out " + bench.name + " (" + str(TIMEOUT_SECS) + " seconds) " + logfile)
+    print("timed out " + bench.name + " (" + str(TIMEOUT_SECS) + " seconds) " + logdir)
     result_filename = os.path.join(directory, bench.name)
     with open(result_filename, "w") as f:
       f.write(" ".join(["./save.sh"] + bench.args) + "\n")
       f.write("TIMED OUT " + str(TIMEOUT_SECS) + " seconds\n")
-      f.write(logfile + "\n")
+      f.write(logdir + "\n")
+    collect_partial_invariants(logdir)
     return False
   else:
     ret = proc.wait()
@@ -386,10 +438,10 @@ def run(directory, bench):
 
     statfile = get_statfile(out)
     if statfile is None:
-      print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
+      print("failed " + bench.name + " (" + str(seconds) + " seconds) " + logdir)
       return False
     else:
-      print("done " + bench.name + " (" + str(seconds) + " seconds) " + logfile)
+      print("done " + bench.name + " (" + str(seconds) + " seconds) " + logdir)
       result_filename = os.path.join(directory, bench.name)
       shutil.copy(statfile, result_filename)
 
