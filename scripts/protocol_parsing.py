@@ -119,6 +119,8 @@ def value_json_to_string(inv):
   return inv_to_str(inv)
 
 def inv_to_str(inv):
+  #print(inv)
+  assert type(inv) == list
   if inv[0] == 'forall' or inv[0] == 'exists':
     return '(' + inv[0] + " " + ", ".join(decl_to_str(decl) for decl in inv[1]) + " . (" + inv_to_str(inv[2]) + '))'
   elif inv[0] == 'or':
@@ -139,7 +141,7 @@ def inv_to_str(inv):
     return '(' + inv_to_str(inv[1]) + ' -> ' + inv_to_str(inv[2]) + ')'
   else:
     print("inv_to_str")
-    print(inv)
+    print(repr(inv))
     assert False
 
 def decl_to_str(decl):

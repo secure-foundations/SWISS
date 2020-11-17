@@ -280,12 +280,17 @@ def collect_partial_invariants(logdir):
               if line.strip() != '':
                 j = json.loads(line)
                 assert type(j) == list
-                t.extend(j)
+                t.append(j)
+
+    strs = [
+      protocol_parsing.value_json_to_string(j)
+      for j in t
+    ]
 
     with open(os.path.join(logdir, "invariants"), "w") as f:
       f.write("# timed out and extracted\n")
-      for j in t:
-        f.write("conjecture " + protocol_parsing.value_json_to_string(j) + "\n")
+      for j in strs:
+        f.write("conjecture " + j + "\n")
         
   except Exception:
     print("WARNING: failed to collect partial invariants for " + logdir)
