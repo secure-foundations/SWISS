@@ -380,12 +380,16 @@ def run(directory, bench):
   
   if timed_out:
     print("timed out " + bench.name + " (" + str(TIMEOUT_SECS) + " seconds) " + logdir)
-    result_filename = os.path.join(directory, bench.name)
+    result_filename = os.path.join(os.path.join(directory, bench.name), "summary")
     with open(result_filename, "w") as f:
       f.write(" ".join(["./save.sh"] + bench.args) + "\n")
       f.write("TIMED OUT " + str(TIMEOUT_SECS) + " seconds\n")
       f.write(logdir + "\n")
     collect_partial_invariants(logdir)
+    shutil.copy(
+      os.path.join(logdir, "invariants"),
+      os.path.join(os.path.join(directory, bench.name), "invariants")
+    )
     return False
   else:
     ret = proc.wait()
