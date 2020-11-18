@@ -380,7 +380,9 @@ def run(directory, bench):
   
   if timed_out:
     print("timed out " + bench.name + " (" + str(TIMEOUT_SECS) + " seconds) " + logdir)
-    result_filename = os.path.join(os.path.join(directory, bench.name), "summary")
+    newdir = os.path.join(directory, bench.name)
+    os.mkdir(newdir)
+    result_filename = os.path.join(newdir, "summary")
     with open(result_filename, "w") as f:
       f.write(" ".join(["./save.sh"] + bench.args) + "\n")
       f.write("TIMED OUT " + str(TIMEOUT_SECS) + " seconds\n")
@@ -388,7 +390,7 @@ def run(directory, bench):
     collect_partial_invariants(logdir)
     shutil.copy(
       os.path.join(logdir, "invariants"),
-      os.path.join(os.path.join(directory, bench.name), "invariants")
+      os.path.join(newdir, "invariants")
     )
     return False
   else:
