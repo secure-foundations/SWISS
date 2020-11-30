@@ -18,8 +18,10 @@ TIMEOUT_SECS = 6*3600
 
 all_procs = []
 
+DEFAULT_THREADS = 8
+
 class PaperBench(object):
-  def __init__(self, partition, ivyname, config, threads=8, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False):
+  def __init__(self, partition, ivyname, config, threads=DEFAULT_THREADS, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False):
     self.partition = partition
 
     self.ivyname = ivyname
@@ -453,6 +455,13 @@ def awesome_async_run(directory, benches, j):
       t += benches[cur].threads
       started[cur] = True
 
+def get_all_main_benchmarks():
+  res = []
+  for b in benches:
+    if b.threads == DEFAULT_THREADS and b.mm and (not b.pre_bmc) and (not b.post_bmc) and b.nonacc and (not b.whole) and (not b.finisher_only):
+      res.append(b)
+  return res
+
 def parse_args(args):
   res = []
   j = None
@@ -511,6 +520,7 @@ def main():
       awesome_async_run(directory, [b for b in benches if b.partition == p], j)
 
   print('done')
+
 
 if __name__ == "__main__":
   main()

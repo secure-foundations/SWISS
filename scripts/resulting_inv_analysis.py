@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import paper_benchmarks
 
 def get_protocol_filename(logdir):
   summary_file = os.path.join(logdir, "summary")
@@ -11,6 +12,10 @@ def get_protocol_filename(logdir):
     for line in f:
       if line.startswith("Protocol: "):
         return line[10:].strip()
+      if line.startswith("./save.sh "):
+        return line.split()[1]
+
+  assert False, "could not find protocol filename"
 
 def does_claim_success(i):
   if "# Success: True" in i:
@@ -65,8 +70,28 @@ def count_terms_of_tmpfile(logdir):
       assert False
 
   count = sum(count_terms(i) for i in invs)
-  print("total terms: " + str(count))
+  #print("total terms: " + str(count))
+
+  return {"invs": len(invs), "terms": count}
+
+def do_analysis(b):
+  print(b)
+  d = count_terms_of_tmpfile(b)
+
+  res_filename = os.path.join(b, "inv_analysis")
+
+  print(d)
+
+  with open(res_filename, "w") as f:
+    f.write(json.dumps(d))
+
+def run_analyses(input_directory):
+  all_main_benches = paper_benchmarks.get_all_main_benchmarks()
+  for b in all_main_benches:
+    name = b.get_name()
+    do_analysis(os.path.join(input_directory, name))
 
 if __name__ == '__main__':
   #validate_run_invariants(sys.argv[1])
-  count_terms_of_tmpfile(sys.argv[1])
+  #count_terms_of_tmpfile(sys.argv[1])
+  run_analyses(sys.argv[1])

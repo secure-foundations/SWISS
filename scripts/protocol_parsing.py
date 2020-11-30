@@ -77,7 +77,7 @@ def parse_invs(protocol_filename, inv_contents):
     if so[0] == "functionSort":
       return so[2]
     else:
-      return [so]
+      return so
 
   n = {"n": 1}
   def sort_to_name_with_id(so):

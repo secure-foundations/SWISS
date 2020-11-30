@@ -166,7 +166,7 @@ class BasicStats(object):
     self.I4_time = I4
     self.name = name
     self.filename = filename
-    with open(os.path.join(input_directory, filename)) as f:
+    with open(os.path.join(input_directory, filename, "summary")) as f:
       doing_total = False
       self.z3_sat_ops = 0
       self.z3_sat_time = 0
@@ -376,8 +376,13 @@ def read_I4_data(input_directory):
     seconds = float(t[1][:-1])
     return minutes*60.0 + seconds
 
+  i4_filename = os.path.join(input_directory, "I4-output.txt")
+
+  if not os.path.exists(i4_filename):
+    return None
+
   d = {}
-  with open(os.path.join(input_directory, "I4-output.txt")) as f:
+  with open(i4_filename) as f:
     last_real_line = None
     for line in f:
       line = line.strip()
@@ -402,6 +407,9 @@ def commaify(n):
   return s
 
 def I4_get_res(d, r):
+  if d == None:
+    return None
+
   name = get_bench_name(r)
   if name in ("ticket", "learning-switch-quad", "sdl"):
     return None
@@ -431,11 +439,18 @@ def I4_get_res(d, r):
   
 
 def read_folsep_json(input_directory):
-  with open(os.path.join(input_directory, "folsep.json")) as f:
-    j = f.read()
-  return json.loads(j)
+  json_file = os.path.join(input_directory, "folsep.json")
+  if os.path.exists(json_file):
+    with open(os.path.join(input_directory, "folsep.json")) as f:
+      j = f.read()
+    return json.loads(j)
+  else:
+    return None
 
 def folsep_json_get_res(j, r):
+  if j == None:
+    return None
+
   name = get_bench_name(r)
   fol_name = {
       "client-server-ae": "client_server_ae",
@@ -610,7 +625,7 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__vertical_paxos__auto__seed#_t8",
   ]
 
-def make_comparison_table(input_directory):
+def make_comparison_table(input_directory, median_of=5):
   rows = MAIN_TABLE_ROWS
 
   terms_entries = """mm_nonacc__simple-de-lock__auto__seed3_t8 7
@@ -650,7 +665,7 @@ def make_comparison_table(input_directory):
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
   for r in rows:
     if r != '||':
-      stats[r] = median(input_directory, r, 1, 5)
+      stats[r] = median(input_directory, r, 1, median_of)
 
   #I4_times = {
   #    "mm__simple-de-lock__auto__seed#_t8": -1,
@@ -1623,14 +1638,13 @@ def stuff():
 
 def main():
   input_directory = sys.argv[1]
-  #make_table(input_directory, 0)
   #stuff()
-  make_parallel_graphs(input_directory)
+  #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory)
+  make_comparison_table(input_directory, median_of=1)
   #misc_stats(input_directory)
   #templates_table(input_directory)
 
