@@ -200,6 +200,15 @@ shared_ptr<Module> read_module(string const& module_filename)
   return parse_module(json_src);
 }
 
+vector<value> read_value_array(string const& value_array_filename)
+{
+  ifstream f;
+  f.open(value_array_filename);
+  std::istreambuf_iterator<char> begin(f), end;
+  std::string json_src(begin, end);
+  return parse_value_array(json_src);
+}
+
 vector<TemplateSubSlice> read_template_sub_slice_file(
     shared_ptr<Module> module,
     string const& filename)
@@ -618,7 +627,8 @@ int main(int argc, char* argv[]) {
 
   bool by_size = false;
 
-  int big_impl_check = -1;
+  string big_impl_check_lhs;
+  string big_impl_check_rhs;
 
   string stats_filename;
 
@@ -765,9 +775,12 @@ int main(int argc, char* argv[]) {
       counts_only = true;
     }
     else if (argv[i] == string("--big-impl-check")) {
-      assert (i + 1 < argc);
-      big_impl_check = atoi(argv[i+1]);
-      i += 1;
+      assert (i + 2 < argc);
+      big_impl_check_lhs = argv[i+1];
+      big_impl_check_rhs = argv[i+2];
+      assert(big_impl_check_lhs != "");
+      assert(big_impl_check_rhs != "");
+      i += 2;
     }
 
     /*else if (argv[i] == string("--threads")) {
@@ -783,26 +796,18 @@ int main(int argc, char* argv[]) {
 
   shared_ptr<Module> module = read_module(module_filename);
 
-  if (big_impl_check != -1) {
-    vector<value> a;
-    vector<value> b;
-    for (int i = 0; i < (int)module->conjectures.size() - big_impl_check; i++) {
-      a.push_back(module->conjectures[i]);
-    }
-    for (int i = (int)module->conjectures.size() - big_impl_check; i < (int)module->conjectures.size(); i++) {
-      b.push_back(module->conjectures[i]);
-    }
-    //assert (is_itself_invariant(module, a));
-    //cout << "is inv" << endl;
+  if (big_impl_check_lhs != "") {
+    vector<value> a = read_value_array(big_impl_check_lhs);
+    vector<value> b = read_value_array(big_impl_check_rhs);
 
     int total = 0;
-    for (int i = 0; i < (int)a.size(); i++) {
+    for (int i = 0; i < (int)b.size(); i++) {
       cout << i << endl;
       vector<value> vs;
-      for (value v : b) {
+      for (value v : a) {
         vs.push_back(v);
       }
-      vs.push_back(v_not(a[i]));
+      vs.push_back(v_not(b[i]));
 
       if (!is_satisfiable_tryhard(module, v_and(vs))) {
         total++;
@@ -812,7 +817,8 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    cout << "could prove " << total << " / " << a.size() << endl;
+    cout << "could prove " << total << " / " << b.size() << endl;
+    cerr << "could prove " << total << " / " << b.size() << endl;
     return 0;
   }
 

@@ -63,7 +63,15 @@ def protocol_file_json(protocol_filename):
 
 def parse_invs(protocol_filename, inv_contents):
   js = protocol_file_json(protocol_filename)
-  j = json.loads(js)
+  return parse_invs_from_json(js, inv_contents)
+
+def parse_invs_from_json_filename(protocol_json_filename, inv_contents):
+  with open(protocol_json_filename) as f:
+    j = f.read()
+  return parse_invs_from_json(j, inv_contents)
+
+def parse_invs_from_json(protocol_json, inv_contents):
+  j = json.loads(protocol_json)
 
   i = ["#lang ivy1.5"]
 
@@ -152,3 +160,18 @@ def decl_to_str(decl):
 def const_name(c):
   assert c[0] == 'const'
   return c[1]
+
+def parse_module_invs_invs_invs(protocol_filename, inv_filename1, inv_filename2):
+  module_json_filename = protocol_file_json_file(protocol_filename)
+  with open(module_json_filename) as f:
+    j = f.read()
+  with open(inv_filename1) as f:
+    inv_contents1 = f.read()
+  with open(inv_filename2) as f:
+    inv_contents2 = f.read()
+  i1 = parse_invs_from_json_filename(module_json_filename, inv_contents1)[1]
+  i2 = parse_invs_from_json_filename(module_json_filename, inv_contents2)[1]
+
+  j = json.loads(j)
+
+  return (module_json_filename, j["conjectures"], i1, i2)

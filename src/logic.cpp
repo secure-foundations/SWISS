@@ -27,6 +27,12 @@ shared_ptr<Module> parse_module(string const& src) {
   return json2module(j);
 }
 
+vector<value> parse_value_array(string const& src) {
+  string err;
+  Json j = Json::parse(src, err);
+  return json2value_array(j);
+}
+
 shared_ptr<Module> json2module(Json j) {
   assert(j.is_object());
   auto p = json2action_array_from_map(j["actions"]);

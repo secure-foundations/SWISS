@@ -643,10 +643,11 @@ public:
   int get_template_idx(std::shared_ptr<Value> templ);
 };
 
-std::shared_ptr<Module> parse_module(std::string const& src);
-
 typedef std::shared_ptr<Value> value;
 typedef std::shared_ptr<Sort> lsort;
+
+std::shared_ptr<Module> parse_module(std::string const& src);
+std::vector<value> parse_value_array(std::string const& src);
 
 inline value v_forall(std::vector<VarDecl> const& decls, value const& body) {
   return std::shared_ptr<Value>(new Forall(decls, body));

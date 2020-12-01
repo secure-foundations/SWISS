@@ -22,8 +22,16 @@ def does_claim_success(i):
     return True
   elif "# Success: False" in i:
     return False
+  elif "# timed out and extracted" in i:
+    return False
   else:
     assert False
+
+def did_succeed(logdir):
+  with open(os.path.join(logdir, "invariants")) as f:
+    inv_contents = f.read()
+
+  return does_claim_success(inv_contents)
         
 def validate_run_invariants(logdir):
   with open(os.path.join(logdir, "invariants")) as f:
@@ -63,6 +71,8 @@ def count_terms_of_tmpfile(logdir):
       return count_terms(v[1])
     elif v[0] == 'apply':
       return 1
+    elif v[0] == 'const':
+      return 1
     elif v[0] == 'eq':
       return 1
     else:
@@ -74,9 +84,63 @@ def count_terms_of_tmpfile(logdir):
 
   return {"invs": len(invs), "terms": count}
 
-def do_analysis(b):
+def do_single_impl_check(module_json_file, lhs_invs, rhs_invs):
+  proc = subprocess.Popen(["./synthesis", "--input-module", module_json_file,
+      "--big-impl-check", lhs_invs, rhs_invs], stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ret = proc.wait()
+
+  assert ret == 0
+  for line in err.split(b'\n'):
+    if line.startswith(b"could prove "):
+      l = line.split()
+      a = int(l[2])
+      assert l[3] == b"/"
+      b = int(l[4])
+      return (a, b)
+  assert False, "did not find output line"
+
+def impl_check(ivyname, b):
+  answers_filename = ".".join(ivyname.split(".")[:-1] + ["answers"])
+  module_json_file, module_invs, gen_invs, answer_invs = (
+      protocol_parsing.parse_module_invs_invs_invs(
+        ivyname,
+        os.path.join(b, "invariants"),
+        answers_filename
+      )
+  )
+
+  def write_invs_file(c):
+    t = tempfile.mktemp()
+    with open(t, "w") as f:
+      f.write(json.dumps(c))
+    return t
+
+  module_invs_file = write_invs_file(module_invs)
+  gen_invs_file = write_invs_file(gen_invs)
+  answer_invs_file = write_invs_file(answer_invs)
+
+  conj_got, conj_total = do_single_impl_check(module_json_file,
+      gen_invs_file, module_invs_file)
+
+  invs_got, invs_total = do_single_impl_check(module_json_file,
+      gen_invs_file, answer_invs_file)
+
+  return {
+    "safeties_got" : conj_got,
+    "safeties_total" : conj_total,
+    "invs_got" : invs_got,
+    "invs_total" : invs_total,
+  }
+
+def do_analysis(ivyname, b):
   print(b)
   d = count_terms_of_tmpfile(b)
+
+  was_success = did_succeed(b)
+  if not was_success:
+    d1 = impl_check(ivyname, b)
+    d = {**d, **d1}
 
   res_filename = os.path.join(b, "inv_analysis")
 
@@ -89,7 +153,9 @@ def run_analyses(input_directory):
   all_main_benches = paper_benchmarks.get_all_main_benchmarks()
   for b in all_main_benches:
     name = b.get_name()
-    do_analysis(os.path.join(input_directory, name))
+    if "multi" in name:
+      do_analysis("benchmarks/" + b.ivyname,
+          os.path.join(input_directory, name))
 
 if __name__ == '__main__':
   #validate_run_invariants(sys.argv[1])
