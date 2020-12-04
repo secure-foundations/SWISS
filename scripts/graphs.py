@@ -497,51 +497,51 @@ def get_bench_name(name):
 def get_bench_existential(name):
   return get_bench_info(name)[2]
 
-def get_bench_num_handwritten_invs(name):
-  return get_bench_info(name)[3]
-
-def get_bench_num_handwritten_terms(name):
-  return get_bench_info(name)[4]
+#def get_bench_num_handwritten_invs(name):
+#  return get_bench_info(name)[3]
+#
+#def get_bench_num_handwritten_terms(name):
+#  return get_bench_info(name)[4]
 
 def get_bench_info(name):
   name = "_"+name
 
   if "pyv" in name:
     stuff = [
-      ("__client_server_ae_pyv__", "client-server-ae", True, 1, 3),
-      ("__client_server_db_ae_pyv__", "client-server-db-ae", True, 4, 12),
-      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True, 3, 8),
-      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False, 3, 8),
-      ("__consensus_epr_pyv__", "consensus-epr", True, 6, 15),
-      ("__consensus_forall_pyv__", "consensus-forall", False, 6, 15),
-      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False, 4, 10),
-      ("__firewall_pyv__", "firewall", True, 1, 3),
-      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True, 7, 30),
-      ("__learning_switch_pyv__", "learning-switch-quad", False, 2, 7),
-      ("__lock-server-async_pyv__", "lock-server-async", False, 8, 18),
+      ("__client_server_ae_pyv__", "client-server-ae", True),
+      ("__client_server_db_ae_pyv__", "client-server-db-ae", True),
+      ("__toy_consensus_epr_pyv__", "toy-consensus-epr", True),
+      ("__toy_consensus_forall_pyv__", "toy-consensus-forall", False),
+      ("__consensus_epr_pyv__", "consensus-epr", True),
+      ("__consensus_forall_pyv__", "consensus-forall", False),
+      ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False),
+      ("__firewall_pyv__", "firewall", True),
+      ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True),
+      ("__learning_switch_pyv__", "learning-switch-quad", False),
+      ("__lock-server-async_pyv__", "lock-server-async", False),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
-      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True, 4, 11),
-      ("__sharded_kv_pyv__", "sharded-kv", False, 4, 11),
-      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True, 1, 2),
-      ("__ticket_pyv__", "ticket", False, 13, 35),
+      ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True),
+      ("__sharded_kv_pyv__", "sharded-kv", False),
+      ("__sharded_kv_no_lost_keys_pyv__", "sharded-kv-no-lost-keys", True),
+      ("__ticket_pyv__", "ticket", False),
     ]
   else:
     stuff = [
-      ("__simple-de-lock__", 'sdl', False, 3, 8),
-      ("__leader-election__", 'ring-election', False, 3, 9),
-      ("__learning-switch-ternary__", 'learning-switch-ternary', False, 4, 10),
-      ("__lock-server-sync__", 'lock-server-sync', False, 1, 2),
-      ("__2PC__", 'two-phase-commit', False, 8, 18),
-      ("__multi_paxos__", 'multi-paxos', True, 11, 34),
-      ("__flexible_paxos__", 'flexible-paxos', True, 10, 31),
-      ("__fast_paxos__", 'fast-paxos', True, 16, 60),
-      ("__vertical_paxos__", 'vertical-paxos', True, 19, 61),
-      ("__stoppable_paxos__", 'stoppable-paxos', True, 14, 50),
-      ("__chain__", 'chain', False, 7, 24),
-      ("__chord__", 'chord', False, 11, 31),
-      ("__distributed_lock__", 'distributed-lock', False, 8, 28),
-      ("__paxos__", 'paxos', True, 10, 34),
-      ("__paxos_epr_missing1__", 'paxos-missing1', True, 10, 34),
+      ("__simple-de-lock__", 'sdl', False),
+      ("__leader-election__", 'ring-election', False),
+      ("__learning-switch-ternary__", 'learning-switch-ternary', False),
+      ("__lock-server-sync__", 'lock-server-sync', False),
+      ("__2PC__", 'two-phase-commit', False),
+      ("__multi_paxos__", 'multi-paxos', True),
+      ("__flexible_paxos__", 'flexible-paxos', True),
+      ("__fast_paxos__", 'fast-paxos', True),
+      ("__vertical_paxos__", 'vertical-paxos', True),
+      ("__stoppable_paxos__", 'stoppable-paxos', True),
+      ("__chain__", 'chain', False),
+      ("__chord__", 'chord', False),
+      ("__distributed_lock__", 'distributed-lock', False),
+      ("__paxos__", 'paxos', True),
+      ("__paxos_epr_missing1__", 'paxos-missing1', True),
     ]
 
   for a in stuff:
@@ -585,10 +585,10 @@ MAIN_TABLE_ROWS = [
 
     "||",
 
-    "mm_nonacc__leader-election__auto__seed#_t8",
-    "mm_nonacc__learning-switch-ternary__auto_e0__seed#_t8",
-    "mm_nonacc__lock-server-sync__auto__seed#_t8",
-    "mm_nonacc__2PC__auto__seed#_t8",
+    "mm_nonacc__leader-election__auto_full__seed#_t8",
+    "mm_nonacc__learning-switch-ternary__auto_e0_full__seed#_t8",
+    "mm_nonacc__lock-server-sync__auto_full__seed#_t8",
+    "mm_nonacc__2PC__auto_full__seed#_t8",
     "mm_nonacc__chain__auto__seed#_t8",
     "mm_nonacc__chord__auto__seed#_t8",
     "mm_nonacc__distributed_lock__auto9__seed#_t8",
@@ -625,60 +625,33 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__vertical_paxos__auto__seed#_t8",
   ]
 
+def get_inv_analysis_info(input_directory, benchname):
+  filename = os.path.join(input_directory, benchname, "inv_analysis")
+  if os.path.exists(filename):
+    with open(filename) as f:
+      j = f.read()
+    return json.loads(j)
+  else:
+    return {}
+
+def get_or_question_mark(inv_analysis_info, r, name):
+  if r in inv_analysis_info and name in inv_analysis_info[r]:
+    return str(inv_analysis_info[r][name])
+  else:
+    return "?"
+
 def make_comparison_table(input_directory, median_of=5):
   rows = MAIN_TABLE_ROWS
 
-  terms_entries = """mm_nonacc__simple-de-lock__auto__seed3_t8 7
-    mm_nonacc__leader-election__auto__seed4_t8 13
-    mm_nonacc__learning-switch-ternary__auto_e0__seed3_t8 21
-    mm_nonacc__lock-server-sync__auto__seed2_t8 2
-    mm_nonacc__2PC__auto__seed3_t8 24
-    mm_nonacc__chain__auto__seed1_t8 TIMEOUT
-    mm_nonacc__chord__auto__seed1_t8 TIMEOUT
-    mm_nonacc__distributed_lock__auto9__seed1_t8 TIMEOUT
-    mm_nonacc__toy_consensus_forall_pyv__auto__seed3_t8 14
-    mm_nonacc__consensus_forall_pyv__auto__seed5_t8 24
-    mm_nonacc__consensus_wo_decide_pyv__auto__seed5_t8 22
-    mm_nonacc__learning_switch_pyv__auto__seed1_t8 79
-    mm_nonacc__lock-server-async_pyv__auto9__seed4_t8 8
-    mm_nonacc__sharded_kv_pyv__auto9__seed3_t8 10
-    mm_nonacc__ticket_pyv__auto__seed1_t8 TIMEOUT
-    mm_nonacc__toy_consensus_epr_pyv__auto__seed5_t8 11
-    mm_nonacc__consensus_epr_pyv__auto__seed3_t8 15
-    mm_nonacc__client_server_ae_pyv__auto__seed2_t8 9
-    mm_nonacc__client_server_db_ae_pyv__auto__seed4_t8 34
-    mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8 TIMEOUT
-    mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8 TIMEOUT
-    mm_nonacc__paxos__auto__seed5_t8 42
-    mm_nonacc__multi_paxos__auto__seed1_t8 TIMEOUT
-    mm_nonacc__multi_paxos__basic__seed1_t8 56
-    mm_nonacc__flexible_paxos__auto__seed1_t8 42
-    mm_nonacc__fast_paxos__auto__seed1_t8 TIMEOUT
-    mm_nonacc__stoppable_paxos__auto__seed1_t8 TIMEOUT
-    mm_nonacc__sharded_kv_no_lost_keys_pyv__auto_e2__seed4_t8 6
-    mm_nonacc__vertical_paxos__auto__seed1_t8 TIMEOUT""".split('\n')
-  terms = {}
-  for te in terms_entries:
-    x = te.split()
-    terms[x[0]] = x[1]
-
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
+  inv_analysis_info = { }
   for r in rows:
     if r != '||':
       stats[r] = median(input_directory, r, 1, median_of)
-
-  #I4_times = {
-  #    "mm__simple-de-lock__auto__seed#_t8": -1,
-  #    "mm__leader-election__auto__seed#_t8" : 1.686,
-  #    "mm__learning-switch-ternary__auto_e0__seed#_t8" : 9.392,
-  #    "mm__lock-server-sync__auto__seed#_t8" : 1.598,
-  #    "mm__2PC__auto__seed#_t8" : 1.994,
-  #    "mm__paxos__auto__seed#_t8" : None,
-  #    "mm__multi_paxos__auto__seed#_t8" : None,
-  #    "mm__flexible_paxos__auto__seed#_t8" : None,
-  #    "chord" : 29.193,
-  #    "chain" : 11.679,
-  #}
+      if stats[r]:
+        fname = stats[r].filename
+        inv_analysis_info[r] = get_inv_analysis_info(
+            input_directory, fname)
 
   # l|r|c||r|r|r||r|r|r|r
 
@@ -738,39 +711,23 @@ def make_comparison_table(input_directory, median_of=5):
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
     elif c == 'invs':
-      x = get_bench_num_handwritten_invs(r)
-      if x == -1:
-        return "TODO"
-      else:
-        return str(x)
+      return get_or_question_mark(inv_analysis_info, r,
+          "handwritten_invs")
     elif c == 'terms':
-      x = get_bench_num_handwritten_terms(r)
-      if x == -1:
-        return "TODO"
-      else:
-        return str(x)
+      return get_or_question_mark(inv_analysis_info, r,
+          "handwritten_terms")
     else:
       if stats[r] == None:
         return "TODO"
       if stats[r].timed_out_6_hours:
         if c == "\\name":
-          partial_inv_counts = {
-            "mm_nonacc__chain__auto__seed1_t8"  :  6,
-            "mm_nonacc__chord__auto__seed1_t8"  :  8,
-            "mm_nonacc__distributed_lock__auto9__seed1_t8"  :   1,
-            "mm_nonacc__hybrid_reliable_broadcast_cisa_pyv__auto__seed1_t8"  :   1,
-            "mm_nonacc__sharded_kv_no_lost_keys_pyv__auto9__seed1_t8"  :   0,
-            "mm_nonacc__ticket_pyv__auto__seed1_t8"  :   5,
-            "mm_nonacc__multi_paxos__auto__seed1_t8"  :   6,
-            "mm_nonacc__vertical_paxos__auto__seed1_t8"  :   15,
-            "mm_nonacc__fast_paxos__auto__seed1_t8" :   8,
-            "mm_nonacc__stoppable_paxos__auto__seed1_t8" :   6,
-          }
-          assert stats[r].filename
+          invs_got = get_or_question_mark(inv_analysis_info, r,
+              "invs_got")
+          invs_total = get_or_question_mark(inv_analysis_info, r,
+              "invs_total")
+
           return (
-            '(' + str(partial_inv_counts[stats[r].filename])
-            + ' / ' +
-            str(get_bench_num_handwritten_invs(r)) + ')'
+            '(' + str(invs_got) + ' / ' + str(invs_total) + ')'
           )
 
         else:
@@ -791,8 +748,11 @@ def make_comparison_table(input_directory, median_of=5):
         return format_secs(stats[r].total_time_sec)
       elif c == SWISS_INVS:
         return str(stats[r].num_inv)
+        return get_or_question_mark(inv_analysis_info, r,
+            "synthesized_invs")
       elif c == SWISS_TERMS:
-        return str(terms[stats[r].filename])
+        return get_or_question_mark(inv_analysis_info, r,
+            "synthesized_terms")
       else:
         assert False, c
 
