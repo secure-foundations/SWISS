@@ -165,12 +165,20 @@ def parse_module_invs_invs_invs(protocol_filename, inv_filename1, inv_filename2)
   module_json_filename = protocol_file_json_file(protocol_filename)
   with open(module_json_filename) as f:
     j = f.read()
+
   with open(inv_filename1) as f:
     inv_contents1 = f.read()
-  with open(inv_filename2) as f:
-    inv_contents2 = f.read()
+
+  if inv_filename2 != None:
+    with open(inv_filename2) as f:
+      inv_contents2 = f.read()
+
   i1 = parse_invs_from_json_filename(module_json_filename, inv_contents1)[1]
-  i2 = parse_invs_from_json_filename(module_json_filename, inv_contents2)[1]
+
+  if inv_filename2 != None:
+    i2 = parse_invs_from_json_filename(module_json_filename, inv_contents2)[1]
+  else:
+    i2 = None
 
   j = json.loads(j)
 

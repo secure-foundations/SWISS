@@ -57,12 +57,7 @@ def validate_run_invariants(logdir):
     proc = subprocess.Popen(["./synthesis", "--input-module", tmpjson, "--check-inductiveness"])
     ret = proc.wait()
 
-def count_terms_of_tmpfile(logdir):
-  with open(os.path.join(logdir, "invariants")) as f:
-    inv_contents = f.read()
-  protocol_filename = get_protocol_filename(logdir)
-  j, invs = protocol_parsing.parse_invs(protocol_filename, inv_contents)
-
+def count_terms_of_value_list(invs):
   def count_terms(v):
     if v[0] in ('forall', 'exists'):
       return count_terms(v[2])
@@ -103,21 +98,8 @@ def do_single_impl_check(module_json_file, lhs_invs, rhs_invs):
       return (a, b)
   assert False, "did not find output line"
 
-def impl_check(ivyname, b):
-  answers_filename = ".".join(ivyname.split(".")[:-1] + ["answers"])
-
-  if not os.path.exists(answers_filename):
-    print("file does not exist: " + answers_filename)
-    return {}
-
-  module_json_file, module_invs, gen_invs, answer_invs = (
-      protocol_parsing.parse_module_invs_invs_invs(
-        ivyname,
-        os.path.join(b, "invariants"),
-        answers_filename
-      )
-  )
-
+def impl_check(ivyname, b,
+    module_json_file, module_invs, gen_invs, answer_invs):
   def write_invs_file(c):
     t = tempfile.mktemp()
     with open(t, "w") as f:
@@ -148,11 +130,36 @@ def do_analysis(ivyname, b):
 
   try:
     print(b)
-    d = count_terms_of_tmpfile(b)
+
+    answers_filename = ".".join(ivyname.split(".")[:-1] + ["answers"])
+
+    if not os.path.exists(answers_filename):
+      print("file does not exist: " + answers_filename)
+      answers_filename = None
+
+    module_json_file, module_invs, gen_invs, answer_invs = (
+        protocol_parsing.parse_module_invs_invs_invs(
+          ivyname,
+          os.path.join(b, "invariants"),
+          answers_filename
+        )
+    )
+
+    d_syn = count_terms_of_value_list(gen_invs)
+    d = {
+      "synthesized_invs": d_syn["invs"],
+      "synthesized_terms": d_syn["terms"],
+    }
+
+    if answer_invs != None:
+      d_hand = count_terms_of_value_list(answer_invs)
+      d["handwritten_invs"] = d_hand["invs"]
+      d["handwritten_terms"] = d_hand["terms"]
 
     was_success = did_succeed(b)
-    if not was_success:
-      d1 = impl_check(ivyname, b)
+    if (not was_success) and answer_invs != None:
+      d1 = impl_check(ivyname, b,
+          module_json_file, module_invs, gen_invs, answer_invs)
       d = {**d, **d1}
 
     res_filename = os.path.join(b, "inv_analysis")
