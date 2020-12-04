@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import paper_benchmarks
+import traceback
 
 def get_protocol_filename(logdir):
   summary_file = os.path.join(logdir, "summary")
@@ -69,6 +70,8 @@ def count_terms_of_tmpfile(logdir):
       return sum(count_terms(t) for t in v[1])
     elif v[0] == 'not':
       return count_terms(v[1])
+    elif v[0] == 'implies':
+      return count_terms(v[1]) + count_terms(v[2])
     elif v[0] == 'apply':
       return 1
     elif v[0] == 'const':
@@ -102,6 +105,11 @@ def do_single_impl_check(module_json_file, lhs_invs, rhs_invs):
 
 def impl_check(ivyname, b):
   answers_filename = ".".join(ivyname.split(".")[:-1] + ["answers"])
+
+  if not os.path.exists(answers_filename):
+    print("file does not exist: " + answers_filename)
+    return {}
+
   module_json_file, module_invs, gen_invs, answer_invs = (
       protocol_parsing.parse_module_invs_invs_invs(
         ivyname,
@@ -134,28 +142,34 @@ def impl_check(ivyname, b):
   }
 
 def do_analysis(ivyname, b):
-  print(b)
-  d = count_terms_of_tmpfile(b)
+  if not os.path.exists(b):
+    print("could not find", b, " ... skipping")
+    return
 
-  was_success = did_succeed(b)
-  if not was_success:
-    d1 = impl_check(ivyname, b)
-    d = {**d, **d1}
+  try:
+    print(b)
+    d = count_terms_of_tmpfile(b)
 
-  res_filename = os.path.join(b, "inv_analysis")
+    was_success = did_succeed(b)
+    if not was_success:
+      d1 = impl_check(ivyname, b)
+      d = {**d, **d1}
 
-  print(d)
+    res_filename = os.path.join(b, "inv_analysis")
 
-  with open(res_filename, "w") as f:
-    f.write(json.dumps(d))
+    print(d)
+
+    with open(res_filename, "w") as f:
+      f.write(json.dumps(d))
+  except Exception:
+    traceback.print_exc()
 
 def run_analyses(input_directory):
   all_main_benches = paper_benchmarks.get_all_main_benchmarks()
   for b in all_main_benches:
     name = b.get_name()
-    if "multi" in name:
-      do_analysis("benchmarks/" + b.ivyname,
-          os.path.join(input_directory, name))
+    do_analysis("benchmarks/" + b.ivyname,
+        os.path.join(input_directory, name))
 
 if __name__ == '__main__':
   #validate_run_invariants(sys.argv[1])
