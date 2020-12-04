@@ -517,7 +517,7 @@ def get_bench_info(name):
       ("__consensus_wo_decide_pyv__", "consensus-wo-decide", False),
       ("__firewall_pyv__", "firewall", True),
       ("__hybrid_reliable_broadcast_cisa_pyv__", "hybrid-reliable-broadcast", True),
-      ("__learning_switch_pyv__", "learning-switch-quad", False),
+      ("__learning-switch-quad_pyv__", "learning-switch-quad", False),
       ("__lock-server-async_pyv__", "lock-server-async", False),
       #("__ring_id_pyv__", "ring-election-mypyvy"),
       ("__ring_id_not_dead_pyv__", "ring-election-not-dead", True),
@@ -598,7 +598,7 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__toy_consensus_forall_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_forall_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_wo_decide_pyv__auto__seed#_t8",
-    "mm_nonacc__learning_switch_pyv__auto__seed#_t8",
+    "mm_nonacc__learning-switch-quad_pyv__auto__seed#_t8",
     "mm_nonacc__lock-server-async_pyv__auto9__seed#_t8",
     "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
     "mm_nonacc__ticket_pyv__auto__seed#_t8",
@@ -1267,7 +1267,7 @@ def make_seed_graphs_main(input_directory, save=False):
   fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
   plt.gcf().subplots_adjust(bottom=0.20)
 
-  make_seed_graph(ax.flat[0], input_directory, "wc_learning_switch", title="Learning switch (BreadthAccumulative)")
+  make_seed_graph(ax.flat[0], input_directory, "wc_learning-switch-ternary", title="Learning switch (BreadthAccumulative)")
   make_seed_graph(ax.flat[1], input_directory, "wc_bt_paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
   make_seed_graph(ax.flat[2], input_directory, "wc_bt_paxos", title="Paxos (Finisher)", skip_b=True)
   make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_bt_paxos", title="Paxos (Finisher, entire space)")
