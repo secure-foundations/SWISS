@@ -231,6 +231,7 @@ def unique_benches(old_benches):
       benches.append(b)
   return benches
 
+old_benches = benches
 benches = unique_benches(benches)
 
 #for b in benches:
@@ -461,7 +462,7 @@ def awesome_async_run(directory, benches, j):
 
 def get_all_main_benchmarks():
   res = []
-  for b in benches:
+  for b in old_benches:
     if b.main:
       res.append(b)
   return res
