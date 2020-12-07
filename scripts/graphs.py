@@ -6,6 +6,7 @@ import matplotlib.transforms as mtrans
 import sys
 import os
 import json
+import paper_benchmarks
 
 import get_counts
 import templates
@@ -554,6 +555,7 @@ def get_basic_stats_or_fail(input_directory, r):
   return BasicStats(input_directory, get_bench_name(r), r)
 
 def get_basic_stats(input_directory, r):
+  #assert paper_benchmarks.does_exist(r), r
   try:
     return BasicStats(input_directory, get_bench_name(r), r)
   except FileNotFoundError:
