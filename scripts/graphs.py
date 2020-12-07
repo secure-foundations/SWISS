@@ -864,15 +864,15 @@ def get_files_with_prefix(input_directory, prefix):
       files.append(filename)
   return files
 
-def make_nonacc_cmp_graph(ax, input_directory):
-  a = get_files_with_prefix(input_directory, "paxos_breadth_seed_")
-  b = get_files_with_prefix(input_directory, "nonacc_paxos_breadth_seed_")
-  columns = (
-    [(a[i], i+1, i+1) for i in range(len(a))] +
-    [(b[i], len(a) + 2 + i, i+1) for i in range(len(b))]
-  )
-  ax.set_title("accumulation (paxos)")
-  make_segmented_graph(ax, input_directory, "", "", columns=columns)
+#def make_nonacc_cmp_graph(ax, input_directory):
+#  a = get_files_with_prefix(input_directory, "paxos_breadth_seed_")
+#  b = get_files_with_prefix(input_directory, "nonacc_paxos_breadth_seed_")
+#  columns = (
+#    [(a[i], i+1, i+1) for i in range(len(a))] +
+#    [(b[i], len(a) + 2 + i, i+1) for i in range(len(b))]
+#  )
+#  ax.set_title("accumulation (paxos)")
+#  make_segmented_graph(ax, input_directory, "", "", columns=columns)
 
 def make_parallel_graph(ax, input_directory, name, include_threads=False, include_breakdown=False, graph_cex_count=False, graph_inv_count=False, collapse_size_split=False, collapsed_breakdown=False, graph_title=None, smaller=False, legend=False):
   suffix = ''
@@ -1274,24 +1274,24 @@ def make_opt_graphs_main(input_directory, save=False, mm=False, both=False):
   else:
     plt.show()
 
-def make_seed_graphs_main(input_directory, save=False):
-  output_directory = "graphs"
-  Path(output_directory).mkdir(parents=True, exist_ok=True)
+#def make_seed_graphs_main(input_directory, save=False):
+#  output_directory = "graphs"
+#  Path(output_directory).mkdir(parents=True, exist_ok=True)
+#
+#  fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
+#  plt.gcf().subplots_adjust(bottom=0.20)
+#
+#  make_seed_graph(ax.flat[0], input_directory, "wc_learning-switch-ternary", title="Learning switch (BreadthAccumulative)")
+#  make_seed_graph(ax.flat[1], input_directory, "wc_bt_paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
+#  make_seed_graph(ax.flat[2], input_directory, "wc_bt_paxos", title="Paxos (Finisher)", skip_b=True)
+#  make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_bt_paxos", title="Paxos (Finisher, entire space)")
 
-  fig, ax = plt.subplots(nrows=1, ncols=4, figsize=[12, 3])
-  plt.gcf().subplots_adjust(bottom=0.20)
+#  fig.tight_layout()
 
-  make_seed_graph(ax.flat[0], input_directory, "wc_learning-switch-ternary", title="Learning switch (BreadthAccumulative)")
-  make_seed_graph(ax.flat[1], input_directory, "wc_bt_paxos", title="Paxos (BreadthAccumulative)", skip_f=True)
-  make_seed_graph(ax.flat[2], input_directory, "wc_bt_paxos", title="Paxos (Finisher)", skip_b=True)
-  make_seed_graph(ax.flat[3], input_directory, "wholespace_finisher_bt_paxos", title="Paxos (Finisher, entire space)")
-
-  fig.tight_layout()
-
-  if save:
-    plt.savefig(os.path.join(output_directory, 'seed.png'))
-  else:
-    plt.show()
+#  if save:
+#    plt.savefig(os.path.join(output_directory, 'seed.png'))
+#  else:
+#    plt.show()
 
 def misc_stats(input_directory, median_of=5):
   def p(key, value, comment=""):
