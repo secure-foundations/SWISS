@@ -15,13 +15,14 @@ import json
 NUM_PARTS = 100
 
 TIMEOUT_SECS = 6*3600
+MAX_SEED = 5
 
 all_procs = []
 
 DEFAULT_THREADS = 8
 
 class PaperBench(object):
-  def __init__(self, partition, ivyname, config, threads=DEFAULT_THREADS, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False, main=False):
+  def __init__(self, partition, ivyname, config, threads=DEFAULT_THREADS, seed=1, mm=True, pre_bmc=False, post_bmc=False, nonacc=False, whole=False, expect_success=True, finisher_only=False, main=False, is_long=False):
     self.partition = partition
 
     self.ivyname = ivyname
@@ -35,6 +36,7 @@ class PaperBench(object):
     self.whole = whole
     self.expect_success = expect_success
     self.finisher_only = finisher_only
+    self.is_long = is_long
 
     self.args = self.get_args()
     self.name = self.get_name()
@@ -94,53 +96,60 @@ THREADS = 8
 #benches.append(PaperBench(1, "stoppable_paxos.ivy", config="auto", seed=1, nonacc=True))
 #benches.append(PaperBench(1, "vertical_paxos.ivy", config="auto", seed=1, nonacc=True))
 
-for seed in range(1, 6):
-  for fonly in (False, True):
-    if fonly and seed > 2:
-      continue
+# protocol filename
+# config
+# expect timeout
+# expect timeout on f_only
+MAIN_BENCHMARKS = [
+    ("simple-de-lock.ivy", "auto", False, False, ),
+    ("leader-election.ivy", "auto_full", False, False, ),
+    ("learning-switch-ternary.ivy", "auto_e0_full", False, True, ),
+    ("lock-server-sync.ivy", "auto_full", False, False, ),
+    ("2PC.ivy", "auto_full", False, False, ),
+    ("paxos.ivy", "auto", False, True, ),
+    ("multi_paxos.ivy", "basic", False, True, ),
+    ("multi_paxos.ivy", "auto", True, True, ),
+    ("flexible_paxos.ivy", "auto", False, True, ),
+    ("fast_paxos.ivy", "auto", True, True, ),
+    ("stoppable_paxos.ivy", "auto", True, True, ),
+    ("vertical_paxos.ivy", "auto", True, True, ),
+    ("chain.ivy", "auto", True, True, ),
+    ("chord.ivy", "auto", True, True, ),
+    ("distributed_lock.ivy", "auto9", False, True, ),
 
-    main = not fonly
-
-    benches.append(PaperBench(8, "simple-de-lock.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "leader-election.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "learning-switch-ternary.ivy", config="auto_e0_full", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(6, "learning-switch-ternary.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "lock-server-sync.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "2PC.ivy", config="auto_full", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(6, "paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(4, "multi_paxos.ivy", config="basic", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "multi_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(6, "flexible_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "fast_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "stoppable_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "vertical_paxos.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "chain.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "chord.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(1, "distributed_lock.ivy", config="auto9", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "chord-gimme-1.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(10, "decentralized-lock-gimme-1.ivy", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-
-    benches.append(PaperBench(8, "client_server_ae.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "client_server_db_ae.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(8, "consensus_epr.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "consensus_forall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "consensus_wo_decide.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(9, "firewall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "hybrid_reliable_broadcast_cisa.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "learning-switch-quad.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(19, "lock-server-async.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "lock-server-async.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(9, "ring_id_not_dead.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(22, "sharded_kv.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "sharded_kv.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(9, "sharded_kv_no_lost_keys.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    #benches.append(PaperBench(9, "sharded_kv_no_lost_keys.pyv", config="auto9", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "ticket.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "toy_consensus_epr.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(9, "toy_consensus_forall.pyv", config="auto", seed=seed, nonacc=True, finisher_only=fonly, main=main))
-    benches.append(PaperBench(4, "sharded_kv_no_lost_keys.pyv", config="auto_e2", seed=seed, nonacc=True, finisher_only=fonly, main=main))
+    ("client_server_ae.pyv", "auto", False, False, ),
+    ("client_server_db_ae.pyv", "auto", False, False, ),
+    ("consensus_epr.pyv", "auto", False, True, ),
+    ("consensus_forall.pyv", "auto", False, True, ),
+    ("consensus_wo_decide.pyv", "auto", False, True, ),
+    ("hybrid_reliable_broadcast_cisa.pyv", "auto", True, True, ),
+    ("learning-switch-quad.pyv", "auto", False, False, ),
+    ("lock-server-async.pyv", "auto9", False, False, ),
+    ("sharded_kv.pyv", "auto9", False, True, ),
+    ("ticket.pyv", "auto", False, False, ),
+    ("toy_consensus_epr.pyv", "auto", False, False, ),
+    ("toy_consensus_forall.pyv", "auto", False, False, ),
+    ("sharded_kv_no_lost_keys.pyv", "auto_e2", False, True, ),
+]
 
 
+for ivy_name, config_name, expect_timeout, expect_timeout_fonly in MAIN_BENCHMARKS:
+  for seed in range(1, MAX_SEED + 1):
+    for fonly in (False, True):
+      if fonly and seed > 2:
+        continue
+
+      if expect_timeout and seed > 1:
+        continue
+
+      is_long = (fonly and expect_timeout_fonly)
+
+      main = not fonly
+
+      benches.append(PaperBench(1, ivy_name,
+          config_name, seed=seed, nonacc=True,
+          finisher_only=fonly,
+          main=main, is_long=is_long))
 
 benches.append(PaperBench(2, "paxos.ivy", config="auto_breadth", nonacc=True, expect_success=False))
 benches.append(PaperBench(2, "paxos.ivy", config="auto_finisher", nonacc=True, expect_success=False))
@@ -467,6 +476,8 @@ def parse_args(args):
   j = None
   p = None
   one = None
+  skip_long = False
+  median_of = MAX_SEED
   i = 0
   while i < len(args):
     if args[i] == '-j':
@@ -478,10 +489,16 @@ def parse_args(args):
     elif args[i] == '--one':
       one = args[i+1]
       i += 1
+    elif args[i] == '--skip-long':
+      skip_long = True
+    elif args[i] == '--median-of':
+      median_of = int(args[i+1])
+      assert 1 <= median_of <= MAX_SEED
+      i += 1
     else:
       res.append(args[i])
     i += 1
-  return j, p, one, res
+  return j, p, one, res, skip_long, median_of
 
 #for b in benches:
 #  print(b.name)
@@ -499,9 +516,20 @@ def cleanup():
 
 atexit.register(cleanup)
 
+def filter_benches(benches, skip_long, median_of):
+  res = []
+  for b in benches:
+    if b.seed > median_of:
+      print("skipping", b.name, "[ --median-of", median_of, "]")
+    elif b.is_long and skip_long:
+      print("skipping", b.name, "[ --skip-long ]")
+    else:
+      res.append(b)
+  return res
+
 def main():
   args = sys.argv[1:]
-  j, p, one, args = parse_args(args)
+  j, p, one, args, skip_long, median_of = parse_args(args)
 
   assert len(args) == 1
   directory = args[0]
@@ -509,15 +537,17 @@ def main():
 
   assert directory.startswith("paperlogs/")
 
+  my_benches = filter_benches(benches, skip_long, median_of)
+
   if j == None:
-    for b in benches:
+    for b in my_benches:
       if (p == None or p == b.partition) and (b.name == one or one == None):
         run(directory, b)
   else:
     if p == None:
-      awesome_async_run(directory, benches, j)
+      awesome_async_run(directory, my_benches, j)
     else:
-      awesome_async_run(directory, [b for b in benches if b.partition == p], j)
+      awesome_async_run(directory, [b for b in my_benches if b.partition == p], j)
 
   print('done')
 
