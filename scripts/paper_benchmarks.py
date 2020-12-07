@@ -165,7 +165,8 @@ benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=5, whol
 benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=6, whole=True, expect_success=False))
 benches.append(PaperBench(11, "paxos_epr_missing1.ivy", "basic", threads=7, whole=True, expect_success=False))
 
-for i in range(THREADS, 0, -1):
+for i in (8,4,2,1):
+
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", nonacc=True, threads=i, expect_success=False))
   benches.append(PaperBench(6, "paxos.ivy", "basic_b", threads=i, expect_success=False))
 

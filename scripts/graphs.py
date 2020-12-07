@@ -14,7 +14,7 @@ class ThreadStats(object):
   def __init__(self, input_directory, filename):
     times = {}
     stats = {}
-    with open(os.path.join(input_directory, filename)) as f:
+    with open(os.path.join(input_directory, filename, "summary")) as f:
       cur_name = None
       cur_stats = None
       state = 0
@@ -89,9 +89,9 @@ class ThreadStats(object):
 
   def get_name_from_log(self, log):
     if log.startswith("./logs/log."):
-      name = '.'.join(log.split('.')[5:])
+      name = log.split('/')[-1]
     elif log.startswith("/pylon5/ms5pijp/tjhance/log."):
-      name = '.'.join(log.split('.')[4:])
+      name = log.split('/')[-1]
     else:
       assert False
     return name
@@ -550,17 +550,23 @@ def get_bench_info(name):
   print("need bench name for", name)
   assert False
 
+def get_basic_stats_or_fail(input_directory, r):
+  return BasicStats(input_directory, get_bench_name(r), r)
+
 def get_basic_stats(input_directory, r):
   try:
     return BasicStats(input_directory, get_bench_name(r), r)
   except FileNotFoundError:
     return None
 
-def median(input_directory, r, a, b):
+def median(input_directory, r, a, b, fail_if_absent=False):
   t = []
   for i in range(a, b+1):
     r1 = r.replace("#", str(i))
-    s = get_basic_stats(input_directory, r1)
+    if fail_if_absent:
+      s = get_basic_stats_or_fail(input_directory, r1)
+    else:
+      s = get_basic_stats(input_directory, r1)
     if s != None:
       t.append(s)
 
@@ -579,6 +585,9 @@ def median(input_directory, r, a, b):
       return t[0]
     else:
       return None
+
+def median_or_fail(input_directory, r, a, b):
+  return median(input_directory, r, a, b, fail_if_absent=True)
 
 MAIN_TABLE_ROWS = [
     "mm_nonacc__simple-de-lock__auto__seed#_t8",
@@ -774,7 +783,7 @@ def make_optimization_step_table(input_directory):
     ts = ThreadStats(input_directory, s.filename)
     thread_stats[r] = ts
 
-    full_name = os.path.join(input_directory, s.filename)
+    full_name = os.path.join(input_directory, s.filename, "summary")
 
     for alg in ('breadth', 'finisher'):
       if alg == 'breadth':
@@ -1111,7 +1120,7 @@ def make_segmented_graph(ax, input_directory, name, suffix,
           bottom += t
 
 def get_total_time(input_directory, filename):
-  with open(os.path.join(input_directory, filename)) as f:
+  with open(os.path.join(input_directory, filename, "summary")) as f:
     for line in f:
       if line.startswith("total time: "):
         t = float(line.split()[2])
@@ -1231,7 +1240,9 @@ def make_parallel_graphs(input_directory, save=False):
   plt.tight_layout()
 
   if save:
-    plt.savefig(os.path.join(output_directory, 'paxos-parallel.png'))
+    fname = os.path.join(output_directory, 'paxos-parallel.png')
+    print(fname)
+    plt.savefig(fname)
   else:
     plt.show()
 
@@ -1252,11 +1263,14 @@ def make_opt_graphs_main(input_directory, save=False, mm=False, both=False):
 
   if save:
     if both:
-      plt.savefig(os.path.join(output_directory, 'opt-comparison-both.png'))
+      fname = os.path.join(output_directory, 'opt-comparison-both.png')
     elif mm:
-      plt.savefig(os.path.join(output_directory, 'opt-comparison-mm.png'))
+      fname = os.path.join(output_directory, 'opt-comparison-mm.png')
     else:
-      plt.savefig(os.path.join(output_directory, 'opt-comparison-bmc.png'))
+      fname = os.path.join(output_directory, 'opt-comparison-bmc.png')
+
+    print(fname)
+    plt.savefig(fname)
   else:
     plt.show()
 
@@ -1279,17 +1293,17 @@ def make_seed_graphs_main(input_directory, save=False):
   else:
     plt.show()
 
-def misc_stats(input_directory):
+def misc_stats(input_directory, median_of=5):
   def p(key, value, comment=""):
     print("\\newcommand{\\" + key + "}{" + str(value) + "}" +
         ("" if comment == "" else " % " + str(comment)))
 
-  paxos_1_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t1")
-  paxos_2_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t2")
-  paxos_8_threads = get_basic_stats(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t8")
+  paxos_1_threads = get_basic_stats_or_fail(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t1")
+  paxos_2_threads = get_basic_stats_or_fail(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t2")
+  paxos_8_threads = get_basic_stats_or_fail(input_directory, PAXOS_FINISHER_THREAD_BENCH + "_t8")
 
-  paxos_b_1_threads = get_basic_stats(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t1")
-  paxos_b_8_threads = get_basic_stats(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t8")
+  paxos_b_1_threads = get_basic_stats_or_fail(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t1")
+  paxos_b_8_threads = get_basic_stats_or_fail(input_directory, PAXOS_NONACC_THREAD_BENCH + "_t8")
 
   def speedup(s, t):
     x = t.total_time_sec / s.total_time_sec
@@ -1311,8 +1325,8 @@ def misc_stats(input_directory):
   p("paxosBreadthNth", "\\ensuremath{569^{\\text{th}}}")
 
   p("flexiblePaxosMMSpeedup", speedup(
-      get_basic_stats(input_directory, 'mm__flexible_paxos__basic__seed1_t8'),
-      get_basic_stats(input_directory, '_flexible_paxos__basic__seed1_t8')))
+      get_basic_stats_or_fail(input_directory, 'mm__flexible_paxos__basic__seed1_t8'),
+      get_basic_stats_or_fail(input_directory, '_flexible_paxos__basic__seed1_t8')))
 
   def read_counts():
     d = []
@@ -1351,9 +1365,13 @@ def misc_stats(input_directory):
   p("paxosUpToTotal", "\ensuremath{\sim 10^{12}}",                934257540926)
   p("paxosUpToTotalSmall", "\ensuremath{\sim 2 \\times 10^{11}}", 232460599445)
   p("paxosUserGuidanceSavingPercent", str(int((934257540926 - 232460599445) * 100 / 934257540926)))
+
+
+  m = median_or_fail(input_directory, "mm_nonacc__paxos__auto__seed#_t8", 1, median_of)
+
   p("paxosUserGuidanceSavingTime", speedup(
-      get_basic_stats(input_directory, "mm_nonacc__paxos__basic__seed1_t8"),
-      median(input_directory, "mm_nonacc__paxos__auto__seed#_t8", 1, 5)))
+      get_basic_stats_or_fail(input_directory, "mm_nonacc__paxos__basic__seed1_t8"),
+      m))
 
   p("paxosFinisherOneThreadSmtAverage", 
       "{:.1f}".format(paxos_1_threads.get_global_stat_avg("total")))
@@ -1389,7 +1407,7 @@ def misc_stats(input_directory):
   for r in MAIN_TABLE_ROWS:
     if r == '||':
       continue
-    stats = median(input_directory, r, 1, 5)  
+    stats = median(input_directory, r, 1, median_of)
     if not stats.timed_out_6_hours and stats.success:
       total_solved += 1
       if stats.num_finisher_iters == 0:
