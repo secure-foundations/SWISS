@@ -7,9 +7,10 @@ using namespace std;
 // TODO start with x | not x
 // TODO start with axioms
 // TODO start with (exists x . f(x) & not f(y)) and so on
-// TODO basic implication: a & (a -> b)
+// done basic implication: a & (a -> b)
+// done replace forall with existentials
 // TODO generalize stuff to existentials
-// TODO permute variables
+// done permute variables
 // TODO substitutions in (A=B -> stuff)
 
 Flood::Flood(
@@ -35,9 +36,25 @@ Flood::Flood(
   this->init_masks();
 }
 
+std::vector<RedundantDesc> Flood::get_initial_redundant_descs()
+{
+  assert (this->entries.size() == 0);
+
+  add_negations();
+  add_axioms();
+
+  return make_results(0);
+}
+
 std::vector<RedundantDesc> Flood::add_formula(value v)
 {
   int initial_entry_len = (int)entries.size();
+  do_add(v);
+  return make_results(initial_entry_len);
+}
+
+void Flood::do_add(value v)
+{
   int cur = (int)entries.size();
 
   vector<Entry> new_es = value_to_entries(v);
@@ -57,8 +74,6 @@ std::vector<RedundantDesc> Flood::add_formula(value v)
     }
     cur++;
   }
-
-  return make_results(initial_entry_len);
 }
 
 void Flood::init_piece_to_index() {
@@ -455,5 +470,34 @@ void Flood::init_masks()
     }
     this->sort_uses_masks[i] = sort_use_mask;
     this->var_uses_masks[i] = var_use_mask;
+  }
+}
+
+void Flood::add_negations()
+{
+  assert (negation_map.size() > 0);
+  for (int i = 0; i < (int)negation_map.size(); i++) {
+    int j = negation_map[i];
+    if (j != -1 && j > i) {
+      Entry e;
+      e.v = {i, j};
+      e.forall_mask = sort_uses_masks[i];
+      e.exists_mask = 0;
+      e.subsumed = false;
+      entries.push_back(e);
+
+      if (max_e > 0) {
+        e.exists_mask = e.forall_mask;
+        e.forall_mask = 0;
+        entries.push_back(e);
+      }
+    }
+  }
+}
+
+void Flood::add_axioms()
+{
+  for (value v : module->axioms) {
+    do_add(v);
   }
 }

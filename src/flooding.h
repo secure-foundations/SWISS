@@ -60,6 +60,11 @@ class Flood {
     int get_index_of_piece(value p);
     bool get_single_entry_of_value(value inv, std::vector<int>& t);
 
+    void add_negations();
+    void add_axioms();
+
+    void do_add(value v);
+
     void add_checking_subsumes(Entry const& e);
     Entry make_entry(std::vector<int> const& t, uint32_t forall, uint32_t exists);
 
