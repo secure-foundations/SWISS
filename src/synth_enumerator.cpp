@@ -7,6 +7,7 @@
 #include "enumerator.h"
 #include "alt_synth_enumerator.h"
 #include "alt_depth2_synth_enumerator.h"
+#include "flooding.h"
 
 using namespace std;
 
@@ -17,9 +18,11 @@ public:
   vector<shared_ptr<CandidateSolver>> solvers;
 
   vector<int> cex_idx;
-  vector<int> inv_idx;
+  vector<int> rd_idx;
   vector<Counterexample> cexes;
-  vector<value> invs;
+  vector<RedundantDesc> redundantDescs;
+
+  unique_ptr<Flood> flood;
 
   int idx;
   int solver_idx;
@@ -48,17 +51,52 @@ public:
               : (CandidateSolver*)new AltDisjunctCandidateSolver(module, spaces[i])
           ));
       cex_idx.push_back(0);
-      inv_idx.push_back(0);
+      rd_idx.push_back(0);
     }
     idx = 0;
     done = false;
     set_solver_idx();
+
+    init_quant_masks();
+    initialize_flood(module, calc_max_e(sub_slices));
+  }
+
+  static int calc_max_e(vector<TemplateSubSlice> const& sub_slices)
+  {
+    int emax = 0;
+    for (TemplateSubSlice const& tss : sub_slices) {
+      int e = 0;
+      for (int i = 0; i < (int)tss.ts.vars.size(); i++) {
+        if (tss.ts.quantifiers[i] == Quantifier::Exists) {
+          e += tss.ts.vars[i];
+        }
+      }
+      if (e > emax) emax = e;
+    }
+    return emax;
+  }
+
+  void initialize_flood(shared_ptr<Module> module, int max_e)
+  {
+    assert (spaces.size() == 1); // TODO
+    this->flood = unique_ptr<Flood>(new Flood(module, spaces[0], max_e));
+    append_redundant_descs(this->flood->get_initial_redundant_descs());
+    update_cexes_invs();
+  }
+
+  void append_redundant_descs(vector<RedundantDesc> const& rds)
+  {
+    for (RedundantDesc const& rd : rds) {
+      redundantDescs.push_back(rd);
+    }
   }
 
   void update_cexes_invs() {
-    while (inv_idx[solver_idx] < (int)invs.size()) {
-      solvers[solver_idx]->addExistingInvariant(invs[inv_idx[solver_idx]]);
-      inv_idx[solver_idx]++;
+    while (rd_idx[solver_idx] < (int)redundantDescs.size()) {
+      if (rd_for_solver(redundantDescs[rd_idx[solver_idx]], solver_idx)) {
+        solvers[solver_idx]->addRedundantDesc(redundantDescs[rd_idx[solver_idx]].v);
+      }
+      rd_idx[solver_idx]++;
     }
 
     while (cex_idx[solver_idx] < (int)cexes.size()) {
@@ -115,9 +153,28 @@ public:
   }
 
   void addExistingInvariant(value inv) {
-    invs.push_back(inv);
-    solvers[solver_idx]->addExistingInvariant(inv);
-    inv_idx[solver_idx]++;
+    //invs.push_back(inv);
+    //solvers[solver_idx]->addExistingInvariant(inv);
+    //inv_idx[solver_idx]++;
+    append_redundant_descs(flood->add_formula(inv));
+    update_cexes_invs();
+  }
+
+  vector<uint32_t> quant_masks;
+  void init_quant_masks() {
+    quant_masks.resize(spaces.size());
+    for (int i = 0; i < (int)spaces.size(); i++) {
+      uint32_t m = 0;
+      for (int j = 0; j < (int)spaces[i].quantifiers.size(); j++) {
+        if (spaces[i].quantifiers[j] == Quantifier::Exists) {
+          m |= (1 << j);
+        }
+      }
+      quant_masks[i] = m;
+    }
+  }
+  bool rd_for_solver(RedundantDesc const& rd, int solver_idx) {
+    return rd.quant_mask == quant_masks[solver_idx];
   }
 
   long long getProgress() {
@@ -137,6 +194,10 @@ public:
   }
 
   void setSubSlice(TemplateSubSlice const& tss) {
+    assert(false);
+  }
+
+  void addRedundantDesc(std::vector<int> const&) {
     assert(false);
   }
 };

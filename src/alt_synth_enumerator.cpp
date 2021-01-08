@@ -4,7 +4,7 @@
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
-#include "auto_redundancy_filters.h"
+//#include "auto_redundancy_filters.h"
 
 using namespace std;
 
@@ -50,12 +50,11 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 
-  cout << "ello" << endl;
-  for (vector<int> const& indices : get_auto_redundancy_filters(pieces)) {
+  /*for (vector<int> const& indices : get_auto_redundancy_filters(pieces)) {
     // These are things we want to filter out. They aren't necessarily invariant,
     // though! Only call existing_invariants_append, not addExistingInvariant.
     existing_invariants_append(indices);
-  }
+  }*/
 }
 
 void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex)
@@ -114,14 +113,20 @@ void AltDisjunctCandidateSolver::existing_invariants_append(std::vector<int> con
 
 void AltDisjunctCandidateSolver::addExistingInvariant(value inv0)
 {
-  for (value inv : taqd.rename_into_all_possibilities(inv0)) {
+  assert(false);
+  /*for (value inv : taqd.rename_into_all_possibilities(inv0)) {
     vector<int> indices = get_indices_of_value(inv);
     sort(indices.begin(), indices.end());
     existing_invariants_append(indices);
 
     value norm = inv->totally_normalize();
     existing_invariant_set.insert(ComparableValue(norm));
-  }
+  }*/
+}
+
+void AltDisjunctCandidateSolver::addRedundantDesc(std::vector<int> const& indices)
+{
+  existing_invariants_append(indices);
 }
 
 inline bool is_indices_subset(vector<int> const& a, vector<int> const& b, int& upTo) {
@@ -326,10 +331,10 @@ value AltDisjunctCandidateSolver::getNext() {
     }
     value v = disjunction_fuse(disjs);
 
-    if (existing_invariant_set.count(ComparableValue(v->totally_normalize())) > 0) {
+    /*if (existing_invariant_set.count(ComparableValue(v->totally_normalize())) > 0) {
       existing_invariants_append(cur_indices);
       continue;
-    }
+    }*/
 
     dump_cur_indices();
     return v;

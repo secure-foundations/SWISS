@@ -60,6 +60,7 @@ public:
   virtual value getNext() = 0;
   virtual void addCounterexample(Counterexample cex) = 0;
   virtual void addExistingInvariant(value inv) = 0;
+  virtual void addRedundantDesc(std::vector<int> const&) = 0;
   virtual long long getProgress() = 0;
   virtual long long getPreSymmCount() = 0;
   virtual long long getSpaceSize() = 0;

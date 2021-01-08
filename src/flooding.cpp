@@ -19,7 +19,6 @@ Flood::Flood(
     int max_e)
   : module(module)
   , forall_taqd(v_template_hole())
-  , enum_info(nullptr, nullptr)
 {
   this->nsorts = module->sorts.size();
   this->max_k = forall_tspace.k;
@@ -27,7 +26,7 @@ Flood::Flood(
 
   value templ = forall_tspace.make_templ(module);
   this->forall_taqd = TopAlternatingQuantifierDesc(templ);
-  this->enum_info = EnumInfo(module, templ);
+  this->clauses = EnumInfo(module, templ).clauses;
 
   assert (forall_tspace.depth == 1);
 
@@ -77,8 +76,8 @@ void Flood::do_add(value v)
 }
 
 void Flood::init_piece_to_index() {
-  for (int i = 0; i < (int)enum_info.clauses.size(); i++) {
-    value v = enum_info.clauses[i];
+  for (int i = 0; i < (int)clauses.size(); i++) {
+    value v = clauses[i];
     while (true) {
       if (Forall* f = dynamic_cast<Forall*>(v.get())) {
         v = f->body;
@@ -384,13 +383,13 @@ int Flood::exists_count(Entry const& e)
 
 void Flood::init_negation_map()
 {
-  int l = (int)enum_info.clauses.size();
+  int l = (int)clauses.size();
   negation_map.resize(l);
   for (int i = 0; i < l; i++) {
     negation_map[i] = -1;
   }
   for (int i = 0; i < l; i++) {
-    value v = enum_info.clauses[i];
+    value v = clauses[i];
     while (true) {
       if (Forall* f = dynamic_cast<Forall*>(v.get())) {
         v = f->body;
@@ -451,14 +450,14 @@ void Flood::init_masks()
     }
   }
 
-  int l = (int)enum_info.clauses.size();
+  int l = (int)clauses.size();
 
   sort_uses_masks.resize(l);
   var_uses_masks.resize(l);
 
   for (int i = 0; i < l; i++) {
     set<iden> used_vars;
-    enum_info.clauses[i]->get_used_vars(used_vars /* output */);
+    clauses[i]->get_used_vars(used_vars /* output */);
 
     uint32_t sort_use_mask = 0;
     uint64_t var_use_mask = 0;
@@ -498,6 +497,6 @@ void Flood::add_negations()
 void Flood::add_axioms()
 {
   for (value v : module->axioms) {
-    do_add(v);
+    do_add(v->structurally_normalize());
   }
 }

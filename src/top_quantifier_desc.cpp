@@ -596,7 +596,7 @@ std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(v
 }
 */
 
-std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
+/*std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
   vector<Alternation> alts;
   alts.resize(d.size());
   for (int i = 0; i < (int)d.size(); i++) {
@@ -608,7 +608,7 @@ std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
   TopAlternatingQuantifierDesc taqd;
   taqd.alts = alts;
   return taqd.rename_into_all_possibilities(v);
-}
+}*/
 
 std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities_ignore_quantifier_types(value v) {
   //cout << "rename_into_all_possibilities " << v->to_string() << endl;

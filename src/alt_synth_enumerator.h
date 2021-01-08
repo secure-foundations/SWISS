@@ -16,6 +16,7 @@ public:
   value getNext();
   void addCounterexample(Counterexample cex);
   void addExistingInvariant(value inv);
+  void addRedundantDesc(std::vector<int> const& v);
 
   long long getProgress() { return progress; }
   long long getPreSymmCount();
@@ -51,7 +52,7 @@ public:
   std::vector<std::vector<int>> existing_invariant_indices;
   SubsequenceTrie existing_invariant_trie;
 
-  std::set<ComparableValue> existing_invariant_set;
+  //std::set<ComparableValue> existing_invariant_set;
 
   std::map<ComparableValue, int> piece_to_index;
 

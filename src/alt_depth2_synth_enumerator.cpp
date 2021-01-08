@@ -111,6 +111,11 @@ void AltDepth2CandidateSolver::addExistingInvariant(value inv0)
   }*/
 }
 
+void AltDepth2CandidateSolver::addRedundantDesc(std::vector<int> const& v)
+{
+  assert(false);
+}
+
 value AltDepth2CandidateSolver::get_clause(int i)
 {
   value v = pieces[i];

@@ -17,6 +17,7 @@ public:
   value getNext();
   void addCounterexample(Counterexample cex);
   void addExistingInvariant(value inv);
+  void addRedundantDesc(std::vector<int> const& v);
   long long getProgress() { return progress; }
   long long getPreSymmCount();
   long long getSpaceSize() { assert(false); }

@@ -44,7 +44,7 @@ class Flood {
     std::vector<uint64_t> var_uses_masks;
     std::vector<uint64_t> var_of_sort_masks;
 
-    EnumInfo enum_info;
+    std::vector<value> clauses;
     std::map<ComparableValue, int> piece_to_index;
 
     void init_piece_to_index();
