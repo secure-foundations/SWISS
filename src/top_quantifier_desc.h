@@ -79,6 +79,7 @@ public:
   //    forall A: node, B: node, C: node . f(B) & g(C)
   // }
   std::vector<value> rename_into_all_possibilities(value);
+  std::vector<value> rename_into_all_possibilities_ignore_quantifier_types(value);
 
 private:
   std::vector<Alternation> alts;

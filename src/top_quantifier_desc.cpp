@@ -503,13 +503,14 @@ static bool is_valid(vector<vector<pair<int,int>>>& candidate) {
   return true;
 }
 
+/*
 std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(value v) {
-  cout << "rename_into_all_possibilities " << v->to_string() << endl;
-  for (Alternation const& alt : alts) {
-    cout << "type: " << (alt.altType == AltType::Forall ? "forall" : "exists");
-    cout << " ";
-  }
-  cout << endl;
+  //cout << "rename_into_all_possibilities " << v->to_string() << endl;
+  //for (Alternation const& alt : alts) {
+  //  cout << "type: " << (alt.altType == AltType::Forall ? "forall" : "exists");
+  //  cout << " ";
+  //}
+  //cout << endl;
 
   v = remove_unneeded_quants(v.get());
 
@@ -587,12 +588,13 @@ std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities(v
     continue_loop: { }
   }
 
-  for (value res : results) {
-    cout << "result: " << res->to_string() << endl;
-  }
+  //for (value res : results) {
+  //  cout << "result: " << res->to_string() << endl;
+  //}
 
   return results;
 }
+*/
 
 std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
   vector<Alternation> alts;
@@ -606,4 +608,96 @@ std::vector<value> TopQuantifierDesc::rename_into_all_possibilities(value v) {
   TopAlternatingQuantifierDesc taqd;
   taqd.alts = alts;
   return taqd.rename_into_all_possibilities(v);
+}
+
+std::vector<value> TopAlternatingQuantifierDesc::rename_into_all_possibilities_ignore_quantifier_types(value v) {
+  //cout << "rename_into_all_possibilities " << v->to_string() << endl;
+  //for (Alternation const& alt : alts) {
+  //  cout << "type: " << (alt.altType == AltType::Forall ? "forall" : "exists");
+  //  cout << " ";
+  //}
+  //cout << endl;
+
+  v = remove_unneeded_quants(v.get());
+
+  TopAlternatingQuantifierDesc taqd(v);
+
+  value body = TopAlternatingQuantifierDesc::get_body(v);
+
+  vector<vector<vector<pair<int,int>>>> possibilities;
+  vector<vector<int>> indices;
+  vector<vector<pair<int,int>>> candidate;
+
+  possibilities.resize(taqd.alts.size());
+  indices.resize(taqd.alts.size());
+  candidate.resize(taqd.alts.size());
+  for (int i = 0; i < (int)taqd.alts.size(); i++) {
+    possibilities[i].resize(taqd.alts[i].decls.size());
+    indices[i].resize(taqd.alts[i].decls.size());
+    candidate[i].resize(taqd.alts[i].decls.size());
+    for (int j = 0; j < (int)taqd.alts[i].decls.size(); j++) {
+      indices[i][j] = 0;
+
+      VarDecl const& decl = taqd.alts[i].decls[j];
+      for (int k = 0; k < (int)this->alts.size(); k++) {
+        // ignoring quantifier types:
+        //if (this->alts[k].altType == taqd.alts[i].altType ||
+        //    (taqd.alts[i].altType == AltType::Forall
+        //      && this->alts[k].altType == AltType::Exists)
+        //) {
+          for (int l = 0; l < (int)this->alts[k].decls.size(); l++) {
+            if (sorts_eq(decl.sort, this->alts[k].decls[l].sort)) {
+              possibilities[i][j].push_back(make_pair(k, l));
+            }
+          }
+        //}
+      }
+
+      if (possibilities[i][j].size() == 0) {
+        return {};
+      }
+    }
+  }
+
+  vector<value> results;
+
+  while (true) {
+    for (int i = 0; i < (int)taqd.alts.size(); i++) {
+      for (int j = 0; j < (int)taqd.alts[i].decls.size(); j++) {
+        candidate[i][j] = possibilities[i][j][indices[i][j]];
+      }
+    }
+
+    if (is_valid(candidate)) {
+      map<iden, iden> var_map;
+      for (int i = 0; i < (int)taqd.alts.size(); i++) {
+        for (int j = 0; j < (int)taqd.alts[i].decls.size(); j++) {
+          var_map.insert(make_pair(taqd.alts[i].decls[j].name,
+            this->alts[candidate[i][j].first].decls[candidate[i][j].second].name));
+        }
+      }
+      results.push_back(order_and_or_eq(this->with_body(body->replace_var_with_var(var_map))));
+    }
+
+    for (int i = 0; i < (int)taqd.alts.size(); i++) {
+      for (int j = 0; j < (int)taqd.alts[i].decls.size(); j++) {
+        indices[i][j]++;
+        if (indices[i][j] == (int)possibilities[i][j].size()) {
+          indices[i][j] = 0;
+        } else {
+          goto continue_loop;
+        }
+      }
+    }
+
+    break;
+
+    continue_loop: { }
+  }
+
+  //for (value res : results) {
+  //  cout << "result: " << res->to_string() << endl;
+  //}
+
+  return results;
 }
