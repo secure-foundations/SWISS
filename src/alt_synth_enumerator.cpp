@@ -4,7 +4,7 @@
 
 #include "enumerator.h"
 #include "var_lex_graph.h"
-//#include "auto_redundancy_filters.h"
+#include "auto_redundancy_filters.h"
 
 using namespace std;
 
@@ -50,11 +50,11 @@ AltDisjunctCandidateSolver::AltDisjunctCandidateSolver(
 
   existing_invariant_trie = SubsequenceTrie(pieces.size());
 
-  /*for (vector<int> const& indices : get_auto_redundancy_filters(pieces)) {
+  for (vector<int> const& indices : get_auto_redundancy_filters(pieces)) {
     // These are things we want to filter out. They aren't necessarily invariant,
     // though! Only call existing_invariants_append, not addExistingInvariant.
     existing_invariants_append(indices);
-  }*/
+  }
 }
 
 void AltDisjunctCandidateSolver::addCounterexample(Counterexample cex)

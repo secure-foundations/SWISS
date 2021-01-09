@@ -14,6 +14,8 @@ using namespace std;
 // TODO generalize stuff to existentials
 // done permute variables
 // TODO substitutions in (A=B -> stuff)
+// TODO if forall(stuff -> A=B) then disallow `stuff & (term containing B)`
+// TODO for axioms, instantiate universals in order to get stuff in the TemplateSpace
 
 Flood::Flood(
     std::shared_ptr<Module> module,
