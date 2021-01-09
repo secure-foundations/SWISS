@@ -959,7 +959,7 @@ SynthesisResult synth_loop_incremental_breadth(
           }*/
           num_nonredundant++;
         } else {
-          cout << "invariant is redundant" << endl;
+          cout << "invariant is redundant: " << candidate0->to_string() << endl;
           num_redundant++;
         }
 

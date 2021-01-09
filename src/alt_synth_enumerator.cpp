@@ -126,6 +126,11 @@ void AltDisjunctCandidateSolver::addExistingInvariant(value inv0)
 
 void AltDisjunctCandidateSolver::addRedundantDesc(std::vector<int> const& indices)
 {
+  //cout << "INDICES: ";
+  //for (int i : indices) {
+  //  cout << i << " ";
+  //}
+  //cout << endl;
   existing_invariants_append(indices);
 }
 

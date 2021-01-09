@@ -78,6 +78,8 @@ class Flood {
     bool are_negations(int a, int b);
     int exists_count(Entry const& e);
     uint32_t get_sort_uses_mask(std::vector<int> const&);
+
+    void dump_entry(Entry const& e);
 };
 
 #endif

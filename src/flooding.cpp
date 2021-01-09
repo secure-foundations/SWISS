@@ -1,11 +1,13 @@
 #include "flooding.h"
 
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
-// TODO start with x | not x
-// TODO start with axioms
+// done start with x | not x
+// done start with axioms
+// TODO substitute for x in forall x . ...
 // TODO start with (exists x . f(x) & not f(y)) and so on
 // done basic implication: a & (a -> b)
 // done replace forall with existentials
@@ -52,6 +54,8 @@ std::vector<RedundantDesc> Flood::add_formula(value v)
   return make_results(initial_entry_len);
 }
 
+//bool dbg = false;
+
 void Flood::do_add(value v)
 {
   int cur = (int)entries.size();
@@ -66,8 +70,12 @@ void Flood::do_add(value v)
     if (!entries[cur].subsumed) {
       process(entries[cur]);
       for (int j = 0; j < cur; j++) {
+        if (cur == 42 && j == 40) cout << "meyy" << endl;
         if (!entries[j].subsumed) {
+          if (cur == 42 && j == 40) cout << "meyyooo" << endl;
+          //if (cur == 42 && j == 40) dbg = true;
           process2(entries[cur], entries[j]);
+          //if (cur == 42 && j == 40) dbg = false;
         }
       }
     }
@@ -112,6 +120,20 @@ int sort_idx_of_module(std::shared_ptr<Module>& module, lsort so) {
   assert(false);
 }
 
+void sort_and_remove_dupes(vector<int>& t)
+{
+  sort(t.begin(), t.end());
+  int cur = 1;
+  for (int i = 1; i < (int)t.size(); i++) {
+    if (t[i] == t[i-1]) {
+    } else {
+      t[cur] = t[i];
+      cur++;
+    }
+  }
+  t.resize(cur);
+}
+
 bool Flood::get_single_entry_of_value(value inv, vector<int>& t) {
   while (true) {
     if (Forall* f = dynamic_cast<Forall*>(inv.get())) {
@@ -132,6 +154,7 @@ bool Flood::get_single_entry_of_value(value inv, vector<int>& t) {
       if (idx == -1) { return false; }
       t[i] = idx;
     }
+    sort_and_remove_dupes(t);
   } else {
     t.resize(1);
     int idx = get_index_of_piece(inv);
@@ -193,10 +216,43 @@ inline bool matches_exists_mask(uint32_t m, uint32_t e)
   return (e | m) == m;
 }
 
+void Flood::dump_entry(Entry const& e)
+{
+  for (int i = 0; i < nsorts; i++) {
+    if (e.forall_mask & (1 << i)) {
+      cout << "forall " << module->sorts[i] << " . ";
+    } else if (e.exists_mask & (1 << i)) {
+      cout << "exists " << module->sorts[i] << " . ";
+    }
+  }
+  for (int j = 0; j < (int)e.v.size(); j++) {
+    value v = clauses[e.v[j]];
+    while (true) {
+      if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+        v = f->body;
+      }
+      else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
+        v = f->body;
+      }
+      else {
+        break;
+      }
+    }
+    if (j > 0) {
+      cout << " | ";
+    }
+    cout << v->to_string();
+  }
+  cout << endl;
+}
+
 std::vector<RedundantDesc> Flood::make_results(int start)
 {
   std::vector<RedundantDesc> res;
   for (int i = start; i < (int)entries.size(); i++) {
+    cout << "ENTRY: (" << i << ") ";
+    dump_entry(entries[i]);
+    
     for (uint32_t m = 0; m < (1 << nsorts); m++) {
       if (matches_forall_mask(m, entries[i].forall_mask)
         && matches_exists_mask(m, entries[i].exists_mask))
@@ -254,32 +310,23 @@ void Flood::add_checking_subsumes(Entry const& e) {
         }
       }
     }
+    //if (dbg) cout << "blergh" << endl;
     this->entries.push_back(e);
+    cout << this->entries.size() - 1 << endl;
   }
 }
 
 void Flood::process2(Entry const& a, Entry const& b)
 {
+  //if (dbg) cout << "hi" << endl;
   if ((a.forall_mask & b.exists_mask)
    || (a.forall_mask & b.exists_mask)) {
     return;
   }
 
-  process_impl(a, b);
-}
+  //if (dbg) cout << "hi2" << endl;
 
-void sort_and_remove_dupes(vector<int>& t)
-{
-  sort(t.begin(), t.end());
-  int cur = 1;
-  for (int i = 1; i < (int)t.size(); i++) {
-    if (t[i] == t[i-1]) {
-    } else {
-      t[cur] = t[i];
-      cur++;
-    }
-  }
-  t.resize(cur);
+  process_impl(a, b);
 }
 
 Entry Flood::make_entry(vector<int> const& t, uint32_t forall, uint32_t exists)
@@ -289,6 +336,7 @@ Entry Flood::make_entry(vector<int> const& t, uint32_t forall, uint32_t exists)
   sort_and_remove_dupes(e.v);
   e.forall_mask = forall;
   e.exists_mask = exists;
+  e.subsumed = false; 
   return e;
 }
 
@@ -304,9 +352,11 @@ void Flood::process_impl(Entry const& a, Entry const& b)
     return;
   }
 
+  //if (dbg) cout << "hi3" << endl;
+
   for (int i = 0; i < (int)a.v.size(); i++) {
     for (int j = 0; j < (int)b.v.size(); j++) {
-      if (are_negations(a.v[i], b.v[i])) {
+      if (are_negations(a.v[i], b.v[j])) {
         vector<int> t;
         for (int k = 0; k < (int)a.v.size(); k++) {
           if (k != i) {
@@ -319,6 +369,7 @@ void Flood::process_impl(Entry const& a, Entry const& b)
           }
         }
         uint32_t mask = get_sort_uses_mask(t);
+        //if(dbg) cout << "hey!" << endl;
         add_checking_subsumes(make_entry(t,
             mask & (a.forall_mask | b.forall_mask),
             mask & (a.exists_mask | b.exists_mask)
