@@ -38,6 +38,7 @@ class Flood {
 
     // This is all 'forall' even though Flood can account for 'exists' as well.
     TopAlternatingQuantifierDesc forall_taqd;
+    TemplateSpace forall_tspace;
 
     std::vector<int> negation_map;
     std::vector<uint32_t> sort_uses_masks;

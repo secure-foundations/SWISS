@@ -62,7 +62,8 @@ struct Alternation {
 class TopAlternatingQuantifierDesc {
 public:
   TopAlternatingQuantifierDesc(value v);
-  std::vector<Alternation> alternations() { return alts; }
+  TopAlternatingQuantifierDesc(std::vector<Alternation> const& alts) : alts(alts) { }
+  std::vector<Alternation> alternations() const { return alts; }
 
   static value get_body(value);
   value with_body(value);

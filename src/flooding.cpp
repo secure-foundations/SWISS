@@ -29,6 +29,7 @@ Flood::Flood(
   this->nsorts = module->sorts.size();
   this->max_k = forall_tspace.k;
   this->max_e = max_e;
+  this->forall_tspace = forall_tspace;
 
   value templ = forall_tspace.make_templ(module);
   this->forall_taqd = TopAlternatingQuantifierDesc(templ);
@@ -549,75 +550,115 @@ void Flood::add_negations()
   }
 }
 
-vector<VarDecl> add_remaining_decls(vector<VarDecl> decls, value body)
+pair<TopAlternatingQuantifierDesc, set<iden>> add_universal_decls(
+    TopAlternatingQuantifierDesc const& taqd,
+    vector<int> const& sort_counts,
+    shared_ptr<Module> module)
 {
-  value v = body;
-  while (true) {
-    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
-      for (VarDecl const& vd : f->decls) {
-        decls.push_back(vd);
+  vector<Alternation> new_alts;
+  int sort_idx = 0;
+  vector<Alternation> alts = taqd.alternations();
+  set<iden> idens_to_instantiate;
+
+  int name_idx = 0;
+
+  for (int i = 0; i < (int)alts.size(); i++) {
+    Alternation const& alt = alts[i];
+
+    if (alt.is_exists()) {
+      new_alts.push_back(alt);
+    } else {
+      assert (alt.is_forall());
+
+      int next_sort_idx;
+      next_sort_idx = module->sorts.size();
+      if (i < (int)alts.size() - 1) {
+        Alternation const& next_alt = alts[i + 1];
+        for (VarDecl const& decl : next_alt.decls) {
+          next_sort_idx = min(next_sort_idx,
+              sort_idx_of_module(module, decl.sort));
+        }
       }
-      v = f->body;
-    }
-    else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
-      for (VarDecl const& vd : f->decls) {
-        decls.push_back(vd);
+
+      Alternation new_alt;
+      new_alt.altType = AltType::Forall;
+
+      for (int si = sort_idx; si < next_sort_idx; si++) {
+        lsort so = s_uninterp(module->sorts[si]);
+        for (int j = 0; j < sort_counts[si]; j++) {
+          string name = to_string(name_idx);
+          name_idx++;
+          while (name.size() < 4) name = "0" + name;
+          name = "AA_inst_" + name;
+          new_alt.decls.push_back(VarDecl(string_to_iden(name), so));
+        }
       }
-      v = f->body;
+
+      for (VarDecl const& decl : alt.decls) {
+        idens_to_instantiate.insert(decl.name);
+        new_alt.decls.push_back(decl);
+      }
+
+      new_alts.push_back(new_alt);
     }
-    else {
-      break;
+
+    for (VarDecl const& decl : alt.decls) {
+      sort_idx = max(sort_idx,
+          sort_idx_of_module(module, decl.sort) + 1);
     }
   }
-  return decls;
+
+  return make_pair(TopAlternatingQuantifierDesc(new_alts), idens_to_instantiate);
 }
 
 void inst_universals_with_stuff(
   value v,
   vector<VarDecl> const& decls,
   shared_ptr<Module> const& module,
+  set<iden> const& idens_to_instantiate,
   vector<value>& res)
 {
   assert(v.get() != NULL);
   if (Forall* val = dynamic_cast<Forall*>(v.get())) {
     if (val->decls.size() == 0) {
-      inst_universals_with_stuff(val->body, decls, module, res);
+      inst_universals_with_stuff(val->body, decls, module, idens_to_instantiate, res);
     } else {
       VarDecl decl = val->decls[0];
       value body = pop_first_quantifier_variable(v);
 
-      vector<VarDecl> new_decls = decls;
-      new_decls.push_back(decl);
-      vector<value> new_r;
-      inst_universals_with_stuff(body, new_decls, module, new_r);
-      for (value w : new_r) {
-        res.push_back(v_forall({decl}, w));
-      }
-
-      cout << "adding bro" << endl;
-      for (value subber : gen_clauses_for_sort(
-          module,
-          add_remaining_decls(decls, body),
-          decl.sort))
-      {
-        cout << "adding subber " << subber->to_string() << endl;
-        inst_universals_with_stuff(body->subst(decl.name, subber), decls, module, res);
+      if (idens_to_instantiate.count(decl.name) != 0) {
+        //cout << "adding bro" << endl;
+        for (value subber : gen_clauses_for_sort(
+            module,
+            decls,
+            decl.sort))
+        {
+          //cout << "adding subber " << subber->to_string() << endl;
+          inst_universals_with_stuff(body->subst(decl.name, subber), decls, module, idens_to_instantiate, res);
+        }
+      } else {
+        vector<VarDecl> new_decls = decls;
+        new_decls.push_back(decl);
+        vector<value> new_r;
+        inst_universals_with_stuff(body, new_decls, module, idens_to_instantiate, new_r);
+        for (value w : new_r) {
+          res.push_back(v_forall({decl}, w));
+        }
       }
     }
   }
-  else if (Forall* val = dynamic_cast<Forall*>(v.get())) {
+  else if (Exists* val = dynamic_cast<Exists*>(v.get())) {
     if (val->decls.size() == 0) {
-      inst_universals_with_stuff(val->body, decls, module, res);
+      inst_universals_with_stuff(val->body, decls, module, idens_to_instantiate, res);
     } else {
-      VarDecl decl = val->decls[0];
-      value body = pop_first_quantifier_variable(v);
-
       vector<VarDecl> new_decls = decls;
-      new_decls.push_back(decl);
+      for (VarDecl const& decl : val->decls) {
+        new_decls.push_back(decl);
+      }
       vector<value> new_r;
-      inst_universals_with_stuff(body, new_decls, module, new_r);
+      inst_universals_with_stuff(val->body, new_decls, module, idens_to_instantiate, new_r);
       for (value w : new_r) {
-        res.push_back(v_exists({decl}, w));
+        res.push_back(v_exists(val->decls, w));
       }
     }
   }
@@ -629,12 +670,19 @@ void inst_universals_with_stuff(
 void Flood::add_axioms()
 {
   for (value v : module->axioms) {
+    value w = v->structurally_normalize();
+    TopAlternatingQuantifierDesc taqd(w);
+    auto p = add_universal_decls(taqd, forall_tspace.vars, module);
+    value u = p.first.with_body(TopAlternatingQuantifierDesc::get_body(w));
+
     vector<value> res;
-    inst_universals_with_stuff(
-      v->structurally_normalize(),
-      {}, module, res);
+    inst_universals_with_stuff(u, {}, module, p.second, res);
+
     for (value w : res) {
-      cout << "adding " << w->to_string() << endl;
+      //cout << "adding " << w->to_string() << endl;
+
+      // XXX there might be a performance explosion here because inst_universals_with_stuff
+      // takes care of all variable permutations and then do_add does it again.
       do_add(w);
     }
   }
