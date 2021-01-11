@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "clause_gen.h"
+
 using namespace std;
 
 // done start with x | not x
@@ -547,9 +549,93 @@ void Flood::add_negations()
   }
 }
 
+vector<VarDecl> add_remaining_decls(vector<VarDecl> decls, value body)
+{
+  value v = body;
+  while (true) {
+    if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+      for (VarDecl const& vd : f->decls) {
+        decls.push_back(vd);
+      }
+      v = f->body;
+    }
+    else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
+      for (VarDecl const& vd : f->decls) {
+        decls.push_back(vd);
+      }
+      v = f->body;
+    }
+    else {
+      break;
+    }
+  }
+  return decls;
+}
+
+void inst_universals_with_stuff(
+  value v,
+  vector<VarDecl> const& decls,
+  shared_ptr<Module> const& module,
+  vector<value>& res)
+{
+  assert(v.get() != NULL);
+  if (Forall* val = dynamic_cast<Forall*>(v.get())) {
+    if (val->decls.size() == 0) {
+      inst_universals_with_stuff(val->body, decls, module, res);
+    } else {
+      VarDecl decl = val->decls[0];
+      value body = pop_first_quantifier_variable(v);
+
+      vector<VarDecl> new_decls = decls;
+      new_decls.push_back(decl);
+      vector<value> new_r;
+      inst_universals_with_stuff(body, new_decls, module, new_r);
+      for (value w : new_r) {
+        res.push_back(v_forall({decl}, w));
+      }
+
+      cout << "adding bro" << endl;
+      for (value subber : gen_clauses_for_sort(
+          module,
+          add_remaining_decls(decls, body),
+          decl.sort))
+      {
+        cout << "adding subber " << subber->to_string() << endl;
+        inst_universals_with_stuff(body->subst(decl.name, subber), decls, module, res);
+      }
+    }
+  }
+  else if (Forall* val = dynamic_cast<Forall*>(v.get())) {
+    if (val->decls.size() == 0) {
+      inst_universals_with_stuff(val->body, decls, module, res);
+    } else {
+      VarDecl decl = val->decls[0];
+      value body = pop_first_quantifier_variable(v);
+
+      vector<VarDecl> new_decls = decls;
+      new_decls.push_back(decl);
+      vector<value> new_r;
+      inst_universals_with_stuff(body, new_decls, module, new_r);
+      for (value w : new_r) {
+        res.push_back(v_exists({decl}, w));
+      }
+    }
+  }
+  else {
+    res.push_back(v);
+  }
+}
+
 void Flood::add_axioms()
 {
   for (value v : module->axioms) {
-    do_add(v->structurally_normalize());
+    vector<value> res;
+    inst_universals_with_stuff(
+      v->structurally_normalize(),
+      {}, module, res);
+    for (value w : res) {
+      cout << "adding " << w->to_string() << endl;
+      do_add(w);
+    }
   }
 }

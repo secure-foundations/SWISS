@@ -160,3 +160,13 @@ std::vector<value> gen_clauses(
 
   return res;
 }
+
+std::vector<value> gen_clauses_for_sort(
+    std::shared_ptr<Module> module,
+    std::vector<VarDecl> const& decls,
+    lsort so)
+{
+  UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(so.get());
+  assert (us != NULL);
+  return gen_uninterp(0, module, decls, us->name, false /* var_only */);
+}

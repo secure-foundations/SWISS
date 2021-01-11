@@ -2618,3 +2618,30 @@ value order_and_or_eq(value v) {
   ScopeState ss;
   return v->order_and_or_eq(ss);
 }
+
+value pop_first_quantifier_variable(value v)
+{
+  if (Forall* val = dynamic_cast<Forall*>(v.get())) {
+    assert(val->decls.size() >= 1);
+    if (val->decls.size() == 1) {
+      return val->body;
+    } else {
+      vector<VarDecl> new_decls = val->decls;
+      new_decls.erase(new_decls.begin());
+      return v_forall(new_decls, val->body);
+    }
+  }
+  else if (Exists* val = dynamic_cast<Exists*>(v.get())) {
+    assert(val->decls.size() >= 1);
+    if (val->decls.size() == 1) {
+      return val->body;
+    } else {
+      vector<VarDecl> new_decls = val->decls;
+      new_decls.erase(new_decls.begin());
+      return v_exists(new_decls, val->body);
+    }
+  }
+  else {
+    assert(false);
+  }
+}

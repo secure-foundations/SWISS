@@ -742,5 +742,6 @@ FormulaDump parse_formula_dump(std::string const& src);
 std::string marshall_formula_dump(FormulaDump const& fd);
 
 value order_and_or_eq(value v);
+value pop_first_quantifier_variable(value);
 
 #endif
