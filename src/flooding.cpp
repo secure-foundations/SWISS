@@ -704,6 +704,20 @@ void find_all_single_substs(value v, value l, value r, vector<value>& res)
   }
 }
 
+bool is_var_ne_nonvar(value v) {
+  if (Not* n = dynamic_cast<Not*>(v.get())) {
+    if (Eq* eq = dynamic_cast<Eq*>(n->val.get())) {
+      bool v1 = (dynamic_cast<Var*>(eq->left.get()) != NULL);
+      bool v2 = (dynamic_cast<Var*>(eq->right.get()) != NULL);
+      return v1 ^ v2;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
 bool is_taut_false(value v);
 
 bool is_taut_true(value v) {
@@ -785,6 +799,8 @@ void Flood::init_eq_substs()
             subst_map[i][j].push_back(SUBST_VALUE_TRUE);
           } else if (is_taut_false(r)) {
             subst_map[i][j].push_back(SUBST_VALUE_FALSE);
+          } else if (is_var_ne_nonvar(r)) {
+            // do nothing?
           } else {
             cout << r->to_string() << endl;
             assert(false);
