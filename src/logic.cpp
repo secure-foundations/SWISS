@@ -1108,6 +1108,9 @@ value structurally_normalize_and_or_or(Value const * the_value) {
   Or const * the_or = dynamic_cast<Or const*>(the_value);
 
   vector<value> args = the_and ? the_and->args : the_or->args;
+  for (int i = 0; i < (int)args.size(); i++) {
+    args[i] = args[i]->structurally_normalize_();
+  }
 
   vector<vector<VarDecl>> forall_decl_lists;
   vector<vector<VarDecl>> exists_decl_lists;
