@@ -3,6 +3,9 @@
 
 #include "template_counter.h"
 
+#define SUBST_VALUE_TRUE (-1)
+#define SUBST_VALUE_FALSE (-2)
+
 struct RedundantDesc {
   std::vector<int> v;
   uint32_t quant_mask; // 1 for exists
@@ -44,6 +47,8 @@ class Flood {
     std::vector<uint32_t> sort_uses_masks;
     std::vector<uint64_t> var_uses_masks;
     std::vector<uint64_t> var_of_sort_masks;
+    std::vector<bool> is_equality;
+    std::vector<std::vector<std::vector<int>>> subst_map;
 
     std::vector<value> clauses;
     std::map<ComparableValue, int> piece_to_index;
@@ -51,6 +56,7 @@ class Flood {
     void init_piece_to_index();
     void init_negation_map();
     void init_masks();
+    void init_eq_substs();
 
     std::vector<Entry> entries;
 
@@ -72,6 +78,8 @@ class Flood {
     void process(Entry const& e);
     void process2(Entry const& e, Entry const& e2);
     void process_impl(Entry const& a, Entry const& b);
+    void process_subst_via_implication(Entry const& a, Entry const& b);
+    //void process_subst_direct(Entry const& b);
     void process_replace_forall_with_exists(Entry const& e);
 
     bool in_bounds(Entry const& e);

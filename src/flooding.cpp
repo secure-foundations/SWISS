@@ -10,14 +10,14 @@ using namespace std;
 // done start with x | not x
 // done start with axioms
 // TODO substitute for x in forall x . ...
-// TODO start with (exists x . f(x) & not f(y)) and so on
+// TODO start with (exists x . f(x) | not f(y)) and so on
 // done basic implication: a & (a -> b)
 // done replace forall with existentials
 // TODO generalize stuff to existentials
 // done permute variables
 // TODO substitutions in (A=B -> stuff)
-// TODO if forall(stuff -> A=B) then disallow `stuff & (term containing B)`
-// TODO for axioms, instantiate universals in order to get stuff in the TemplateSpace
+// TODO if forall(stuff -> A=B) then do substitutions
+// done for axioms, instantiate universals in order to get stuff in the TemplateSpace
 
 Flood::Flood(
     std::shared_ptr<Module> module,
@@ -40,6 +40,7 @@ Flood::Flood(
   this->init_piece_to_index();
   this->init_negation_map();
   this->init_masks();
+  this->init_eq_substs();
 }
 
 std::vector<RedundantDesc> Flood::get_initial_redundant_descs()
@@ -59,8 +60,6 @@ std::vector<RedundantDesc> Flood::add_formula(value v)
   return make_results(initial_entry_len);
 }
 
-//bool dbg = false;
-
 void Flood::do_add(value v)
 {
   int cur = (int)entries.size();
@@ -73,14 +72,12 @@ void Flood::do_add(value v)
 
   while (cur < (int)entries.size()) {
     if (!entries[cur].subsumed) {
-      process(entries[cur]);
+      Entry e1 = entries[cur]; // copy out of `entries` vector so we can pass by ref
+      process(e1);
       for (int j = 0; j < cur; j++) {
-        if (cur == 42 && j == 40) cout << "meyy" << endl;
         if (!entries[j].subsumed) {
-          if (cur == 42 && j == 40) cout << "meyyooo" << endl;
-          //if (cur == 42 && j == 40) dbg = true;
-          process2(entries[cur], entries[j]);
-          //if (cur == 42 && j == 40) dbg = false;
+          Entry e2 = entries[j]; // copy out of `entries` vector so we can pass by ref
+          process2(e1, e2);
         }
       }
     }
@@ -127,6 +124,7 @@ int sort_idx_of_module(std::shared_ptr<Module>& module, lsort so) {
 
 void sort_and_remove_dupes(vector<int>& t)
 {
+  if (t.size() == 0) return;
   sort(t.begin(), t.end());
   int cur = 1;
   for (int i = 1; i < (int)t.size(); i++) {
@@ -305,6 +303,11 @@ bool Flood::does_subsume(Entry const& e1, Entry const& e2)
 }
 
 void Flood::add_checking_subsumes(Entry const& e) {
+  if (e.v.size() == 0) {
+    // TODO application ought to handle this gracefully
+    assert(false && "we were able to prove 'false' as an invariant, this is probably unexpected");
+  }
+
   if (in_bounds(e)) {
     for (int i = 0; i < (int)this->entries.size(); i++) {
       if (!this->entries[i].subsumed) {
@@ -315,23 +318,21 @@ void Flood::add_checking_subsumes(Entry const& e) {
         }
       }
     }
-    //if (dbg) cout << "blergh" << endl;
     this->entries.push_back(e);
-    cout << this->entries.size() - 1 << endl;
   }
 }
 
 void Flood::process2(Entry const& a, Entry const& b)
 {
-  //if (dbg) cout << "hi" << endl;
   if ((a.forall_mask & b.exists_mask)
    || (a.forall_mask & b.exists_mask)) {
     return;
   }
 
-  //if (dbg) cout << "hi2" << endl;
+  process_impl(a, b); // handles a and b symmetrically
 
-  process_impl(a, b);
+  process_subst_via_implication(a, b);
+  process_subst_via_implication(b, a);
 }
 
 Entry Flood::make_entry(vector<int> const& t, uint32_t forall, uint32_t exists)
@@ -357,8 +358,6 @@ void Flood::process_impl(Entry const& a, Entry const& b)
     return;
   }
 
-  //if (dbg) cout << "hi3" << endl;
-
   for (int i = 0; i < (int)a.v.size(); i++) {
     for (int j = 0; j < (int)b.v.size(); j++) {
       if (are_negations(a.v[i], b.v[j])) {
@@ -374,11 +373,80 @@ void Flood::process_impl(Entry const& a, Entry const& b)
           }
         }
         uint32_t mask = get_sort_uses_mask(t);
-        //if(dbg) cout << "hey!" << endl;
         add_checking_subsumes(make_entry(t,
             mask & (a.forall_mask | b.forall_mask),
             mask & (a.exists_mask | b.exists_mask)
            ));
+      }
+    }
+  }
+}
+
+// can use process_subst_via_implication instead
+// which will cover these cases automatically when it operates on `a=b | not(a=b)`
+/*void Flood::process_subst_direct(Entry const& b) {
+  for (int i = 0; i < (int)b.v.size(); i++) {
+    int neg = negation_map[b.v[i]];
+    if (neg == -1) continue;
+    if (!is_equality[neg]) continue;
+    for (int j = 0; j < (int)b.v.size(); j++) {
+      if (j != i) {
+        for (int new_thing : subst_map[neg][b.v[j]]) {
+          if (new_thing == SUBST_VALUE_TRUE) continue;
+          vector<int> t = b.v;
+          if (new_thing == SUBST_VALUE_FALSE) {
+            t.erase(t.begin() + j);
+          } else {
+            t[j] = new_thing;
+          }
+          uint32_t mask = get_sort_uses_mask(t);
+          add_checking_subsumes(make_entry(t,
+              mask & b.forall_mask,
+              mask & b.exists_mask
+             ));
+        }
+      }
+    }
+  }
+}*/
+
+int find_in_vec(vector<int> const& v, int w) {
+  for (int j = 0; j < (int)v.size(); j++) {
+    if (v[j] == w) return j;
+  }
+  return -1;
+}
+
+void Flood::process_subst_via_implication(Entry const& a, Entry const& b) {
+  if (a.v.size() != 2) {
+    return;
+  }
+  if (a.exists_mask != 0) {
+    return;
+  }
+
+  for (int i = 0; i < 2; i++) {
+    if (is_equality[a.v[i]]) {
+      int idx = find_in_vec(b.v, a.v[1-i]);
+      if (idx != -1) {
+        for (int j = 0; j < (int)b.v.size(); j++) {
+          if (j != idx) {
+            for (int new_thing : subst_map[a.v[i]][b.v[j]]) {
+              if (new_thing == SUBST_VALUE_TRUE) continue;
+              vector<int> t = b.v;
+              if (new_thing == SUBST_VALUE_FALSE) {
+                t.erase(t.begin() + j);
+              } else {
+                t[j] = new_thing;
+              }
+              uint32_t mask = get_sort_uses_mask(t);
+              add_checking_subsumes(make_entry(t,
+                  mask & (a.forall_mask | b.forall_mask),
+                  mask & (a.exists_mask | b.exists_mask)
+                 ));
+            }
+          }
+        }
       }
     }
   }
@@ -406,6 +474,7 @@ bool Flood::in_bounds(Entry const& e)
 void Flood::process(Entry const& e)
 {
   process_replace_forall_with_exists(e);
+  //process_subst_direct(e);
 }
 
 void Flood::process_replace_forall_with_exists(Entry const& e)
@@ -526,6 +595,209 @@ void Flood::init_masks()
     this->sort_uses_masks[i] = sort_use_mask;
     this->var_uses_masks[i] = var_use_mask;
   }
+}
+
+void find_all_single_substs(value v, value l, value r, vector<value>& res)
+{
+  assert(v.get() != NULL);
+
+  if (values_equal(v, l)) {
+    res.push_back(r);
+    return;
+  }
+
+  if (values_equal(v, r)) {
+    res.push_back(l);
+    return;
+  }
+
+  /*if (Forall* f = dynamic_cast<Forall*>(v.get())) {
+    vector<value> new_res;
+    find_all_single_substs(f->body, l, r, new_res);
+    for (value w : new_res) {
+      res.push_back(v_forall(f->decls, w));
+    }
+  }
+  else if (Exists* f = dynamic_cast<Exists*>(v.get())) {
+    vector<value> new_res;
+    find_all_single_substs(f->body, l, r, new_res);
+    for (value w : new_res) {
+      res.push_back(v_exists(f->decls, w));
+    }
+  }
+  else if (And* f = dynamic_cast<And*>(v.get())) {
+    for (int i = 0; i < (int)f->args.size(); i++) {
+      vector<value> new_res;
+      find_all_single_substs(f->args[i], l, r, new_res);
+      for (value w : new_res) {
+        value<value> new_args = f->args;
+        new_args[i] = w;
+        res.push_back(v_and(new_args));
+      }
+    }
+  }
+  else if (Or* f = dynamic_cast<And*>(v.get())) {
+    for (int i = 0; i < (int)f->args.size(); i++) {
+      vector<value> new_res;
+      find_all_single_substs(f->args[i], l, r, new_res);
+      for (value w : new_res) {
+        value<value> new_args = f->args;
+        new_args[i] = w;
+        res.push_back(v_or(new_args));
+      }
+    }
+  }
+  else*/ if (Apply* f = dynamic_cast<Apply*>(v.get())) {
+    for (int i = 0; i < (int)f->args.size(); i++) {
+      vector<value> new_res;
+      find_all_single_substs(f->args[i], l, r, new_res);
+      for (value w : new_res) {
+        vector<value> new_args = f->args;
+        new_args[i] = w;
+        res.push_back(v_apply(f->func, new_args));
+      }
+    }
+  }
+  else if (dynamic_cast<Var*>(v.get())) {
+    // return nothing
+  }
+  else if (dynamic_cast<Const*>(v.get())) {
+    // return nothing
+  }
+  else if (Eq* f = dynamic_cast<Eq*>(v.get())) {
+    for (int i = 0; i < 2; i++) {
+      vector<value> new_res;
+      find_all_single_substs(i == 0 ? f->left : f->right, l, r, new_res);
+      for (value w : new_res) {
+        if (i == 0) {
+          res.push_back(v_eq(w, f->right));
+        } else {
+          res.push_back(v_eq(f->left, w));
+        }
+      }
+    }
+  }
+  else if (Not* f = dynamic_cast<Not*>(v.get())) {
+    find_all_single_substs(f->val, l, r, res);
+    for (int i = 0; i < (int)res.size(); i++) {
+      res[i] = v_not(res[i]);
+    }
+  }
+  else {
+    cout << v->to_string() << endl;
+    assert(false);
+  }
+}
+
+bool is_taut_false(value v);
+
+bool is_taut_true(value v) {
+  if (Eq* eq = dynamic_cast<Eq*>(v.get())) {
+    return values_equal(eq->left, eq->right);
+  } else if (Not* n = dynamic_cast<Not*>(v.get())) {
+    return is_taut_false(n->val);
+  } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
+    if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
+      if (iden_to_string(c->name) == "le"
+          && ap->args.size() == 2
+          && values_equal(ap->args[0], ap->args[1])) {
+        return true;
+      }
+    }
+    return false;
+  } else {
+    return false;
+  }
+}
+
+bool is_taut_false(value v) {
+  if (Not* n = dynamic_cast<Not*>(v.get())) {
+    return is_taut_true(n->val);
+  } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
+    if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
+      if (iden_to_string(c->name) == "btw"
+          && ap->args.size() == 3
+          && (
+               values_equal(ap->args[0], ap->args[1])
+            || values_equal(ap->args[1], ap->args[2])
+            || values_equal(ap->args[2], ap->args[0])
+          )) {
+        return true;
+      }
+    }
+    return false;
+  } else {
+    return false;
+  }
+}
+
+void Flood::init_eq_substs()
+{
+  is_equality.resize(clauses.size());
+  subst_map.resize(clauses.size());
+  for (int i = 0; i < (int)clauses.size(); i++) {
+    subst_map[i].resize(clauses.size());
+    value v = TopAlternatingQuantifierDesc::get_body(clauses[i]);
+
+    Eq* eq = dynamic_cast<Eq*>(v.get());
+    if (eq == NULL) {
+      is_equality[i] = false;
+    } else {
+      is_equality[i] = true;
+      for (int j = 0; j < (int)clauses.size(); j++) {
+        vector<value> results;
+        find_all_single_substs(
+            TopAlternatingQuantifierDesc::get_body(clauses[j]),
+            eq->left,
+            eq->right,
+            results);
+        for (value r1 : results) {
+          value r = order_and_or_eq(r1);
+          int ri = get_index_of_piece(r);
+          if (ri == j) {
+            // do nothing
+          } else if (ri != -1) {
+            subst_map[i][j].push_back(ri);
+
+            //cout << "subst::: "
+            //<< TopAlternatingQuantifierDesc::get_body(clauses[i])->to_string()
+            //<< "   ---->   "
+            //<< TopAlternatingQuantifierDesc::get_body(clauses[j])->to_string()
+            //<< "   ---->   "
+            //<< TopAlternatingQuantifierDesc::get_body(clauses[ri])->to_string()
+            //<< endl;
+          } else if (is_taut_true(r)) {
+            subst_map[i][j].push_back(SUBST_VALUE_TRUE);
+          } else if (is_taut_false(r)) {
+            subst_map[i][j].push_back(SUBST_VALUE_FALSE);
+          } else {
+            cout << r->to_string() << endl;
+            assert(false);
+          }
+        }
+        sort_and_remove_dupes(subst_map[i][j]);
+      }
+    }
+  }
+
+  /*cout << "all substs:" << endl;
+  for (int i = 0; i < (int)subst_map.size(); i++) {
+    for (int j = 0; j < (int)subst_map[i].size(); j++) {
+      for (int k = 0; k < (int)subst_map[i][j].size(); k++) {
+        cout << "subst::: "
+          << TopAlternatingQuantifierDesc::get_body(clauses[i])->to_string()
+          << "   ---->   "
+          << TopAlternatingQuantifierDesc::get_body(clauses[j])->to_string()
+          << "   ---->   ";
+        if (subst_map[i][j][k] == SUBST_VALUE_FALSE) cout << "false";
+        else if (subst_map[i][j][k] == SUBST_VALUE_TRUE) cout << "true";
+        else cout << TopAlternatingQuantifierDesc::get_body(clauses[subst_map[i][j][k]])->to_string();
+        cout << endl;
+      }
+    }
+  }
+  assert(false);
+  */
 }
 
 void Flood::add_negations()
