@@ -43,12 +43,12 @@ Flood::Flood(
   this->init_eq_substs();
 }
 
-std::vector<RedundantDesc> Flood::get_initial_redundant_descs()
+std::vector<RedundantDesc> Flood::get_initial_redundant_descs(std::vector<value> const& extras)
 {
   assert (this->entries.size() == 0);
 
   add_negations();
-  add_axioms();
+  add_axioms_and_starting_formulas(extras);
 
   return make_results(0);
 }
@@ -954,25 +954,33 @@ void inst_universals_with_stuff(
   }
 }
 
-void Flood::add_axioms()
+void Flood::add_axioms_and_starting_formulas(std::vector<value> const& extras)
 {
   for (value v : module->axioms) {
-    //cout << "axiom adding: " << v->to_string() << endl;
-    value w = v->structurally_normalize();
-    //cout << "axiom adding (normalized): " << w->to_string() << endl;
-    TopAlternatingQuantifierDesc taqd(w);
-    auto p = add_universal_decls(taqd, forall_tspace.vars, module);
-    value u = p.first.with_body(TopAlternatingQuantifierDesc::get_body(w));
+    add_starting_formula(v);
+  }
+  for (value v : extras) {
+    add_starting_formula(v);
+  }
+}
 
-    vector<value> res;
-    inst_universals_with_stuff(u, {}, module, p.second, res);
+void Flood::add_starting_formula(value v)
+{
+  //cout << "axiom adding: " << v->to_string() << endl;
+  value w = v->structurally_normalize();
+  //cout << "axiom adding (normalized): " << w->to_string() << endl;
+  TopAlternatingQuantifierDesc taqd(w);
+  auto p = add_universal_decls(taqd, forall_tspace.vars, module);
+  value u = p.first.with_body(TopAlternatingQuantifierDesc::get_body(w));
 
-    for (value w : res) {
-      //cout << "adding " << w->to_string() << endl;
+  vector<value> res;
+  inst_universals_with_stuff(u, {}, module, p.second, res);
 
-      // XXX there might be a performance explosion here because inst_universals_with_stuff
-      // takes care of all variable permutations and then do_add does it again.
-      do_add(w);
-    }
+  for (value w : res) {
+    //cout << "adding " << w->to_string() << endl;
+
+    // XXX there might be a performance explosion here because inst_universals_with_stuff
+    // takes care of all variable permutations and then do_add does it again.
+    do_add(w);
   }
 }

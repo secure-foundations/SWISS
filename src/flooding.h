@@ -24,7 +24,7 @@ struct Entry {
 
 class Flood {
   public:
-    std::vector<RedundantDesc> get_initial_redundant_descs();
+    std::vector<RedundantDesc> get_initial_redundant_descs(std::vector<value> const& extras);
     std::vector<RedundantDesc> add_formula(value v);
 
     Flood(
@@ -68,7 +68,8 @@ class Flood {
     bool get_single_entry_of_value(value inv, std::vector<int>& t);
 
     void add_negations();
-    void add_axioms();
+    void add_axioms_and_starting_formulas(std::vector<value> const& extras);
+    void add_starting_formula(value v);
 
     void do_add(value v);
 

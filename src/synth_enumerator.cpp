@@ -30,7 +30,8 @@ public:
 
   OverlordCandidateSolver(
       shared_ptr<Module> module,
-      vector<TemplateSubSlice> const& sub_slices)
+      vector<TemplateSubSlice> const& sub_slices,
+      std::vector<value> const& extra_starting_formulas_flood)
   {
     this->sub_slices = sub_slices;
 
@@ -58,7 +59,7 @@ public:
     set_solver_idx();
 
     init_quant_masks();
-    initialize_flood(module, calc_max_e(sub_slices));
+    initialize_flood(module, calc_max_e(sub_slices), extra_starting_formulas_flood);
   }
 
   static int calc_max_e(vector<TemplateSubSlice> const& sub_slices)
@@ -76,11 +77,13 @@ public:
     return emax;
   }
 
-  void initialize_flood(shared_ptr<Module> module, int max_e)
+  void initialize_flood(shared_ptr<Module> module, int max_e,
+      std::vector<value> const& extra_starting_formulas_flood)
   {
     assert (spaces.size() == 1); // TODO
     this->flood = unique_ptr<Flood>(new Flood(module, spaces[0], max_e));
-    append_redundant_descs(this->flood->get_initial_redundant_descs());
+    append_redundant_descs(
+        this->flood->get_initial_redundant_descs(extra_starting_formulas_flood));
     update_cexes_invs();
   }
 
@@ -205,8 +208,8 @@ public:
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
     vector<TemplateSubSlice> const& sub_slices,
-    bool ensure_nonredundant)
+    std::vector<value> const& extra_starting_formulas_flood)
 {
   return shared_ptr<CandidateSolver>(
-      new OverlordCandidateSolver(module, sub_slices));
+      new OverlordCandidateSolver(module, sub_slices, extra_starting_formulas_flood));
 }

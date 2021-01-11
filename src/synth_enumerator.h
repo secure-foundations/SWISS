@@ -68,28 +68,10 @@ public:
   virtual void setSubSlice(TemplateSubSlice const&) = 0;
 };
 
-//std::shared_ptr<CandidateSolver> make_sat_candidate_solver(
-//    std::shared_ptr<Module> module, EnumOptions const& options,
-//      bool ensure_nonredundant);
-
-//std::shared_ptr<CandidateSolver> make_naive_candidate_solver(
-//    std::shared_ptr<Module> module, EnumOptions const& options);
-
-/*inline std::shared_ptr<CandidateSolver> make_candidate_solver(
-    std::shared_ptr<Module> module,
-    EnumOptions const& options,
-    bool ensure_nonredundant)
-{
-  return make_naive_candidate_solver(module, options);
-}*/
-
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
     std::vector<TemplateSubSlice> const& sub_slices, 
-    bool ensure_nonredundant);
-
-//std::shared_ptr<CandidateSolver> compose_candidate_solvers(
-  //std::vector<std::shared_ptr<CandidateSolver>> const& solvers);
+    std::vector<value> const& extra_starting_formulas_flood);
 
 extern int numEnumeratedFilteredRedundantInvariants;
 

@@ -611,7 +611,7 @@ SynthesisResult synth_loop(
   FormulaDump const& fd)
 {
   shared_ptr<CandidateSolver> cs = make_candidate_solver(
-      module, slices, false);
+      module, slices, {});
 
   SynthesisResult synres;
   synres.done = false;
@@ -849,7 +849,9 @@ SynthesisResult synth_loop_incremental_breadth(
   while (true) {
     num_iterations_outer++;
 
-    shared_ptr<CandidateSolver> cs = make_candidate_solver(module, slices, true);
+    shared_ptr<CandidateSolver> cs = make_candidate_solver(
+        module, slices,
+        options.breadth_with_conjs ? fd.conjectures : vector<value>{});
 
     if (options.get_space_size) {
       long long s = cs->getSpaceSize();
