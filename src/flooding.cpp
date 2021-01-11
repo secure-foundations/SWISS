@@ -670,7 +670,9 @@ void inst_universals_with_stuff(
 void Flood::add_axioms()
 {
   for (value v : module->axioms) {
+    //cout << "axiom adding: " << v->to_string() << endl;
     value w = v->structurally_normalize();
+    //cout << "axiom adding (normalized): " << w->to_string() << endl;
     TopAlternatingQuantifierDesc taqd(w);
     auto p = add_universal_decls(taqd, forall_tspace.vars, module);
     value u = p.first.with_body(TopAlternatingQuantifierDesc::get_body(w));
