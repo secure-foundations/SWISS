@@ -435,26 +435,34 @@ void Flood::process_subst_via_implication(Entry const& a, Entry const& b) {
 
   for (int i = 0; i < 2; i++) {
     if (is_equality[a.v[i]]) {
-      int idx = find_in_vec(b.v, a.v[1-i]);
-      if (idx != -1) {
+      //int idx = find_in_vec(b.v, a.v[1-i]);
+      //if (idx != -1) {
         for (int j = 0; j < (int)b.v.size(); j++) {
-          if (j != idx) {
+          //if (j != idx) {
             for (int new_thing : subst_map[a.v[i]][b.v[j]]) {
               if (new_thing == SUBST_VALUE_TRUE) continue;
               vector<int> t = b.v;
-              if (new_thing == SUBST_VALUE_FALSE) {
+
+              /*if (new_thing == SUBST_VALUE_FALSE) {
                 t.erase(t.begin() + j);
               } else {
                 t[j] = new_thing;
               }
+              t.push_back(a.v[1-i]);*/
+              // slightly faster equivalent version (we sort later):
+              t[j] = a.v[1-i];
+              if (new_thing != SUBST_VALUE_FALSE) {
+                t.push_back(new_thing);
+              }
+
               uint32_t mask = get_sort_uses_mask(t);
               uint32_t emask = mask & (b.exists_mask);
               uint32_t fmask = mask & (a.forall_mask | b.forall_mask) & ~emask;
               add_checking_subsumes(make_entry(t, fmask, emask));
             }
-          }
+          //}
         }
-      }
+      //}
     }
   }
 }
