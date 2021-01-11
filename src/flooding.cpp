@@ -246,6 +246,11 @@ void Flood::dump_entry(Entry const& e)
     }
     cout << v->to_string();
   }
+  cout << " ( ";
+  for (int j = 0; j < (int)e.v.size(); j++) {
+    cout << e.v[j] << " ";
+  }
+  cout << ") " << e.forall_mask << " " << e.exists_mask;
   cout << endl;
 }
 
@@ -253,8 +258,8 @@ std::vector<RedundantDesc> Flood::make_results(int start)
 {
   std::vector<RedundantDesc> res;
   for (int i = start; i < (int)entries.size(); i++) {
-    cout << "ENTRY: (" << i << ") ";
-    dump_entry(entries[i]);
+    //cout << "ENTRY: (" << i << ") ";
+    //dump_entry(entries[i]);
     
     for (uint32_t m = 0; m < (1 << nsorts); m++) {
       if (matches_forall_mask(m, entries[i].forall_mask)
@@ -294,7 +299,7 @@ inline bool is_indices_subset(vector<int> const& a, vector<int> const& b)
 }
 
 // returns true if e1 <= e2
-bool Flood::does_subsume(Entry const& e1, Entry const& e2)
+bool does_subsume(Entry const& e1, Entry const& e2)
 {
   return
       !(e1.forall_mask & e2.exists_mask)
@@ -308,6 +313,8 @@ void Flood::add_checking_subsumes(Entry const& e) {
     assert(false && "we were able to prove 'false' as an invariant, this is probably unexpected");
   }
 
+  assert ((e.forall_mask & e.exists_mask) == 0);
+
   if (in_bounds(e)) {
     for (int i = 0; i < (int)this->entries.size(); i++) {
       if (!this->entries[i].subsumed) {
@@ -318,17 +325,13 @@ void Flood::add_checking_subsumes(Entry const& e) {
         }
       }
     }
+    //cout << this->entries.size() << "  "; dump_entry(e);
     this->entries.push_back(e);
   }
 }
 
 void Flood::process2(Entry const& a, Entry const& b)
 {
-  if ((a.forall_mask & b.exists_mask)
-   || (a.forall_mask & b.exists_mask)) {
-    return;
-  }
-
   process_impl(a, b); // handles a and b symmetrically
 
   process_subst_via_implication(a, b);
@@ -348,6 +351,11 @@ Entry Flood::make_entry(vector<int> const& t, uint32_t forall, uint32_t exists)
 
 void Flood::process_impl(Entry const& a, Entry const& b)
 {
+  if ((a.forall_mask & b.exists_mask)
+   || (a.exists_mask & b.forall_mask)) {
+    return;
+  }
+
   if (a.v.size() + b.v.size() <= 2 || (int)a.v.size() + (int)b.v.size() - 2 > max_k) {
     return;
   }
@@ -440,10 +448,9 @@ void Flood::process_subst_via_implication(Entry const& a, Entry const& b) {
                 t[j] = new_thing;
               }
               uint32_t mask = get_sort_uses_mask(t);
-              add_checking_subsumes(make_entry(t,
-                  mask & (a.forall_mask | b.forall_mask),
-                  mask & (a.exists_mask | b.exists_mask)
-                 ));
+              uint32_t emask = mask & (b.exists_mask);
+              uint32_t fmask = mask & (a.forall_mask | b.forall_mask) & ~emask;
+              add_checking_subsumes(make_entry(t, fmask, emask));
             }
           }
         }
@@ -697,13 +704,13 @@ bool is_taut_true(value v) {
   } else if (Not* n = dynamic_cast<Not*>(v.get())) {
     return is_taut_false(n->val);
   } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
-    if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
+    /*if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
       if (iden_to_string(c->name) == "le"
           && ap->args.size() == 2
           && values_equal(ap->args[0], ap->args[1])) {
         return true;
       }
-    }
+    }*/
     return false;
   } else {
     return false;
@@ -714,7 +721,7 @@ bool is_taut_false(value v) {
   if (Not* n = dynamic_cast<Not*>(v.get())) {
     return is_taut_true(n->val);
   } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
-    if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
+    /*if (Const* c = dynamic_cast<Const*>(ap->func.get())) {
       if (iden_to_string(c->name) == "btw"
           && ap->args.size() == 3
           && (
@@ -724,7 +731,7 @@ bool is_taut_false(value v) {
           )) {
         return true;
       }
-    }
+    }*/
     return false;
   } else {
     return false;

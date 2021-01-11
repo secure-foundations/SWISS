@@ -260,8 +260,9 @@ bool is_boring(value v, bool pos) {
     return false;
     */
   } else if (Apply* ap = dynamic_cast<Apply*>(v.get())) {
-    return (iden_to_string(dynamic_cast<Const*>(ap->func.get())->name) == "le" &&
-      ap->args[0]->to_string() == ap->args[1]->to_string());
+    //return (iden_to_string(dynamic_cast<Const*>(ap->func.get())->name) == "le" &&
+    //  ap->args[0]->to_string() == ap->args[1]->to_string());
+    return false;
   } else {
     return false;
   }

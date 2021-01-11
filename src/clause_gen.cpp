@@ -20,7 +20,9 @@ vector<value> gen_apps(int depth,
 {
   assert (depth < 10);
 
-  bool is_btw = (iden_to_string(func.name) == "btw");
+  // NOTE: the "le" filtering (also commented out currently) is in enumerator.cpp
+  // for some reason.
+  //bool is_btw = (iden_to_string(func.name) == "btw");
 
   vector<vector<value>> poss_args;
   vector<int> indices;
@@ -40,14 +42,14 @@ vector<value> gen_apps(int depth,
 
   while (true) {
     bool skip = false;
-    if (is_btw) {
+    /*if (is_btw) {
       assert(indices.size() == 3);
       if (indices[0] == indices[1]
           || indices[1] == indices[2]
           || indices[2] == indices[0]) {
         skip = true;
       }
-    }
+    }*/
 
     if (!skip) {
       vector<value> args;

@@ -83,7 +83,6 @@ class Flood {
     void process_replace_forall_with_exists(Entry const& e);
 
     bool in_bounds(Entry const& e);
-    bool does_subsume(Entry const& e1, Entry const& e2);
     bool are_negations(int a, int b);
     int exists_count(Entry const& e);
     uint32_t get_sort_uses_mask(std::vector<int> const&);
