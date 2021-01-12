@@ -21,6 +21,7 @@ struct Entry {
 struct UniversalInstantiationSubstitution {
   uint64_t new_uses;
   std::vector<int> mapping;
+  bool is_var;
 };
 
 //struct Generalization {

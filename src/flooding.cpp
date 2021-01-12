@@ -322,6 +322,7 @@ void Flood::add_checking_subsumes(Entry const& e) {
     //cout << "entry: " << this->entries.size() << "  "; dump_entry(e);
     this->entries.push_back(e);
   }
+  //assert (this->entries.size() < 50000);
 }
 
 void Flood::process2(Entry const& a, Entry const& b)
@@ -525,6 +526,7 @@ void Flood::process_instantiate_universal(Entry const& e)
         for (UniversalInstantiationSubstitution const& uis :
             this->universal_instantiation_substitutions[var_idx])
         {
+          if (uis.is_var && !(uis.new_uses & uses_mask)) continue;
           if (bitmask_subset(uis.new_uses, allowed_to_this_point)) {
             vector<int> t;
             bool stop = false;
@@ -1095,6 +1097,7 @@ void Flood::init_universal_instantation_substitutions()
 
         UniversalInstantiationSubstitution uis;
         uis.new_uses = new_uses;
+        uis.is_var = (dynamic_cast<Var*>(new_expr.get()) != NULL);
         uis.mapping.resize(clauses.size());
         for (int k = 0; k < (int)clauses.size(); k++) {
           value new_clause = TopAlternatingQuantifierDesc::get_body(clauses[k])
