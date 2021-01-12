@@ -9,14 +9,14 @@ using namespace std;
 
 // done start with x | not x
 // done start with axioms
-// TODO substitute for x in forall x . ...
+// done substitute for x in forall x . ...
 // TODO start with (exists x . f(x) | not f(y)) and so on
 // done basic implication: a & (a -> b)
 // done replace forall with existentials
 // TODO generalize stuff to existentials
 // done permute variables
-// TODO substitutions in (A=B -> stuff)
-// TODO if forall(stuff -> A=B) then do substitutions
+// done substitutions in (A=B -> stuff)
+// done if forall(stuff -> A=B) then do substitutions
 // done for axioms, instantiate universals in order to get stuff in the TemplateSpace
 
 Flood::Flood(
@@ -41,6 +41,7 @@ Flood::Flood(
   this->init_negation_map();
   this->init_masks();
   this->init_eq_substs();
+  this->init_universal_instantation_substitutions();
 }
 
 std::vector<RedundantDesc> Flood::get_initial_redundant_descs(std::vector<value> const& extras)
@@ -325,7 +326,7 @@ void Flood::add_checking_subsumes(Entry const& e) {
         }
       }
     }
-    //cout << this->entries.size() << "  "; dump_entry(e);
+    //cout << "entry: " << this->entries.size() << "  "; dump_entry(e);
     this->entries.push_back(e);
   }
 }
@@ -490,6 +491,7 @@ void Flood::process(Entry const& e)
 {
   process_replace_forall_with_exists(e);
   //process_subst_direct(e);
+  process_instantiate_universal(e);
 }
 
 void Flood::process_replace_forall_with_exists(Entry const& e)
@@ -506,11 +508,73 @@ void Flood::process_replace_forall_with_exists(Entry const& e)
   }
 }
 
+inline bool bitmask_subset(uint64_t a, uint64_t b) {
+  return (a | b) == b;
+}
+
+void Flood::process_instantiate_universal(Entry const& e)
+{
+  uint64_t uses_mask = 0;
+  for (int x : e.v) {
+    uses_mask |= var_uses_masks[x];
+  }
+
+  int var_idx = 0;
+  for (int sort_idx = 0; sort_idx < nsorts; sort_idx++) {
+    uint64_t allowed_to_this_point = 0;
+    for (int j = 0; j <= sort_idx; j++) {
+      allowed_to_this_point |= var_of_sort_masks[j];
+    }
+    for (int j = sort_idx + 1; j < nsorts && !((e.exists_mask) & (1 << j)); j++) {
+      allowed_to_this_point |= var_of_sort_masks[j];
+    }
+
+    for (int i = 0; i < forall_tspace.vars[sort_idx]; i++, var_idx++) {
+      if ((e.forall_mask & (1 << sort_idx)) && (uses_mask & (1 << var_idx))) {
+        for (UniversalInstantiationSubstitution const& uis :
+            this->universal_instantiation_substitutions[var_idx])
+        {
+          if (bitmask_subset(uis.new_uses, allowed_to_this_point)) {
+            vector<int> t;
+            bool stop = false;
+            for (int x : e.v) {
+              int new_x = uis.mapping[x];
+              if (new_x == SUBST_VALUE_TRUE) {
+                stop = true;
+                break;
+              } else if (new_x == SUBST_VALUE_FALSE) {
+                // do nothing
+              } else {
+                t.push_back(new_x);
+              }
+            }
+            if (!stop) {
+              bool is_only_usage_of_this_var = (__builtin_popcount(
+                  uses_mask & var_of_sort_masks[sort_idx]) == 1);
+              uint64_t fmask = (is_only_usage_of_this_var
+                    ? (e.forall_mask & ~(1 << sort_idx))
+                    : e.forall_mask);
+
+              uint64_t smask = 0;
+              for (int x : t) {
+                smask |= this->sort_uses_masks[x];
+              }
+              fmask |= (smask & ~e.exists_mask);
+
+              add_checking_subsumes(make_entry(t, fmask, e.exists_mask));
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 int Flood::exists_count(Entry const& e)
 {
   uint64_t uses_mask = 0;
   for (int x : e.v) {
-    uses_mask |= x;
+    uses_mask |= var_uses_masks[x];
   }
   uint64_t exists_mask = 0;
   for (int i = 0; i < nsorts; i++) {
@@ -998,5 +1062,71 @@ void Flood::add_starting_formula(value v)
     // XXX there might be a performance explosion here because inst_universals_with_stuff
     // takes care of all variable permutations and then do_add does it again.
     do_add(w);
+  }
+}
+
+void Flood::init_universal_instantation_substitutions()
+{
+  vector<VarDecl> all_decls;
+  map<iden, int> m;
+  int var_idx = 0;
+  for (Alternation const& alt : forall_taqd.alternations()) {
+    for (VarDecl const& decl : alt.decls) {
+      all_decls.push_back(decl);
+      m.insert(make_pair(decl.name, ((uint64_t)1) << var_idx));
+      var_idx++;
+    }
+  }
+
+  var_idx = 0;
+  for (int sort_idx = 0; sort_idx < nsorts; sort_idx++) {
+    lsort so = s_uninterp(module->sorts[sort_idx]);
+    for (int i = 0; i < forall_tspace.vars[sort_idx]; i++, var_idx++) {
+      std::vector<UniversalInstantiationSubstitution> uises;
+
+      iden id = all_decls[var_idx].name;
+      vector<VarDecl> other_decls = all_decls;
+      other_decls.erase(other_decls.begin() + var_idx);
+
+      for (value new_expr : 
+        gen_clauses_for_sort(module, other_decls, so))
+      {
+        uint64_t new_uses = 0;
+        set<iden> used_vars;
+        new_expr->get_used_vars(used_vars /* output */);
+        for (iden id : used_vars) {
+          auto it = m.find(id);
+          assert(it != m.end());
+          new_uses |= it->second;
+        }
+
+        assert ((new_uses & (1 << var_idx)) == 0);
+
+        UniversalInstantiationSubstitution uis;
+        uis.new_uses = new_uses;
+        uis.mapping.resize(clauses.size());
+        for (int k = 0; k < (int)clauses.size(); k++) {
+          value new_clause = TopAlternatingQuantifierDesc::get_body(clauses[k])
+              ->subst(id, new_expr);
+          value r = order_and_or_eq(new_clause);
+          int ri = get_index_of_piece(r);
+          int val;
+          if (ri != -1) {
+            val = ri;
+          } else if (is_taut_true(r)) {
+            val = SUBST_VALUE_TRUE;
+          } else if (is_taut_false(r)) {
+            val = SUBST_VALUE_FALSE;
+          } else {
+            assert (false);
+          }
+          uis.mapping[k] = val;
+        }
+
+        uises.push_back(uis);
+      }
+
+      universal_instantiation_substitutions.push_back(move(uises));
+    }
   }
 }

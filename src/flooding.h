@@ -18,6 +18,11 @@ struct Entry {
   bool subsumed;
 };
 
+struct UniversalInstantiationSubstitution {
+  uint64_t new_uses;
+  std::vector<int> mapping;
+};
+
 //struct Generalization {
 //  std::vector<int> atom_to_atom;
 //};
@@ -49,6 +54,8 @@ class Flood {
     std::vector<uint64_t> var_of_sort_masks;
     std::vector<bool> is_equality;
     std::vector<std::vector<std::vector<int>>> subst_map;
+    std::vector<std::vector<UniversalInstantiationSubstitution>> 
+        universal_instantiation_substitutions;
 
     std::vector<value> clauses;
     std::map<ComparableValue, int> piece_to_index;
@@ -57,6 +64,7 @@ class Flood {
     void init_negation_map();
     void init_masks();
     void init_eq_substs();
+    void init_universal_instantation_substitutions();
 
     std::vector<Entry> entries;
 
@@ -82,6 +90,7 @@ class Flood {
     void process_subst_via_implication(Entry const& a, Entry const& b);
     //void process_subst_direct(Entry const& b);
     void process_replace_forall_with_exists(Entry const& e);
+    void process_instantiate_universal(Entry const& e);
 
     bool in_bounds(Entry const& e);
     bool are_negations(int a, int b);
