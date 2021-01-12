@@ -1117,7 +1117,7 @@ int main(int argc, char* argv[]) {
     long long f_post_symm = -1;
     if (sub_slices_breadth.size() > 0) {
       shared_ptr<CandidateSolver> cs =
-          make_candidate_solver(module, sub_slices_breadth, {});
+          make_candidate_solver(module, sub_slices_breadth, {}, false);
       b_pre_symm = cs->getPreSymmCount();
       cout << "b_pre_symm " << b_pre_symm << endl;
       b_post_symm = cs->getSpaceSize();
@@ -1125,7 +1125,7 @@ int main(int argc, char* argv[]) {
     }
     if (sub_slices_finisher.size() > 0) {
       shared_ptr<CandidateSolver> cs = make_candidate_solver(
-          module, sub_slices_finisher, {});
+          module, sub_slices_finisher, {}, false);
       f_pre_symm = cs->getPreSymmCount();
       cout << "f_pre_symm " << f_pre_symm << endl;
       f_post_symm = cs->getSpaceSize();

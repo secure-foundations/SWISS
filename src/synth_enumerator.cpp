@@ -31,7 +31,8 @@ public:
   OverlordCandidateSolver(
       shared_ptr<Module> module,
       vector<TemplateSubSlice> const& sub_slices,
-      std::vector<value> const& extra_starting_formulas_flood)
+      std::vector<value> const& extra_starting_formulas_flood,
+      bool enable_redundant_invariants)
   {
     this->sub_slices = sub_slices;
 
@@ -58,8 +59,10 @@ public:
     done = false;
     set_solver_idx();
 
-    init_quant_masks();
-    initialize_flood(module, calc_max_e(sub_slices), extra_starting_formulas_flood);
+    if (enable_redundant_invariants) {
+      init_quant_masks();
+      initialize_flood(module, calc_max_e(sub_slices), extra_starting_formulas_flood);
+    }
   }
 
   static int calc_max_e(vector<TemplateSubSlice> const& sub_slices)
@@ -313,8 +316,9 @@ public:
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
     vector<TemplateSubSlice> const& sub_slices,
-    std::vector<value> const& extra_starting_formulas_flood)
+    std::vector<value> const& extra_starting_formulas_flood,
+    bool enable_redundant_invariants)
 {
   return shared_ptr<CandidateSolver>(
-      new OverlordCandidateSolver(module, sub_slices, extra_starting_formulas_flood));
+      new OverlordCandidateSolver(module, sub_slices, extra_starting_formulas_flood, enable_redundant_invariants));
 }

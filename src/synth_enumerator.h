@@ -71,7 +71,8 @@ public:
 std::shared_ptr<CandidateSolver> make_candidate_solver(
     std::shared_ptr<Module> module,
     std::vector<TemplateSubSlice> const& sub_slices, 
-    std::vector<value> const& extra_starting_formulas_flood);
+    std::vector<value> const& extra_starting_formulas_flood,
+    bool enable_redundant_invariants);
 
 extern int numEnumeratedFilteredRedundantInvariants;
 
