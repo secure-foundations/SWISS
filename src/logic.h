@@ -6,6 +6,7 @@
 #include <memory>
 #include <map>
 #include <set>
+#include <assert>
 
 #include "lib/json11/json11.hpp"
 
