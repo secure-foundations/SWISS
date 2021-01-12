@@ -193,7 +193,7 @@ public:
     }
   }
   bool rd_for_solver(RedundantDesc const& rd, int solver_idx) {
-    return rd.quant_mask == quant_masks[solver_idx];
+    return (rd.quant_mask | quant_masks[solver_idx]) == quant_masks[solver_idx];
   }
 
   long long getProgress() {

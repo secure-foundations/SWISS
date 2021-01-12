@@ -56,9 +56,11 @@ std::vector<RedundantDesc> Flood::get_initial_redundant_descs(std::vector<value>
 
 std::vector<RedundantDesc> Flood::add_formula(value v)
 {
+  //cout << "add_formula" << endl;
   int initial_entry_len = (int)entries.size();
   do_add(v);
   return make_results(initial_entry_len);
+  //cout << "done add_formula" << endl;
 }
 
 void Flood::do_add(value v)
@@ -288,12 +290,13 @@ inline bool is_indices_subset(vector<int> const& a, vector<int> const& b)
   }
 }
 
-// returns true if e1 <= e2
+// returns true if e1 ==> e2
+// e.g., e1 subset of e2
 bool does_subsume(Entry const& e1, Entry const& e2)
 {
   return
-      !(e1.forall_mask & e2.exists_mask)
-   && !(e2.forall_mask & e1.exists_mask)
+      /*!(e1.forall_mask & e2.exists_mask)
+   &&*/ !(e2.forall_mask & e1.exists_mask)
    && is_indices_subset(e1.v, e2.v);
 }
 
@@ -309,6 +312,7 @@ void Flood::add_checking_subsumes(Entry const& e) {
     for (int i = 0; i < (int)this->entries.size(); i++) {
       if (!this->entries[i].subsumed) {
         if (does_subsume(this->entries[i], e)) {
+          //cout << "returning " << i << endl;
           return;
         } else if (does_subsume(e, this->entries[i])) {
           this->entries[i].subsumed = true;
@@ -341,10 +345,10 @@ Entry Flood::make_entry(vector<int> const& t, uint32_t forall, uint32_t exists)
 
 void Flood::process_impl(Entry const& a, Entry const& b)
 {
-  if ((a.forall_mask & b.exists_mask)
+  /*if ((a.forall_mask & b.exists_mask)
    || (a.exists_mask & b.forall_mask)) {
     return;
-  }
+  }*/
 
   if (a.v.size() + b.v.size() <= 2 || (int)a.v.size() + (int)b.v.size() - 2 > max_k) {
     return;
@@ -371,10 +375,9 @@ void Flood::process_impl(Entry const& a, Entry const& b)
           }
         }
         uint32_t mask = get_sort_uses_mask(t);
-        add_checking_subsumes(make_entry(t,
-            mask & (a.forall_mask | b.forall_mask),
-            mask & (a.exists_mask | b.exists_mask)
-           ));
+        uint64_t emask = mask & (a.exists_mask | b.exists_mask);
+        uint64_t fmask = mask & (a.forall_mask | b.forall_mask) & ~emask;
+        add_checking_subsumes(make_entry(t, fmask, emask));
       }
     }
   }
@@ -477,12 +480,12 @@ bool Flood::in_bounds(Entry const& e)
 
 void Flood::process(Entry const& e)
 {
-  process_replace_forall_with_exists(e);
+  //process_replace_forall_with_exists(e);
   //process_subst_direct(e);
   process_instantiate_universal(e);
 }
 
-void Flood::process_replace_forall_with_exists(Entry const& e)
+/*void Flood::process_replace_forall_with_exists(Entry const& e)
 {
   for (int i = 0; i < nsorts; i++) {
     if ((e.forall_mask >> i) & 1) {
@@ -494,7 +497,7 @@ void Flood::process_replace_forall_with_exists(Entry const& e)
       add_checking_subsumes(f);
     }
   }
-}
+}*/
 
 inline bool bitmask_subset(uint64_t a, uint64_t b) {
   return (a | b) == b;
@@ -896,11 +899,11 @@ void Flood::add_negations()
       e.subsumed = false;
       entries.push_back(e);
 
-      if (max_e > 0) {
+      /*if (max_e > 0) {
         e.exists_mask = e.forall_mask;
         e.forall_mask = 0;
         entries.push_back(e);
-      }
+      }*/
     }
   }
 }
