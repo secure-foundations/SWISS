@@ -416,14 +416,14 @@ int find_in_vec(vector<int> const& v, int w) {
 }
 
 void Flood::process_subst_via_implication(Entry const& a, Entry const& b) {
-  if (a.v.size() != 2) {
-    return;
-  }
+  //if (a.v.size() != 2) {
+  //  return;
+  //}
   if (a.exists_mask != 0) {
     return;
   }
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < (int)a.v.size(); i++) {
     if (is_equality[a.v[i]]) {
       //int idx = find_in_vec(b.v, a.v[1-i]);
       //if (idx != -1) {
@@ -433,16 +433,15 @@ void Flood::process_subst_via_implication(Entry const& a, Entry const& b) {
               if (new_thing == SUBST_VALUE_TRUE) continue;
               vector<int> t = b.v;
 
-              /*if (new_thing == SUBST_VALUE_FALSE) {
+              if (new_thing == SUBST_VALUE_FALSE) {
                 t.erase(t.begin() + j);
               } else {
                 t[j] = new_thing;
               }
-              t.push_back(a.v[1-i]);*/
-              // slightly faster equivalent version (we sort later):
-              t[j] = a.v[1-i];
-              if (new_thing != SUBST_VALUE_FALSE) {
-                t.push_back(new_thing);
+              for (int k = 0; k < (int)a.v.size(); k++) {
+                if (k != i) {
+                  t.push_back(a.v[k]);
+                }
               }
 
               uint32_t mask = get_sort_uses_mask(t);
