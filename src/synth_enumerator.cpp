@@ -77,11 +77,14 @@ public:
     return emax;
   }
 
+  vector<vector<int>> subidx_maps;
+
   void initialize_flood(shared_ptr<Module> module, int max_e,
       std::vector<value> const& extra_starting_formulas_flood)
   {
-    assert (spaces.size() == 1); // TODO
-    this->flood = unique_ptr<Flood>(new Flood(module, spaces[0], max_e));
+    TemplateSpace ts = get_full_tspace_for_flood();
+    this->flood = unique_ptr<Flood>(new Flood(module, ts, max_e));
+    init_subidx_maps(module, ts);
     append_redundant_descs(
         this->flood->get_initial_redundant_descs(extra_starting_formulas_flood));
     update_cexes_invs();
@@ -95,9 +98,19 @@ public:
   }
 
   void update_cexes_invs() {
+    vector<int> new_v;
     while (rd_idx[solver_idx] < (int)redundantDescs.size()) {
       if (rd_for_solver(redundantDescs[rd_idx[solver_idx]], solver_idx)) {
-        solvers[solver_idx]->addRedundantDesc(redundantDescs[rd_idx[solver_idx]].v);
+        vector<int> const& old_v = redundantDescs[rd_idx[solver_idx]].v;
+        new_v.resize(old_v.size());
+        for (int j = 0; j < (int)old_v.size(); j++) {
+          new_v[j] = subidx_maps[solver_idx][old_v[j]];
+          if (new_v[j] == -1) {
+            goto skip;
+          }
+        }
+        solvers[solver_idx]->addRedundantDesc(new_v);
+        skip: {}
       }
       rd_idx[solver_idx]++;
     }
@@ -202,6 +215,98 @@ public:
 
   void addRedundantDesc(std::vector<int> const&) {
     assert(false);
+  }
+
+  TemplateSpace get_full_tspace_for_flood() {
+    assert (spaces.size() > 0);
+    TemplateSpace ts;
+    ts.vars.resize(spaces[0].vars.size());
+    ts.quantifiers.resize(spaces[0].vars.size());
+    for (int i = 0; i < (int)ts.quantifiers.size(); i++) {
+      ts.vars[i] = 0;
+      ts.quantifiers[i] = Quantifier::Forall;
+    }
+    ts.depth = 1;
+    ts.k = 1;
+    for (int i = 0; i < (int)spaces.size(); i++) {
+      ts.depth = max(ts.depth, spaces[i].depth);
+      ts.k = max(ts.k, spaces[i].k);
+      for (int j = 0; j < (int)ts.vars.size(); j++) {
+        ts.vars[j] = max(ts.vars[j], spaces[i].vars[j]);
+      }
+    }
+
+    assert (ts.depth == 1);
+    return ts;
+  }
+
+  void init_subidx_maps(shared_ptr<Module> module, TemplateSpace& ts) {
+    value templ = ts.make_templ(module);
+    TopAlternatingQuantifierDesc big_taqd(templ);
+
+    subidx_maps.resize(spaces.size());
+    vector<value> clauses = this->flood->get_clauses();
+    for (int i = 0; i < (int)spaces.size(); i++) {
+      value small_templ = get_sub_templ(module, big_taqd, spaces[i]);
+      vector<value> sub_clauses = get_clauses_for_template(module, small_templ);
+
+      subidx_maps[i] = get_subidx_map(clauses, sub_clauses);
+    }
+  }
+
+  // returns 'forall' stuff regardless of inputs
+  value get_sub_templ(
+      shared_ptr<Module> module,
+      TopAlternatingQuantifierDesc const& big_taqd,
+      TemplateSpace const& sub_ts)
+  {
+    vector<int> var_counts = sub_ts.vars;
+
+    vector<VarDecl> decls;
+    for (Alternation const& alt : big_taqd.alternations()) {
+      for (VarDecl const& decl : alt.decls) {
+        int sort_idx = sort_idx_of_module(module, decl.sort);
+        if (var_counts[sort_idx] > 0) {
+          var_counts[sort_idx]--;
+          decls.push_back(decl);
+        }
+      }
+    }
+    return v_forall(decls, v_template_hole());
+  }
+
+  // return map from idx in `clauses` to corresponding value in `sub_clauses`
+  // or -1 if it doesn't exist in `sub_clauses`
+  static vector<int> get_subidx_map(
+      vector<value> const& clauses,
+      vector<value> const& sub_clauses)
+  {
+    vector<int> res(clauses.size());
+    map<ComparableValue, int> m;
+    for (int i = 0; i < (int)clauses.size(); i++) {
+      m.insert(make_pair(
+        ComparableValue(TopAlternatingQuantifierDesc::get_body(clauses[i])),
+        i));
+      res[i] = -1;
+    }
+    for (int i = 0; i < (int)sub_clauses.size(); i++) {
+      value v = TopAlternatingQuantifierDesc::get_body(sub_clauses[i]);
+      auto it = m.find(ComparableValue(v));
+      assert (it != m.end());
+      assert (res[it->second] == -1);
+      res[it->second] = i;
+    }
+
+    // sanity check
+    int last = -1;
+    for (int i = 0; i < (int)res.size(); i++) {
+      if (res[i] != -1) {
+        assert (res[i] == last + 1);
+        last++;
+      }
+    }
+
+    return res;
   }
 };
 

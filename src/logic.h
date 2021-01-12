@@ -744,4 +744,15 @@ std::string marshall_formula_dump(FormulaDump const& fd);
 value order_and_or_eq(value v);
 value pop_first_quantifier_variable(value);
 
+inline int sort_idx_of_module(std::shared_ptr<Module>& module, lsort so) {
+  UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(so.get());
+  assert (us != NULL);
+  for (int i = 0; i < (int)module->sorts.size(); i++) {
+    if (module->sorts[i] == us->name) {
+      return i;
+    }
+  }
+  assert(false);
+}
+
 #endif

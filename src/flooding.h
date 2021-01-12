@@ -31,6 +31,7 @@ class Flood {
   public:
     std::vector<RedundantDesc> get_initial_redundant_descs(std::vector<value> const& extras);
     std::vector<RedundantDesc> add_formula(value v);
+    std::vector<value> get_clauses() const { return clauses; }
 
     Flood(
         std::shared_ptr<Module> module,

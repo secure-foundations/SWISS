@@ -112,17 +112,6 @@ int Flood::get_index_of_piece(value p) {
   return it->second;
 }
 
-int sort_idx_of_module(std::shared_ptr<Module>& module, lsort so) {
-  UninterpretedSort* us = dynamic_cast<UninterpretedSort*>(so.get());
-  assert (us != NULL);
-  for (int i = 0; i < (int)module->sorts.size(); i++) {
-    if (module->sorts[i] == us->name) {
-      return i;
-    }
-  }
-  assert(false);
-}
-
 void sort_and_remove_dupes(vector<int>& t)
 {
   if (t.size() == 0) return;
