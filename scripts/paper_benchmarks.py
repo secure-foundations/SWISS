@@ -475,6 +475,8 @@ def parse_args(args):
   res = []
   j = None
   p = None
+  q1 = None
+  q2 = None
   one = None
   skip_long = False
   median_of = MAX_SEED
@@ -486,6 +488,10 @@ def parse_args(args):
     elif args[i] == '-p':
       p = int(args[i+1])
       i += 1
+    elif args[i] == '-q':
+      q1 = int(args[i+1])
+      q2 = int(args[i+2])
+      i += 2
     elif args[i] == '--one':
       one = args[i+1]
       i += 1
@@ -498,7 +504,9 @@ def parse_args(args):
     else:
       res.append(args[i])
     i += 1
-  return j, p, one, res, skip_long, median_of
+  if p != None:
+    assert q1 != None
+  return j, p, q1, q2, one, res, skip_long, median_of
 
 #for b in benches:
 #  print(b.name)
@@ -527,9 +535,19 @@ def filter_benches(benches, skip_long, median_of):
       res.append(b)
   return res
 
+def auto_partition(b, q1, q2):
+  assert 1 <= q1 <= q2
+  if q1 == q2:
+    q1 = 0
+  t = []
+  for i in range(len(b)):
+    if i % q2 == q1:
+      t.append(b[i])
+  return t
+
 def main():
   args = sys.argv[1:]
-  j, p, one, args, skip_long, median_of = parse_args(args)
+  j, p, q1, q2, one, args, skip_long, median_of = parse_args(args)
 
   assert len(args) == 1
   directory = args[0]
@@ -538,6 +556,8 @@ def main():
   assert directory.startswith("paperlogs/")
 
   my_benches = filter_benches(benches, skip_long, median_of)
+  if q1 != None:
+    my_benches = auto_partition(my_benches, q1, q2)
 
   if j == None:
     for b in my_benches:
