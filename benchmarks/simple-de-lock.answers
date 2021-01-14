@@ -1,0 +1,3 @@
+conjecture ~(has_lock(X) & message(Y,Z))
+conjecture ~message(X,Y) | ~message(Z,W) | X=Z
+conjecture ~message(X,Y) | ~message(Z,W) | Y=W
