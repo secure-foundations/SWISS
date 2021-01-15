@@ -706,6 +706,9 @@ def make_comparison_table(input_directory, median_of=5):
   inv_analysis_info = { }
   for r in rows:
     if r != '||':
+      if use_old_names:
+        r = r.replace("auto_full", "auto").replace("auto_e0_full","auto_e0")
+
       stats[r] = median(input_directory, r, 1, median_of)
       if stats[r]:
         fname = stats[r].filename
@@ -749,6 +752,9 @@ def make_comparison_table(input_directory, median_of=5):
       return str(int(s))
 
   def calc(r, c):
+    if use_old_names:
+      r = r.replace("auto_full", "auto").replace("auto_e0_full","auto_e0")
+
     if c == "Benchmark":
       bname = get_bench_name(r)
       if bname == "multi-paxos" and "basic" in r:
