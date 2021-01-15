@@ -11,11 +11,26 @@ import paper_benchmarks
 import get_counts
 import templates
 
+use_old_names = False
+
+def map_filename_maybe(filename):
+  if not use_old_names:
+    return filename
+  if "learning-switch-quad_pyv" in filename:
+    return filename.replace("learning-switch-quad_pyv", "learning_switch_pyv")
+  if "learning-switch-ternary" in filename:
+    return filename.replace("learning-switch-ternary", "learning-switch")
+  if "lock-server-sync" in filename:
+    return filename.replace("lock-server-sync", "lock_server")
+  if "lock-server-async" in filename:
+    return filename.replace("lock-server-async", "lockserv")
+  return filename
+
 class ThreadStats(object):
   def __init__(self, input_directory, filename):
     times = {}
     stats = {}
-    with open(os.path.join(input_directory, filename, "summary")) as f:
+    with open(os.path.join(input_directory, map_filename_maybe(filename), "summary")) as f:
       cur_name = None
       cur_stats = None
       state = 0
@@ -89,13 +104,22 @@ class ThreadStats(object):
     return res
 
   def get_name_from_log(self, log):
-    if log.startswith("./logs/log."):
-      name = log.split('/')[-1]
-    elif log.startswith("/pylon5/ms5pijp/tjhance/log."):
-      name = log.split('/')[-1]
+    if use_old_names:
+      if log.startswith("./logs/log."):
+        name = '.'.join(log.split('.')[5:])
+      elif log.startswith("/pylon5/ms5pijp/tjhance/log."):
+        name = '.'.join(log.split('.')[4:])
+      else:
+        assert False
+      return name
     else:
-      assert False
-    return name
+      if log.startswith("./logs/log."):
+        name = log.split('/')[-1]
+      elif log.startswith("/pylon5/ms5pijp/tjhance/log."):
+        name = log.split('/')[-1]
+      else:
+        assert False
+      return name
 
 class Breakdown(object):
   def __init__(self, stats, skip=False):
@@ -167,7 +191,7 @@ class BasicStats(object):
     self.I4_time = I4
     self.name = name
     self.filename = filename
-    with open(os.path.join(input_directory, filename, "summary")) as f:
+    with open(os.path.join(input_directory, map_filename_maybe(filename), "summary")) as f:
       doing_total = False
       self.z3_sat_ops = 0
       self.z3_sat_time = 0
@@ -418,23 +442,43 @@ def I4_get_res(d, r):
   if get_bench_existential(r):
     return None
 
-  I4_name = {
-      "toy-consensus-forall": "toy_consensus_forall",
-      "consensus-forall": "consensus_forall",
-      "consensus-wo-decide": "consensus_wo_decide",
-      "lock-server-async": "lock-server-async",
-      "sharded-kv": "sharded_kv",
-      "ticket": "ticket",
+  if use_old_names:
+    I4_name = {
+        "toy-consensus-forall": "toy_consensus_forall",
+        "consensus-forall": "consensus_forall",
+        "consensus-wo-decide": "consensus_wo_decide",
+        "lock-server-async": "lockserv",
+        "sharded-kv": "sharded_kv",
+        "ticket": "ticket",
 
-      'sdl': "simple-de-lock",
-      'ring-election': "leader election",
-      'learning-switch-ternary': "learning switch",
-      'lock-server-sync': "lock server",
-      'two-phase-commit': "two phase commit",
-      'chain': "database chain replication",
-      'chord': "chord ring",
-      'distributed-lock': "distributed lock",
-  }[name]
+        'sdl': "simple-de-lock",
+        'ring-election': "leader election",
+        'learning-switch-ternary': "learning switch",
+        'lock-server-sync': "lock server",
+        'two-phase-commit': "two phase commit",
+        'chain': "database chain replication",
+        'chord': "chord ring",
+        'distributed-lock': "distributed lock",
+    }[name]
+
+  else:
+    I4_name = {
+        "toy-consensus-forall": "toy_consensus_forall",
+        "consensus-forall": "consensus_forall",
+        "consensus-wo-decide": "consensus_wo_decide",
+        "lock-server-async": "lock-server-async",
+        "sharded-kv": "sharded_kv",
+        "ticket": "ticket",
+
+        'sdl': "simple-de-lock",
+        'ring-election': "leader election",
+        'learning-switch-ternary': "learning switch",
+        'lock-server-sync': "lock server",
+        'two-phase-commit': "two phase commit",
+        'chain': "database chain replication",
+        'chord': "chord ring",
+        'distributed-lock': "distributed lock",
+    }[name]
 
   return d[I4_name]
   
@@ -463,7 +507,7 @@ def folsep_json_get_res(j, r):
       "consensus-wo-decide": "consensus_wo_decide",
       "hybrid-reliable-broadcast": "hybrid_reliable_broadcast_cisa",
       "learning-switch-quad": "learning_switch",
-      "lock-server-async": "lock-server-async",
+      "lock-server-async": "lockserv",
       "sharded-kv": "sharded_kv",
       "sharded-kv-no-lost-keys": "sharded_kv_no_lost_keys",
       "ticket": "ticket",
@@ -652,6 +696,10 @@ def get_or_question_mark(inv_analysis_info, r, name):
     return "?"
 
 def make_comparison_table(input_directory, median_of=5):
+  if "camera-ready-2020august-serenity" in input_directory:
+    global use_old_names
+    use_old_names = True
+
   rows = MAIN_TABLE_ROWS
 
   stats = { } # r : get_basic_stats(input_directory, r) for r in rows }
@@ -1122,7 +1170,7 @@ def make_segmented_graph(ax, input_directory, name, suffix,
           bottom += t
 
 def get_total_time(input_directory, filename):
-  with open(os.path.join(input_directory, filename, "summary")) as f:
+  with open(os.path.join(input_directory, map_filename_maybe(filename), "summary")) as f:
     for line in f:
       if line.startswith("total time: "):
         t = float(line.split()[2])
@@ -1197,6 +1245,10 @@ PAXOS_FINISHER_THREAD_BENCH = "mm_whole__paxos_epr_missing1__basic__seed1" # _t1
 PAXOS_NONACC_THREAD_BENCH = "mm_nonacc__paxos__basic_b__seed1"
   
 def make_parallel_graphs(input_directory, save=False):
+  if "camera-ready-2020august-serenity" in input_directory:
+    global use_old_names
+    use_old_names = True
+
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
@@ -1249,6 +1301,10 @@ def make_parallel_graphs(input_directory, save=False):
     plt.show()
 
 def make_opt_graphs_main(input_directory, save=False, mm=False, both=False):
+  if "camera-ready-2020august-serenity" in input_directory:
+    global use_old_names
+    use_old_names = True
+
   output_directory = "graphs"
   Path(output_directory).mkdir(parents=True, exist_ok=True)
 
@@ -1296,6 +1352,10 @@ def make_opt_graphs_main(input_directory, save=False, mm=False, both=False):
 #    plt.show()
 
 def misc_stats(input_directory, median_of=5):
+  if "camera-ready-2020august-serenity" in input_directory:
+    global use_old_names
+    use_old_names = True
+
   def p(key, value, comment=""):
     print("\\newcommand{\\" + key + "}{" + str(value) + "}" +
         ("" if comment == "" else " % " + str(comment)))
@@ -1409,6 +1469,10 @@ def misc_stats(input_directory, median_of=5):
   for r in MAIN_TABLE_ROWS:
     if r == '||':
       continue
+
+    if use_old_names:
+      r = r.replace("auto_full", "auto").replace("auto_e0_full","auto_e0")
+
     stats = median(input_directory, r, 1, median_of)
     if not stats.timed_out_6_hours and stats.success:
       total_solved += 1
@@ -1418,16 +1482,17 @@ def misc_stats(input_directory, median_of=5):
       s[0] += "_fonly"
       fonly_name = '__'.join(s)
 
-      maps = {
-        "mm_nonacc__leader-election__auto__seed#_t8":
-            "mm_nonacc_fonly__leader-election__auto_full__seed1_t8",
-        "mm_nonacc__learning-switch-ternary__auto_e0__seed#_t8":
-            "mm_nonacc_fonly__learning-switch-ternary__auto_e0_full__seed1_t8",
-        "mm_nonacc__lock-server-sync__auto__seed#_t8":
-            "mm_nonacc_fonly__lock-server-sync__auto_full__seed1_t8",
-        "mm_nonacc__2PC__auto__seed#_t8":
-            "mm_nonacc_fonly__2PC__auto_full__seed1_t8",
-      }
+      if use_old_names:
+        maps = {
+          "mm_nonacc__leader-election__auto__seed#_t8":
+              "mm_nonacc_fonly__leader-election__auto_full__seed1_t8",
+          "mm_nonacc__learning-switch-ternary__auto_e0__seed#_t8":
+              "mm_nonacc_fonly__learning-switch-ternary__auto_e0_full__seed1_t8",
+          "mm_nonacc__lock-server-sync__auto__seed#_t8":
+              "mm_nonacc_fonly__lock-server-sync__auto_full__seed1_t8",
+          "mm_nonacc__2PC__auto__seed#_t8":
+              "mm_nonacc_fonly__2PC__auto_full__seed1_t8",
+        }
       if r in maps:
         fonly_name = maps[r]
 
@@ -1618,6 +1683,11 @@ def stuff():
 
 def main():
   input_directory = sys.argv[1]
+
+  if "camera-ready-2020august-serenity" in input_directory:
+    global use_old_names
+    use_old_names = True
+
   #stuff()
   #make_parallel_graphs(input_directory)
   #make_seed_graphs_main(input_directory)
