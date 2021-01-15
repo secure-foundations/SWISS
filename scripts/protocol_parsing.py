@@ -40,7 +40,7 @@ def ivy_file_json(ivy_filename):
   proc = subprocess.Popen(["python2", "./scripts/file_to_json.py", ivy_filename], stdout=subprocess.PIPE)
   out, err = proc.communicate()
   ret = proc.wait()
-  assert ret == 0, "file_to_json.py failed"
+  assert ret == 0, "file_to_json.py failed: " + ivy_filename
 
   return out
 
