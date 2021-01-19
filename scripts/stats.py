@@ -54,7 +54,8 @@ def parse_stats(filename, cid, failure):
 
   for l in lines:
     if (l.startswith("z3 [") or l.startswith("cvc4 [") or
-        l.startswith("z3 TOTAL") or l.startswith("cvc4 TOTAL")):
+        l.startswith("z3 TOTAL") or l.startswith("cvc4 TOTAL") or
+        l.startswith("long smtAllQueries")):
       stuff = l.split()
       key = ' '.join(stuff[:-10])
       assert stuff[-10] == "total"

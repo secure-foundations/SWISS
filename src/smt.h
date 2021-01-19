@@ -299,6 +299,8 @@ namespace smt {
 
   bool is_z3_context(context&);
   void dump_smt_stats();
+
+  void add_stat_smt_long(long long ms);
 }
 
 #endif

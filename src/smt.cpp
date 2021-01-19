@@ -73,6 +73,15 @@ void log_to_stdout(long long ms, bool is_cvc4,
   }
 }
 
+void add_stat_smt_long(long long ms) {
+  string newkey = "long smtAllQueries";
+  if (stats.find(newkey) == stats.end()) {
+    stats.insert(make_pair(newkey, make_pair(0, 0)));
+  }
+  stats[newkey].first++;
+  stats[newkey].second += ms;
+}
+
 void dump_smt_stats() {
   for (auto& p : stats) {
     long long num = p.second.first;

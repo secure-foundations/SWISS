@@ -90,6 +90,9 @@ ContextSolverResult context_solve(
       auto t2 = now();
       long long ms = as_ms(t2 - t1);
       global_stats.add_total(ms);
+      if (num_fails > 0) {
+        smt::add_stat_smt_long(ms);
+      }
 
       ContextSolverResult csr;
       csr.res = res;
