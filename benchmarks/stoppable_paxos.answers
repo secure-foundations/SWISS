@@ -11,10 +11,9 @@ conjecture vote(N,I,R,V) -> proposal(I,R,V)
 # decisions come from quorums of votes:
 conjecture forall R:round, V:value. (exists N:node. decision(N,I,R,V)) -> exists Q:quorum. forall N:node. member(N, Q) -> vote(N,I,R,V)
 
-# properties of one_b_msg
-conjecture one_b_msg(N,R2,M) & maxr(M,I) = none & ~le(R2,R1) -> ~vote(N,I,R1,V2)
-conjecture one_b_msg(N,R, M) & maxr(M,I) ~= none -> ~le(R,maxr(M,I)) & vote(N,I,maxr(M,I),maxv(M,I))
-conjecture one_b_msg(N,R, M) & maxr(M,I) ~= none & ~le(R,ROTHER) & ~le(ROTHER,maxr(M,I)) -> ~vote(N,I,ROTHER,VOTHER)
+# properties of joined_round, left_round
+conjecture joined_round(N,R2) & ~le(R2,R1) -> left_round(N,R1)
+conjecture one_b_msg(N,R,M) -> joined_round(N,R)
 
 # properties of none
 # conjecture ~proposal(I,none,V)
@@ -23,6 +22,14 @@ conjecture ~vote(N,I,none,V)
 # conjecture ~one_b_msg(N,none,M)
 # conjecture ~active(none)
 
+# properties of one_b_msg
+conjecture one_b_msg(N,R2,M) & maxr(M,I) = none & ~le(R2,R1) -> ~vote(N,I,R1,V2)
+conjecture one_b_msg(N,R, M) & maxr(M,I) ~= none -> ~le(R,maxr(M,I)) & vote(N,I,maxr(M,I),maxv(M,I))
+conjecture one_b_msg(N,R, M) & maxr(M,I) ~= none & ~le(R,ROTHER) & ~le(ROTHER,maxr(M,I)) -> ~vote(N,I,ROTHER,VOTHER)
+
+# property of stop values for the same round
+conjecture proposal(I1,R,stop) & ~inst_le(I2,I1) -> ~proposal(I2,R,V)
+
 # property of choosable and active: if R2>R1 is active and V is not proposed at I, then it's not choosable at R1
 conjecture forall I:inst, R1:round, R2:round, V:value, Q:quorum. (
     ~le(R2,R1) & active(R2) & ~proposal(I,R2,V) -> (
@@ -30,8 +37,6 @@ conjecture forall I:inst, R1:round, R2:round, V:value, Q:quorum. (
     )
 )
 
-# property of stop values for the same round
-conjecture proposal(I1,R,stop) & ~inst_le(I2,I1) -> ~proposal(I2,R,V)
 
 # properties of choosable and stop:
 # if anything is proposed, then stop cannot be choosable at lower instances and lower rounds
@@ -47,6 +52,3 @@ conjecture forall I1:inst, I2:inst, R1:round, R2:round, V:value, Q:quorum. (
     )
 )
 
-# properties of joined_round, left_round
-conjecture joined_round(N,R2) & ~le(R2,R1) -> left_round(N,R1)
-conjecture one_b_msg(N,R,M) -> joined_round(N,R)

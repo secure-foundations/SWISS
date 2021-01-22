@@ -1,4 +1,4 @@
 
-conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & le(nid(N), nid(M)))
-conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & le(nid(N), nid(M)))
 conjecture ~(btw(N,M,O) & pnd(nid(M),N) & le(nid(M), nid(O)))
+conjecture forall N : node . forall M : node . ~(N ~= M & pnd(nid(N), N) & le(nid(N), nid(M)))
+conjecture forall N : node . forall M : node . ~(N ~= M & leader(N) & le(nid(N), nid(M)))

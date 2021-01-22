@@ -1,7 +1,9 @@
 
-conjecture leader(N1) & leader(N2) -> N1 = N2
-conjecture votes(N, N1) -> vote_msg(N1, N)
-conjecture vote_msg(N, N1) & vote_msg(N, N2) -> N1 = N2
-conjecture vote_msg(N, N1) -> voted(N)
-conjecture exists Q. forall N, M. leader(N) & member(M, Q) -> votes(N, M)
 conjecture decided(N, V) -> leader(N)
+conjecture vote_msg(N, N1) -> voted(N)
+conjecture vote_msg(N, N1) & vote_msg(N, N2) -> N1 = N2
+conjecture votes(N, N1) -> vote_msg(N1, N)
+
+conjecture exists Q. forall N, M. leader(N) & member(M, Q) -> votes(N, M)
+
+conjecture leader(N1) & leader(N2) -> N1 = N2

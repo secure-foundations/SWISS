@@ -570,6 +570,33 @@ void maybe_set_success(shared_ptr<Module> module, FormulaDump& fd)
   cout << "is not invariant" << endl;
 }
 
+void do_check_ind_linear(shared_ptr<Module> module, string filename) {
+  vector<value> a = read_value_array(filename);
+
+  cout << "checking full inductivness..." << endl;
+  
+  if (!is_invariant_wrt(module, v_and(a), v_and(module->conjectures))) {
+    cout << "no" << endl;
+    exit(1);
+  }
+  cout << "yes" << endl;
+
+  for (int i = 0; i < (int)a.size(); i++) {
+    cout << "checking first " << i << "..." << endl;
+
+    vector<value> rest = module->conjectures;
+    for (int j = 0; j < i; j++) {
+      rest.push_back(a[j]);
+    }
+
+    if (!is_invariant_wrt(module, v_and(rest), a[i])) {
+      cout << "no" << endl;
+      exit(1);
+    }
+    cout << "yes" << endl;
+  }
+}
+
 int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     cout << argv[i] << " ";
@@ -601,6 +628,7 @@ int main(int argc, char* argv[]) {
   
   int seed = 1234;
   bool check_inductiveness = false;
+  string check_inductiveness_linear;
   bool check_rel_inductiveness = false;
   bool check_implication = false;
   bool wpr = false;
@@ -650,6 +678,11 @@ int main(int argc, char* argv[]) {
     }
     else if (argv[i] == string("--check-inductiveness")) {
       check_inductiveness = true;
+    }
+    else if (argv[i] == string("--check-inductiveness-linear")) {
+      assert (i + 1 < argc);
+      check_inductiveness_linear = argv[i+1];
+      i++;
     }
     else if (argv[i] == string("--check-rel-inductiveness")) {
       check_rel_inductiveness = true;
@@ -874,6 +907,11 @@ int main(int argc, char* argv[]) {
     } else{
       printf("no\n");
     }
+    return 0;
+  }
+
+  if (check_inductiveness_linear != "") {
+    do_check_ind_linear(module, check_inductiveness_linear);
     return 0;
   }
 

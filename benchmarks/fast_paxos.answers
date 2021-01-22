@@ -17,6 +17,13 @@ conjecture fast(R) & vote(N,R,V) -> (proposal(R,V) | any_msg(R))
 conjecture ~(any_msg(R) & proposal(R,V))
 conjecture fast(R) & vote(N,R,V1) & vote(N,R,V2) -> V1 = V2
 
+# properties of one_b, left_rnd
+#conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
+conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
+
+# properties of none
+conjecture ~vote(N,none,V)
+
 # properties of choosable, proposal, any_msg (classic round)
 conjecture forall R1:round, R2:round, V1:value, V2:value, Q:c_quorum.
     ~fast(R1) & ~le(R2,R1) & ((proposal(R2,V2) & V1 ~= V2) | any_msg(R2)) ->
@@ -31,9 +38,3 @@ conjecture forall R1:round, R2:round, V1:value, V2:value, Q:f_quorum.
 #conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none -> ~le(R,RMAX) & vote(N,RMAX,V)
 #conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vote(N,ROTHER,VOTHER)
 
-# properties of one_b, left_rnd
-#conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
-conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
-
-# properties of none
-conjecture ~vote(N,none,V)

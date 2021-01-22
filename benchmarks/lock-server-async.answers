@@ -1,11 +1,11 @@
 
-conjecture grant_msg(N1) & grant_msg(N2) -> N1 = N2
-conjecture unlock_msg(N1) & unlock_msg(N2) -> N1 = N2
+conjecture (grant_msg(N1) & grant_msg(N2) -> N1 = N2)
+ & (unlock_msg(N1) & unlock_msg(N2) -> N1 = N2)
 
-conjecture ~(holds_lock(N1) & grant_msg(N2))
-conjecture ~(holds_lock(N1) & unlock_msg(N2))
-conjecture ~(grant_msg(N1) & unlock_msg(N2))
+ & (~(holds_lock(N1) & grant_msg(N2)))
+ & (~(holds_lock(N1) & unlock_msg(N2)))
+ & (~(grant_msg(N1) & unlock_msg(N2)))
 
-conjecture ~(grant_msg(N) & server_holds_lock)
-conjecture ~(holds_lock(N) & server_holds_lock)
-conjecture ~(unlock_msg(N) & server_holds_lock)
+ & (~(grant_msg(N) & server_holds_lock))
+ & (~(holds_lock(N) & server_holds_lock))
+ & (~(unlock_msg(N) & server_holds_lock))

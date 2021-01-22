@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import json
 import tempfile
+import predicate_parsing
 
 ### Parsing
 
@@ -183,3 +184,14 @@ def parse_module_invs_invs_invs(protocol_filename, inv_filename1, inv_filename2)
   j = json.loads(j)
 
   return (module_json_filename, j["conjectures"], i1, i2)
+
+def parse_module_and_invs_myparser(protocol_filename, inv_filename):
+  module_json_filename = protocol_file_json_file(protocol_filename)
+  with open(module_json_filename) as f:
+    j = f.read()
+
+  with open(inv_filename) as f:
+    invs_contents = f.read()
+  invs = predicate_parsing.parse_inv_contents(invs_contents, j)
+
+  return (module_json_filename, j, invs)

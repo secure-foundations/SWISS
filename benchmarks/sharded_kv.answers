@@ -1,6 +1,9 @@
 
-conjecture owner(N1, K) & owner(N2, K) -> N1 = N2
 conjecture table(N, K, V) -> owner(N, K)
 
-conjecture ~(transfer_msg(N1, K, V) & owner(N2, K))
-conjecture transfer_msg(N1, K, V1) & transfer_msg(N2, K, V2) -> N1 = N2 & V1 = V2
+conjecture (owner(N1, K) & owner(N2, K) -> N1 = N2)
+  & (transfer_msg(N1, K, V1) & transfer_msg(N2, K, V2) -> N1 = N2 & V1 = V2)
+  & (~(transfer_msg(N1, K, V) & owner(N2, K)))
+
+
+

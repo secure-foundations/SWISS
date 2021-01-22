@@ -1,23 +1,16 @@
 
-conjecture held(N) & held(M) -> N=M
-
-conjecture (
-    transfer(E1, N1) & ~le(E1, ep(N1))
-  & transfer(E2, N2) & ~le(E2, ep(N2))
-  ) -> (E1=E2 & N1=N2)
-
-conjecture (
-    transfer(E1, N1) & ~le(E1, ep(N1))
-  ) -> ~held(N2)
-
 conjecture locked(E,N) -> transfer(E,N)
 
-conjecture held(N) -> le(ep(N1), ep(N))
-conjecture held(N) & transfer(E1,N1) -> le(E1,ep(N))
-conjecture (
-    transfer(E, N) & ~le(E, ep(N))
-  ) -> ~le(E, ep(N1))
-conjecture (
-    transfer(E, N) & ~le(E, ep(N))
-  ) & transfer(E1, N1) & (N~=N1 | E~=E1) -> ~le(E,E1)
+conjecture (held(N) & held(M) -> N=M)
+ & ((transfer(E1, N1) & ~le(E1, ep(N1)) & transfer(E2, N2) & ~le(E2, ep(N2))) -> (E1=E2 & N1=N2))
+
+ & (( transfer(E1, N1) & ~le(E1, ep(N1))) -> ~held(N2))
+
+
+conjecture (( transfer(E, N) & ~le(E, ep(N))) & transfer(E1, N1) & (N~=N1 | E~=E1) -> ~le(E,E1))
+ & (held(N) & transfer(E1,N1) -> le(E1,ep(N)))
+
+conjecture (( transfer(E, N) & ~le(E, ep(N))) -> ~le(E, ep(N1)))
+ & (held(N) -> le(ep(N1), ep(N)))
+
 
