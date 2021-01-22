@@ -1,0 +1,21 @@
+conjecture proposal(R,V1) & proposal(R,V2) -> V1 = V2
+
+# only vote for proposed values
+conjecture vote(N,R,V) -> proposal(R,V)
+
+# decisions come from quorums of votes
+conjecture forall R:round, V:value. (exists N:node. decision(N,R,V)) -> exists Q:quorum_2. forall N:node. member_2(N, Q) -> vote(N,R,V)
+
+# properties of none
+conjecture ~vote(N,none,V)
+
+conjecture one_b_max_vote(N,R,RMAX,V) -> one_b(N,R)
+conjecture one_b(N,R2) & ~le(R2,R1) -> left_rnd(N,R1)
+
+conjecture one_b_max_vote(N,R2,none,V1) & ~le(R2,R1) -> ~vote(N,R1,V2)
+conjecture one_b_max_vote(N,R,RMAX,V) & RMAX ~= none -> ~le(R,RMAX) & vote(N,RMAX,V)
+conjecture one_b_max_vote(N,R,RMAX,V) & ~le(R,ROTHER) & ~le(ROTHER,RMAX) -> ~vote(N,ROTHER,VOTHER)
+
+conjecture forall R1:round, R2:round, V1:value, V2:value, Q:quorum_2. ~le(R2,R1) & proposal(R2,V2) & V1 ~= V2 ->
+    exists N . member_2(N,Q) & left_rnd(N,R1) & ~vote(N,R1,V1)
+
