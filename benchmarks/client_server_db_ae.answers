@@ -1,0 +1,4 @@
+conjecture forall N,P. response_sent(N,P) -> exists R. request_sent(N,R) & match(R,P)
+conjecture forall I,R. db_request_sent(I,R) -> exists N. t(I,N) & request_sent(N,R)
+conjecture forall I,P. db_response_sent(I,P) -> exists R. db_request_sent(I,R) & match(R,P)
+conjecture t(I,N1) & t(I,N2) -> N1 = N2

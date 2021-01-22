@@ -1,0 +1,4 @@
+
+conjecture vote(N,V) -> voted(N)
+conjecture vote(N, V1) & vote(N, V2) -> V1 = V2
+conjecture forall V. decided(V) -> exists Q. forall N. member(N, Q) -> vote(N, V)

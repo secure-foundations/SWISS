@@ -1,0 +1,7 @@
+
+conjecture leader(N1) & leader(N2) -> N1 = N2
+conjecture votes(N, N1) -> vote_msg(N1, N)
+conjecture vote_msg(N, N1) & vote_msg(N, N2) -> N1 = N2
+conjecture vote_msg(N, N1) -> voted(N)
+conjecture leader(N) & member(N1, voting_quorum) -> votes(N, N1)
+conjecture decided(N, V) -> leader(N)

@@ -1,0 +1,8 @@
+conjecture ~((~(alive(N0)) & ~(abort_flag))) 
+conjecture ~((~(abort_flag) & vote_no(N0))) 
+conjecture ~((~(abort_flag) & go_abort(N0))) 
+conjecture ~((~(go_abort(N5)) & decide_abort(N5) & vote_yes(N5))) 
+conjecture ~((~(go_commit(N5)) & decide_commit(N5))) 
+conjecture (N0 ~= N5) -> ~((~(go_commit(N5)) & go_commit(N0))) 
+conjecture ~((~(vote_yes(N5)) & go_commit(N5))) 
+conjecture ~((go_commit(N5) & go_abort(N5))) 

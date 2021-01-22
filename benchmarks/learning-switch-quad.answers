@@ -1,0 +1,3 @@
+
+conjecture pending(PS,PD,S,D) & PS ~= S -> table(PS,S,PS)
+conjecture table(T,X,Y) & T ~= Y & X ~= Y -> table(T,Y,T)

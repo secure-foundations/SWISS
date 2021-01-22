@@ -1,0 +1,4 @@
+
+conjecture vote(N,V) -> voted(N)
+conjecture vote(N, V1) & vote(N, V2) -> V1 = V2
+conjecture decided(V) & member(N, voting_quorum) -> vote(N, V)

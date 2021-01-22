@@ -609,10 +609,10 @@ def median(input_directory, r, a, b, fail_if_absent=False):
   t = []
   for i in range(a, b+1):
     r1 = r.replace("#", str(i))
-    if fail_if_absent:
-      s = get_basic_stats_or_fail(input_directory, r1)
-    else:
-      s = get_basic_stats(input_directory, r1)
+    #if fail_if_absent:
+    #  s = get_basic_stats_or_fail(input_directory, r1)
+    #else:
+    s = get_basic_stats(input_directory, r1)
     if s != None:
       t.append(s)
 
@@ -624,12 +624,17 @@ def median(input_directory, r, a, b, fail_if_absent=False):
     return t[len(t) // 2]
   else:
     if len(t) == 0:
+      if fail_if_absent:
+        raise Exception("median failed to get " + r + ": found none")
       return None
 
     all_timeout = all(s.timed_out_6_hours for s in t)
     if all_timeout:
       return t[0]
     else:
+      if fail_if_absent:
+        raise Exception("median failed to get " + r +
+            ": did not time-out and there were not enough runs")
       return None
 
 def median_or_fail(input_directory, r, a, b):
@@ -1392,9 +1397,14 @@ def misc_stats(input_directory, median_of=5):
   p("paxosFinisherTheOneSize", "\\ensuremath{1.6 \\times 10^{10}}", 16862630188)
   p("paxosBreadthNth", "\\ensuremath{569^{\\text{th}}}")
 
-  p("flexiblePaxosMMSpeedup", speedup(
-      get_basic_stats_or_fail(input_directory, 'mm__flexible_paxos__basic__seed1_t8'),
-      get_basic_stats_or_fail(input_directory, '_flexible_paxos__basic__seed1_t8')))
+  if use_old_names:
+    p("flexiblePaxosMMSpeedup", speedup(
+        get_basic_stats_or_fail(input_directory, 'mm__flexible_paxos__basic__seed1_t8'),
+        get_basic_stats_or_fail(input_directory, '_flexible_paxos__basic__seed1_t8')))
+  else:
+    p("flexiblePaxosMMSpeedup", speedup(
+        get_basic_stats_or_fail(input_directory, 'mm_nonacc__flexible_paxos__basic__seed1_t8'),
+        get_basic_stats_or_fail(input_directory, 'nonacc__flexible_paxos__basic__seed1_t8')))
 
   def read_counts():
     d = []
@@ -1479,7 +1489,7 @@ def misc_stats(input_directory, median_of=5):
     if use_old_names:
       r = r.replace("auto_full", "auto").replace("auto_e0_full","auto_e0")
 
-    stats = median(input_directory, r, 1, median_of)
+    stats = median_or_fail(input_directory, r, 1, median_of)
     if not stats.timed_out_6_hours and stats.success:
       total_solved += 1
       if stats.num_finisher_iters == 0:
@@ -1499,8 +1509,8 @@ def misc_stats(input_directory, median_of=5):
           "mm_nonacc__2PC__auto__seed#_t8":
               "mm_nonacc_fonly__2PC__auto_full__seed1_t8",
         }
-      if r in maps:
-        fonly_name = maps[r]
+        if r in maps:
+          fonly_name = maps[r]
 
       fonly_stats = get_basic_stats(input_directory, fonly_name)
 

@@ -1,0 +1,2 @@
+
+conjecture link(X, Y) -> ~semaphore(Y)
