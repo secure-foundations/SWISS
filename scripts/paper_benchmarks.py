@@ -126,7 +126,7 @@ MAIN_BENCHMARKS = [
     ("learning-switch-quad.pyv", "auto", False, False, ),
     ("lock-server-async.pyv", "auto9", False, False, ),
     ("sharded_kv.pyv", "auto9", False, True, ),
-    ("ticket.pyv", "auto", False, False, ),
+    ("ticket.pyv", "auto9", False, False, ),
     ("toy_consensus_epr.pyv", "auto", False, False, ),
     ("toy_consensus_forall.pyv", "auto", False, False, ),
     ("sharded_kv_no_lost_keys.pyv", "auto_e2", False, True, ),

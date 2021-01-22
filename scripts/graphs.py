@@ -442,43 +442,23 @@ def I4_get_res(d, r):
   if get_bench_existential(r):
     return None
 
-  if use_old_names:
-    I4_name = {
-        "toy-consensus-forall": "toy_consensus_forall",
-        "consensus-forall": "consensus_forall",
-        "consensus-wo-decide": "consensus_wo_decide",
-        "lock-server-async": "lockserv",
-        "sharded-kv": "sharded_kv",
-        "ticket": "ticket",
+  I4_name = {
+      "toy-consensus-forall": "toy_consensus_forall",
+      "consensus-forall": "consensus_forall",
+      "consensus-wo-decide": "consensus_wo_decide",
+      "lock-server-async": "lockserv",
+      "sharded-kv": "sharded_kv",
+      "ticket": "ticket",
 
-        'sdl': "simple-de-lock",
-        'ring-election': "leader election",
-        'learning-switch-ternary': "learning switch",
-        'lock-server-sync': "lock server",
-        'two-phase-commit': "two phase commit",
-        'chain': "database chain replication",
-        'chord': "chord ring",
-        'distributed-lock': "distributed lock",
-    }[name]
-
-  else:
-    I4_name = {
-        "toy-consensus-forall": "toy_consensus_forall",
-        "consensus-forall": "consensus_forall",
-        "consensus-wo-decide": "consensus_wo_decide",
-        "lock-server-async": "lock-server-async",
-        "sharded-kv": "sharded_kv",
-        "ticket": "ticket",
-
-        'sdl': "simple-de-lock",
-        'ring-election': "leader election",
-        'learning-switch-ternary': "learning switch",
-        'lock-server-sync': "lock server",
-        'two-phase-commit': "two phase commit",
-        'chain': "database chain replication",
-        'chord': "chord ring",
-        'distributed-lock': "distributed lock",
-    }[name]
+      'sdl': "simple-de-lock",
+      'ring-election': "leader election",
+      'learning-switch-ternary': "learning switch",
+      'lock-server-sync': "lock server",
+      'two-phase-commit': "two phase commit",
+      'chain': "database chain replication",
+      'chord': "chord ring",
+      'distributed-lock': "distributed lock",
+  }[name]
 
   return d[I4_name]
   
@@ -661,7 +641,7 @@ MAIN_TABLE_ROWS = [
     "mm_nonacc__learning-switch-quad_pyv__auto__seed#_t8",
     "mm_nonacc__lock-server-async_pyv__auto9__seed#_t8",
     "mm_nonacc__sharded_kv_pyv__auto9__seed#_t8",
-    "mm_nonacc__ticket_pyv__auto__seed#_t8",
+    "mm_nonacc__ticket_pyv__auto9__seed#_t8",
 
     "mm_nonacc__toy_consensus_epr_pyv__auto__seed#_t8",
     "mm_nonacc__consensus_epr_pyv__auto__seed#_t8",
@@ -781,14 +761,12 @@ def make_comparison_table(input_directory, median_of=5):
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
     elif c == 'invs':
-      return get_or_question_mark(inv_analysis_info, r,
-          "handwritten_invs")
+      return get_or_question_mark(inv_analysis_info, r, "handwritten_invs")
     elif c == 'terms':
-      return get_or_question_mark(inv_analysis_info, r,
-          "handwritten_terms")
+      return get_or_question_mark(inv_analysis_info, r, "handwritten_terms")
     else:
       if stats[r] == None:
-        return "TODO"
+        return "TODO1"
       if stats[r].timed_out_6_hours:
         if c == "\\name":
           invs_got = get_or_question_mark(inv_analysis_info, r,
@@ -803,7 +781,7 @@ def make_comparison_table(input_directory, median_of=5):
         else:
           return ""
       if not stats[r].success:
-        return "TODO"
+        return "TODO2"
 
       if c == "$n_B$":
         return stats[r].num_breadth_iters
@@ -818,11 +796,9 @@ def make_comparison_table(input_directory, median_of=5):
         return format_secs(stats[r].total_time_sec)
       elif c == SWISS_INVS:
         return str(stats[r].num_inv)
-        return get_or_question_mark(inv_analysis_info, r,
-            "synthesized_invs")
+        return get_or_question_mark(inv_analysis_info, r, "synthesized_invs")
       elif c == SWISS_TERMS:
-        return get_or_question_mark(inv_analysis_info, r,
-            "synthesized_terms")
+        return get_or_question_mark(inv_analysis_info, r, "synthesized_terms")
       else:
         assert False, c
 
@@ -1203,7 +1179,10 @@ def make_opt_comparison_graph(ax, input_directory, opt_name):
     opts = ['', 'mm_'] #, 'postbmc_']
     names = ['Baseline', 'With minimal-models']
   elif opt_name == 'both':
-    opts = ['', 'mm_', 'prebmc_mm_']
+    if use_old_names:
+      opts = ['', 'mm_', 'prebmc_mm_']
+    else:
+      opts = ['nonacc_', 'mm_nonacc_', 'prebmc_mm_nonacc_']
     names = ['Baseline', 'Min-models', 'Min-models + BMC']
   else:
     assert False
