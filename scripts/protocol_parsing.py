@@ -189,9 +189,29 @@ def parse_module_and_invs_myparser(protocol_filename, inv_filename):
   module_json_filename = protocol_file_json_file(protocol_filename)
   with open(module_json_filename) as f:
     j = f.read()
+  j = json.loads(j)
 
   with open(inv_filename) as f:
     invs_contents = f.read()
   invs = predicate_parsing.parse_inv_contents(invs_contents, j)
 
   return (module_json_filename, j, invs)
+
+def parse_module_and_invs_invs_myparser(protocol_filename, inv_filename1, inv_filename2):
+  module_json_filename = protocol_file_json_file(protocol_filename)
+  with open(module_json_filename) as f:
+    j = f.read()
+  j = json.loads(j)
+
+  with open(inv_filename1) as f:
+    invs_contents1 = f.read()
+  invs1 = predicate_parsing.parse_inv_contents(invs_contents1, j)
+
+  if inv_filename2 != None:
+    with open(inv_filename2) as f:
+      invs_contents2 = f.read()
+    invs2 = predicate_parsing.parse_inv_contents(invs_contents2, j)
+  else:
+    invs2 = None
+
+  return (module_json_filename, j, invs1, invs2)

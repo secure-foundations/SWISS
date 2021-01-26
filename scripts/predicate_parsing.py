@@ -1,5 +1,3 @@
-import json
-
 def parse_comma_sep(tokens, i):
   e1, i = parse1(tokens, i)
 
@@ -312,7 +310,6 @@ def type_infer(module, e):
   if len(vs) > 0:
     e = ['forall', [["var", x] for x in vs], e]
 
-  module = json.loads(module)
   const_types = const_types_of_module(module)
   while True:
     if not has_any_uninferred(e):

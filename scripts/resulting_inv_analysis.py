@@ -132,8 +132,15 @@ def count_terms_of_value_list(invs):
   max_exists = max(num_exists(q) for q in quants)
   max_alts = max(num_alts(q) for q in quants)
 
-  return {"invs": len(invs), "terms": count, "max_terms": max_terms,
-      "max_vars": max_vars, "max_exists": max_exists, "max_alts": max_alts}
+  return {
+    "invs": len(invs),
+    "terms": count,
+    "max_terms": max_terms,
+    "max_vars": max_vars,
+    "max_exists": max_exists,
+    "max_alts": max_alts,
+    "k_terms_by_inv": [count_terms(i) for i in invs]
+  }
 
 def do_single_impl_check(module_json_file, lhs_invs, rhs_invs):
   proc = subprocess.Popen(["./synthesis", "--input-module", module_json_file,
@@ -190,32 +197,26 @@ def do_analysis(ivyname, b):
       print("file does not exist: " + answers_filename)
       answers_filename = None
 
-    module_json_file, module_invs, gen_invs, answer_invs = (
-        protocol_parsing.parse_module_invs_invs_invs(
+    module_json_file, j, gen_invs, answer_invs = (
+        protocol_parsing.parse_module_and_invs_invs_myparser(
           ivyname,
           os.path.join(b, "invariants"),
           answers_filename
         )
     )
+    module_invs = j["conjectures"]
+
+    def copy_dict(a, b, prefix):
+      for key in b:
+        a[prefix+key] = b[key]
 
     d_syn = count_terms_of_value_list(gen_invs)
-    d = {
-      "synthesized_invs": d_syn["invs"],
-      "synthesized_terms": d_syn["terms"],
-      "synthesized_max_terms": d_syn["max_terms"],
-      "synthesized_max_vars": d_syn["max_vars"],
-      "synthesized_max_exists": d_syn["max_exists"],
-      "synthesized_max_alts": d_syn["max_alts"],
-    }
+    d = {}
+    copy_dict(d, d_syn, "synthesized_")
 
     if answer_invs != None:
       d_hand = count_terms_of_value_list(answer_invs)
-      d["handwritten_invs"] = d_hand["invs"]
-      d["handwritten_terms"] = d_hand["terms"]
-      d["handwritten_max_terms"] = d_hand["max_terms"]
-      d["handwritten_max_vars"] = d_hand["max_vars"]
-      d["handwritten_max_exists"] = d_hand["max_exists"]
-      d["handwritten_max_alts"] = d_hand["max_alts"]
+      copy_dict(d, d_hand, "handwritten_")
 
     was_success = did_succeed(b)
     if (not was_success) and answer_invs != None:

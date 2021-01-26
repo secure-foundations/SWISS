@@ -208,11 +208,14 @@ class BasicStats(object):
       self.num_inductivity_checks = 0
       self.timed_out_6_hours = False
       self.global_stats = {}
+      self.total_long_smtAllQueries_ops = 0
+      self.total_long_smtAllQueries_ms = 0
       for line in f:
         if line.strip() == "total":
           doing_total = True
         if line.startswith("total time: "):
           self.total_time_sec = float(line.split()[2])
+          self.total_cpu_time_sec = float(line.split()[7])
         elif line.startswith("Number of threads: "):
           self.num_threads = int(line.split()[3])
         elif line.startswith("Number of invariants synthesized: "):
@@ -269,6 +272,10 @@ class BasicStats(object):
             self.cvc4_unsat_time = int(line.split()[-2])
           elif line.startswith("total time filtering"):
             self.total_time_filtering_ms = int(line.split()[-2])
+          elif line.startswith("long smtAllQueries ops"):
+            self.total_long_smtAllQueries_ops = int(line.split()[-1])
+          elif line.startswith("long smtAllQueries time"):
+            self.total_long_smtAllQueries_ms = int(line.split()[-2])
 
           if "[init-check] sat ops" in line:
             self.num_inductivity_checks += int(line.split()[-1])
@@ -380,7 +387,7 @@ class Table(object):
               source_col_idx += 1
           else:
             if self.source_column and i != len(self.rows) - 1:
-              s += " \\\\ \\cline{2-13}"
+              s += " \\\\ \\cline{2-"+str(len(self.column_names))+"}"
             else:
               s += " \\\\ \\hline"
           s += "\n"
@@ -674,7 +681,12 @@ def get_inv_analysis_info(input_directory, benchname):
   else:
     return {}
 
-def get_or_question_mark(inv_analysis_info, r, name):
+def get_or_question_mark(inv_analysis_info, r, name, succ=None):
+  if succ != None:
+    if succ:
+      name = "synthesized_" + name
+    else:
+      name = "handwritten_" + name
   if r in inv_analysis_info and name in inv_analysis_info[r]:
     return str(inv_analysis_info[r][name])
   else:
@@ -708,10 +720,10 @@ def make_comparison_table(input_directory, median_of=5):
   I4_COL = '\\begin{tabular}{@{}c@{}}I4 \\\\ \\cite{I4}\\end{tabular}'
   FOL_COL = '\\begin{tabular}{@{}c@{}}FOL \\\\ \\cite{fol-sep}\\end{tabular}'
 
-  cols = [
+  cols1 = [
     ('l', 'Benchmark'),
-    ('r', 'invs'),
-    ('r', 'terms'),
+    #('r', 'invs'),
+    #('r', 'terms'),
     ('c', '$\\exists$?'),
     '||',
     ('r', I4_COL),
@@ -721,8 +733,19 @@ def make_comparison_table(input_directory, median_of=5):
     ('r', '$t_B$'),
     ('r', '$t_F$'),
     ('r', '$n_B$'),
-    ('r', SWISS_INVS),
-    ('r', SWISS_TERMS),
+    #('r', SWISS_INVS),
+    #('r', SWISS_TERMS),
+    #('r', 'Partial'),
+  ]
+
+  LIST_NAME = 'list'
+  cols2 = [
+    ('l', 'Benchmark'),
+    ('l', 'Solved'),
+    '||',
+    ('r', 'total terms'),
+    ('r', 'max vars'),
+    ('r', LIST_NAME),
     #('r', 'Partial'),
   ]
 
@@ -739,6 +762,8 @@ def make_comparison_table(input_directory, median_of=5):
   def calc(r, c):
     if use_old_names:
       r = r.replace("auto_full", "auto").replace("auto_e0_full","auto_e0")
+
+    did_succeed = (stats[r] != None and (not stats[r].timed_out_6_hours) and stats[r].success)
 
     if c == "Benchmark":
       bname = get_bench_name(r)
@@ -761,9 +786,25 @@ def make_comparison_table(input_directory, median_of=5):
     elif c == '$\\exists$?':
       return "$\\checkmark$" if get_bench_existential(r) else ""
     elif c == 'invs':
-      return get_or_question_mark(inv_analysis_info, r, "handwritten_invs")
-    elif c == 'terms':
-      return get_or_question_mark(inv_analysis_info, r, "handwritten_terms")
+      return get_or_question_mark(inv_analysis_info, r, "invs", succ=did_succeed)
+    elif c == 'total terms':
+      return get_or_question_mark(inv_analysis_info, r, "terms", succ=did_succeed)
+    elif c == 'max vars':
+      return get_or_question_mark(inv_analysis_info, r, "max_vars", succ=did_succeed)
+    elif c == 'Solved':
+      return "$\\checkmark$" if did_succeed else ""
+    elif c == LIST_NAME:
+      name = ('synthesized' if did_succeed else 'handwritten') + '_k_terms_by_inv'
+      if r in inv_analysis_info and name in inv_analysis_info[r]:
+        l = inv_analysis_info[r][name]
+        a = max([0] + l[:-1])
+        b = l[-1]
+        if a == 0:
+          return str(b)
+        else:
+          return "[" + str(a) + "...], " + str(b)
+      else:
+        return '?'
     else:
       if stats[r] == None:
         return "TODO1"
@@ -802,7 +843,10 @@ def make_comparison_table(input_directory, median_of=5):
       else:
         assert False, c
 
-  t = Table(cols, rows, calc, source_column=True)
+  t = Table(cols1, rows, calc, source_column=True)
+  t.dump()
+
+  t = Table(cols2, rows, calc, source_column=True)
   t.dump()
 
 def make_optimization_step_table(input_directory):
@@ -1506,7 +1550,17 @@ def misc_stats(input_directory, median_of=5):
   p("totalSolved", total_solved)
   p("totalSolvedBreadthOnly", total_solved_breadth_only)
   p("totalSolvedFinisherOnly", total_solved_finisher_only)
-      
+
+  
+  def percent_of_time_hard_smt(r):
+    return 100.0 * float(r.total_long_smtAllQueries_ms) / (float(r.total_cpu_time_sec) * 1000)
+
+  for r in MAIN_TABLE_ROWS:
+    if r == '||': continue
+    m = median_or_fail(input_directory, r, 1, median_of)
+    if hasattr(m, 'total_cpu_time_sec'):
+      print(m.filename)
+      print(percent_of_time_hard_smt(m))
 
 def templates_table(input_directory):
   rows = [
@@ -1689,8 +1743,8 @@ def main():
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
-  make_comparison_table(input_directory, median_of=1)
-  #misc_stats(input_directory)
+  #make_comparison_table(input_directory, median_of=1)
+  misc_stats(input_directory)
   #templates_table(input_directory)
 
 if __name__ == '__main__':
