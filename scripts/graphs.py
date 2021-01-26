@@ -309,11 +309,12 @@ class Hatch(object):
     pass
 
 class Table(object):
-  def __init__(self, column_names, rows, calc_fn, source_column=False):
+  def __init__(self, column_names, rows, calc_fn, source_column=False, borderless=False):
     self.source_column = source_column
     self.column_names = []
     self.column_alignments = []
     self.column_double = []
+    self.borderless = borderless
     for stuff in column_names:
       if stuff != '||':
         alignment, c = stuff
@@ -367,8 +368,12 @@ class Table(object):
     ]
     source_col_idx = 0
 
+    if self.borderless:
+      colspec = colspec[1 : -1]
+
     s = "\\begin{tabular}{" + colspec + "}\n"
-    s += "\\hline\n"
+    if not self.borderless:
+      s += "\\hline\n"
     column_widths = [max(len(self.rows[r][c]) for r in range(len(self.rows))) + 1 for c in range(len(self.column_names))]
     for i in range(len(self.rows)):
       if self.source_column:
@@ -381,22 +386,28 @@ class Table(object):
         s += (" " * (column_widths[j] - len(self.rows[i][j]))) + self.rows[i][j]
         if j == len(self.column_names) - 1:
           if i == 0 or self.row_double[i-1]:
-            s += " \\\\ \\hline \\hline"
+            if self.borderless:
+              s += " \\\\ \\hline"
+            else:
+              s += " \\\\ \\hline \\hline"
             if self.source_column:
               s += "\n" + source_col[source_col_idx]
               source_col_idx += 1
           else:
             if self.source_column and i != len(self.rows) - 1:
-              s += " \\\\ \\cline{2-"+str(len(self.column_names))+"}"
+              s += " \\\\ \\cline{2-"+str(len(self.column_names)+1)+"}"
             else:
-              s += " \\\\ \\hline"
+              if self.borderless and (i == len(self.rows) - 1):
+                s += " \\\\"
+              else:
+                s += " \\\\ \\hline"
           s += "\n"
         else:
           s += " &"
     s += "\\end{tabular}\n"
     for h in self.hatch_lines:
       s += h + "\n"
-    print(s)
+    print(s, end="")
 
 def read_I4_data(input_directory):
   def real_line_parse_secs(l):
@@ -437,6 +448,18 @@ def commaify(n):
       s = "," + s
     s = n[i] + s
   return s
+
+def commaify1(n):
+  if n == 820878178:
+    return '$820 \cdot 10^6$~'
+  elif n == 3461137:
+    return '$3 \cdot 10^6$'
+  elif n == 98828918711712:
+    return '$99 \cdot 10^{12}$'
+  elif n == 232460599445:
+    return '$232 \cdot 10^{9}$'
+  else:
+    return commaify(n)
 
 def I4_get_res(d, r):
   if d == None:
@@ -692,7 +715,7 @@ def get_or_question_mark(inv_analysis_info, r, name, succ=None):
   else:
     return "?"
 
-def make_comparison_table(input_directory, median_of=5):
+def make_comparison_table(input_directory, table, median_of=5):
   if "camera-ready-2020august-serenity" in input_directory:
     global use_old_names
     use_old_names = True
@@ -717,8 +740,16 @@ def make_comparison_table(input_directory, median_of=5):
   SWISS_INVS = '\\begin{tabular}{@{}c@{}}\\name \\\\ invs\\end{tabular}'
   SWISS_TERMS = '\\begin{tabular}{@{}c@{}}\\name \\\\ terms\\end{tabular}'
 
-  I4_COL = '\\begin{tabular}{@{}c@{}}I4 \\\\ \\cite{I4}\\end{tabular}'
-  FOL_COL = '\\begin{tabular}{@{}c@{}}FOL \\\\ \\cite{fol-sep}\\end{tabular}'
+  #I4_COL = '\\begin{tabular}{@{}c@{}}I4 \\\\ \\cite{I4}\\end{tabular}'
+  #FOL_COL = '\\begin{tabular}{@{}c@{}}FOL \\\\ \\cite{fol-sep}\\end{tabular}'
+
+  I4_COL = 'I4~\\cite{I4}'
+  FOL_COL = 'FOL~\\cite{fol-sep}'
+
+  MAX_TERMS_STR = '$mt$'
+  MAX_TERMS_M1_STR = '$mt_B$'
+
+  SPLIT_COL = True
 
   cols1 = [
     ('l', 'Benchmark'),
@@ -729,6 +760,7 @@ def make_comparison_table(input_directory, median_of=5):
     ('r', I4_COL),
     ('r', FOL_COL),
     ('r', '\\name'),
+    ('r', 'Partial'),
     '||',
     ('r', '$t_B$'),
     ('r', '$t_F$'),
@@ -736,6 +768,9 @@ def make_comparison_table(input_directory, median_of=5):
     #('r', SWISS_INVS),
     #('r', SWISS_TERMS),
     #('r', 'Partial'),
+    '||',
+    ('r', MAX_TERMS_STR),
+    ('r', MAX_TERMS_M1_STR),
   ]
 
   LIST_NAME = 'list'
@@ -752,12 +787,14 @@ def make_comparison_table(input_directory, median_of=5):
   folsep_json = read_folsep_json(input_directory)
   i4_data = read_I4_data(input_directory)
 
+  sec_suffix = " s."
+
   def format_secs(s):
     s = float(s)
     if s < 1.0:
-      return "{:.1f}".format(s)
+      return "{:.1f}".format(s) + sec_suffix
     else:
-      return str(int(s))
+      return str(int(s)) + sec_suffix
 
   def calc(r, c):
     if use_old_names:
@@ -793,23 +830,40 @@ def make_comparison_table(input_directory, median_of=5):
       return get_or_question_mark(inv_analysis_info, r, "max_vars", succ=did_succeed)
     elif c == 'Solved':
       return "$\\checkmark$" if did_succeed else ""
-    elif c == LIST_NAME:
-      name = ('synthesized' if did_succeed else 'handwritten') + '_k_terms_by_inv'
-      if r in inv_analysis_info and name in inv_analysis_info[r]:
-        l = inv_analysis_info[r][name]
-        a = max([0] + l[:-1])
-        b = l[-1]
+    elif c in (LIST_NAME, MAX_TERMS_STR, MAX_TERMS_M1_STR):
+      names = (['synthesized'] if did_succeed else []) + ['handwritten']
+      t = []
+      for name1 in names:
+        name = name1 + '_k_terms_by_inv'
+
+        if r in inv_analysis_info and name in inv_analysis_info[r]:
+          l = inv_analysis_info[r][name]
+          a = max([0] + l[:-1])
+          b = l[-1]
+          d = max(l)
+          t.append((a,b,d))
+      if len(t) == 0:
+        return '?'
+      if len(t) == 1:
+        a,b,d = t[0]
+      if len(t) == 2:
+        a,b,d = (t[0] if t[0][1] < t[1][1] else t[1])
+      if c == LIST_NAME:
         if a == 0:
           return str(b)
         else:
           return "[" + str(a) + "...], " + str(b)
+      elif c == MAX_TERMS_STR:
+        return d
+      elif c == MAX_TERMS_M1_STR:
+        return ('' if a == 0 else a)
       else:
-        return '?'
+        assert False
     else:
       if stats[r] == None:
         return "TODO1"
       if stats[r].timed_out_6_hours:
-        if c == "\\name":
+        if (SPLIT_COL and c == 'Partial') or ((not SPLIT_COL) and c == '\\name'):
           invs_got = get_or_question_mark(inv_analysis_info, r,
               "invs_got")
           invs_total = get_or_question_mark(inv_analysis_info, r,
@@ -818,9 +872,11 @@ def make_comparison_table(input_directory, median_of=5):
           return (
             '(' + str(invs_got) + ' / ' + str(invs_total) + ')'
           )
-
+        elif c == '\\name':
+          return Hatch()
         else:
           return ""
+
       if not stats[r].success:
         return "TODO2"
 
@@ -840,14 +896,19 @@ def make_comparison_table(input_directory, median_of=5):
         return get_or_question_mark(inv_analysis_info, r, "synthesized_invs")
       elif c == SWISS_TERMS:
         return get_or_question_mark(inv_analysis_info, r, "synthesized_terms")
+      elif c == 'Partial':
+        return ''
       else:
         assert False, c
 
-  t = Table(cols1, rows, calc, source_column=True)
-  t.dump()
-
-  t = Table(cols2, rows, calc, source_column=True)
-  t.dump()
+  if table == 1:
+    t = Table(cols1, rows, calc, source_column=True)
+    t.dump()
+  elif table == 2:
+    t = Table(cols2, rows, calc)
+    t.dump()
+  else:
+    assert False
 
 def make_optimization_step_table(input_directory):
   logfiles = [
@@ -879,13 +940,13 @@ def make_optimization_step_table(input_directory):
           counts[(r, alg)] = get_counts.get_counts(full_name, alg)
 
   columns = [
-    ('l', 'Benchmark'),
+    ('l', ''),
     ('r', 'Baseline'),
-    ('r', 'Symmetries'),
-    ('r', 'Counterexample filtering'),
-    ('r', 'FastImplies'),
-    '||',
-    ('r', 'Invariants'),
+    ('r', 'Sym.\\ '),
+    ('r', 'Cex filters'),
+    ('r', 'FastImpl'),
+    #'||',
+    ('r', 'Inv.'),
   ]
 
   def calc(row, col):
@@ -899,17 +960,18 @@ def make_optimization_step_table(input_directory):
       fs = ts.get_finisher_stats()
       stats = fs[0]
 
-    if col == 'Benchmark':
+    if col == '':
       #return bench.name + (' (B)' if alg == 'breadth' else ' (F)')
-      rname = get_bench_name(r)
-      if rname == 'paxos-missing1':
-        rname = 'paxos'
-      return rname + (' (B)' if alg == 'breadth' else ' (F)')
+      #rname = get_bench_name(r)
+      #if rname == 'paxos-missing1':
+      #  rname = 'paxos'
+      #return rname + (' (B)' if alg == 'breadth' else ' (F)')
+      return '$\\B$' if alg == 'breadth' else '$\\F$'
     elif col == 'Baseline':
-      return commaify(counts[row].presymm)
-    elif col == 'Symmetries':
-      return commaify(counts[row].postsymm)
-    elif col == 'Counterexample filtering':
+      return commaify1(counts[row].presymm)
+    elif col == 'Sym.\\ ':
+      return commaify1(counts[row].postsymm)
+    elif col == 'Cex filters':
       return commaify(stats["Counterexamples of type FALSE"]
           + stats["Counterexamples of type TRANSITION"]
           + stats["Counterexamples of type TRUE"]
@@ -919,7 +981,7 @@ def make_optimization_step_table(input_directory):
           + stats["number of enumerated filtered redundant invariants"]
         )
 
-    elif col == 'FastImplies':
+    elif col == 'FastImpl':
       return commaify(stats["Counterexamples of type FALSE"]
           + stats["Counterexamples of type TRANSITION"]
           + stats["Counterexamples of type TRUE"]
@@ -928,15 +990,17 @@ def make_optimization_step_table(input_directory):
           + stats["number of finisher invariants found"]
         )
 
-    elif col == 'Invariants':
+    elif col == 'Inv.':
       return commaify(
             stats["number of non-redundant invariants found"]
           + stats["number of redundant invariants found"]
           + stats["number of finisher invariants found"]
         )
 
-  t = Table(columns, rows, calc)
+  print("\\begin{center}")
+  t = Table(columns, rows, calc, borderless=True)
   t.dump()
+  print("\\end{center}")
 
 def get_files_with_prefix(input_directory, prefix):
   files = []
@@ -1551,7 +1615,7 @@ def misc_stats(input_directory, median_of=5):
   p("totalSolvedBreadthOnly", total_solved_breadth_only)
   p("totalSolvedFinisherOnly", total_solved_finisher_only)
 
-  
+  """ 
   def percent_of_time_hard_smt(r):
     return 100.0 * float(r.total_long_smtAllQueries_ms) / (float(r.total_cpu_time_sec) * 1000)
 
@@ -1561,6 +1625,7 @@ def misc_stats(input_directory, median_of=5):
     if hasattr(m, 'total_cpu_time_sec'):
       print(m.filename)
       print(percent_of_time_hard_smt(m))
+  """
 
 def templates_table(input_directory):
   rows = [
@@ -1743,7 +1808,7 @@ def main():
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory, median_of=1)
+  #make_comparison_table(input_directory, 1, median_of=1)
   misc_stats(input_directory)
   #templates_table(input_directory)
 
