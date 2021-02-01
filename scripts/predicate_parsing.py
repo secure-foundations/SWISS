@@ -66,7 +66,9 @@ def parse_atom(tokens, i):
 
   if tokens[i] == '(':
     e, i = parse1(tokens, i+1)
-    assert i < len(tokens) and tokens[i] == ')'
+    if not (i < len(tokens) and tokens[i] == ')'):
+      print(tokens, i)
+      assert False
     return e, i+1
   elif tokens[i] == '~':
     e, i = parse_atom(tokens, i+1)
@@ -93,7 +95,11 @@ def parse_atom(tokens, i):
     return [qtype, decls, ebody], i
   elif is_id(tokens[i]):
     c = tokens[i]
-    if is_var(c):
+    if tokens[i] == 'true':
+      return ["and", []], i+1
+    elif tokens[i] == 'false':
+      return ["or", []], i+1
+    elif is_var(c):
       return ["var", c], i+1
     elif is_const(c):
       if i+1 < len(tokens) and tokens[i+1] == '(':
@@ -159,8 +165,8 @@ class Scope(object):
     assert funcsort[0] == "functionSort"
     return funcsort[1][i]
 
-  def get_range(self, c, i):
-    funcsort = self.consts[c]
+  def get_range(self, c):
+    funcsort = self.consts[c[1]]
     assert funcsort[0] == "functionSort"
     return funcsort[2]
 
@@ -260,7 +266,9 @@ def do_infer(v, scope):
   elif v[0] == 'var':
     if len(v) == 3:
       if v[1] in scope.vars:
-        assert repr(scope.vars[v[1]]) == repr(v[2])
+        if repr(scope.vars[v[1]]) != repr(v[2]):
+          print(v, scope.vars[v[1]], v[2])
+          assert False
       else:
         scope.vars[v[1]] = v[2]
       return v
@@ -330,3 +338,25 @@ def parse_inv_contents(invs_contents, module):
   cs = cs[1:]
 
   return [parse_string(module, c) for c in cs]
+
+def parse_inv_contents_I4(invs_contents, module):
+  lines = invs_contents.split('\n')
+  nums = []
+  invs = []
+  for line in lines:
+    if line.startswith("invariant "):
+      l = line.split()
+      num = l[1]
+      inv = ' '.join(l[2:])
+      nums.append(num)
+      invs.append(inv)
+  assert nums[0] == '[1000000]'
+
+  res = []
+  for c in invs:
+    try:
+      new_inv = parse_string(module, c)
+      res.append(new_inv)
+    except Exception as e:
+      return c
+  return res

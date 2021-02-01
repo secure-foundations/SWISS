@@ -424,21 +424,8 @@ def read_I4_data(input_directory):
   if not os.path.exists(i4_filename):
     return None
 
-  d = {}
   with open(i4_filename) as f:
-    last_real_line = None
-    for line in f:
-      line = line.strip()
-      if line.startswith("real\t"):
-        last_real_line = line
-      elif line.endswith(" done!"):
-        secs = real_line_parse_secs(last_real_line)
-        last_real_line = None
-
-        name = line[:-6]
-
-        d[name] = secs
-  return d
+    return json.loads(f.read())
 
 def commaify(n):
   n = str(n)
@@ -465,32 +452,29 @@ def I4_get_res(d, r):
   if d == None:
     return None
 
-  name = get_bench_name(r)
-  if name in ("ticket", "learning-switch-quad", "sdl"):
-    return None
-
   if get_bench_existential(r):
     return None
 
-  I4_name = {
-      "toy-consensus-forall": "toy_consensus_forall",
-      "consensus-forall": "consensus_forall",
-      "consensus-wo-decide": "consensus_wo_decide",
-      "lock-server-async": "lockserv",
-      "sharded-kv": "sharded_kv",
-      "ticket": "ticket",
+  #b1 = get_bench_name(r)
+  #if b1 == 'sdl':
+  #  b1 = 'simple-de-lock'
+  #if b1 == 'ring-election':
+  #  b1 = 'leader-election'
+  #if b1 == 'two-phase-commit':
+  #  b1 = '2pc'
+  #if b1 == 'distributed-lock':
+  #  b1 = 'distributed_lock'
+  b1 = r.split('__')[1]
+  if b1 == '2PC':
+    b1 = '2pc'
+  if b1.endswith("_pyv"):
+    b1 = b1[:-4]
+  if b1 == 'learning-switch-quad':
+    b1 = 'learning-switch-quat'
 
-      'sdl': "simple-de-lock",
-      'ring-election': "leader election",
-      'learning-switch-ternary': "learning switch",
-      'lock-server-sync': "lock server",
-      'two-phase-commit': "two phase commit",
-      'chain': "database chain replication",
-      'chord': "chord ring",
-      'distributed-lock': "distributed lock",
-  }[name]
-
-  return d[I4_name]
+  if not d[b1]["success"]:
+    return None
+  return d[b1]["time_secs"]
   
 
 def read_folsep_json(input_directory):
@@ -846,8 +830,9 @@ def make_comparison_table(input_directory, table, median_of=5):
         return '?'
       if len(t) == 1:
         a,b,d = t[0]
-      if len(t) == 2:
-        a,b,d = (t[0] if t[0][1] < t[1][1] else t[1])
+      if len(t) >= 2:
+        t = sorted(t, key=lambda x : (x[2], x[0]))
+        a,b,d = t[0]
       if c == LIST_NAME:
         if a == 0:
           return str(b)
@@ -1615,7 +1600,6 @@ def misc_stats(input_directory, median_of=5):
   p("totalSolvedBreadthOnly", total_solved_breadth_only)
   p("totalSolvedFinisherOnly", total_solved_finisher_only)
 
-  """ 
   def percent_of_time_hard_smt(r):
     return 100.0 * float(r.total_long_smtAllQueries_ms) / (float(r.total_cpu_time_sec) * 1000)
 
@@ -1625,7 +1609,9 @@ def misc_stats(input_directory, median_of=5):
     if hasattr(m, 'total_cpu_time_sec'):
       print(m.filename)
       print(percent_of_time_hard_smt(m))
-  """
+    else:
+      #print(r)
+      pass
 
 def templates_table(input_directory):
   rows = [
@@ -1808,8 +1794,8 @@ def main():
   #make_smt_stats_table(input_directory)
   #make_opt_graphs_main(input_directory, both=True)
   #make_optimization_step_table(input_directory)
-  #make_comparison_table(input_directory, 1, median_of=1)
-  misc_stats(input_directory)
+  make_comparison_table(input_directory, 1, median_of=1)
+  #misc_stats(input_directory)
   #templates_table(input_directory)
 
 if __name__ == '__main__':
