@@ -1600,18 +1600,18 @@ def misc_stats(input_directory, median_of=5):
   p("totalSolvedBreadthOnly", total_solved_breadth_only)
   p("totalSolvedFinisherOnly", total_solved_finisher_only)
 
-  def percent_of_time_hard_smt(r):
-    return 100.0 * float(r.total_long_smtAllQueries_ms) / (float(r.total_cpu_time_sec) * 1000)
+  #def percent_of_time_hard_smt(r):
+  #  return 100.0 * float(r.total_long_smtAllQueries_ms) / (float(r.total_cpu_time_sec) * 1000)
 
-  for r in MAIN_TABLE_ROWS:
-    if r == '||': continue
-    m = median_or_fail(input_directory, r, 1, median_of)
-    if hasattr(m, 'total_cpu_time_sec'):
-      print(m.filename)
-      print(percent_of_time_hard_smt(m))
-    else:
-      #print(r)
-      pass
+  #for r in MAIN_TABLE_ROWS:
+  #  if r == '||': continue
+  #  m = median_or_fail(input_directory, r, 1, median_of)
+  #  if hasattr(m, 'total_cpu_time_sec'):
+  #    print(m.filename)
+  #    print(percent_of_time_hard_smt(m))
+  #  else:
+  #    #print(r)
+  #    pass
 
 def templates_table(input_directory):
   rows = [
