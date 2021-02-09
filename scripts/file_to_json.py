@@ -193,6 +193,8 @@ def logic_to_obj(l):
     return ["const", l.name, sort_to_obj(l.sort)]
   elif isinstance(l, logic.Implies):
     return ["implies", logic_to_obj(l.t1), logic_to_obj(l.t2)]
+  elif isinstance(l, logic.Iff):
+    return ["eq", logic_to_obj(l.t1), logic_to_obj(l.t2)]
   elif isinstance(l, logic.Eq):
     return ["eq", logic_to_obj(l.t1), logic_to_obj(l.t2)]
   elif isinstance(l, logic.Not):

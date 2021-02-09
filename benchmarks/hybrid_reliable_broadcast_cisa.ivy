@@ -1,0 +1,238 @@
+#lang ivy1.6
+
+type quorum_a
+type quorum_b
+type node
+
+relation member_a(N: node, Q:quorum_a)
+relation member_b(N: node, Q:quorum_b)
+
+relation member_fc(N:node)
+relation member_fi(N:node)
+relation member_fs(N:node)
+relation member_fa(N:node)
+
+axiom exists B:quorum_b. forall N:node. member_b(N, B) -> ~member_fa(N) & ~member_fc(N) & ~member_fs(N) & ~member_fi(N)
+
+# nonempty( A & ~fa & ~fs )
+axiom forall A_BP:quorum_a. exists N:node. member_a(N, A_BP) & ~member_fa(N) & ~member_fs(N)
+
+# A( B & ~fa & ~fi )
+axiom forall B_CF:quorum_b. exists A:quorum_a. forall N:node. member_a(N, A) -> member_b(N, B_CF) & ~member_fa(N) & ~member_fi(N)
+
+# fc,fi,fs,fa are disjoint
+axiom forall N:node. ~(member_fc(N) & member_fi(N))
+axiom forall N:node. ~(member_fc(N) & member_fs(N))
+axiom forall N:node. ~(member_fc(N) & member_fa(N))
+axiom forall N:node. ~(member_fi(N) & member_fs(N))
+axiom forall N:node. ~(member_fi(N) & member_fa(N))
+axiom forall N:node. ~(member_fs(N) & member_fa(N))
+
+################################################################################
+#
+# Protocol state
+#
+################################################################################
+
+# state of nodes
+relation rcv_init(N:node)
+relation accept(N:node)
+
+# state of the network
+relation sent_msg(N:node, N:node) # (src, dst)
+relation rcv_msg(N:node, N:node) # (src, dst)
+
+relation sent_msg_tmp(N:node, N:node) # (src, dst)
+
+# projection of sent_msg
+relation sent_msg_proj(N:node) # := exists D. sent_msg(S,D)
+
+init ~accept(N)
+init ~sent_msg(N1, N2)
+init ~sent_msg_proj(N)
+init ~rcv_msg(N1, N2)
+
+################################################################################
+#
+# Protocol transitions
+#
+################################################################################
+
+################################################################################
+# Correct nodes
+################################################################################
+
+action receive_init = {
+  local n:node {
+    assume rcv_init(n);
+    sent_msg(n, D) := true;
+    sent_msg_proj(n) := true;
+  }
+}
+
+action receive_msg = {
+  local n:node, s:node {
+    assume (sent_msg(s, n));
+
+    rcv_msg(s, n) := true;
+
+    if (exists B. forall N. member_b(N,B) -> rcv_msg(N,n)) {
+      accept(n) := true;
+    };
+    
+    if (exists A. forall N. member_a(N,A) -> rcv_msg(N,n)) {
+      sent_msg(n, D) := true;
+      sent_msg_proj(n) := true;
+    };
+  }
+}
+
+################################################################################
+# fc - symmetric omission
+################################################################################
+
+# receive_init_c - not needed
+
+action receive_msg_c_1 = {
+  local n:node, s:node {
+    assume member_fc(n);
+    assume (sent_msg(s, n));
+
+    rcv_msg(s,n) := true;
+
+    if (exists B. forall N. member_b(N,B) -> rcv_msg(N,n)) {
+      accept(n) := true;
+    };
+
+    assume ( exists A. forall N. member_a(N,A) -> rcv_msg(N,n) );
+    sent_msg(n, D) := true;
+    sent_msg_proj(n) := true;
+  }
+}
+
+action receive_msg_c_2 = {
+  local n:node, s:node {
+    assume member_fc(n);
+    assume (sent_msg(s, n));
+
+    rcv_msg(s,n) := true;
+
+    if (exists B. forall N. member_b(N,B) -> rcv_msg(N,n)) {
+      accept(n) := true;
+    };
+  }
+}
+
+
+################################################################################
+# fi - arbitrary omission
+################################################################################
+
+action receive_init_i = {
+  local n:node {
+    assume member_fi(n);
+    assume rcv_init(n);
+
+    sent_msg_tmp(N,D) := sent_msg(N,D);
+    sent_msg(N,D) := *;
+
+    assume ( forall S, D. S ~= n -> (sent_msg(S, D) <-> (sent_msg_tmp(S, D))) );
+    assume ( forall D. (sent_msg_tmp(n, D)) -> sent_msg(n, D) );
+
+    assume sent_msg_proj(n) -> (exists D. sent_msg(n, D));
+    sent_msg_proj(n) := (exists D. sent_msg(n, D));
+  }
+}
+
+action receive_msg_i = {
+  local n:node, s:node {
+    assume member_fi(n);
+    assume (sent_msg(s, n));
+
+    rcv_msg(s,n) := true;
+    if (exists B. forall N. member_b(N,B) -> rcv_msg(N,n)) {
+      accept(n) := true;
+    };
+
+    if (exists A. forall N. member_a(N,A) -> rcv_msg(N,n)) {
+      sent_msg_tmp(S, D) := sent_msg(S, D);
+      sent_msg(S, D) := *;
+      assume ( forall S, D. S ~= n -> (sent_msg(S, D) <-> (sent_msg_tmp(S, D))) );
+      assume ( forall D. (sent_msg_tmp(n, D)) -> sent_msg(n, D) );
+
+      assume sent_msg_proj(n) -> (exists D. sent_msg(n, D));
+      sent_msg_proj(n) := (exists D. sent_msg(n, D));
+    };
+  }
+}
+
+################################################################################
+# fs - symmetric Byzantine
+################################################################################
+
+action faulty_send_s = {
+  local n:node {
+    assume member_fs(n);
+    sent_msg(n, D) := true;
+    sent_msg_proj(n) := true;
+  }
+}
+
+action faulty_state_sa = {
+  local n:node {
+    assume ( member_fs(n) | member_fa(n) );
+    rcv_msg(S, n) := *;
+    accept(n) := *;
+  }
+}
+
+################################################################################
+# fa - arbitrary Byzantine
+################################################################################
+
+action faulty_send_a = {
+  local n:node {
+    assume member_fa(n);
+
+    sent_msg_tmp(S, D) := sent_msg(S, D);
+    sent_msg(S, D) := *;
+    assume ( forall S, D. S ~= n -> (sent_msg(S, D) <-> (sent_msg_tmp(S, D))) );
+    assume ( forall D. (sent_msg_tmp(n, D)) -> sent_msg(n, D) );
+
+    assume sent_msg_proj(n) -> (exists D. sent_msg(n, D));
+    sent_msg_proj(n) := (exists D. sent_msg(n, D));
+  }
+}
+
+export receive_init
+export receive_msg
+export receive_msg_c_1
+export receive_msg_c_2
+export receive_init_i
+export receive_msg_i
+export faulty_send_s
+export faulty_state_sa
+export faulty_send_a
+
+################################################################################
+#
+# Safety property
+#
+################################################################################
+
+conjecture (exists N. ~member_fs(N) & ~member_fa(N) & accept(N)) -> (exists M. ~member_fs(M) & ~member_fa(M) & rcv_init(M))
+
+################################################################################
+#
+# Inductive conjecture
+#
+################################################################################
+
+#conjecture sent_msg_proj(N1) -> exists N2. sent_msg(N1,N2) # breaks decidability
+
+#conjecture sent_msg(N1,N2) -> sent_msg_proj(N1)
+#conjecture ~member_fs(N2) & ~member_fa(N2) & rcv_msg(N1,N2) -> sent_msg(N1,N2)
+#conjecture ~member_fi(N1) & ~member_fa(N1) & sent_msg_proj(N1) -> sent_msg(N1,N2) # symmetric where it should be
+#conjecture ~member_fs(N1) & ~member_fa(N1) & sent_msg(N1,N2) & ~rcv_init(N1) -> exists A. forall M. member_a(M,A) -> sent_msg_proj(M)
+#conjecture ~member_fs(N1) & ~member_fa(N1) & accept(N1) -> exists B. forall M. member_b(M,B) -> sent_msg_proj(M)
+#conjecture (exists A. forall M. member_a(M,A) & ~member_fs(M) & ~member_fa(M) -> sent_msg_proj(M)) -> (exists N. ~member_fs(N) & ~member_fa(N) & rcv_init(N))

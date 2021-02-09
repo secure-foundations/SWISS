@@ -1,0 +1,43 @@
+#lang ivy1.6
+
+type node
+type response
+type request
+
+relation match(R:request, Q:response)
+
+relation request_sent(N:node, R:request)
+relation response_sent(N:node, Q:response)
+relation response_received(N:node, Q:response)	
+
+init ~request_sent(N,R)
+init ~response_sent(N,P)
+init ~response_received(N,P)	
+
+action new_request = {
+  local n:node, r:request {
+    request_sent(n, r) := true;
+  }
+}
+
+action respond = {
+  local n:node, r:request, p:response {
+    assume (request_sent(n,r));
+    assume (match(r,p));
+    response_sent(n, p) := true;
+  }
+}
+
+action receive_response = {
+  local n:node, p:response {
+    assume (response_sent(n,p));
+    response_received(n, p) := true;
+  }
+}
+
+export new_request
+export respond
+export receive_response
+
+conjecture forall N,P. response_received(N,P) -> exists R. request_sent(N,R) & match(R,P)
+#conjecture forall N,P. response_sent(N,P) -> exists R. request_sent(N,R) & match(R,P)
