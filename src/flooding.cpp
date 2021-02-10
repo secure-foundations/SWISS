@@ -350,6 +350,9 @@ void Flood::process_impl(Entry const& a, Entry const& b)
    || (a.exists_mask & b.forall_mask)) {
     return;
   }*/
+  if (a.exists_mask & b.exists_mask) {
+    return;
+  }
 
   if (a.v.size() + b.v.size() <= 2 || (int)a.v.size() + (int)b.v.size() - 2 > max_k) {
     return;
