@@ -32,35 +32,17 @@ OBJECTS = $(addprefix bin/,\
 	lib/json11/json11.o \
 )
 
-ifdef GLUCOSE_RELEASE
-GLUCOSE_LIB = bin/lib_glucose_release.a
-else
-GLUCOSE_LIB = bin/lib_glucose_debug.a
-endif
-
-#LIBS = $(GLUCOSE_LIB)
 LIBS =
 
 DEP_DIR = bin/deps
 
-CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Isrc/lib/glucose-syrup/ -Wsign-compare -Wunused-variable
+CXXFLAGS = -g -O2 -std=c++11 -Wall -Werror -Wsign-compare -Wunused-variable
 #-DSMT_CVC4
 
 all: synthesis
 
-glucoselib: GLUCOSE_LIB
-
 synthesis: $(OBJECTS) $(LIBS)
 	clang++ -g -o synthesis $(LIBPATH) $(OBJECTS) $(LIBS) -lz3 -lcvc4 -lpthread
-
-bin/lib_glucose_release.a:
-	@mkdir -p $(basename $@)
-	cd src/lib/glucose-syrup/simp/ && make libr
-	cp src/lib/glucose-syrup/simp/lib_release.a bin/lib_glucose_release.a
-bin/lib_glucose_debug.a:
-	@mkdir -p $(basename $@)
-	cd src/lib/glucose-syrup/simp/ && make libd
-	cp src/lib/glucose-syrup/simp/lib_debug.a bin/lib_glucose_debug.a
 
 bin/%.o: src/%.cpp
 	@mkdir -p $(basename $@)
