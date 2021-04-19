@@ -52,7 +52,7 @@ Here's an example configuration (`benchmarks/paxos.config`):
       auto # d=2 k=6 mvars=6 e=1
 
 Each configuration includes a `breadth` config, a `finisher` config, or both. Generally, you'll want to run
-both for best results. (A description of these phases can be found in our paper, above.)
+both for best results. (A description of these phases can be found in our paper, below.)
 For any phase, the config can either be a single `auto` line
 or multiple `template` lines.
 
