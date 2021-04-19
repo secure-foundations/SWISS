@@ -22,7 +22,11 @@ The output should include a log directory, something like `logs/log.2021-04-19_1
 To find the invariants that SWISS synthesized, check out the produced `invariants` file.
 
     # use the log directory from the program output
-    cat logs/log.2021-04-19_15.02.42-710190115/invariants
+    $ cat logs/log.2021-04-19_15.02.42-710190115/invariants
+
+You'll see something like,
+
+    conjecture (forall A000:node, A001:node, A002:node . ((((~(btw(A000, A001, A002))) & (~((nid(A000) = nid(A001))))) | ((~(leader(A001))) & (~(pnd(nid(A001), A000)))) | le(nid(A002), nid(A001)))))
 
 ## Setting up a benchmark
 
