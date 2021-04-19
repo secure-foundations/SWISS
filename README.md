@@ -27,6 +27,33 @@ To find the invariants that SWISS synthesized, check out the produced `invariant
 You'll see something like,
 
     conjecture (forall A000:node, A001:node, A002:node . ((((~(btw(A000, A001, A002))) & (~((nid(A000) = nid(A001))))) | ((~(leader(A001))) & (~(pnd(nid(A001), A000)))) | le(nid(A002), nid(A001)))))
+    
+## Command-line options
+
+Usage `./run.sh protocol_file(.ivy|.pyv) [options]`
+
+Required options:
+
+* `--config CONFIG_NAME` - search space configuration to use (name of benchmark in the `.config` file)
+* `--threads N` - maximum number of concurrent processes to run
+
+Optimization flags:
+
+* `--minimal-models` - (recommended) SWISS will attempt to minimize models returned by SMT solver
+* `--with-conjs` - (recommended) SWISS Finisher will synthesize invariants that require the safety condition to prove are inductive.
+   If SWISS fails to complete, then the invariants that it _does_ output will not be guaranteed invariant; they will only
+   be invariant conditioned on the safety condition being invariant.
+* `--breadth-with-conjs` - (recommended) Same as above, for Breadth phase.
+* `--by-size --non-accumulative` - (recommended) Switch off "accumulative" mode. Accumulative was the default for a while, but its value is dubious.
+* `--pre-bmc` - Old optimization flag, mostly a failure. Tries to improve counterexample quality using a BMC check.
+* `--post-bmc` - Old optimization flag, mostly a failure. Variant of the previous.
+
+Other flags:
+
+* `--seed X` - Specify an RNG seed for repeatable runs.
+* `--finisher-only` - Skip breadth phase. (Occasionally useful if you don't want to write a separate config entry.)
+* `--whole-space` - Don't exit as soon as the safety condition is proved; instead, finish the current phase to completion.
+   This will always appear to return an unsuccessful result. It's useful for some benchmarking purposes.
 
 ## Setting up a benchmark
 
