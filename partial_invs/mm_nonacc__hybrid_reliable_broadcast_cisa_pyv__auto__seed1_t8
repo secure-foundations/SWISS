@@ -1,5 +1,0 @@
-conjecture (forall A002:node . ((sent_msg_proj(A002) | (forall A003:node . ((~(sent_msg(A002, A003))))))))
-conjecture (forall A003:node . (((~(member_fc(A003))) | (~(sent_msg_proj(A003))) | (forall A004:node . (sent_msg(A003, A004))))))
-conjecture (forall A004:node . (((~(member_fc(A004))) | (forall A003:node . ((sent_msg(A003, A004) | (~(rcv_msg(A003, A004)))))))))
-conjecture (forall A004:node . (((~(member_fi(A004))) | (forall A003:node . ((sent_msg(A003, A004) | (~(rcv_msg(A003, A004)))))))))
-conjecture (forall A003:node . (((~(member_fs(A003))) | (~(sent_msg_proj(A003))) | (forall A004:node . (sent_msg(A003, A004))))))
