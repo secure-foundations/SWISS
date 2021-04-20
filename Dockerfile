@@ -33,7 +33,7 @@ RUN make install
 ### swiss dependencies
 
 RUN apt-get install -y python2
-COPY get-pip.py /home/root/get-pip.py
+COPY scripts/installing/get-pip.py /home/root/get-pip.py
 WORKDIR /home/root
 RUN python2 get-pip.py
 RUN pip2 install ply
@@ -45,7 +45,7 @@ ENV LD_LIBRARY_PATH=/usr/local/lib/
 
 #RUN pip2 install z3-solver
 RUN ln -s /usr/bin/python2 /usr/bin/python
-COPY install-z3.sh /home/root/install-z3.sh
+COPY scripts/installing/install-z3.sh /home/root/install-z3.sh
 RUN bash install-z3.sh
 
 ENV PYTHONPATH=/usr/local/lib/python2.7/site-packages
