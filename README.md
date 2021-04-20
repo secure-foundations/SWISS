@@ -61,7 +61,7 @@ Optimization flags:
 
 * `--minimal-models` - (recommended) SWISS will attempt to minimize models returned by SMT solver
 * `--with-conjs` - (recommended) SWISS Finisher will synthesize invariants that require the safety condition to prove are inductive.
-   If SWISS fails to complete, then the invariants that it _does_ output will not be guaranteed invariant; they will only
+   If SWISS fails to complete, then the predicates that it _does_ output will not be guaranteed invariant; they will only
    be invariant conditioned on the safety condition being invariant.
 * `--breadth-with-conjs` - (recommended) Same as above, for Breadth phase.
 * `--by-size --non-accumulative` - (recommended) Switch off "accumulative" mode. Accumulative was the default for a while, but its value is dubious.
