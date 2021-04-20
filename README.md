@@ -1,3 +1,5 @@
+SWISS (Small World Invariant Search System) is a research system to automatically infer inductive invariants of distributed systems. It supports [IVy](https://github.com/microsoft/ivy) and the [mypyvy](https://github.com/wilcoxjay/mypyvy) protocol description formats as input.
+
 ## Setup
 
 Easiest way to run is probably with Docker.
