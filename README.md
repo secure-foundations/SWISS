@@ -127,6 +127,6 @@ This nesting order is determined by the declaration order of the sorts in the `.
 
 ## Publications
 
+[Finding Invariants of Distributed Systems: It’s a Small (Enough) World After All](http://www.andrew.cmu.edu/user/bparno/papers/swiss.pdf)
 Travis Hance, Marijn Heule, Ruben Martins, and Bryan Parno.
-_Finding Invariants of Distributed Systems: It’s a Small (Enough) World After All._
 NSDI 2021.
