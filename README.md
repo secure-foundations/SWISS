@@ -1,8 +1,26 @@
-## Building
+## Setup
 
-Run `make`.
+Easiest way to run is probably with Docker.
 
-(TODO fill in more instructions here)
+    ./get-deps.sh
+    docker build -t swiss .
+
+Then head into the container with,
+
+    docker run --name swiss-c -dit swiss /bin/bash
+    docker exec -it swiss-c /bin/bash
+
+For a manual setup, you'll need to:
+
+ * Run `./get-deps.sh`
+ * Build and install `cvc4` (See `INSTALL.md`)
+ * Install [z3](https://github.com/Z3Prover/z3). I've been using 4.8.9. You can use `scripts/installing/install-z3.sh`.
+ * You'll need both python2 and python3 (sorry)
+ * `pip3 install matplotlib z3-solver networkx typing-extensions toml`
+ * `pip2 install ply tarjan`
+ * You can see the Dockerfile for additional information on dependencies.
+
+Run `make` to build.
 
 ## Example usage
 
