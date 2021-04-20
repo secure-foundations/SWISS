@@ -15,7 +15,7 @@ Then head into the container with,
 For a manual setup, you'll need to:
 
  * Run `./get-deps.sh`
- * Build and install `cvc4` (See `INSTALL.md`)
+ * Build and install `cvc4` (use the verison installed by `get-deps.sh`; see `./cvc4/INSTALL.md`)
  * Install [z3](https://github.com/Z3Prover/z3). I've been using 4.8.9. You can use `./scripts/installing/install-z3.sh`.
  * You'll need both python2 and python3 (sorry)
  * `pip3 install matplotlib z3-solver networkx typing-extensions toml`
