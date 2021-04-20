@@ -1,5 +1,0 @@
-(set-logic SLIA)
-(set-info :status sat)
-(declare-fun x () String)
-(assert (str.in.re x (re.comp (str.to.re "ABC"))))
-(check-sat)

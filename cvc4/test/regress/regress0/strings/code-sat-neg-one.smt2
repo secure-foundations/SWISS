@@ -1,8 +1,0 @@
-(set-info :smt-lib-version 2.5)
-(set-logic QF_SLIA)
-(set-info :status sat)
-(declare-fun x () String)
-(declare-fun y () String)
-(assert (not (= x y)))
-(assert (= (str.code x) (str.code y)))
-(check-sat)

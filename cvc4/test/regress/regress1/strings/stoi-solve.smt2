@@ -1,6 +1,0 @@
-(set-logic ALL)
-(set-info :status sat)
-(set-option :strings-exp true)
-(declare-fun x () String)
-(assert (= (str.to.int x) 12345)) 
-(check-sat)

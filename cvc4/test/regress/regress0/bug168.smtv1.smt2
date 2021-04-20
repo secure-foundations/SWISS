@@ -1,5 +1,0 @@
-(set-option :incremental false)
-(set-info :status sat)
-(set-logic QF_LRA)
-(declare-fun v0 () Real)
-(check-sat-assuming ( (distinct 3.0 v0) ))

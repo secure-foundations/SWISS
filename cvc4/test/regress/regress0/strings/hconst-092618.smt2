@@ -1,5 +1,0 @@
-(set-logic ALL)
-(set-info :status sat)
-(declare-fun x () String)
-(assert (str.contains "::" (str.++ x ":" x ":")))
-(check-sat)
