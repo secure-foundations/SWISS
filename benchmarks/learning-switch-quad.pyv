@@ -1,3 +1,5 @@
+# from mypyvy codebase (where it's just called learning_switch)
+
 # This example has a forall-exists invariant, but actually it also has a universal invariant
 
 sort node

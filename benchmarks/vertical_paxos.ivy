@@ -1,5 +1,7 @@
 #lang ivy1.6
 
+# from Paxos Made EPR
+
 ################################################################################
 #
 # Module for axiomatizing a total order

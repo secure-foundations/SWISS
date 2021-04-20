@@ -1,5 +1,7 @@
 #lang ivy1.5
 
+# classic IVy example, from IVy codebase
+
 type node
 type id
 
